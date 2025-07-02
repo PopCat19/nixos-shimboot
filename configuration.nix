@@ -18,11 +18,14 @@
         "usbhid"
         "hid_generic"
         "tun" # TUN/TAP networking support
+        "iwlwifi" # Intel wireless
         "iwlmvm" # Intel wireless
         "ccm" # Counter with CBC-MAC
         "8021q" # VLAN support
         "zram" # Compressed RAM
         "lzo" # LZO compression
+        "e1000e" # Intel ethernet
+        "r8169" # Realtek ethernet
       ];
       kernelModules = []; # Modules to be included in the kernel
     };
@@ -35,7 +38,7 @@
     stateVersion = "24.11"; # NixOS version
     copySystemConfiguration = true; # Copies the system configuration
     activationScripts.traditionalLayout = '' # Creates traditional Unix filesystem layout
-      mkdir -p /sbin /usr/sbin
+      mkdir -p /sbin /usr/sbin /usr/bin
       ln -sf /init /sbin/init
       ln -sf /init /usr/sbin/init
 
@@ -49,14 +52,13 @@
 
   # Networking Configuration
   networking = {
-    dhcpcd.enable = true; # Enables dhcpcd for network configuration
-    useDHCP = true; # Use DHCP
+    dhcpcd.enable = false; # Disable dhcpcd in favor of NetworkManager
+    useDHCP = lib.mkDefault true; # Use DHCP
     firewall.enable = false; # Disables the firewall
+    networkmanager.enable = true; # Enable NetworkManager
+    wireless.enable = false; # Disable wpa_supplicant (conflicts with NetworkManager)
   };
   services.resolved.enable = true; # Enables systemd-resolved for DNS resolution
-  # systemd.network.enable = true; # Conflicts with dhcpcd
-
-  # ZRAM Swap Configuration
   zramSwap = {
     enable = true; # Enables ZRAM swap
     algorithm = "lzo"; # LZO compression algorithm
@@ -106,6 +108,11 @@
     fuse
     networkmanager
     wpa_supplicant
+    linux-firmware # Hardware firmware
+    intel-media-driver # Intel graphics
+    mesa # Graphics drivers
+    kitty # Terminal emulator
+    kdePackages.sddm # Display manager
 
     (writeShellScriptBin "expand_rootfs" '' # Script to expand the root filesystem
       # NixOS equivalent of shimboot's expand_rootfs script
@@ -236,8 +243,14 @@
     };
     allowNoPasswordLogin = true; # Allow login without password
   };
-  security.pam.services.login.allowNullPassword = true; # Allow null password for login
-  security.pam.services.passwd.allowNullPassword = true; # Allow null password for passwd
+
+  # Security Configuration
+  security = {
+    pam.services = {
+      login.allowNullPassword = true; # Allow null password for login
+      passwd.allowNullPassword = true; # Allow null password for passwd
+    };
+  };
 
   # Systemd Configuration
   systemd = {
@@ -272,30 +285,35 @@
   '';
   programs.fish.enable = true; # Enables fish shell
 
-  # X11 and Display Manager Configuration
-  services.xserver = {
-    enable = true; # Enables X server
-    xkb.layout = "us"; # Keyboard layout
-    displayManager = {
-      lightdm = { # LightDM display manager configuration
-        enable = true;
-        greeters.gtk.enable = true;
-        greeters.gtk.theme.name = "Nordic";
-        greeters.gtk.iconTheme.name = "Papirus-Dark";
-      };
+  programs.hyprland = { # or wayland.windowManager.hyprland
+      enable = true;
+      xwayland.enable = true;
     };
-    videoDrivers = [ "modesetting" "fbdev" "vesa" ]; # Video drivers
-    desktopManager = {
-      xfce = { # XFCE desktop manager configuration
+
+  environment.sessionVariables.NIXOS_OZONE_WL = "1"; # Hints Electron apps to use Wayland
+
+  # Services Configuration
+  services.accounts-daemon.enable = true; # Enable AccountsService for PolicyKit
+
+  services = {
+    displayManager = {
+      sddm = {
         enable = true;
-        enableXfwm = true;
+        wayland.enable = true;
       };
     };
   };
-  services.displayManager.autoLogin = { # Autologin configuration
-      enable = true;
-      user = "root";
-    };
+
+  # X11 and Display Manager Configuration
+  services.xserver = {
+    enable = false; # Disables X server
+    xkb.layout = "us"; # Keyboard layout
+    videoDrivers = [ "intel" "fbdev" "vesa" ]; # Video drivers
+  };
+  # services.displayManager.autoLogin = { # Autologin configuration
+  #     enable = true;
+  #     user = "nixos-user";
+  # };
   services.logind = { # Logind service configuration
     lidSwitch = "ignore";
     extraConfig = ''
@@ -305,4 +323,18 @@
     '';
   };
   security.polkit.enable = true; # Enables polkit for authorization
+
+  # Hardware Configuration
+  hardware = {
+    enableRedistributableFirmware = true; # Enable non-free firmware
+    cpu.intel.updateMicrocode = true; # Intel microcode updates
+    graphics = {
+      enable = true;
+      enable32Bit = true;
+    };
+  };
+
+  # Power Management
+  powerManagement.enable = true;
+  services.thermald.enable = true; # Intel thermal management
 }
