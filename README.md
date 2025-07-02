@@ -3,25 +3,26 @@
 
 This is my work-in-progress fork of [ading2210](https://github.com/ading2210)'s [Shimboot](https://github.com/ading2210/shimboot). The goal here is to take the original, script-based build process and rewrite it with [Nix](https://nixos.org/) to make it fully declarative and reproducible.
 
-This is a learning project for me. I'm still new to Nix, so I'm relying on documentation and some LLM guidance to figure things out. The main idea is to replace the shell scripts with a Nix flake that can build a complete, bootable shim image from (hopefully) a single command.
+This is a learning project for me. I'm still new to Nix, so I'm relying on documentation/forums and LLM guidance to figure things out. The main idea is to replace the shell scripts with a Nix flake that can build a complete, bootable shim image from (hopefully) a single command.
 
 ### Why Nix?
-*   **Reproducibility:** Anyone should be able to clone this repo, run `nix build`, and get the exact same result, regardless of what's on their machine.
-*   **Atomic Builds:** Builds either succeed completely or fail cleanly, without leaving a half-broken system or temporary files everywhere.
-*   **Declarative Dependencies:** Instead of scripts calling other scripts, Nix tracks the entire dependency graph, making the process easier to understand and maintain.
+Nix was chosen for this project to ensure reproducibility. Cloning this repository and running `nix build` should produce the same result for anyone, regardless of their machine's configuration. In addition, Nix provides atomic builds that either succeed completely or fail cleanly. It also enforces declarative dependencies, tracking the entire dependency graph to improve understandability and maintainability.
 
 ### Project Roadmap & Status
--   [x] **Project Scaffolding:** The project is now a Nix flake.
--   [x] **Patched `systemd`:** The `mount_nofollow` patch is working and applied via a Nix overlay.
--   [x] **Binary Cache:** A [Cachix cache](https://app.cachix.org/cache/shimboot-systemd-nixos) is live and hosts the patched `systemd`.
--   [x] **FHS Rootfs Generation:** The `rootfs` is now successfully built using `buildEnv`, creating a proper FHS directory structure.
--   [x] **Final Image Assembly:** The `build-final-image.sh` script successfully automates the entire build and assembly process.
+
+Here's a breakdown of the project's progress:
+
+-   [x] **Project Scaffolding:** Converted the project to use a Nix flake.
+-   [x] **Patched `systemd`:** Successfully applied the `mount_nofollow` patch using a Nix overlay.
+-   [x] **Binary Cache:** A Cachix cache ([shimboot-systemd-nixos](https://app.cachix.org/cache/shimboot-systemd-nixos)) is set up to host the patched `systemd`.
+-   [x] **FHS Rootfs Generation:** The `rootfs` is now built using `buildEnv`, creating a proper Filesystem Hierarchy Standard (FHS) directory structure.
+-   [x] **Final Image Assembly:** The `build-final-image.sh` script automates the entire build and assembly process.
 -   [?] **Testing on Hardware:**
- -   **Status:** **shimboot menu boots**
- -   **Details:** The generated `shimboot_nixos.bin` image successfully boots on a `dedede` device. The custom `initramfs` runs and the `Shimboot OS Selector` correctly identifies the `nixos on /dev/sda4` partition.
- -   **Current Issue:** Selecting the `nixos` option results in a black screen and a reboot (likely a kernel panic). The root cause was identified: the `rootfs` was built with symlinks pointing to `/nix/store` paths that don't exist within the `rootfs` itself. The `init` process fails because it cannot find essential binaries like `/sbin/init`.
- -   **Next Steps:** Re-evaluate the `rootfs` creation process. The current plan is to abandon the symlink-based `buildEnv` approach and instead construct a `rootfs` that contains the actual files from the Nix store, not just pointers to them. This will likely involve using a different Nix function or manually copying store paths into the image during the build process.
--   [ ] **Declarative Artifacts (Future Goal):** The manual extraction and patching steps in `build-final-image.sh` should eventually be moved into pure, hashed Nix derivations.
+    -   **Status:** SystemD runs with `kill-frecon` service to render graphics.
+    -   **Details:** The patched `systemd` runs without errors, with `kill-freecon` service to switch virtual terminal for graphical session; no tty though.
+    -   **Current Issue:** LightDM is present and working, but XFCE4 is crashing, likely due to bad linkage (can't find `cat`, `sleep`, `xfce4-session-4.20.2/etc/xdg/xfce4/xinitrc: line <num>: <cmd> command not found`).
+    -   **Next Steps:** Troubleshoot the XFCE4 issue, possibly comparing configurations with the original Shimboot XFCE4 setup.
+-   [ ] **Declarative Artifacts (Future Goal):** The manual extraction and patching steps in `build-final-image.sh` should eventually be moved into pure, hashed Nix derivations for better reproducibility and maintainability.
 
 ### How to Build (Current WIP State)
 **This isn't ready for general use!** These instructions are for developers who want to follow along.
