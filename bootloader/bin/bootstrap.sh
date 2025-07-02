@@ -12,12 +12,6 @@
 #set -x
 set +x
 
-# Force-mount the essential API filesystems to resolve race conditions.
-# The kernel might not have them ready when this script starts.
-mount -t proc proc /proc
-mount -t sysfs sysfs /sys
-mount -t devtmpfs devtmpfs /dev
-
 rescue_mode=""
 
 invoke_terminal() {
@@ -89,35 +83,14 @@ find_all_partitions() {
   echo "$(find_rootfs_partitions)"
 }
 
+#from original bootstrap.sh
 move_mounts() {
   local base_mounts="/sys /proc /dev"
   local newroot_mnt="$1"
-  
   for mnt in $base_mounts; do
+    # $mnt is a full path (leading '/'), so no '/' joiner
     mkdir -p "$newroot_mnt$mnt"
-    
-    # Wait for the mount to be ready before moving
-    local retries=5
-    while [ $retries -gt 0 ]; do
-      if mountpoint -q "$mnt" 2>/dev/null; then
-        if mount -n -o move "$mnt" "$newroot_mnt$mnt" 2>/dev/null; then
-          break
-        fi
-      fi
-      sleep 0.1
-      retries=$((retries - 1))
-    done
-    
-    # Verify the move worked
-    if ! mountpoint -q "$newroot_mnt$mnt" 2>/dev/null; then
-      echo "Warning: Failed to move $mnt to $newroot_mnt$mnt" >&2
-      # Try to mount fresh if move failed
-      case "$mnt" in
-        "/proc") mount -t proc proc "$newroot_mnt$mnt" ;;
-        "/sys") mount -t sysfs sysfs "$newroot_mnt$mnt" ;;
-        "/dev") mount -t devtmpfs devtmpfs "$newroot_mnt$mnt" ;;
-      esac
-    fi
+    mount -n -o move "$mnt" "$newroot_mnt$mnt"
   done
 }
 
@@ -302,13 +275,6 @@ get_donor_selection() {
 }
 
 exec_init() {
-  # Ensure basic mount points exist
-  mkdir -p /proc /sys /dev /run /tmp
-  
-  # Just make sure they're there - don't try to remount
-  echo "=== Basic filesystem check ==="
-  ls -la /proc /sys /dev >/dev/null 2>&1 && echo "Basic filesystems accessible"
-  
   if [ "$rescue_mode" = "1" ]; then
     echo "entering a rescue shell instead of starting init"
     echo "once you are done fixing whatever is broken, run 'exec /sbin/init' to continue booting the system normally"
@@ -319,22 +285,12 @@ exec_init() {
       exec /bin/sh < "$TTY1" >> "$TTY1" 2>&1
     fi
   else
-    exec /sbin/init
+    exec /sbin/init < "$TTY1" >> "$TTY1" 2>&1
   fi
 }
 
 boot_target() {
   local target="$1"
-
-  echo "=== DEBUG: API filesystem check before mount ==="
-  for fs in /proc /sys /dev; do
-    if mountpoint -q "$fs"; then
-      echo "$fs: mounted"
-    else
-      echo "$fs: NOT mounted"
-    fi
-  done
-  echo "=============================================="
 
   echo "moving mounts to newroot"
   mkdir /newroot
