@@ -67,15 +67,82 @@
     ranger
     # Add chvt for the bootstrap script
     kbd
+    # Additional packages for VT switching and X11
+    xorg.xrandr
+    xorg.xdpyinfo
+    xorg.xset
+    procps
+    psmisc
+    # Console tools
+    fbset
   ];
 
   programs.fish.enable = true;
 
   time.timeZone = "America/New_York";
-  services.xserver.xkb.layout = "us";
   i18n.defaultLocale = "en_US.UTF-8";
 
+  # X11 and display manager configuration
+  services.xserver = {
+    enable = true;
+    xkb.layout = "us";
+
+    # Use LightDM as display manager
+    displayManager = {
+      lightdm = {
+        enable = true;
+        greeters.gtk.enable = true;
+      };
+    };
+
+    # Basic video drivers for Chromebook hardware
+    videoDrivers = [ "modesetting" "fbdev" "vesa" ];
+
+    # Enable a minimal desktop environment
+    desktopManager = {
+      xfce = {
+        enable = true;
+        enableXfwm = false; # Disable window manager to keep it minimal
+      };
+    };
+  };
+
+  # Auto-login configuration (moved to services.displayManager)
+  services.displayManager.autoLogin = {
+    enable = true;
+    user = "root";
+  };
+
+  # Enable console switching
+  services.logind = {
+    lidSwitch = "ignore";
+    extraConfig = ''
+      HandlePowerKey=ignore
+      HandleSuspendKey=ignore
+      HandleHibernateKey=ignore
+    '';
+  };
+
+  # Getty configuration - keep for fallback
   services.getty.autologinUser = "root";
+
+  # Ensure VT switching works
+  security.polkit.enable = true;
+
+  # Kill frecon to allow TTY access
+  systemd.services.kill-frecon = {
+    description = "Kill frecon to allow TTY access";
+    wantedBy = [ "multi-user.target" ];
+    before = [ "getty@tty1.service" "getty.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      ExecStart = pkgs.writeShellScript "kill-frecon" ''
+        ${pkgs.util-linux}/bin/umount -l /dev/console 2>/dev/null || true
+        ${pkgs.procps}/bin/pkill frecon-lite 2>/dev/null || true
+      '';
+    };
+  };
 
   # Make sure you have a root user with a shell
   users.users.root = {
@@ -88,7 +155,7 @@
     isNormalUser = true;
     password = "";
     shell = pkgs.fish;
-    extraGroups = [ "wheel" "video" "audio" "networkmanager" ];
+    extraGroups = [ "wheel" "video" "audio" "networkmanager" "tty" ];
   };
 
   # Allow empty passwords (temporary, for testing)

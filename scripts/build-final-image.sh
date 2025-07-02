@@ -244,12 +244,12 @@ if [ "$USE_RECOVERY" = true ]; then
   print_info "Harvesting modprobe configurations from recovery..."
   MODPROBE_DEST_PATH="$TMP_DIR/modprobe.d"
   mkdir -p "$MODPROBE_DEST_PATH"
-  
+
   if [ -d "$RECOVERY_ROOTFS_MOUNT/lib/modprobe.d" ]; then
     sudo cp -ar "$RECOVERY_ROOTFS_MOUNT/lib/modprobe.d"/* "$MODPROBE_DEST_PATH/" 2>/dev/null || true
     print_debug "Recovery lib modprobe.d copied"
   fi
-  
+
   if [ -d "$RECOVERY_ROOTFS_MOUNT/etc/modprobe.d" ]; then
     sudo cp -ar "$RECOVERY_ROOTFS_MOUNT/etc/modprobe.d"/* "$MODPROBE_DEST_PATH/" 2>/dev/null || true
     print_debug "Recovery etc modprobe.d copied"
@@ -421,16 +421,23 @@ sudo cp -ar "$NIXOS_SOURCE_MOUNT"/* "$ROOTFS_MOUNT/"
 print_debug "Rootfs copy complete"
 
 print_info "Creating systemd init symlink..."
-# Find the patched systemd specifically
-SYSTEMD_BINARY_PATH=$(sudo find "${ROOTFS_MOUNT}/nix/store" -path "*/343lc8igwgb1097j7ify1aplflwz7kly-systemd-257.5/lib/systemd/systemd" -type f)
+# Find the patched systemd - look for our custom overridden systemd first
+# Check all systemd packages and prefer the one that's not minimal and has the largest store hash (usually the patched one)
+SYSTEMD_CANDIDATES=$(sudo find "${ROOTFS_MOUNT}/nix/store" -path "*/lib/systemd/systemd" -type f | grep -v minimal | sort -r)
+SYSTEMD_BINARY_PATH=""
 
-if [ -z "$SYSTEMD_BINARY_PATH" ]; then
-  # Fallback to any non-minimal systemd
-  SYSTEMD_BINARY_PATH=$(sudo find "${ROOTFS_MOUNT}/nix/store" -path "*/lib/systemd/systemd" -type f | grep -v minimal | head -n 1)
+# Pick the first non-minimal systemd (should be our patched version)
+if [ -n "$SYSTEMD_CANDIDATES" ]; then
+  SYSTEMD_BINARY_PATH=$(echo "$SYSTEMD_CANDIDATES" | head -n 1)
 fi
 
+# Fallback to any systemd if no non-minimal found
 if [ -z "$SYSTEMD_BINARY_PATH" ]; then
-  # Fallback to checking bin/systemd for some older or minimal packages
+  SYSTEMD_BINARY_PATH=$(sudo find "${ROOTFS_MOUNT}/nix/store" -path "*/lib/systemd/systemd" -type f | head -n 1)
+fi
+
+# Final fallback to bin/systemd
+if [ -z "$SYSTEMD_BINARY_PATH" ]; then
   SYSTEMD_BINARY_PATH=$(sudo find "${ROOTFS_MOUNT}/nix/store" -path "*/bin/systemd" -type f | head -n 1)
 fi
 
@@ -454,14 +461,14 @@ if [ -d "$TMP_DIR/kernel_modules" ]; then
   sudo mkdir -p "${ROOTFS_MOUNT}/lib/modules"
   sudo cp -ar "$TMP_DIR/kernel_modules"/* "${ROOTFS_MOUNT}/lib/modules/"
   print_debug "Modules copied to ${ROOTFS_MOUNT}/lib/modules/"
-  
+
   # Decompress kernel modules if necessary - NixOS won't recognize compressed modules
   print_info "Decompressing kernel modules if needed..."
   compressed_files=$(sudo find "${ROOTFS_MOUNT}/lib/modules" -name '*.gz' 2>/dev/null || true)
   if [ -n "$compressed_files" ]; then
     print_debug "Found compressed modules, decompressing..."
     echo "$compressed_files" | sudo xargs gunzip
-    
+
     # Rebuild module dependencies
     for kernel_dir in "${ROOTFS_MOUNT}/lib/modules/"*; do
       if [ -d "$kernel_dir" ]; then
