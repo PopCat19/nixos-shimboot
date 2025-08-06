@@ -3,4 +3,4 @@ data/*
 /result
 /source/*
 *.bin
-llm-notes/
+llm-notes/*
