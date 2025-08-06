@@ -37,7 +37,7 @@ A helpful excerpt from [ading2210/shimboot](https://github.com/ading2210/shimboo
 My controversial excuses for vibecoding this project are, but not limited to:
 1. Being unapologetically lazy
 2. Reading docs are too overwhemingly complicated for my current mental health (probably too dyslexic to understand even fundamental concepts from walls of text)
-3. Enjoying some suffering from my lack of understanding in technical concepts and making things miserably difficult that it otherwise would've had been
+3. Enjoying some suffering from my lack of understanding in technical concepts and making things miserably difficult than it otherwise would've had been
 4. Not being a programmer (I will still hold accountable for this mess)
 5. Just wanting NixOS and hyprland to run on an locked-down chromebook while having access to it
 6. Accessibility to do something of interest without seeking a psychiatrist from the learning curve
@@ -98,6 +98,6 @@ Miscellaneously, my current dev enviroment consists of:
 ## Credits:
 - [ading2210](https://github.com/ading2210) - for creating the [original shimboot repository](https://github.com/ading2210/shimboot) and giving me an idea to generate NixOS shimboot
 - [ading2210/shimboot](https://github.com/ading2210/shimboot) - `bootloader/` source
-- [ading2210/chromeos-systemd)](https://github.com/ading2210/chromeos-systemd) - systemd `mount_nofollow` patch source to resolve/workaround `Failed to mount API filesystems` error
+- [ading2210/chromeos-systemd](https://github.com/ading2210/chromeos-systemd) - systemd `mount_nofollow` patch source to resolve/workaround `Failed to mount API filesystems` error
 - [discussion thread](https://github.com/ading2210/shimboot/discussions/335) - useful feedbacks from my idea
 - [nixos-generators](https://github.com/nix-community/nixos-generators) - builds nixos image from a configuration for use in ROOTFS
