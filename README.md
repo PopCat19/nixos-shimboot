@@ -1,5 +1,5 @@
 # CURRENT STATE: Not Ready
-Currently working with [`zai-org/GLM-4.5-FP8`](https://chutes.ai/app/chute/b5326e54-8d9e-590e-bed4-f3db35d9d4cd) for getting flake to patch `initramfs` with shimboot. Check [here](https://github.com/PopCat19/nixos-shimboot#progress-and-obstacles) for more info.
+Currently working with [`zai-org/GLM-4.5-FP8`](https://chutes.ai/app/chute/b5326e54-8d9e-590e-bed4-f3db35d9d4cd) for getting flake to partition ChromeOS layout with patched shim and ROOTFS. Check [here](https://github.com/PopCat19/nixos-shimboot#progress-and-obstacles) for more info.
 
 ## This is a vibecoded project
 As mentioned in the header:\
@@ -61,7 +61,7 @@ That being said, if it's not possible right now, that's fine and kinda expected.
 Flake status and roadmap for the current branch:
 - [x] Builds without errors
 - [x] Builds current NixOS configuration via [`nixos-generators`](https://github.com/nix-community/nixos-generators)
-- [ ] Patches RMA shim's `initramfs` with shimboot bootloader
+- [x] Patches RMA shim's `initramfs` with shimboot bootloader (requires `--impure` for now)
 - [ ] Partitions in ChromeOS format
 - [ ] Builds bootable shim bootloader
 - [ ] Builds bootable NixOS
@@ -76,7 +76,6 @@ Flake status and roadmap for the current branch:
 Current obstacles:
 - My irrefutable inexperience/unfamiliarity with the technical aspects of this codebase bottlenecking what needs to be done.
 - [`nixos-generators`](https://github.com/nix-community/nixos-generators) builds with two partitions, despite disabling bootloaders. Considering to use scripts to workaround this.
-- Figuring out how to patch (if I recall correctly, the RMA shim's `initramfs`) with shimboot bootstrap declaratively, considering to use `qemu` as the environment for mounts and scripts. Referencing archived scripts for reference.
 - Figuring out how to partition the rootfs and bootloader in a ChromeOS partition layout, considering to use `qemu` as the environment for mounts and scripts. Referencing archived scripts for reference.
 - Optionally figure out if we can experimentally use `qemu` for testing shimboot instead of flashing usb and running on raw `dedede` chromebook hardware.
 
