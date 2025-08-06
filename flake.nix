@@ -12,8 +12,43 @@
 
   # Combine all outputs from modules
   outputs = { self, nixpkgs, nixos-generators, ... }:
-    # Import and combine all module outputs
-    (import ./flake_modules/raw-efi-image.nix { inherit self nixpkgs nixos-generators; }) //
-    (import ./flake_modules/system-configuration.nix { inherit self nixpkgs; }) //
-    (import ./flake_modules/development-environment.nix { inherit self nixpkgs; });
+    let
+      system = "x86_64-linux";
+      
+      # Import all module outputs
+      rawEfiImageOutputs = import ./flake_modules/raw-efi-image.nix { inherit self nixpkgs nixos-generators; };
+      systemConfigurationOutputs = import ./flake_modules/system-configuration.nix { inherit self nixpkgs; };
+      developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix { inherit self nixpkgs; };
+      initramfsPatchingOutputs = import ./flake_modules/initramfs-patching.nix { inherit self nixpkgs; };
+      chromeosSourcesOutputs = import ./flake_modules/chromeos-sources.nix { inherit self nixpkgs; };
+      initramfsPatchingTestOutputs = import ./flake_modules/initramfs-patching-test.nix { inherit self nixpkgs; };
+      
+      # Merge packages from all modules
+      packages = {
+        ${system} =
+          (rawEfiImageOutputs.packages.${system} or {}) //
+          (initramfsPatchingOutputs.packages.${system} or {}) //
+          (chromeosSourcesOutputs.packages.${system} or {}) //
+          (initramfsPatchingTestOutputs.packages.${system} or {});
+      };
+      
+      # Merge devShells from all modules
+      devShells = {
+        ${system} =
+          (developmentEnvironmentOutputs.devShells.${system} or {}) //
+          (initramfsPatchingOutputs.devShells.${system} or {});
+      };
+      
+      # Merge nixosConfigurations from all modules
+      nixosConfigurations =
+        systemConfigurationOutputs.nixosConfigurations or {};
+        
+      # Merge nixosModules from all modules
+      nixosModules =
+        initramfsPatchingOutputs.nixosModules or {};
+        
+    in {
+      # Export all merged outputs
+      inherit packages devShells nixosConfigurations nixosModules;
+    };
 }
