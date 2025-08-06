@@ -47,7 +47,7 @@ My controversial excuses for vibecoding this project are, but not limited to:
 ## Why flake?
 Sure, [nixos-shimboot-legacy](https://github.com/PopCat19/nixos-shimboot-legacy) worked to build a bootable NixOS with frankenstein scripts on hopes and dreams, yet it wasn't functional enough to even get past LightDM. 
 
-The user environment is so borked, the system can't even find anything after logging into LightDM. I really can't understand why, with the fact that we were putting so many impure tweaks to get it booting.
+The user environment is so borked, the system can't even find anything after logging into LightDM. (session PATH was missing core commands (mkdir, systemctl, Hyprland not found in session), so login fails after LightDM) I really can't understand why, with the fact that we were putting so many impure tweaks to get it booting.
 
 Then, the thought of using a minimal liveiso image under qemu environment to create a working ROOTFS that most likely has a working user environment came to light. Yet, after attempting that, it was just failure.
 
