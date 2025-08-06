@@ -1,0 +1,200 @@
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: ✓ /etc/polkit-1/rules.d exists
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: ✗ /run/polkit-1/rules.d does not exist
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: Test 8: User Environment Variables
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: ----------------------------------------
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: ✓ PATH is set: /nix/store/ih779chzzag1nm91fgnrndml4mghm3la-coreutils-9.7/bin:/nix/store/3xi6s71d3znq0ivl2r7ypg5rsz71j16h-findutils-4.10.0/bin:/nix/store/k7gv42hpqwh6ghiyl4ava9p5r249x6vn-gnugrep-3.12/bin:/nix/store/ql68miwsgz9094bi3qa7nk17bfwf6h6a-gnused-4.9/bin:/nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/bin:/nix/store/ih779chzzag1nm91fgnrndml4mghm3la-coreutils-9.7/sbin:/nix/store/3xi6s71d3znq0ivl2r7ypg5rsz71j16h-findutils-4.10.0/sbin:/nix/store/k7gv42hpqwh6ghiyl4ava9p5r249x6vn-gnugrep-3.12/sbin:/nix/store/ql68miwsgz9094bi3qa7nk17bfwf6h6a-gnused-4.9/sbin:/nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/sbin
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: ⚠ XDG_DATA_DIRS is not set
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: ⚠ XDG_CONFIG_DIRS is not set
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: ⚠ XDG_CACHE_HOME is not set
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: ⚠ XDG_CONFIG_HOME is not set
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: ⚠ XDG_DATA_HOME is not set
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: ⚠ XDG_STATE_HOME is not set
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: Test 9: System Packages
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: ----------------------------------------
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: ⚠ coreutils may not be installed in system environment
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: ⚠ systemd may not be installed in system environment
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: ⚠ polkit may not be installed in system environment
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: ⚠ accountsservice may not be installed in system environment
+Aug 04 12:27:40 nixos lightdm[778]: Error updating user /org/freedesktop/Accounts/User1000: GDBus.Error:org.freedesktop.Accounts.Error.PermissionDenied: Not authorized: GDBus.Error:org.freedesktop.PolicyKit1.Error.Failed: Action org.freedesktop.DisplayManager.AccountsService.ReadAny is not registered
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: ⚠ hyprland may not be installed in system environment
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: Test 10: Recent System Errors
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: ----------------------------------------
+Aug 04 12:27:40 nixos lightdm[778]: pam_unix(lightdm-autologin:session): session opened for user nixos-user(uid=1000) by (uid=0)
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: ⚠ Found 15 recent errors in system journal
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: === Test Summary ===
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: All basic tests completed at: Mon Aug  4 12:27:40 PM EDT 2025
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: If you see any ✗ marks, those issues may need additional attention.
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: If you see ⚠ marks, those may be normal depending on your current session type.
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: To check for remaining issues, run:
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]:   journalctl -b -p err
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]:   systemctl status display-manager.service
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]:   systemctl --user status
+Aug 04 12:27:40 nixos a4cwz162m0vin9cgvgjkyr4rzxg17nvb-test-fixes[779]: Test completed.
+Aug 04 12:27:40 nixos systemd[1]: Finished Test and validate NixOS command failure fixes.
+Aug 04 12:27:40 nixos systemd[1]: Reached target Multi-User System.
+Aug 04 12:27:40 nixos systemd[1]: Reached target Graphical Interface.
+Aug 04 12:27:40 nixos systemd[1]: Starting Set up xsession-wrapper with proper PATH...
+Aug 04 12:27:40 nixos systemd[1]: Created slice Slice /user/1000.
+Aug 04 12:27:40 nixos systemd[1]: Starting User Runtime Directory /run/user/1000...
+Aug 04 12:27:40 nixos systemd[1]: Finished Set up xsession-wrapper with proper PATH.
+Aug 04 12:27:40 nixos systemd-timesyncd[548]: Network configuration changed, trying to establish connection.
+Aug 04 12:27:40 nixos systemd-logind[728]: New session 1 of user nixos-user.
+Aug 04 12:27:40 nixos systemd[1]: Finished User Runtime Directory /run/user/1000.
+Aug 04 12:27:40 nixos systemd[1]: Starting User Manager for UID 1000...
+Aug 04 12:27:40 nixos (systemd)[815]: pam_unix(systemd-user:session): session opened for user nixos-user(uid=1000) by (uid=0)
+Aug 04 12:27:40 nixos systemd-logind[728]: New session 2 of user nixos-user.
+Aug 04 12:27:40 nixos systemd[815]: Queued start job for default target Main User Target.
+Aug 04 12:27:40 nixos systemd[815]: Created slice User Application Slice.
+Aug 04 12:27:40 nixos systemd[815]: Reached target Paths.
+Aug 04 12:27:40 nixos systemd[815]: Reached target Timers.
+Aug 04 12:27:40 nixos systemd[815]: Starting D-Bus User Message Bus Socket...
+Aug 04 12:27:40 nixos systemd[815]: Listening on PipeWire PulseAudio.
+Aug 04 12:27:40 nixos systemd[815]: Listening on PipeWire Multimedia System Sockets.
+Aug 04 12:27:40 nixos systemd[815]: Listening on Speech Dispatcher Socket.
+Aug 04 12:27:40 nixos systemd[815]: Listening on D-Bus User Message Bus Socket.
+Aug 04 12:27:40 nixos systemd[815]: Reached target Sockets.
+Aug 04 12:27:40 nixos systemd[815]: Reached target Basic System.
+Aug 04 12:27:40 nixos systemd[1]: Started User Manager for UID 1000.
+Aug 04 12:27:40 nixos systemd[1]: Started Session 1 of User nixos-user.
+Aug 04 12:27:40 nixos systemd[1]: Startup finished in 18.376s (kernel) + 3.460s (userspace) = 21.837s.
+Aug 04 12:27:40 nixos systemd[815]: Starting Run user-specific NixOS activation...
+Aug 04 12:27:40 nixos systemd[815]: Finished Run user-specific NixOS activation.
+Aug 04 12:27:40 nixos systemd[815]: Reached target Main User Target.
+Aug 04 12:27:40 nixos systemd[815]: Starting Import environment variables for user sessions...
+Aug 04 12:27:40 nixos xsession[831]: /nix/store/xc54zqzzpdh5wm0pv20l66iz517nngdw-xrdb-1.2.2/bin/xrdb: Can't open display ''
+Aug 04 12:27:40 nixos xsession[832]: /nix/store/7p80zkqs89snqfs47nzc53w5q8i1cyj5-xsession-wrapper: line 34: /run/current-system/systemd/bin/systemctl: No such file or directory
+Aug 04 12:27:40 nixos xsession[837]: /nix/store/7p80zkqs89snqfs47nzc53w5q8i1cyj5-xsession-wrapper: line 66: /run/current-system/systemd/bin/systemctl: No such file or directory
+Aug 04 12:27:40 nixos xsession[827]: /nix/store/7p80zkqs89snqfs47nzc53w5q8i1cyj5-xsession-wrapper: line 77: exec: Hyprland: not found
+Aug 04 12:27:40 nixos lightdm[778]: pam_unix(lightdm-autologin:session): session closed for user nixos-user
+Aug 04 12:27:40 nixos systemd-logind[728]: Session 1 logged out. Waiting for processes to exit.
+Aug 04 12:27:40 nixos systemd[1]: session-1.scope: Deactivated successfully.
+Aug 04 12:27:40 nixos systemd[1]: session-1.scope: Consumed 17ms CPU time, 1.5M read from disk.
+Aug 04 12:27:40 nixos systemd-logind[728]: Removed session 1.
+Aug 04 12:27:40 nixos systemd[815]: Finished Import environment variables for user sessions.
+Aug 04 12:27:40 nixos systemd[815]: Startup finished in 508ms.
+Aug 04 12:27:41 nixos lightdm[768]: Error updating user /org/freedesktop/Accounts/User1000: GDBus.Error:org.freedesktop.Accounts.Error.PermissionDenied: Not authorized: GDBus.Error:org.freedesktop.PolicyKit1.Error.Failed: Action org.freedesktop.DisplayManager.AccountsService.ReadAny is not registered
+Aug 04 12:27:41 nixos lightdm[863]: Error updating user /org/freedesktop/Accounts/User1000: GDBus.Error:org.freedesktop.Accounts.Error.PermissionDenied: Not authorized: GDBus.Error:org.freedesktop.PolicyKit1.Error.Failed: Action org.freedesktop.DisplayManager.AccountsService.ReadAny is not registered
+Aug 04 12:27:41 nixos systemd[1]: Created slice Slice /user/78.
+Aug 04 12:27:41 nixos systemd[1]: Starting User Runtime Directory /run/user/78...
+Aug 04 12:27:41 nixos systemd-logind[728]: New session c1 of user lightdm.
+Aug 04 12:27:41 nixos systemd[1]: Finished User Runtime Directory /run/user/78.
+Aug 04 12:27:41 nixos systemd[1]: Starting User Manager for UID 78...
+Aug 04 12:27:41 nixos (systemd)[869]: pam_unix(systemd-user:session): session opened for user lightdm(uid=78) by (uid=0)
+Aug 04 12:27:41 nixos systemd-logind[728]: New session 3 of user lightdm.
+Aug 04 12:27:41 nixos systemd[869]: Queued start job for default target Main User Target.
+Aug 04 12:27:41 nixos systemd[869]: Created slice User Application Slice.
+Aug 04 12:27:41 nixos systemd[869]: Reached target Paths.
+Aug 04 12:27:41 nixos systemd[869]: Reached target Timers.
+Aug 04 12:27:41 nixos systemd[869]: Starting D-Bus User Message Bus Socket...
+Aug 04 12:27:41 nixos systemd[869]: Listening on PipeWire PulseAudio.
+Aug 04 12:27:41 nixos systemd[869]: Listening on PipeWire Multimedia System Sockets.
+Aug 04 12:27:41 nixos systemd[869]: Listening on Speech Dispatcher Socket.
+Aug 04 12:27:41 nixos systemd[869]: Listening on D-Bus User Message Bus Socket.
+Aug 04 12:27:41 nixos systemd[869]: Reached target Sockets.
+Aug 04 12:27:41 nixos systemd[869]: Reached target Basic System.
+Aug 04 12:27:41 nixos systemd[1]: Started User Manager for UID 78.
+Aug 04 12:27:41 nixos systemd[869]: Run user-specific NixOS activation was skipped because of an unmet condition check (ConditionUser=!@system).
+Aug 04 12:27:41 nixos systemd[869]: Reached target Main User Target.
+Aug 04 12:27:41 nixos systemd[1]: Started Session c1 of User lightdm.
+Aug 04 12:27:41 nixos systemd[869]: Starting Import environment variables for user sessions...
+Aug 04 12:27:41 nixos lightdm[768]: Error updating user /org/freedesktop/Accounts/User1000: GDBus.Error:org.freedesktop.Accounts.Error.PermissionDenied: Not authorized: GDBus.Error:org.freedesktop.PolicyKit1.Error.Failed: Action org.freedesktop.DisplayManager.AccountsService.ReadAny is not registered
+Aug 04 12:27:41 nixos systemd[869]: Finished Import environment variables for user sessions.
+Aug 04 12:27:41 nixos systemd[869]: Startup finished in 266ms.
+Aug 04 12:27:44 nixos systemd[869]: Created slice User Core Session Slice.
+Aug 04 12:27:44 nixos systemd[869]: Starting D-Bus User Message Bus...
+Aug 04 12:27:44 nixos systemd[869]: Started D-Bus User Message Bus.
+Aug 04 12:27:50 nixos systemd[1]: NetworkManager-dispatcher.service: Deactivated successfully.
+Aug 04 12:27:50 nixos systemd[1]: NetworkManager-dispatcher.service: Consumed 34ms CPU time, 5.9M read from disk.
+Aug 04 12:27:50 nixos systemd[1]: Stopping User Manager for UID 1000...
+Aug 04 12:27:50 nixos systemd[815]: Activating special unit Exit the Session...
+Aug 04 12:27:50 nixos systemd[815]: Stopped Import environment variables for user sessions.
+Aug 04 12:27:50 nixos systemd[815]: Stopped target Main User Target.
+Aug 04 12:27:50 nixos systemd[815]: Stopped target Basic System.
+Aug 04 12:27:50 nixos systemd[815]: Stopped target Paths.
+Aug 04 12:27:50 nixos systemd[815]: Stopped target Sockets.
+Aug 04 12:27:50 nixos systemd[815]: Stopped target Timers.
+Aug 04 12:27:50 nixos systemd[815]: Closed D-Bus User Message Bus Socket.
+Aug 04 12:27:50 nixos systemd[815]: Closed PipeWire PulseAudio.
+Aug 04 12:27:50 nixos systemd[815]: Closed PipeWire Multimedia System Sockets.
+Aug 04 12:27:50 nixos systemd[815]: Closed Speech Dispatcher Socket.
+Aug 04 12:27:50 nixos systemd[815]: Removed slice User Application Slice.
+Aug 04 12:27:50 nixos systemd[815]: Reached target Shutdown.
+Aug 04 12:27:50 nixos systemd[815]: Finished Exit the Session.
+Aug 04 12:27:50 nixos systemd[815]: Reached target Exit the Session.
+Aug 04 12:27:50 nixos systemd-logind[728]: Removed session 2.
+Aug 04 12:27:50 nixos systemd[1]: user@1000.service: Deactivated successfully.
+Aug 04 12:27:50 nixos systemd[1]: Stopped User Manager for UID 1000.
+Aug 04 12:27:50 nixos systemd[1]: user@1000.service: Consumed 305ms CPU time, 8.3M read from disk.
+Aug 04 12:27:50 nixos systemd[1]: Stopping User Runtime Directory /run/user/1000...
+Aug 04 12:27:50 nixos systemd[1]: run-user-1000.mount: Deactivated successfully.
+Aug 04 12:27:50 nixos systemd[1]: user-runtime-dir@1000.service: Deactivated successfully.
+Aug 04 12:27:50 nixos systemd[1]: Stopped User Runtime Directory /run/user/1000.
+Aug 04 12:27:54 nixos lightdm[900]: Error updating user /org/freedesktop/Accounts/User1000: GDBus.Error:org.freedesktop.Accounts.Error.PermissionDenied: Not authorized: GDBus.Error:org.freedesktop.PolicyKit1.Error.Failed: Action org.freedesktop.DisplayManager.AccountsService.ReadAny is not registered
+Aug 04 12:27:55 nixos lightdm[768]: Could not call SetXSession: GDBus.Error:org.freedesktop.Accounts.Error.PermissionDenied: Not authorized: GDBus.Error:org.freedesktop.PolicyKit1.Error.Failed: Action org.freedesktop.accounts.user-administration is not registered
+Aug 04 12:27:55 nixos systemd[1]: Stopping Session c1 of User lightdm...
+Aug 04 12:27:55 nixos systemd[1]: session-c1.scope: Deactivated successfully.
+Aug 04 12:27:55 nixos systemd[1]: Stopped Session c1 of User lightdm.
+Aug 04 12:27:55 nixos systemd[1]: session-c1.scope: Consumed 798ms CPU time, 78.6M read from disk, 36K written to disk.
+Aug 04 12:27:55 nixos systemd-logind[728]: Removed session c1.
+Aug 04 12:27:55 nixos lightdm[900]: pam_unix(lightdm:session): session opened for user nixos-user(uid=1000) by (uid=0)
+Aug 04 12:27:55 nixos systemd[1]: Starting User Runtime Directory /run/user/1000...
+Aug 04 12:27:55 nixos systemd-logind[728]: New session 4 of user nixos-user.
+Aug 04 12:27:55 nixos systemd[1]: Finished User Runtime Directory /run/user/1000.
+Aug 04 12:27:55 nixos systemd[1]: Starting User Manager for UID 1000...
+Aug 04 12:27:55 nixos (systemd)[916]: pam_unix(systemd-user:session): session opened for user nixos-user(uid=1000) by (uid=0)
+Aug 04 12:27:55 nixos systemd-logind[728]: New session 5 of user nixos-user.
+Aug 04 12:27:55 nixos systemd[916]: Queued start job for default target Main User Target.
+Aug 04 12:27:55 nixos systemd[916]: Created slice User Application Slice.
+Aug 04 12:27:55 nixos systemd[916]: Reached target Paths.
+Aug 04 12:27:55 nixos systemd[916]: Reached target Timers.
+Aug 04 12:27:55 nixos systemd[916]: Starting D-Bus User Message Bus Socket...
+Aug 04 12:27:55 nixos systemd[916]: Listening on PipeWire PulseAudio.
+Aug 04 12:27:55 nixos systemd[916]: Listening on PipeWire Multimedia System Sockets.
+Aug 04 12:27:55 nixos systemd[916]: Listening on Speech Dispatcher Socket.
+Aug 04 12:27:55 nixos systemd[916]: Listening on D-Bus User Message Bus Socket.
+Aug 04 12:27:55 nixos systemd[916]: Reached target Sockets.
+Aug 04 12:27:55 nixos systemd[916]: Reached target Basic System.
+Aug 04 12:27:55 nixos systemd[1]: Started User Manager for UID 1000.
+Aug 04 12:27:55 nixos systemd[1]: Started Session 4 of User nixos-user.
+Aug 04 12:27:55 nixos systemd[916]: Starting Run user-specific NixOS activation...
+Aug 04 12:27:55 nixos systemd[916]: Finished Run user-specific NixOS activation.
+Aug 04 12:27:55 nixos systemd[916]: Reached target Main User Target.
+Aug 04 12:27:55 nixos systemd[916]: Starting Import environment variables for user sessions...
+Aug 04 12:27:55 nixos xsession[934]: /nix/store/7p80zkqs89snqfs47nzc53w5q8i1cyj5-xsession-wrapper: line 34: /run/current-system/systemd/bin/systemctl: No such file or directory
+Aug 04 12:27:55 nixos xsession[939]: /nix/store/7p80zkqs89snqfs47nzc53w5q8i1cyj5-xsession-wrapper: line 66: /run/current-system/systemd/bin/systemctl: No such file or directory
+Aug 04 12:27:55 nixos systemd[916]: Finished Import environment variables for user sessions.
+Aug 04 12:27:55 nixos systemd[916]: Startup finished in 287ms.
+Aug 04 12:27:58 nixos xsession[941]: WARNING: Kernel has no file descriptor comparison support: Function not implemented
+Aug 04 12:28:05 nixos systemd[1]: Stopping User Manager for UID 78...
+Aug 04 12:28:05 nixos systemd[869]: Activating special unit Exit the Session...
+Aug 04 12:28:05 nixos systemd[869]: Stopping D-Bus User Message Bus...
+Aug 04 12:28:05 nixos systemd[869]: Stopped Import environment variables for user sessions.
+Aug 04 12:28:05 nixos systemd[869]: Stopped target Main User Target.
+Aug 04 12:28:05 nixos systemd[869]: Stopped D-Bus User Message Bus.
+Aug 04 12:28:05 nixos systemd[869]: Removed slice User Core Session Slice.
+Aug 04 12:28:05 nixos systemd[869]: Stopped target Basic System.
+Aug 04 12:28:05 nixos systemd[869]: Stopped target Paths.
+Aug 04 12:28:05 nixos systemd[869]: Stopped target Sockets.
+Aug 04 12:28:05 nixos systemd[869]: Stopped target Timers.
+Aug 04 12:28:05 nixos systemd[869]: Closed D-Bus User Message Bus Socket.
+Aug 04 12:28:05 nixos systemd[869]: Closed PipeWire PulseAudio.
+Aug 04 12:28:05 nixos systemd[869]: Closed PipeWire Multimedia System Sockets.
+Aug 04 12:28:05 nixos systemd[869]: Closed Speech Dispatcher Socket.
+Aug 04 12:28:05 nixos systemd[869]: Removed slice User Application Slice.
+Aug 04 12:28:05 nixos systemd[869]: Reached target Shutdown.
+Aug 04 12:28:05 nixos systemd[869]: Finished Exit the Session.
+Aug 04 12:28:05 nixos systemd[869]: Reached target Exit the Session.
+Aug 04 12:28:05 nixos (sd-pam)[872]: pam_unix(systemd-user:session): session closed for user lightdm
+Aug 04 12:28:05 nixos systemd[1]: user@78.service: Deactivated successfully.
+Aug 04 12:28:05 nixos systemd[1]: Stopped User Manager for UID 78.
+Aug 04 12:28:05 nixos systemd-logind[728]: Removed session 3.
+Aug 04 12:28:05 nixos systemd[1]: Stopping User Runtime Directory /run/user/78...
+Aug 04 12:28:05 nixos systemd[1]: run-user-78.mount: Deactivated successfully.
+Aug 04 12:28:05 nixos systemd[1]: user-runtime-dir@78.service: Deactivated successfully.
+Aug 04 12:28:05 nixos systemd[1]: Stopped User Runtime Directory /run/user/78.
+Aug 04 12:28:05 nixos lightdm[768]: Error updating user /org/freedesktop/Accounts/User1000: GDBus.Error:org.freedesktop.Accounts.Error.PermissionDenied: Not authorized: GDBus.Error:org.freedesktop.PolicyKit1.Error.Failed: Action org.freedesktop.DisplayManager.AccountsService.ReadAny is not registered
+Aug 04 12:28:06 nixos lightdm[768]: Error updating user /org/freedesktop/Accounts/User1000: GDBus.Error:org.freedesktop.Accounts.Error.PermissionDenied: Not authorized: GDBus.Error:org.freedesktop.PolicyKit1.Error.Failed: Action org.freedesktop.DisplayManager.AccountsService.ReadAny is not registered
+Aug 04 12:28:10 nixos systemd[1]: systemd-hostnamed.service: Deactivated successfully.
+Aug 04 12:28:10 nixos systemd-resolved[543]: Switching to fallback DNS server 1.1.1.1#cloudflare-dns.com.
+Aug 04 12:28:21 nixos kernel: PDLOG 2025/08/04 16:27:16.620 P0 Disconnected
+Aug 04 12:28:21 nixos kernel: PDLOG 2025/08/04 16:27:16.620 P1 Disconnected
