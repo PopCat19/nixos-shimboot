@@ -39,12 +39,12 @@ let
       # Create output directory
       mkdir -p $out
       
-      # Find the shim binary (typically the largest binary file)
+      # Find the shim binary (look for .bin files or large files)
       echo "Searching for shim binary..."
-      for file in $(find . -type f -executable); do
+      for file in $(find . -type f -name "*.bin"); do
         if [ -f "$file" ]; then
           file_size=$(stat -c%s "$file")
-          echo "Found executable: $file (size: $file_size bytes)"
+          echo "Found binary file: $file (size: $file_size bytes)"
           
           # Check if this looks like a firmware binary (large file)
           if [ $file_size -gt 1000000 ]; then
@@ -55,11 +55,29 @@ let
         fi
       done
       
+      # If no .bin files found, look for any large files
+      if [ ! -f "$out/shim.bin" ]; then
+        echo "No .bin files found, searching for large files..."
+        for file in $(find . -type f); do
+          if [ -f "$file" ]; then
+            file_size=$(stat -c%s "$file")
+            echo "Found file: $file (size: $file_size bytes)"
+            
+            # Check if this looks like a firmware binary (large file)
+            if [ $file_size -gt 1000000 ]; then
+              echo "Installing $file as shim.bin"
+              cp "$file" $out/shim.bin
+              break
+            fi
+          fi
+        done
+      fi
+      
       # Verify shim.bin was created
       if [ ! -f "$out/shim.bin" ]; then
         echo "ERROR: Could not find shim binary in downloaded files"
         echo "Available files:"
-        find . -type f -name "*.bin" -o -name "*.img" -o -name "*.fw" | head -20
+        find . -type f | head -20
         exit 1
       fi
       
