@@ -1,12 +1,5 @@
 /bootloader/bin/cryptsetup
-/data/
-
+data/*
 /result
-/result-*
-
-/source/
-
-shimboot_nixos.bin
-
-# WiFi credentials (sensitive data)
-wifi-credentials.json
+/source/*
+*.bin
