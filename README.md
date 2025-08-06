@@ -37,7 +37,7 @@ A helpful excerpt from [ading2210/shimboot](https://github.com/ading2210/shimboo
 My controversial excuses for vibecoding this project are, but not limited to:
 1. Being unapologetically lazy
 2. Reading docs are too overwhemingly complicated for my current mental health (probably too dyslexic to understand even fundamental concepts from walls of text)
-3. Enjoying some suffering from my lack of understanding in technical concepts
+3. Enjoying some suffering from my lack of understanding in technical concepts and making things miserably difficult that it otherwise would've had been
 4. Not being a programmer (I will still hold accountable for this mess)
 5. Just wanting NixOS and hyprland to run on an locked-down chromebook while having access to it
 6. Accessibility to do something of interest without seeking a psychiatrist from the learning curve
@@ -61,7 +61,7 @@ That being said, if it's not possible right now, that's fine and kinda expected.
 Flake status and roadmap for the current branch:
 - [x] Builds without errors
 - [x] Builds current NixOS configuration via [`nixos-generators`](https://github.com/nix-community/nixos-generators)
-- [ ] Patches RMA `initramfs` with shimboot bootloader
+- [ ] Patches RMA shim's `initramfs` with shimboot bootloader
 - [ ] Partitions in ChromeOS format
 - [ ] Builds bootable shim bootloader
 - [ ] Builds bootable NixOS
@@ -74,13 +74,14 @@ Flake status and roadmap for the current branch:
 - [ ] Builds functional NixOS with LUKS2 support
 
 Current obstacles:
+- My irrefutable inexperience/unfamiliarity with the technical aspects of this codebase bottlenecking what needs to be done.
 - [`nixos-generators`](https://github.com/nix-community/nixos-generators) builds with two partitions, despite disabling bootloaders. Considering to use scripts to workaround this.
 - Figuring out how to patch (if I recall correctly, the RMA shim's `initramfs`) with shimboot bootstrap declaratively, considering to use `qemu` as the environment for mounts and scripts. Referencing archived scripts for reference.
 - Figuring out how to partition the rootfs and bootloader in a ChromeOS partition layout, considering to use `qemu` as the environment for mounts and scripts. Referencing archived scripts for reference.
 - Optionally figure out if we can experimentally use `qemu` for testing shimboot instead of flashing usb and running on raw `dedede` chromebook hardware.
 
 ## The Sauce
-Bootloader and systemd patches sourced from: [ading2210/shimboot](https://github.com/ading2210/shimboot) and [ading2210/chromeos-systemd)](https://github.com/ading2210/chromeos-systemd)
+Bootloader and systemd patches sourced from: [ading2210/shimboot](https://github.com/ading2210/shimboot) and [ading2210/chromeos-systemd](https://github.com/ading2210/chromeos-systemd)
 
 Miscellaneously, my current dev enviroment consists of:
 - [NixOS+Hyprland](https://github.com/PopCat19/popcat19-nixos-hm)
