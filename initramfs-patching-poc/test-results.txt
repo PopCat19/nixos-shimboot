@@ -1,0 +1,41 @@
+[PASS] Init Script: Exists and executable
+[PASS] Bootstrap Execution: bootstrap.sh execution found in init script
+[PASS] Bootloader File: bin/bootstrap.sh: File exists
+[PASS] Bootloader File: bin/init: File exists
+[PASS] Bootloader File: opt/crossystem: File exists
+[PASS] Bootloader File: opt/mount-encrypted: File exists
+[PASS] Bootloader File: opt/.shimboot_version: File exists
+[PASS] Bootloader Files: All required files exist
+[PASS] Executable Script: bin/bootstrap.sh: Executable
+[PASS] Executable Script: bin/init: Executable
+[PASS] Executable Scripts: All scripts executable
+[PASS] Directory: bin: Directory exists
+[PASS] Directory: sbin: Directory exists
+[PASS] Directory: lib: Directory exists
+[PASS] Directory: lib64: Directory exists
+[PASS] Directory: opt: Directory exists
+[PASS] Directory: proc: Directory exists
+[PASS] Directory: sys: Directory exists
+[PASS] Directory: dev: Directory exists
+[PASS] Directory: var: Directory exists
+[PASS] Directory: run: Directory exists
+[PASS] Directory: mnt: Directory exists
+[PASS] Directory: root: Directory exists
+[PASS] Directory Structure: All required directories exist
+[PASS] Backup Creation: Backup file exists
+[PASS] Shimboot Version: Version: v1.3.0
+[PASS] Essential Binary: bin/busybox: Binary exists
+[PASS] Essential Binary: bin/sh: Binary exists
+[PASS] Essential Binary: bin/cgpt: Binary exists
+[PASS] Essential Binary: bin/crossystem: Binary exists
+[PASS] Essential Binary: sbin/busybox: Binary exists
+[PASS] Essential Binary: sbin/sh: Binary exists
+[PASS] Essential Binary: sbin/cgpt: Binary exists
+[PASS] Essential Binary: sbin/crossystem: Binary exists
+[PASS] Essential Binaries: All essential binaries exist
+
+=== TEST SUMMARY ===
+Total Tests: 35
+Passed: 35
+Failed: 0
+Status: ALL TESTS PASSED

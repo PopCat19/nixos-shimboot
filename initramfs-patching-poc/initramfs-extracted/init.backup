@@ -20,7 +20,7 @@ main() {
   setup_environment
   # In case an error is not handled by bootstrapping, stop here
   # so that an operator can see installation stop.
-  exec /bin/bootstrap.sh || sleep 1d
+  exec bootstrap.sh || sleep 1d
 }
 
 # Make this source-able for testing.
