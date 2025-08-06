@@ -89,8 +89,7 @@ let
     # Download the ChromeOS recovery image
     src = pkgs.fetchurl {
       url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16295.54.0_dedede_recovery_stable-channel_DededeMPKeys-v54.bin.zip";
-      # Let nix prefetch the hash
-      hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+      sha256 = "IbflWCE9x6Xvt67SfdGFEWTs4184soTKfjggGhV7kzA=";
     };
     
     # Native build dependencies
