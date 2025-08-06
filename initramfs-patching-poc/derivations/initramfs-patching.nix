@@ -104,13 +104,30 @@ EOF
     echo "Verifying initramfs patching..."
     
     # Check if bootloader files exist
-    required_files=("bin/bootstrap.sh" "bin/init" "opt/crossystem" "opt/mount-encrypted" "opt/.shimboot_version")
-    for file in "${required_files[@]}"; do
-      if [ ! -f "$file" ]; then
-        echo "ERROR: Required bootloader file not found: $file"
-        exit 1
-      fi
-    done
+    if [ ! -f "bin/bootstrap.sh" ]; then
+      echo "ERROR: Required bootloader file not found: bin/bootstrap.sh"
+      exit 1
+    fi
+    
+    if [ ! -f "bin/init" ]; then
+      echo "ERROR: Required bootloader file not found: bin/init"
+      exit 1
+    fi
+    
+    if [ ! -f "opt/crossystem" ]; then
+      echo "ERROR: Required bootloader file not found: opt/crossystem"
+      exit 1
+    fi
+    
+    if [ ! -f "opt/mount-encrypted" ]; then
+      echo "ERROR: Required bootloader file not found: opt/mount-encrypted"
+      exit 1
+    fi
+    
+    if [ ! -f "opt/.shimboot_version" ]; then
+      echo "ERROR: Required bootloader file not found: opt/.shimboot_version"
+      exit 1
+    fi
     
     # Check if init script contains bootstrap.sh
     if ! grep -q "bootstrap.sh" init; then

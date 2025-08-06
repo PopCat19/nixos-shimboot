@@ -113,12 +113,21 @@ stdenv.mkDerivation (finalAttrs: {
     fi
     
     # Check for key files
-    key_files=("init" "bin" "sbin" "lib")
-    for file in "${key_files[@]}"; do
-      if [ ! -e "initramfs-extracted/$file" ]; then
-        echo "WARNING: Key file/directory not found: $file"
-      fi
-    done
+    if [ ! -e "initramfs-extracted/init" ]; then
+      echo "WARNING: Key file/directory not found: init"
+    fi
+    
+    if [ ! -e "initramfs-extracted/bin" ]; then
+      echo "WARNING: Key file/directory not found: bin"
+    fi
+    
+    if [ ! -e "initramfs-extracted/sbin" ]; then
+      echo "WARNING: Key file/directory not found: sbin"
+    fi
+    
+    if [ ! -e "initramfs-extracted/lib" ]; then
+      echo "WARNING: Key file/directory not found: lib"
+    fi
     
     echo "Initramfs extracted successfully to: initramfs-extracted"
     echo "Key files in extracted initramfs:"
