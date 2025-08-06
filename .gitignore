@@ -4,3 +4,4 @@ data/*
 /source/*
 *.bin
 llm-notes/*
+initramfs-patching-poc/extracted-kernel
