@@ -15,5 +15,7 @@
     # Import and combine all module outputs
     (import ./flake_modules/raw-efi-image.nix { inherit self nixpkgs nixos-generators; }) //
     (import ./flake_modules/system-configuration.nix { inherit self nixpkgs; }) //
-    (import ./flake_modules/development-environment.nix { inherit self nixpkgs; });
+    (import ./flake_modules/development-environment.nix { inherit self nixpkgs; }) //
+    (import ./flake_modules/initramfs-patching.nix { inherit self nixpkgs; }) //
+    (import ./flake_modules/chromeos-sources.nix { inherit self nixpkgs; });
 }
