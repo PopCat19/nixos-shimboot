@@ -2,8 +2,8 @@
 
 {
   # Filesystem Configuration for single partition rootfs
-  fileSystems."/" = {
-    device = "/dev/sda1";
+  fileSystems."/" = lib.mkForce {
+    device = "/dev/disk/by-label/nixos";
     fsType = "ext4";
   };
   
