@@ -1,23 +1,22 @@
 { config, pkgs, lib, ... }:
 
 {
-  # Filesystem Configuration
-  fileSystems."/" = lib.mkForce { # Root filesystem configuration (forced to override raw-efi defaults)
-    device = "/dev/disk/by-partlabel/shimboot_rootfs:nixos";
+  # Filesystem Configuration for single partition rootfs
+  fileSystems."/" = lib.mkForce {
+    device = "/dev/disk/by-label/nixos";
     fsType = "ext4";
   };
   
-  fileSystems."/boot" = lib.mkForce { # /boot filesystem configuration (forced to override raw-efi defaults)
-    device = "tmpfs";
-    fsType = "tmpfs";
-  };
+  # Remove /boot filesystem as it's not needed for single partition setup
+  # The kernel and initramfs will be loaded directly from the root partition
   
-  systemd.mounts = [ # Mounts configuration
+  # Configure tmpfs for /tmp with reasonable limits
+  systemd.mounts = [
     {
       what = "tmpfs";
       where = "/tmp";
       type = "tmpfs";
-      options = "defaults,size=0"; # Effectively disables it by setting size to 0
+      options = "defaults,size=2G";
     }
   ];
 }

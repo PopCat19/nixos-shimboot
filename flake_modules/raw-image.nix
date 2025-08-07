@@ -5,24 +5,19 @@ let
   pkgs = nixpkgs.legacyPackages.${system};
 in {
   packages.${system} = {
-    # Generate a raw-efi image for physical hardware with EFI support
-    raw-efi = nixos-generators.nixosGenerate {
+    # Generate a raw image with single partition rootfs
+    raw-rootfs = nixos-generators.nixosGenerate {
       inherit system;
-      format = "raw-efi";
-      
-      # Optional: Set disk size in MB (default is automatic sizing)
-      # specialArgs = {
-      #   diskSize = 20 * 1024; # 20GB
-      # };
+      format = "raw";
       
       modules = [
         # Import the shimboot configuration
         ../shimboot_config/configuration.nix
         
-        # Raw-efi specific configuration
+        # Raw image specific configuration
         ({ config, pkgs, ... }: {
-          # Enable serial console logging (default for raw-efi)
-          # To also log to display, add: boot.kernelParams = [ "console=tty0" ];
+          # Enable serial console logging
+          boot.kernelParams = [ "console=ttyS0,115200" ];
           
           # Enable Nix flakes
           nix.settings.experimental-features = [ "nix-command" "flakes" ];

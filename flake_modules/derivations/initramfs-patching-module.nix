@@ -30,7 +30,8 @@ let
   
   # Kernel module harvesting derivation
   kernelHarvesting = pkgs.callPackage ./kernel-harvesting.nix {
-    inherit shimBin cfg.recoveryBin;
+    inherit shimBin;
+    recoveryBin = cfg.recoveryBin;
   };
   
   # Kernel repackaging derivation
