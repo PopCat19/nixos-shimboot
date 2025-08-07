@@ -5,9 +5,6 @@
   fileSystems."/" = {
     device = "/dev/sda1";
     fsType = "ext4";
-    # For raw images, we need to ensure the device is available early
-    # by adding it to the initrd
-    initrdAvailable = true;
   };
   
   # Remove /boot filesystem as it's not needed for single partition setup
