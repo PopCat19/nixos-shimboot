@@ -21,6 +21,7 @@
       developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix { inherit self nixpkgs; };
       initramfsPatchingOutputs = import ./flake_modules/initramfs-patching.nix { inherit self nixpkgs; };
       chromeosSourcesOutputs = import ./flake_modules/chromeos-sources.nix { inherit self nixpkgs; };
+      partitioningOutputs = import ./flake_modules/partitioning.nix { inherit self nixpkgs; };
       
       # Merge packages from all modules
       packages = {
@@ -30,8 +31,8 @@
           (chromeosSourcesOutputs.packages.${system} or {});
       };
       
-      # Set default package to raw-rootfs
-      defaultPackage.${system} = packages.${system}.raw-rootfs;
+      # Set default package to chromeos-image
+      defaultPackage.${system} = packages.${system}.chromeos-image;
       
       # Merge devShells from all modules
       devShells = {
@@ -46,7 +47,8 @@
         
       # Merge nixosModules from all modules
       nixosModules =
-        initramfsPatchingOutputs.nixosModules or {};
+        initramfsPatchingOutputs.nixosModules or {} //
+        partitioningOutputs.nixosModules or {};
         
     in {
       # Export all merged outputs
