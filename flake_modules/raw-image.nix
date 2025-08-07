@@ -48,7 +48,6 @@ in {
         bootloader = 20;
         rootfs = null; # Auto-calculate
       };
-      encryptRootfs = false;
       extraSizeMB = 100;
     };
     

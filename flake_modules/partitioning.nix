@@ -92,27 +92,27 @@ let
 
       # Format partitions
       # Stateful partition (ext4)
-      mkfs.ext4 -L STATE "${loop_device}p1" >/dev/null
+      mkfs.ext4 -L STATE "$loop_device"p1 >/dev/null
 
       # Kernel partition (copy kernel image directly)
-      dd if="${kernelPath}" of="${loop_device}p2" bs=1M oflag=sync status=progress
+      dd if="${kernelPath}" of="$loop_device"p2 bs=1M oflag=sync status=progress
 
       # Bootloader partition (ext2 for compatibility)
-      mkfs.ext2 -L BOOT "${loop_device}p3" >/dev/null
+      mkfs.ext2 -L BOOT "$loop_device"p3 >/dev/null
 
       # Rootfs partition
       # Format as ext4 with Chrome OS-compatible options
-      mkfs.ext4 -L ROOTFS -O ^has_journal,^metadata_csum,^64bit -F "${loop_device}p4" >/dev/null
+      mkfs.ext4 -L ROOTFS -O ^has_journal,^metadata_csum,^64bit -F "$loop_device"p4 >/dev/null
       
       # Mount and copy rootfs
       mkdir -p /mnt/rootfs
-      mount "${loop_device}p4" /mnt/rootfs
+      mount "$loop_device"p4 /mnt/rootfs
       cp -ar ${rootfsDir}/. /mnt/rootfs/
       umount /mnt/rootfs
 
       # Mount and copy bootloader
       mkdir -p /mnt/bootloader
-      mount "${loop_device}p3" /mnt/bootloader
+      mount "$loop_device"p3 /mnt/bootloader
       cp -ar ${initramfsDir}/* /mnt/bootloader/
       
       # Add version information
@@ -154,27 +154,27 @@ let
 
     # Format partitions
     # Stateful partition (ext4)
-    mkfs.ext4 -L STATE "${loop_device}p1" >/dev/null
+    mkfs.ext4 -L STATE "$loop_device"p1 >/dev/null
 
     # Kernel partition (copy kernel image directly)
-    dd if="${kernelPath}" of="${loop_device}p2" bs=1M oflag=sync status=progress
+    dd if="${kernelPath}" of="$loop_device"p2 bs=1M oflag=sync status=progress
 
     # Bootloader partition (ext2 for compatibility)
-    mkfs.ext2 -L BOOT "${loop_device}p3" >/dev/null
+    mkfs.ext2 -L BOOT "$loop_device"p3 >/dev/null
 
     # Rootfs partition
     # Format as ext4 with Chrome OS-compatible options
-    mkfs.ext4 -L ROOTFS -O ^has_journal,^metadata_csum,^64bit -F "${loop_device}p4" >/dev/null
+    mkfs.ext4 -L ROOTFS -O ^has_journal,^metadata_csum,^64bit -F "$loop_device"p4 >/dev/null
     
     # Mount and copy rootfs
     mkdir -p /mnt/rootfs
-    mount "${loop_device}p4" /mnt/rootfs
+    mount "$loop_device"p4 /mnt/rootfs
     cp -ar ${rootfsDir}/. /mnt/rootfs/
     umount /mnt/rootfs
 
     # Mount and copy bootloader
     mkdir -p /mnt/bootloader
-    mount "${loop_device}p3" /mnt/bootloader
+    mount "$loop_device"p3 /mnt/bootloader
     cp -ar ${initramfsDir}/* /mnt/bootloader/
     
     # Add version information
