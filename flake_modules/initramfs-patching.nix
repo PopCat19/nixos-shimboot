@@ -321,12 +321,127 @@ EOF
     };
   };
   
+  # Raw image package with patched initramfs
+  initramfsPatchingImagePackage = pkgs.stdenv.mkDerivation {
+    name = "initramfs-patching-image";
+    version = "1.0.0";
+    
+    # Use the patched initramfs as source
+    src = initramfsPatchingPackage;
+    
+    nativeBuildInputs = with pkgs; [
+      e2fsprogs  # For mkfs tools
+      dosfstools # For FAT filesystem tools
+      mtools     # For mcopy to copy files to FAT image without mounting
+      coreutils
+    ];
+    
+    dontUnpack = true;
+    dontFixup = true;
+    
+    buildPhase = ''
+      runHook preBuild
+      
+      if [ ! -d "$src" ]; then
+        echo "ERROR: Patched initramfs directory not found at $src"
+        exit 1
+      fi
+      
+      echo "Creating raw image with patched initramfs..."
+      
+      # Create a temporary directory for image creation
+      mkdir -p image-workspace
+      
+      # Copy the patched initramfs to workspace
+      cp -r "$src"/* image-workspace/
+      
+      # Create a larger FAT filesystem image
+      # Use 128MB = 131072 blocks of 1024 bytes each for the initramfs image
+      image_size=131072
+      
+      # Create a FAT filesystem
+      mkfs.vfat -C image-workspace/initramfs.img $image_size
+      
+      # Create a directory structure in the image
+      # We'll use a simpler approach by creating a basic directory structure
+      # and then copying only the essential files
+      
+      # Create essential directories
+      mmd -i image-workspace/initramfs.img ::bin
+      mmd -i image-workspace/initramfs.img ::opt
+      mmd -i image-workspace/initramfs.img ::lib
+      mmd -i image-workspace/initramfs.img ::lib64
+      
+      # Copy essential files only
+      if [ -f "image-workspace/init" ]; then
+        mcopy -i image-workspace/initramfs.img image-workspace/init ::/init
+      fi
+      
+      if [ -d "image-workspace/bin" ]; then
+        mcopy -s -i image-workspace/initramfs.img image-workspace/bin/ ::/bin
+      fi
+      
+      if [ -d "image-workspace/opt" ]; then
+        mcopy -s -i image-workspace/initramfs.img image-workspace/opt/ ::/opt
+      fi
+      
+      if [ -d "image-workspace/lib" ]; then
+        mcopy -s -i image-workspace/initramfs.img image-workspace/lib/ ::/lib
+      fi
+      
+      if [ -d "image-workspace/lib64" ]; then
+        mcopy -s -i image-workspace/initramfs.img image-workspace/lib64/ ::/lib64
+      fi
+      
+      echo "Raw image created successfully"
+      
+      runHook postBuild
+    '';
+    
+    installPhase = ''
+      runHook preInstall
+      
+      # Create output directory structure
+      mkdir -p $out
+      
+      # Copy the created image to output
+      cp image-workspace/initramfs.img $out/
+      
+      # Create a metadata file
+      cat > $out/image-metadata.txt << EOF
+    Initramfs Patching Image Metadata
+    =================================
+    Source Initramfs: $src
+    Image Format: RAW (FAT filesystem)
+    Image Size: 64MB
+    Creation Date: $(date)
+    Contents: Patched initramfs with shimboot bootloader
+    
+    This image can be partitioned and used as a bootable initramfs.
+    EOF
+      
+      runHook postInstall
+    '';
+    
+    meta = with pkgs.lib; {
+      description = "Raw image containing patched initramfs with shimboot bootloader";
+      longDescription = ''
+        This package creates a raw image containing the patched initramfs with shimboot bootloader.
+        The image is formatted as a FAT filesystem and can be partitioned for use as a bootable initramfs.
+      '';
+      license = licenses.bsd3;
+      platforms = platforms.linux;
+      maintainers = [ "shimboot developers" ];
+    };
+  };
+  
 in {
   # Export all packages
   packages.${system} = {
     initramfs-patching = initramfsPatchingPackage;
     extracted-kernel = kernelExtractionPackage;
     kernel-harvesting = kernelHarvestingPackage;
+    initramfs-patching-image = initramfsPatchingImagePackage;
   };
   
   # Export the full NixOS module
