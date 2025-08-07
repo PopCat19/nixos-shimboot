@@ -5,3 +5,5 @@ data/*
 *.bin
 llm-notes/*
 initramfs-patching-poc/extracted-kernel
+*.iso
+*.img
