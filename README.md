@@ -1,5 +1,5 @@
 # CURRENT STATE: Not Ready
-Currently working with [`zai-org/GLM-4.5-FP8`](https://chutes.ai/app/chute/b5326e54-8d9e-590e-bed4-f3db35d9d4cd) for getting flake to partition ChromeOS layout with patched shim and ROOTFS. Check [here](https://github.com/PopCat19/nixos-shimboot#progress-and-obstacles) for more info.
+Currently evaluating archived scripts to patch and image shim's initramfs before drafting relevant flake module/derivation. Check [here](https://github.com/PopCat19/nixos-shimboot#progress-and-obstacles) for current progress.
 
 ## This is a vibecoded project
 As mentioned in the header:\
@@ -15,7 +15,7 @@ I've made a bunch of progress initially from [nixos-shimboot-legacy](https://git
 
 The reason I made this repo and moved from [nixos-shimboot-legacy](https://github.com/PopCat19/nixos-shimboot-legacy/tree/qemu-method2) is due to the inherited contributers and commits from [ading2210/shimboot](https://github.com/ading2210/shimboot), which considering how I'll only use the bootloader and systemd `mount_nofollow` patch from that repo, I wanted to initialize a clean repo to avoid misconceptions. (with also how I expected this repo to be experimental since I vibecoded most of it)
 
-So far it's been unsurprisingly miserable and messy. That being said, it does make progress considerably rewarding.
+So far it's been unsurprisingly miserable and messy; this project itself could fit in Michael MJD's "but everything goes wrong" series. That being said, it does make progress considerably rewarding.
 
 Check out [nixos-shimboot-legacy](https://github.com/PopCat19/nixos-shimboot-legacy/tree/qemu-method2) if you want to try out a bootable (dedede) NixOS that only boots into LightDM since the home environment is borked to the brim! (It's not documented well, be warned)
 
@@ -33,7 +33,7 @@ A helpful excerpt from [ading2210/shimboot](https://github.com/ading2210/shimboo
 >
 > The main advantages of this approach are that you don't need to touch the device's firmware in order to run Linux. Simply rebooting and unplugging the USB drive will return the device to normal, which can be useful if the device is enterprise enrolled. However, since we are stuck with the kernel from the RMA shim, some features such as audio and suspend may not work.
 
-**TLDR: gnu/linux on (most) chromebooks, except it runs on persistent USB and can run cool stuff like Arch btw (and most distros) And before you ask, no one tried to shimboot SteamOS/Bazzite as of writing. (even so, your phone could practially run better frames)**
+**TLDR: gnu/linux on (most) chromebooks, except it runs from a persistent USB and can run cool stuff like Arch btw (and most distros) And before you ask, no one tried to shimboot SteamOS/Bazzite as of writing. (even so, your phone could practially run better frames)**
 
 ## Why vibecode?
 My controversial excuses for vibecoding this project are, but not limited to:
