@@ -110,6 +110,10 @@ log_step "5/8" "Setup loop device"
 LOOPDEV=$(sudo losetup --show -fP "$IMAGE")
 log_info "Loop device: $LOOPDEV"
 
+# Set ChromeOS boot flags on p2
+log_info "Setting ChromeOS boot flags on KERNEL partition..."
+sudo cgpt add -i 2 -S 1 -T 5 -P 10 "$LOOPDEV"
+
 # === Step 6: Format partitions ===
 log_step "6/8" "Format partitions"
 sudo mkfs.ext4 -q "${LOOPDEV}p1"

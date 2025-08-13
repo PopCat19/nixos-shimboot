@@ -4,14 +4,8 @@ let
   system = "x86_64-linux";
   pkgs = nixpkgs.legacyPackages.${system};
 
-  # Inputs from previous steps
   extractedInitramfs = self.packages.${system}.initramfs-patching;
-  extractedKernel    = self.packages.${system}.initramfs-extraction;
-  extractedKernelBin = self.packages.${system}.extracted-kernel;
-
-  # Local dev keys (decoded from googlesource base64)
-  devKeys = ./../../kernel_data_key.vbprivk;
-  devKeyblock = ./../../kernel.keyblock;
+  extractedKernel    = self.packages.${system}.extracted-kernel;
 in {
   packages.${system}.kernel-repack = pkgs.stdenv.mkDerivation {
     name = "kernel-repack";
@@ -19,8 +13,11 @@ in {
 
     nativeBuildInputs = with pkgs; [
       coreutils
-      vboot_reference
+      binwalk
+      gawk
+      gnugrep
       gzip
+      vboot_reference   # provides futility
     ];
 
     buildPhase = ''
@@ -28,35 +25,38 @@ in {
       runHook preBuild
 
       mkdir -p work
+      cp ${extractedKernel}/kernel.bin work/kernel.bin
+      chmod +w work/kernel.bin
 
-      echo "Copying vmlinuz and patched initramfs..."
-      cp $src/vmlinuz work/vmlinuz
-      cp ${extractedInitramfs}/initramfs.cpio.gz work/initramfs.cpio.gz
+      echo "Extracting vmlinuz from original signed kernel blob..."
+      futility vbutil_kernel --get-vmlinuz work/kernel.bin --vmlinuz-out work/vmlinuz
 
-      echo "Combining vmlinuz and initramfs..."
-      cat work/vmlinuz work/initramfs.cpio.gz > work/vmlinuz-with-initramfs
-
-      echo "Extracting original kernel command line..."
-      if [ -f $src/cmdline ]; then
-        cp $src/cmdline work/cmdline
-      else
-        echo "console= loglevel=7 init=/sbin/init rootwait ro" > work/cmdline
+      echo "Finding initramfs offset in vmlinuz..."
+      INITRAMFS_OFFSET=$(binwalk work/vmlinuz | awk '/gzip compressed data/ {print $1; exit}')
+      if [ -z "$INITRAMFS_OFFSET" ]; then
+        echo "ERROR: Could not find initramfs offset"
+        exit 1
       fi
+      echo "Initramfs offset: $INITRAMFS_OFFSET"
 
-      echo "Creating minimal bootloader stub (1 byte)..."
-      dd if=/dev/zero of=work/bootloader bs=1 count=1 status=none
+      echo "Building patched vmlinuz..."
+      dd if=work/vmlinuz of=work/vmlinuz.prefix bs=1 count=$INITRAMFS_OFFSET status=none
+      cat ${extractedInitramfs}/initramfs.cpio.gz >> work/vmlinuz.prefix
+      mv work/vmlinuz.prefix work/vmlinuz.patched
 
-      echo "Packing new ChromeOS kernel blob..."
-      futility vbutil_kernel \
-        --pack work/kernel.bin \
-        --keyblock ${devKeyblock} \
-        --signprivate ${devKeys} \
-        --version 1 \
-        --vmlinuz work/vmlinuz-with-initramfs \
-        --bootloader work/bootloader \
-        --config work/cmdline \
-        --arch x86 \
-        --flags 0x1
+      echo "Finding vmlinuz offset inside kernel.bin..."
+      VMLINUZ_OFFSET=$(binwalk work/kernel.bin | awk '/gzip compressed data/ {print $1; exit}')
+      if [ -z "$VMLINUZ_OFFSET" ]; then
+        echo "ERROR: Could not find vmlinuz offset in kernel.bin"
+        exit 1
+      fi
+      echo "vmlinuz offset in kernel.bin: $VMLINUZ_OFFSET"
+
+      echo "Patching vmlinuz inside kernel.bin..."
+      dd if=work/vmlinuz.patched of=work/kernel.bin bs=1 seek=$VMLINUZ_OFFSET conv=notrunc status=none
+
+      echo "Verifying final kernel blob signature..."
+      futility vbutil_kernel --verify work/kernel.bin --verbose || true
 
       runHook postBuild
     '';
@@ -69,7 +69,7 @@ in {
     '';
 
     meta = with pkgs.lib; {
-      description = "Repack ChromeOS kernel with patched initramfs (dev keys, empty bootloader stub)";
+      description = "Patch initramfs inside original signed ChromeOS kernel blob in-place without re-signing";
       license = licenses.unfree;
       platforms = platforms.linux;
       maintainers = [ "shimboot developers" ];

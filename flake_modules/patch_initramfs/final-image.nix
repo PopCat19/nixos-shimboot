@@ -62,7 +62,7 @@ in {
 
       echo "Formatting partitions..."
       mkfs.ext4 -q "$${LOOPDEV}p1"
-      dd if=${patchedKernel}/kernel.bin of="$${LOOPDEV}p2" bs=1M conv=fsync
+      dd if=${patchedKernel}/vmlinuz.patched of="$${LOOPDEV}p2" bs=1M conv=fsync
       mkfs.ext2 -q "$${LOOPDEV}p3"
       mkfs.ext4 -q "$${LOOPDEV}p4"
 
