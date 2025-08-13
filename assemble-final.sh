@@ -94,7 +94,7 @@ parted --script "$IMAGE" \
   mkpart stateful ext4 1MiB 2MiB \
   name 1 STATE \
   mkpart kernel  2MiB 34MiB \
-  name 2 KERN-A \
+  name 2 KERNEL \
   type 2 FE3A2A5D-4F32-41A7-B725-ACCC3285A309 \
   mkpart bootloader ext2 34MiB 54MiB \
   name 3 BOOT \
