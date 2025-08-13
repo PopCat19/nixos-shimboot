@@ -4,6 +4,15 @@ set -euo pipefail
 SYSTEM="x86_64-linux"
 WORKDIR="$(pwd)/work"
 IMAGE="$WORKDIR/shimboot.img"
+ROOTFS_NAME="${ROOTFS_NAME:-nixos}"
+INSPECT_AFTER="${1:-}"
+
+# Ensure clean workspace
+if [ -d "$WORKDIR" ]; then
+    echo "[INIT] Cleaning up old work directory..."
+    sudo rm -rf "$WORKDIR"
+fi
+mkdir -p "$WORKDIR" "$WORKDIR/mnt_src_rootfs" "$WORKDIR/mnt_bootloader" "$WORKDIR/mnt_rootfs"
 
 # Track loop devices for cleanup
 LOOPDEV=""
@@ -50,9 +59,6 @@ TOTAL_SIZE_MB=$((STATEFUL_MB + KERNEL_MB + BOOTLOADER_MB + ROOTFS_PART_SIZE))
 echo "[3/8] Create empty $TOTAL_SIZE_MB MB image..."
 fallocate -l ${TOTAL_SIZE_MB}M "$IMAGE"
 
-# Rootfs label name (change "nixos" to whatever you want)
-ROOTFS_NAME="nixos"
-
 echo "[4/8] Partition image..."
 parted --script "$IMAGE" \
   mklabel gpt \
@@ -94,3 +100,23 @@ sudo losetup -d "$LOOPDEV"
 LOOPDEV=""
 
 echo "✅ Final image created at: $IMAGE"
+
+# Optional inspection
+if [ "$INSPECT_AFTER" = "--inspect" ]; then
+    echo
+    echo "=== Partition Table ==="
+    sudo partx -o NR,START,END,SIZE,TYPE,NAME,UUID -g --show "$IMAGE" || true
+    echo
+    echo "[INFO] Mounting rootfs to check init..."
+    LOOPDEV=$(sudo losetup --show -fP "$IMAGE")
+    mkdir -p "$WORKDIR/inspect_rootfs"
+    sudo mount "${LOOPDEV}p4" "$WORKDIR/inspect_rootfs"
+    sudo ls -l "$WORKDIR/inspect_rootfs"
+    if [ -f "$WORKDIR/inspect_rootfs/sbin/init" ] || [ -f "$WORKDIR/inspect_rootfs/init" ]; then
+        echo "✅ Init found"
+    else
+        echo "❌ Init missing"
+    fi
+    sudo umount "$WORKDIR/inspect_rootfs"
+    sudo losetup -d "$LOOPDEV"
+fi
