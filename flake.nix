@@ -20,6 +20,7 @@
       systemConfigurationOutputs = import ./flake_modules/system-configuration.nix { inherit self nixpkgs; };
       developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix { inherit self nixpkgs; };
       kernelExtractionOutputs = import ./flake_modules/patch_initramfs/kernel-extraction.nix { inherit self nixpkgs; };
+      initramfsExtractionOutputs = import ./flake_modules/patch_initramfs/initramfs-extraction.nix { inherit self nixpkgs; };
       chromeosSourcesOutputs = import ./flake_modules/chromeos-sources.nix { inherit self nixpkgs; };
       
       # Merge packages from all modules
@@ -27,6 +28,7 @@
         ${system} =
           (rawImageOutputs.packages.${system} or {}) //
           (kernelExtractionOutputs.packages.${system} or {}) //
+          (initramfsExtractionOutputs.packages.${system} or {}) //
           (chromeosSourcesOutputs.packages.${system} or {});
       };
       
