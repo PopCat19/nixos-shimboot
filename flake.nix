@@ -19,14 +19,14 @@
       rawImageOutputs = import ./flake_modules/raw-image.nix { inherit self nixpkgs nixos-generators; };
       systemConfigurationOutputs = import ./flake_modules/system-configuration.nix { inherit self nixpkgs; };
       developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix { inherit self nixpkgs; };
-      initramfsPatchingOutputs = import ./flake_modules/initramfs-patching.nix { inherit self nixpkgs; };
+      kernelExtractionOutputs = import ./flake_modules/patch_initramfs/kernel-extraction.nix { inherit self nixpkgs; };
       chromeosSourcesOutputs = import ./flake_modules/chromeos-sources.nix { inherit self nixpkgs; };
       
       # Merge packages from all modules
       packages = {
         ${system} =
           (rawImageOutputs.packages.${system} or {}) //
-          (initramfsPatchingOutputs.packages.${system} or {}) //
+          (kernelExtractionOutputs.packages.${system} or {}) //
           (chromeosSourcesOutputs.packages.${system} or {});
       };
       
@@ -36,8 +36,7 @@
       # Merge devShells from all modules
       devShells = {
         ${system} =
-          (developmentEnvironmentOutputs.devShells.${system} or {}) //
-          (initramfsPatchingOutputs.devShells.${system} or {});
+          (developmentEnvironmentOutputs.devShells.${system} or {});
       };
       
       # Merge nixosConfigurations from all modules
@@ -45,8 +44,7 @@
         systemConfigurationOutputs.nixosConfigurations or {};
         
       # Merge nixosModules from all modules
-      nixosModules =
-        initramfsPatchingOutputs.nixosModules or {};
+      nixosModules = {};
         
     in {
       # Export all merged outputs
