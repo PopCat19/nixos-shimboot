@@ -57,10 +57,10 @@ trap cleanup EXIT
 
 # === Step 0: Build Nix outputs ===
 log_step "0/8" "Building Nix outputs"
-KERNEL_BIN="$(nix build --impure .#kernel-repack --print-out-paths)/kernel.bin"
+PATCHED_P2="$(nix build --impure .#kernel-repack --print-out-paths)/kernel-p2-patched.bin"
 BOOTLOADER_DIR="./bootloader"
 RAW_ROOTFS_IMG="$(nix build --impure .#raw-rootfs --print-out-paths)/nixos.img"
-log_info "Kernel: $KERNEL_BIN"
+log_info "Kernel (full p2): $PATCHED_P2"
 log_info "Bootloader dir: $BOOTLOADER_DIR"
 log_info "Raw rootfs: $RAW_ROOTFS_IMG"
 
@@ -117,7 +117,7 @@ sudo cgpt add -i 2 -S 1 -T 5 -P 10 "$LOOPDEV"
 # === Step 6: Format partitions ===
 log_step "6/8" "Format partitions"
 sudo mkfs.ext4 -q "${LOOPDEV}p1"
-sudo dd if="$KERNEL_BIN" of="${LOOPDEV}p2" bs=1M conv=fsync status=progress
+sudo dd if="$PATCHED_P2" of="${LOOPDEV}p2" bs=1M conv=fsync status=progress
 sudo mkfs.ext2 -q "${LOOPDEV}p3"
 sudo mkfs.ext4 -q "${LOOPDEV}p4"
 

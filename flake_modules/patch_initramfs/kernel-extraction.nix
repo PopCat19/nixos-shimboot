@@ -8,7 +8,7 @@ let
 in {
   packages.${system}.extracted-kernel = pkgs.stdenv.mkDerivation {
     name = "extracted-kernel";
-    version = "1.0.0";
+    version = "1.1.0";
 
     src = chromeosShim;
 
@@ -17,128 +17,92 @@ in {
       gawk
       gnugrep
       gptfdisk          # sgdisk
-      vboot_reference   # cgpt
+      vboot_reference   # cgpt, vbutil_kernel
     ];
 
     buildPhase = ''
+      set -euo pipefail
       runHook preBuild
 
-      echo "Starting kernel extraction from ChromeOS shim image (pure file mode)..."
+      echo "Extracting KERN-A from ChromeOS shim image..."
 
       WORKDIR="$PWD/work"
       mkdir -p "$WORKDIR"
 
       cp ${chromeosShim}/shim.bin "$WORKDIR/shim.bin"
-      echo "Shim image size: $(stat -c%s "$WORKDIR/shim.bin") bytes"
 
-      SECTOR_SIZE=512
+      # --- Step 1: Locate KERN-A partition ---
+      echo "Locating KERN-A partition..."
       START=""
       SIZE=""
+      SECTOR_SIZE=512
 
-      detect_with_cgpt() {
-        if command -v cgpt >/dev/null 2>&1; then
-          echo "Using cgpt to locate KERN-A..."
-          cgpt show -v "$WORKDIR/shim.bin" | tee "$WORKDIR/partition_info.txt" || true
-
-          PART_NUM=$(cgpt show -v "$WORKDIR/shim.bin" | awk '
-            /Sec GPT table/ {next}
-            /label: "KERN-A"/ {print n}
-            {n=$1}
-          ' | head -n1)
-
-          if [ -n "$PART_NUM" ]; then
-            START=$(cgpt show -i "$PART_NUM" -b "$WORKDIR/shim.bin" 2>/dev/null || true)
-            SIZE=$(cgpt show -i "$PART_NUM" -s "$WORKDIR/shim.bin" 2>/dev/null || true)
-            if [ -n "$START" ] && [ -n "$SIZE" ]; then
-              echo "Found with cgpt: part=$PART_NUM start=$START size=$SIZE"
-              return 0
-            fi
-          fi
-
-          START=$(cgpt show -i 2 -b "$WORKDIR/shim.bin" 2>/dev/null || true)
-          SIZE=$(cgpt show -i 2 -s "$WORKDIR/shim.bin" 2>/dev/null || true)
-          if [ -n "$START" ] && [ -n "$SIZE" ]; then
-            echo "Falling back to partition 2: start=$START size=$SIZE"
-            return 0
-          fi
-        fi
-        return 1
-      }
-
-      detect_with_sgdisk() {
-        if command -v sgdisk >/dev/null 2>&1; then
-          echo "Using sgdisk to locate KERN-A..."
-          sgdisk -p "$WORKDIR/shim.bin" | tee "$WORKDIR/partition_info.txt"
-
-          read START END <<<"$(sgdisk -p "$WORKDIR/shim.bin" | awk '
-            $1 ~ /^[0-9]+$/ && $NF == "KERN-A" {print $2, $3}
-          ' | head -n1)"
-
-          if [ -n "$START" ] && [ -n "$END" ]; then
-            SIZE=$((END - START + 1))
-            echo "Found with sgdisk: start=$START size=$SIZE"
-            return 0
-          fi
-
-          read START END <<<"$(sgdisk -p "$WORKDIR/shim.bin" | awk '
-            $1 == "2" {print $2, $3}
-          ' | head -n1)"
-          if [ -n "$START" ] && [ -n "$END" ]; then
-            SIZE=$((END - START + 1))
-            echo "Falling back to partition 2 via sgdisk: start=$START size=$SIZE"
-            return 0
-          fi
-        fi
-        return 1
-      }
-
-      if ! detect_with_cgpt; then
-        if ! detect_with_sgdisk; then
-          echo "ERROR: Could not determine KERN-A start/size"
-          exit 1
-        fi
+      if command -v cgpt >/dev/null 2>&1; then
+        START=$(cgpt show -i 2 -b "$WORKDIR/shim.bin" 2>/dev/null || true)
+        SIZE=$(cgpt show -i 2 -s "$WORKDIR/shim.bin" 2>/dev/null || true)
       fi
 
-      BYTE_OFFSET=$((START * SECTOR_SIZE))
-      BYTE_COUNT=$((SIZE * SECTOR_SIZE))
-      echo "Extracting bytes: offset=$BYTE_OFFSET count=$BYTE_COUNT"
+      if [ -z "$START" ] || [ -z "$SIZE" ]; then
+        echo "Falling back to sgdisk..."
+        read START END <<<"$(sgdisk -p "$WORKDIR/shim.bin" | awk '$1 == "2" {print $2, $3}')"
+        SIZE=$((END - START + 1))
+      fi
 
-      dd if="$WORKDIR/shim.bin" of="$WORKDIR/kernel.bin" bs=$SECTOR_SIZE \
-         skip=$START count=$SIZE status=none
-
-      echo "Extracted kernel size: $(stat -c%s "$WORKDIR/kernel.bin") bytes"
-      if [ ! -s "$WORKDIR/kernel.bin" ]; then
-        echo "ERROR: kernel.bin is empty"
+      if [ -z "$START" ] || [ -z "$SIZE" ]; then
+        echo "ERROR: Could not locate KERN-A partition"
         exit 1
       fi
+
+      echo "KERN-A start sector: $START, size: $SIZE sectors"
+
+      # --- Step 2: Extract raw p2 ---
+      dd if="$WORKDIR/shim.bin" of="$WORKDIR/p2.bin" \
+         bs=$SECTOR_SIZE skip=$START count=$SIZE status=none
+
+      # --- Step 3: Search for CHROMEOS magic ---
+      echo "Searching for CHROMEOS magic..."
+      MAGIC_OFFSET=$(grep -aob 'CHROMEOS' "$WORKDIR/p2.bin" | head -n1 | cut -d: -f1 || true)
+
+      if [ -z "$MAGIC_OFFSET" ]; then
+        echo "ERROR: Could not find CHROMEOS magic in KERN-A"
+        exit 1
+      fi
+
+      echo "Found CHROMEOS magic at byte offset $MAGIC_OFFSET inside p2"
+
+      # --- Step 4: Carve inner kernel blob ---
+      dd if="$WORKDIR/p2.bin" of="$WORKDIR/kernel.bin" \
+         bs=1 skip=$MAGIC_OFFSET status=none
+
+      echo "Extracted kernel blob size: $(stat -c%s "$WORKDIR/kernel.bin") bytes"
+
+      # --- Step 5: Verify with vbutil_kernel ---
+      if ! vbutil_kernel --verify "$WORKDIR/kernel.bin" --verbose; then
+        echo "WARNING: vbutil_kernel verify failed (expected if patched)"
+      fi
+
+      # Save offset for repacking later
+      echo "$MAGIC_OFFSET" > "$WORKDIR/kernel_offset.txt"
 
       runHook postBuild
     '';
 
     installPhase = ''
       runHook preInstall
-
-      echo "Installing extracted kernel..."
-      WORKDIR="$PWD/work"
-
       mkdir -p "$out"
       cp "$WORKDIR/kernel.bin" "$out/kernel.bin"
-      if [ -f "$WORKDIR/partition_info.txt" ]; then
-        cp "$WORKDIR/partition_info.txt" "$out/partition_info.txt"
-      fi
-
-      echo "Successfully installed extracted kernel ($(stat -c%s "$out/kernel.bin") bytes)"
-
+      cp "$WORKDIR/kernel_offset.txt" "$out/kernel_offset.txt"
+      cp "$WORKDIR/p2.bin" "$out/p2.bin"
       runHook postInstall
     '';
 
     meta = with pkgs.lib; {
-      description = "Extracted kernel partition from ChromeOS shim image";
+      description = "Extract ChromeOS kernel blob from shim image, handling wrapped formats";
       longDescription = ''
-        This derivation extracts the kernel partition (KERN-A) from a ChromeOS
-        shim image by parsing the GPT and slicing bytes directly, avoiding any
-        need for kernel devices or privileges. The extracted kernel can be used
-        for further processing such as initramfs extraction and patching.
+        This derivation extracts the actual ChromeOS vbutil_kernel blob from
+        the KERN-A partition of a shim image. It supports both legacy shims
+        (CHROMEOS magic at offset 0) and new RMA shims where the blob is
+        wrapped inside another binary.
       '';
       license = licenses.unfree;
       platforms = platforms.linux;
