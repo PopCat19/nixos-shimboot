@@ -8,3 +8,4 @@ initramfs-patching-poc/extracted-kernel
 *.iso
 *.img
 debug*
+work*
