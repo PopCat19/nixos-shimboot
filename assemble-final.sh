@@ -50,15 +50,22 @@ TOTAL_SIZE_MB=$((STATEFUL_MB + KERNEL_MB + BOOTLOADER_MB + ROOTFS_PART_SIZE))
 echo "[3/8] Create empty $TOTAL_SIZE_MB MB image..."
 fallocate -l ${TOTAL_SIZE_MB}M "$IMAGE"
 
+# Rootfs label name (change "nixos" to whatever you want)
+ROOTFS_NAME="nixos"
+
 echo "[4/8] Partition image..."
 parted --script "$IMAGE" \
   mklabel gpt \
   mkpart stateful ext4 1MiB $((1+STATEFUL_MB))MiB \
+  name 1 STATE \
   mkpart kernel  $((1+STATEFUL_MB))MiB $((1+STATEFUL_MB+KERNEL_MB))MiB \
-  set 2 typecode FE3A2A5D-4F32-41A7-B725-ACCC3285A309 \
+  name 2 KERN-A \
+  type 2 FE3A2A5D-4F32-41A7-B725-ACCC3285A309 \
   mkpart bootloader ext2 $((1+STATEFUL_MB+KERNEL_MB))MiB $((1+STATEFUL_MB+KERNEL_MB+BOOTLOADER_MB))MiB \
-  set 3 typecode 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC \
-  mkpart rootfs ext4 $((1+STATEFUL_MB+KERNEL_MB+BOOTLOADER_MB))MiB 100%
+  name 3 SHIMBOOT \
+  type 3 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC \
+  mkpart rootfs ext4 $((1+STATEFUL_MB+KERNEL_MB+BOOTLOADER_MB))MiB 100% \
+  name 4 "shimboot_rootfs:${ROOTFS_NAME}"
 
 echo "[5/8] Setup loop device..."
 LOOPDEV=$(sudo losetup --show -fP "$IMAGE")
