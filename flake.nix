@@ -21,15 +21,13 @@
       developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix { inherit self nixpkgs; };
       initramfsPatchingOutputs = import ./flake_modules/initramfs-patching.nix { inherit self nixpkgs; };
       chromeosSourcesOutputs = import ./flake_modules/chromeos-sources.nix { inherit self nixpkgs; };
-      initramfsPatchingTestOutputs = import ./flake_modules/initramfs-patching-test.nix { inherit self nixpkgs; };
       
       # Merge packages from all modules
       packages = {
         ${system} =
           (rawImageOutputs.packages.${system} or {}) //
           (initramfsPatchingOutputs.packages.${system} or {}) //
-          (chromeosSourcesOutputs.packages.${system} or {}) //
-          (initramfsPatchingTestOutputs.packages.${system} or {});
+          (chromeosSourcesOutputs.packages.${system} or {});
       };
       
       # Set default package to raw-rootfs
