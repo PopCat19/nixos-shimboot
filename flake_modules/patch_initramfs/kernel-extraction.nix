@@ -11,6 +11,7 @@ in {
     version = "1.1.0";
 
     src = chromeosShim;
+    unpackPhase = "true";
 
     nativeBuildInputs = with pkgs; [
       coreutils
@@ -29,7 +30,7 @@ in {
       WORKDIR="$PWD/work"
       mkdir -p "$WORKDIR"
 
-      cp ${chromeosShim}/shim.bin "$WORKDIR/shim.bin"
+      cp "$src" "$WORKDIR/shim.bin"
 
       # --- Step 1: Locate KERN-A partition ---
       echo "Locating KERN-A partition..."
