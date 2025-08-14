@@ -28,8 +28,19 @@ in {
 
       # Copy extracted kernel blob and make it writable
       install -m644 ${extractedKernel}/kernel.bin work/kernel.bin
+
+      # Read saved offset
       KERNEL_OFFSET=$(cat ${extractedKernel}/kernel_offset.txt)
       echo "Kernel blob offset inside p2: $KERNEL_OFFSET bytes"
+
+      # Check if kernel has noinitrd
+      if vbutil_kernel --verify ${extractedKernel}/kernel.bin --verbose | grep -q "noinitrd"; then
+        echo "Kernel config has noinitrd — skipping initramfs patch to preserve signature"
+        mkdir -p "$out"
+        cp ${extractedKernel}/p2.bin "$out/kernel-p2-patched.bin"
+        runHook postBuild
+        exit 0
+      fi
 
       # --- Step 1: Extract vmlinuz from kernel blob ---
       echo "Extracting vmlinuz from kernel blob..."
