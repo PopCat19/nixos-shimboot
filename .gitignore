@@ -3,6 +3,7 @@ data/*
 /result
 /source/*
 *.bin
+*.zip*
 llm-notes/*
 initramfs-patching-poc/extracted-kernel
 *.iso
