@@ -53,36 +53,26 @@ if [ -z "$OUT_PATH" ]; then
     OUT_PATH="${BOARD}-manifest.nix"
 fi
 
-# --fixup mode: just sort and clean manifest
+# --fixup mode: sort and clean manifest
 if $FIXUP; then
     if [ ! -f "$OUT_PATH" ]; then
         echo "[!] Manifest file $OUT_PATH not found" >&2
         exit 1
     fi
     echo "[*] Fixing up manifest $OUT_PATH..." >&2
-
-    # Grab header up to and including 'chunks = ['
     header=$(sed -n '1,/chunks = \[/p' "$OUT_PATH")
-
-    # Grab only chunk entries (lines starting with spaces then '{ name =')
     entries=$(grep '^[[:space:]]*{ name = "' "$OUT_PATH" | sort -t. -k3,3n)
-
-    # Grab footer from closing bracket onward
-    footer=$(sed -n '/];/,$p' "$OUT_PATH")
-
     {
         echo "$header"
         echo "$entries"
         echo "  ];"
         echo "}"
     } > "${OUT_PATH}.fixed"
-
     mv "${OUT_PATH}.fixed" "$OUT_PATH"
     echo "[+] Manifest fixup complete: $OUT_PATH" >&2
     exit 0
 fi
 
-# Normal download/regenerate logic below...
 BASE_URL="https://cdn.cros.download/files/${BOARD}"
 MANIFEST_URL="${BASE_URL}/${BOARD}.zip.manifest"
 
@@ -93,7 +83,7 @@ SLEEP_BETWEEN="${SLEEP_BETWEEN:-0.2}"
 # Fetch manifest JSON
 echo "[*] Fetching manifest for $BOARD..." >&2
 manifest=$(curl -s --fail --connect-timeout 10 "$MANIFEST_URL")
-final_hash=$(echo "$manifest" | jq -r '.hash')
+zip_hash=$(echo "$manifest" | jq -r '.hash')
 chunks=($(echo "$manifest" | jq -r '.chunks[]'))
 
 # Resume / overwrite detection
@@ -140,7 +130,8 @@ if [ "$start_index" -eq 0 ]; then
     {
         echo "{"
         echo "  name = \"${BOARD}.zip\";"
-        echo "  hash = \"${final_hash}\";"
+        # We'll fill in the correct shim.bin hash later
+        echo "  hash = \"\";"
         echo "  chunks = ["
     } > "$OUT_PATH"
 fi
@@ -167,7 +158,6 @@ download_chunk() {
 
     nix_hash=$(nix hash file --type sha256 "$chunk")
     echo "    { name = \"$chunk\"; sha256 = \"$nix_hash\"; }" >> "$OUT_PATH"
-    rm -f "$chunk"
 }
 
 export -f download_chunk
@@ -176,11 +166,22 @@ export -f download_chunk
 printf "%s\n" "${chunks[@]:$start_index}" | nl -v"$start_index" -w4 -s' ' | \
 xargs -n2 -P"$PARALLEL_JOBS" bash -c 'download_chunk "$@"' _
 
-# Fix-up sort at the end
+# Join chunks into a zip
+cat ${BOARD}.zip.* > "${BOARD}.zip"
+
+# Extract shim.bin from the zip
+unzip -p "${BOARD}.zip" > "${BOARD}.bin"
+
+# Compute Nix-style sha256 of shim.bin
+shim_hash=$(nix hash file --type sha256 "${BOARD}.bin")
+
+# Clean up temp files
+rm -f "${BOARD}.zip" "${BOARD}.bin" ${BOARD}.zip.* 2>/dev/null || true
+
+# Fix-up sort at the end and insert correct hash
 echo "[*] Sorting manifest entries..." >&2
-header=$(sed -n '1,/chunks = \[/p' "$OUT_PATH")
+header=$(sed -n '1,/chunks = \[/p' "$OUT_PATH" | sed "s|hash = \"\";|hash = \"${shim_hash}\";|")
 entries=$(grep '^[[:space:]]*{ name = "' "$OUT_PATH" | sort -t. -k3,3n)
-footer=$(sed -n '/];/,$p' "$OUT_PATH")
 
 {
     echo "$header"
@@ -191,4 +192,4 @@ footer=$(sed -n '/];/,$p' "$OUT_PATH")
 
 mv "${OUT_PATH}.sorted" "$OUT_PATH"
 
-echo "[+] Manifest written to $OUT_PATH" >&2
+echo "[+] Manifest written to $OUT_PATH with shim.bin hash: $shim_hash" >&2

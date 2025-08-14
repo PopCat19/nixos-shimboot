@@ -1,6 +1,6 @@
 {
   name = "dedede.zip";
-  hash = "9f5b49ce81273c25592d057a886d9034d6b8f19949d0345b7269128e33cc6f85";
+  hash = "sha256-x8/mzZOs7xu/ni6ByqY8X1cLXW5vydmIZl0Thri+CVs=";
   chunks = [
     { name = "dedede.zip.0000"; sha256 = "sha256-ZoXvqrWlZGM5AMojpU5SN1mn4EwFfg3LVJxxhe2mxc8="; }
     { name = "dedede.zip.0001"; sha256 = "sha256-VLXIrsj/KapxbsoLWcIHIly0ourgw/epsMozKFdzGiA="; }
