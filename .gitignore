@@ -9,3 +9,4 @@ initramfs-patching-poc/extracted-kernel
 *.img
 debug*
 work*
+vmlinuz
