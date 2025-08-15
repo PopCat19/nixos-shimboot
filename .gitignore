@@ -12,3 +12,4 @@ initramfs-patching-poc/extracted-kernel
 debug*
 work*
 vmlinuz
+.crush*
