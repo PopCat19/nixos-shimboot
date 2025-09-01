@@ -61,11 +61,13 @@
   services.accounts-daemon.enable = true; # Enable AccountsService for PolicyKit
   
   services.logind = { # Logind service configuration
-    lidSwitch = "ignore";
-    extraConfig = ''
-      HandlePowerKey=ignore
-      HandleSuspendKey=ignore
-      HandleHibernateKey=ignore
-    '';
+    settings = {
+      Login = {
+        HandleLidSwitch = "ignore";
+        HandlePowerKey = "ignore";
+        HandleSuspendKey = "ignore";
+        HandleHibernateKey = "ignore";
+      };
+    };
   };
 }

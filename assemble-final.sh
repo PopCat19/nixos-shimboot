@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Elevate to root so nix-daemon treats this client as trusted; required for substituters/trusted-public-keys
+# Use -H to set HOME to /root to avoid "$HOME is not owned by you" warnings under sudo.
+if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+  echo "[assemble-final] Re-executing with sudo -H for trusted Cachix settings..."
+  exec sudo -H "$0" "$@"
+fi
+
 # === Colors & Logging ===
 ANSI_CLEAR='\033[0m'
 ANSI_BOLD='\033[1m'
@@ -29,7 +36,7 @@ log_error() {
 export NIXPKGS_ALLOW_UNFREE="${NIXPKGS_ALLOW_UNFREE:-1}"
 
 # Prefer Cachix prebuilt patched systemd for faster builds
-# Inject into NIX_CONFIG so it applies even under sudo -E with a minimal env
+# Inject into NIX_CONFIG so it applies consistently (do not suppress dirty warnings)
 export NIX_CONFIG="$(printf '%s\n%s\n%s\n' "${NIX_CONFIG:-}" \
   'extra-substituters = https://shimboot-systemd-nixos.cachix.org' \
   'extra-trusted-public-keys = shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA=')"
@@ -66,21 +73,21 @@ trap cleanup EXIT
 
 # === Step 0: Build Nix outputs ===
 log_step "0/8" "Building Nix outputs"
-ORIGINAL_KERNEL="$(nix build --impure .#extracted-kernel --print-out-paths)/p2.bin"
-PATCHED_INITRAMFS="$(nix build --impure .#initramfs-patching --print-out-paths)/patched-initramfs"
-RAW_ROOTFS_IMG="$(nix build --impure .#raw-rootfs --print-out-paths)/nixos.img"
+ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config .#extracted-kernel --print-out-paths)/p2.bin"
+PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config .#initramfs-patching --print-out-paths)/patched-initramfs"
+RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config .#raw-rootfs --print-out-paths)/nixos.img"
 log_info "Original kernel p2: $ORIGINAL_KERNEL"
 log_info "Patched initramfs dir: $PATCHED_INITRAMFS"
 log_info "Raw rootfs: $RAW_ROOTFS_IMG"
 
 # Build ChromeOS SHIM and determine RECOVERY per policy
-SHIM_BIN="$(nix build --impure .#chromeos-shim --print-out-paths)"
+SHIM_BIN="$(nix build --impure --accept-flake-config .#chromeos-shim --print-out-paths)"
 RECOVERY_PATH=""
 if [ "${SKIP_RECOVERY:-0}" != "1" ]; then
     if [ -n "${RECOVERY_BIN:-}" ]; then
         RECOVERY_PATH="$RECOVERY_BIN"
     else
-        RECOVERY_PATH="$(nix build --impure .#chromeos-recovery --print-out-paths)/recovery.bin"
+        RECOVERY_PATH="$(nix build --impure --accept-flake-config .#chromeos-recovery --print-out-paths)/recovery.bin"
     fi
 fi
 log_info "ChromeOS shim: $SHIM_BIN"
