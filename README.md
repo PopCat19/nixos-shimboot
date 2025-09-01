@@ -1,5 +1,5 @@
 # CURRENT STATE: partial
-Finally boots and logs into hyprland! Currently attempting to see if nixos-rebuild is possible. Check [here](https://github.com/PopCat19/nixos-shimboot#progress-and-obstacles) for current progress.
+Finally boots and logs into hyprland! Currently finishing nixos-rebuild workflow, helpers, and main_configuration defaults. Check [here](https://github.com/PopCat19/nixos-shimboot#progress-and-obstacles) for current progress.
 
 ## This is a vibecoded project
 As mentioned in the header:\
@@ -75,12 +75,14 @@ Flake status and roadmap for the current branch:
 - [x] Have functional networking
 - [x] UNVERIFIED: Have recovery kernel drivers
 - [x] `nix-shell -p firefox` works (firefox profile errors; user environment should be checked; note limited space without `expand_rootfs`)
-- [ ] Builds functional NixOS with `nixos-rebuild` support (should be possible according to [`nixos-generators`](https://github.com/nix-community/nixos-generators))
+- [x] Have patched systemd cachix repository
+- [x] Builds functional NixOS with `nixos-rebuild` support (will require `--options disable sandbox` on kernels below 5.6 due to required kernel namespaces)
+- [ ] Minimal base_configuration to save space
+- [ ] Better main_configuration for hyprland and home-manager rice
 - [ ] Builds functional NixOS with LUKS2 support (never done this in my life ;-;)
 
 Current obstacles:
 - My irrefutable inexperience/unfamiliarity with the technical aspects of this codebase bottlenecking what needs to be done.
-- Planning to create `/etc/nixos/configuration.nix` and run `nixos-rebuild` without killing the system.
 
 ## The Sauce
 Bootloader and systemd patches as well as the reference for bootstrapping, partitioning, and workarounds are sourced from: [ading2210/shimboot](https://github.com/ading2210/shimboot) and [ading2210/chromeos-systemd](https://github.com/ading2210/chromeos-systemd)
