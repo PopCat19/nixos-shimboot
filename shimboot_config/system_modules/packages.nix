@@ -10,6 +10,7 @@
     xdg-desktop-portal-hyprland # XDG desktop portal backend for Hyprland
     fastfetch
     hwinfo
+    fish
 
     (writeShellScriptBin "expand_rootfs" '' # Script to expand the root filesystem
       # NixOS equivalent of shimboot's expand_rootfs script
@@ -85,6 +86,88 @@
       echo
     '')
 
+    (writeShellScriptBin "setup_nixos_config" '' # Automate /etc/nixos setup for nixos-rebuild
+      set -euo pipefail
+
+      if [ "$EUID" -ne 0 ]; then
+        echo "This needs to be run as root."
+        exit 1
+      fi
+
+      echo "[setup_nixos_config] Preparing /etc/nixos for nixos-rebuild..."
+      mkdir -p /etc/nixos
+
+      # Generate hardware config if missing
+      if [ ! -f /etc/nixos/hardware-configuration.nix ]; then
+        echo "[setup_nixos_config] Generating hardware-configuration.nix"
+        nixos-generate-config --root /
+      fi
+
+      # Write minimal configuration.nix that imports hardware config and enables flakes
+      cat >/etc/nixos/configuration.nix <<'EOF_CONF'
+{ config, pkgs, lib, ... }:
+{
+  imports = [
+    ./hardware-configuration.nix
+  ];
+
+  # Ensure nix flakes are enabled on the target system
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
+  # Minimal essentials
+  networking.hostName = "shimboot";
+  services.getty.autologinUser = "nixos-user";
+
+  system.stateVersion = "24.11";
+}
+EOF_CONF
+
+      # Write a minimal flake that points to the above configuration
+      cat >/etc/nixos/flake.nix <<'EOF_FLAKE'
+{
+  description = "Shimboot minimal flake for nixos-rebuild on device";
+
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+  outputs = { self, nixpkgs, ... }:
+  let
+    system = "x86_64-linux";
+  in {
+    nixosConfigurations.shimboot-host = nixpkgs.lib.nixosSystem {
+      inherit system;
+      modules = [
+        ./configuration.nix
+      ];
+    };
+  };
+}
+EOF_FLAKE
+
+      echo
+      echo "[setup_nixos_config] /etc/nixos set. Test with:"
+      echo "  sudo nixos-rebuild switch --flake /etc/nixos#shimboot-host"
+      echo
+      echo "If you need to modify the config, edit /etc/nixos/configuration.nix and re-run the switch command."
+      echo "[setup_nixos_config] Done."
+    '')
+
+    # Install a fish greeting that delegates to shimboot_greeter like upstream
+    # fish loads files from /etc/fish/conf.d/*.fish
+    # Provide a minimal greeting function that runs on interactive shells
+    (writeTextFile {
+      name = "shimboot_greeting_fish";
+      destination = "/share/fish/conf.d/shimboot_greeting.fish";
+      text = ''
+function fish_greeting --description 'Shimboot greeting'
+  if type -q shimboot_greeter
+    shimboot_greeter
+  else
+    echo Welcome to NixOS Shimboot
+  end
+end
+'';
+    })
+
     (writeShellScriptBin "fix_bwrap" '' # Script to fix bwrap permissions
       # NixOS equivalent of shimboot's fix_bwrap script
       set -e
@@ -123,4 +206,14 @@
       echo "Done."
     '')
   ];
+  environment.etc."fish/conf.d/shimboot_greeting.fish".text = ''
+function fish_greeting --description 'Shimboot greeting'
+  if type -q shimboot_greeter
+    shimboot_greeter
+  else
+    echo Welcome to NixOS Shimboot
+  end
+end
+'';
+  programs.fish.enable = true;
 }
