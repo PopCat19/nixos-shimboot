@@ -14,6 +14,12 @@
   
   description = "NixOS configuration for raw image generation";
 
+  # Ensure builds use Cachix for prebuilt patched systemd
+  nixConfig = {
+    extra-substituters = [ "https://shimboot-systemd-nixos.cachix.org" ];
+    extra-trusted-public-keys = [ "shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA=" ];
+  };
+
   # Combine all outputs from modules
   outputs = { self, nixpkgs, nixos-generators, home-manager, ... }:
     let

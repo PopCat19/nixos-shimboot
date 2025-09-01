@@ -28,6 +28,12 @@ log_error() {
 # Ensure unfree packages are allowed for nix builds that require ChromeOS tools/firmware
 export NIXPKGS_ALLOW_UNFREE="${NIXPKGS_ALLOW_UNFREE:-1}"
 
+# Prefer Cachix prebuilt patched systemd for faster builds
+# Inject into NIX_CONFIG so it applies even under sudo -E with a minimal env
+export NIX_CONFIG="$(printf '%s\n%s\n%s\n' "${NIX_CONFIG:-}" \
+  'extra-substituters = https://shimboot-systemd-nixos.cachix.org' \
+  'extra-trusted-public-keys = shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA=')"
+
 # === Config ===
 SYSTEM="x86_64-linux"
 WORKDIR="$(pwd)/work"
