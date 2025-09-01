@@ -5,6 +5,7 @@
   networking = {
     dhcpcd.enable = false; # Disable dhcpcd in favor of NetworkManager
     firewall.enable = false; # Disables the firewall
+    hostName = "nixos-shimboot"; # Ensure $HOSTNAME matches flake attribute after first switch
     networkmanager = {
       enable = true; # Enable NetworkManager
       wifi.backend = "wpa_supplicant"; # Use wpa_supplicant for WiFi (more compatible with ChromeOS)

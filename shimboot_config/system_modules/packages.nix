@@ -4,6 +4,7 @@
   # Package Configuration
   environment.systemPackages = with pkgs; [ # System-wide packages
     micro
+    git
     btop
     kitty # Terminal emulator
     lightdm # Display manager
