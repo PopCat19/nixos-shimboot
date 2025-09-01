@@ -175,6 +175,7 @@ fi
 log_step "8.2" "Inject drivers into rootfs (p4)"
 # Replace modules from SHIM
 if [ -d "$HARVEST_OUT/lib/modules" ]; then
+    sudo mkdir -p "$WORKDIR/mnt_rootfs/lib"
     sudo rm -rf "$WORKDIR/mnt_rootfs/lib/modules"
     sudo cp -a "$HARVEST_OUT/lib/modules" "$WORKDIR/mnt_rootfs/lib/modules"
 else
@@ -187,11 +188,10 @@ if [ -d "$HARVEST_OUT/lib/firmware" ]; then
     sudo cp -a "$HARVEST_OUT/lib/firmware/." "$WORKDIR/mnt_rootfs/lib/firmware/" || true
 fi
 
-# Merge modprobe.d into both lib and etc
-sudo mkdir -p "$WORKDIR/mnt_rootfs/lib/modprobe.d" "$WORKDIR/mnt_rootfs/etc/modprobe.d"
+# Merge modprobe.d into lib only (avoid overriding policy in /etc)
+sudo mkdir -p "$WORKDIR/mnt_rootfs/lib/modprobe.d"
 if [ -d "$HARVEST_OUT/modprobe.d" ]; then
     sudo cp -a "$HARVEST_OUT/modprobe.d/." "$WORKDIR/mnt_rootfs/lib/modprobe.d/" || true
-    sudo cp -a "$HARVEST_OUT/modprobe.d/." "$WORKDIR/mnt_rootfs/etc/modprobe.d/" || true
 fi
 
 # Decompress .ko.gz if any, then depmod for each kernel version
