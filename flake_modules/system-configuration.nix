@@ -1,18 +1,17 @@
-{ self, nixpkgs, ... }:
+{ self, nixpkgs, home-manager, ... }:
 
 let
   system = "x86_64-linux";
 
+  # Base = required system configuration only
   baseModules = [
-    ../shimboot_config/configuration.nix
-    # Add raw-efi specific configuration
+    ../shimboot_config/base_configuration/configuration.nix
+
+    # Base-level defaults/tuning common to all variants
     ({ config, pkgs, ... }: {
-      # Enable serial console logging (default for raw-efi)
-      # To also log to display, add: boot.kernelParams = [ "console=tty0" ];
-      
       # Enable Nix flakes
       nix.settings.experimental-features = [ "nix-command" "flakes" ];
-      
+
       # Enable automatic garbage collection
       nix.gc = {
         automatic = true;
@@ -21,19 +20,35 @@ let
       };
     })
   ];
+
+  # Main = base + optional/user configuration (users + Home Manager)
+  mainModules = baseModules ++ [
+    ../shimboot_config/main_configuration/configuration.nix
+
+    # Integrate Home Manager for user-level config
+    home-manager.nixosModules.home-manager
+
+    ({ config, pkgs, ... }: {
+      home-manager.useGlobalPkgs = true;
+      home-manager.useUserPackages = true;
+
+      # Delegate actual HM content to a file under main_configuration/home_modules
+      home-manager.users."nixos-user" = import ../shimboot_config/main_configuration/home_modules/nixos-user.nix;
+    })
+  ];
 in {
   # NixOS configurations for building the system
   nixosConfigurations = {
-    # Backward-compatible name kept
+    # Strict base system (required components only)
     raw-efi-system = nixpkgs.lib.nixosSystem {
       inherit system;
       modules = baseModules;
     };
 
-    # Hostname-aligned attribute; after first switch, $HOSTNAME will match this
+    # Full main system (base + optional/user modules inc. HM)
     nixos-shimboot = nixpkgs.lib.nixosSystem {
       inherit system;
-      modules = baseModules;
+      modules = mainModules;
     };
   };
 }
