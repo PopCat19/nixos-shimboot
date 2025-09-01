@@ -297,9 +297,31 @@ boot_target() {
   #use cryptsetup to check if the rootfs is encrypted
   if [ -x "$(command -v cryptsetup)" ] && cryptsetup luksDump "$target" >/dev/null 2>&1; then
     cryptsetup open $target rootfs
-    mount /dev/mapper/rootfs /newroot
+    # Prefer explicit filesystem type to avoid EINVAL when fs module isn't autoloaded
+    if ! mount -t ext4 /dev/mapper/rootfs /newroot 2>/dev/null; then
+      # Fallback to autodetect and emit diagnostics
+      if ! mount /dev/mapper/rootfs /newroot; then
+        echo "mount failed for LUKS rootfs: /dev/mapper/rootfs"
+        echo "Available filesystems in initramfs:"
+        cat /proc/filesystems || true
+        echo "blkid /dev/mapper/rootfs:"
+        blkid /dev/mapper/rootfs || true
+        return 1
+      fi
+    fi
   else
-    mount $target /newroot
+    # Non-encrypted rootfs; try ext4 explicitly first
+    if ! mount -t ext4 $target /newroot 2>/dev/null; then
+      # Fallback to autodetect and emit diagnostics on failure
+      if ! mount $target /newroot; then
+        echo "mount failed for $target"
+        echo "Available filesystems in initramfs:"
+        cat /proc/filesystems || true
+        echo "blkid $target:"
+        blkid $target || true
+        return 1
+      fi
+    fi
   fi
   #bind mount /dev/console to show systemd boot msgs
   if [ -f "/bin/frecon-lite" ]; then 

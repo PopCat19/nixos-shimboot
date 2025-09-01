@@ -136,10 +136,12 @@ sudo cgpt add -i 2 -S 1 -T 5 -P 10 "$LOOPDEV"
 
 # === Step 6: Format partitions ===
 log_step "6/8" "Format partitions"
-sudo mkfs.ext4 -q "${LOOPDEV}p1"
+# Use conservative ext4 features for ChromeOS kernel compatibility (avoid EINVAL on mount)
+MKFS_EXT4_FLAGS="-O ^orphan_file,^metadata_csum_seed"
+sudo mkfs.ext4 -q $MKFS_EXT4_FLAGS "${LOOPDEV}p1"
 sudo dd if="$ORIGINAL_KERNEL" of="${LOOPDEV}p2" bs=1M conv=fsync status=progress
 sudo mkfs.ext2 -q "${LOOPDEV}p3"
-sudo mkfs.ext4 -q "${LOOPDEV}p4"
+sudo mkfs.ext4 -q $MKFS_EXT4_FLAGS "${LOOPDEV}p4"
 
 # === Step 7: Populate bootloader partition ===
 log_step "7/8" "Populate bootloader partition"
