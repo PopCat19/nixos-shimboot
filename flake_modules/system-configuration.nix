@@ -21,8 +21,8 @@ let
     })
   ];
 
-  # Main = base + optional/user configuration (users + Home Manager)
-  mainModules = baseModules ++ [
+  # Main = user configuration that itself imports base; keeps flake from duplicating base
+  mainModules = [
     ../shimboot_config/main_configuration/configuration.nix
 
     # Integrate Home Manager for user-level config
