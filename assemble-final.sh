@@ -57,11 +57,11 @@ trap cleanup EXIT
 
 # === Step 0: Build Nix outputs ===
 log_step "0/8" "Building Nix outputs"
-PATCHED_P2="$(nix build --impure .#kernel-repack --print-out-paths)/kernel-p2-patched.bin"
-BOOTLOADER_DIR="./bootloader"
+ORIGINAL_KERNEL="$(nix build --impure .#extracted-kernel --print-out-paths)/p2.bin"
+PATCHED_INITRAMFS="$(nix build --impure .#initramfs-patching --print-out-paths)/patched-initramfs"
 RAW_ROOTFS_IMG="$(nix build --impure .#raw-rootfs --print-out-paths)/nixos.img"
-log_info "Kernel (full p2): $PATCHED_P2"
-log_info "Bootloader dir: $BOOTLOADER_DIR"
+log_info "Original kernel p2: $ORIGINAL_KERNEL"
+log_info "Patched initramfs dir: $PATCHED_INITRAMFS"
 log_info "Raw rootfs: $RAW_ROOTFS_IMG"
 
 # === Step 1: Copy raw rootfs image ===
@@ -117,15 +117,15 @@ sudo cgpt add -i 2 -S 1 -T 5 -P 10 "$LOOPDEV"
 # === Step 6: Format partitions ===
 log_step "6/8" "Format partitions"
 sudo mkfs.ext4 -q "${LOOPDEV}p1"
-sudo dd if="$PATCHED_P2" of="${LOOPDEV}p2" bs=1M conv=fsync status=progress
+sudo dd if="$ORIGINAL_KERNEL" of="${LOOPDEV}p2" bs=1M conv=fsync status=progress
 sudo mkfs.ext2 -q "${LOOPDEV}p3"
 sudo mkfs.ext4 -q "${LOOPDEV}p4"
 
 # === Step 7: Populate bootloader partition ===
 log_step "7/8" "Populate bootloader partition"
 sudo mount "${LOOPDEV}p3" "$WORKDIR/mnt_bootloader"
-total_bytes=$(sudo du -sb "$BOOTLOADER_DIR" | cut -f1)
-(cd "$BOOTLOADER_DIR" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_bootloader" && sudo tar xf -)
+total_bytes=$(sudo du -sb "$PATCHED_INITRAMFS" | cut -f1)
+(cd "$PATCHED_INITRAMFS" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_bootloader" && sudo tar xf -)
 sudo umount "$WORKDIR/mnt_bootloader"
 
 # === Step 8: Populate rootfs partition ===
