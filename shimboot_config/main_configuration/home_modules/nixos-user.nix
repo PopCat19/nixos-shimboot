@@ -12,7 +12,7 @@
 
   home.packages = with pkgs; [
     git
-    htop
-    neovim
+    btop
+    micro
   ];
 }

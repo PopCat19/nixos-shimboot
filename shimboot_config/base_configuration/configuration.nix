@@ -13,4 +13,7 @@
     ./system_modules/power-management.nix
     ./system_modules/display.nix
   ];
+
+  # Preserve state semantics to avoid unexpected changes across upgrades
+  system.stateVersion = "24.11";
 }
