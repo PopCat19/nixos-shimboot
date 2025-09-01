@@ -11,8 +11,8 @@ in {
       format = "raw";
       
       modules = [
-        # Import the shimboot configuration
-        ../shimboot_config/configuration.nix
+        # Import the base (required) shimboot configuration
+        ../shimboot_config/base_configuration/configuration.nix
         
         # Raw image specific configuration
         ({ config, pkgs, ... }: {
