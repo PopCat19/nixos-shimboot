@@ -7,6 +7,8 @@
     ./system_modules/filesystems.nix
     ./system_modules/packages.nix
     ./system_modules/helpers.nix
+    # Use Cachix cache to fetch prebuilt patched systemd
+    ./system_modules/cachix-shimboot-systemd.nix
     ./system_modules/security.nix
     ./system_modules/systemd.nix
     ./system_modules/localization.nix

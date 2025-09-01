@@ -28,6 +28,8 @@
       initramfsPatchingOutputs = import ./flake_modules/patch_initramfs/initramfs-patching.nix { inherit self nixpkgs; };
       # finalImageOutputs = import ./flake_modules/patch_initramfs/final-image.nix { inherit self nixpkgs; };
       chromeosSourcesOutputs = import ./flake_modules/chromeos-sources.nix { inherit self nixpkgs; };
+      # Patched systemd as a standalone package for Cachix publishing
+      systemdPatchedOutputs = import ./flake_modules/systemd-patched.nix { inherit self nixpkgs; };
       
       # Merge packages from all modules
       packages = {
@@ -37,7 +39,8 @@
           (initramfsExtractionOutputs.packages.${system} or {}) //
           (initramfsPatchingOutputs.packages.${system} or {}) //
           # (finalImageOutputs.packages.${system} or {}) //
-          (chromeosSourcesOutputs.packages.${system} or {});
+          (chromeosSourcesOutputs.packages.${system} or {}) //
+          (systemdPatchedOutputs.packages.${system} or {});
       };
       
       # Set default package to raw-rootfs
