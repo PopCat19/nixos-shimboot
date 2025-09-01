@@ -1,5 +1,5 @@
 # CURRENT STATE: Not Ready
-Currently evaluating archived scripts to patch and image shim's initramfs before drafting relevant flake module/derivation. Check [here](https://github.com/PopCat19/nixos-shimboot#progress-and-obstacles) for current progress.
+Finally boots and logs into hyprland! Currently troubleshooting hyprland crash upon launching kitty. Check [here](https://github.com/PopCat19/nixos-shimboot#progress-and-obstacles) for current progress.
 
 ## This is a vibecoded project
 As mentioned in the header:\
@@ -64,22 +64,21 @@ That being said, if it's not possible right now, that's fine and kinda expected.
 Flake status and roadmap for the current branch:
 - [x] Builds without errors
 - [x] Builds current NixOS configuration via [`nixos-generators`](https://github.com/nix-community/nixos-generators)
-- [ ] Patches RMA shim's `initramfs` with shimboot bootloader (currently doesn't patch into shim kernel; will require `--impure` for now)
-- [ ] Partitions in ChromeOS format
-- [ ] Builds bootable shim bootloader
-- [ ] Builds bootable NixOS
-- [ ] Builds bootable NixOS with running `kill-frecon` service (allowing graphics within shim)
-- [ ] Builds functional NixOS with running greeter (LightDM/SDDM)
-- [ ] Builds functional NixOS with running user environment (probably with proper home-manager setup)
-- [ ] Builds functional NixOS with running hyprland (or xfce4)
+- [x] Patches RMA shim's `initramfs` with shimboot bootloader and partitions into p2 (currently will require `--impure` for now)
+- [x] Partitions in ChromeOS format
+- [x] Builds bootable shim bootloader
+- [x] Builds bootable NixOS
+- [x] Builds bootable NixOS with running `kill-frecon` service (allowing graphics within shim)
+- [x] Builds functional NixOS with running greeter (LightDM/SDDM)
+- [x] Builds functional NixOS with running user environment (probably with proper home-manager setup)
+- [x] PARTIAL: Builds functional NixOS with running hyprland (or xfce4)
 - [ ] Builds functional NixOS with `nixos-rebuild` support (should be possible according to [`nixos-generators`](https://github.com/nix-community/nixos-generators))
 - [ ] Build and patch with ChromeOS recovery modules
 - [ ] Builds functional NixOS with LUKS2 support (never done this in my life)
 
 Current obstacles:
 - My irrefutable inexperience/unfamiliarity with the technical aspects of this codebase bottlenecking what needs to be done.
-- Familiarizing initramfs bootstrap patching process to create a base module/derivation.
-- Figuring out how to partition the rootfs and bootloader in a ChromeOS partition layout, considering to use `qemu` as the environment for loop mounts and privileged scripts. Referencing archived scripts for reference.
+- Troubleshooting potential graphics issue when launching Kitty. Referencing extracted journal logs for reference.
 
 ## The Sauce
 Bootloader and systemd patches as well as the reference for bootstrapping, partitioning, and workarounds are sourced from: [ading2210/shimboot](https://github.com/ading2210/shimboot) and [ading2210/chromeos-systemd](https://github.com/ading2210/chromeos-systemd)
@@ -90,8 +89,8 @@ Miscellaneously, my current dev enviroment consists of:
   - [Kilo Code](https://github.com/Kilo-Org/kilocode)
     - Common APIs: [ChutesAI](https://chutes.ai/), [Kilo](https://kilocode.ai/docs/providers/kilocode), [OpenRouter](https://openrouter.ai/)
     - Common models: 
-      1. [`zai-org/GLM-4.5-FP8`](https://chutes.ai/app/chute/b5326e54-8d9e-590e-bed4-f3db35d9d4cd)
-      2. [`openai/gpt-5`](https://openrouter.ai/openai/gpt-5)
+      1. [`openai/gpt-5`](https://openrouter.ai/openai/gpt-5)
+      2. [`x-ai/grok-code-fast-1`](https://openrouter.ai/x-ai/grok-code-fast-1)
       3. [`openai/gpt-5-mini`](https://openrouter.ai/openai/gpt-5-mini)
     - Common MCPs: 
       [context7](https://github.com/upstash/context7), [exa](https://github.com/exa-labs/exa-mcp-server), [brave-search](https://github.com/brave/brave-search-mcp-server), [sequential-thinking](https://github.com/arben-adm/mcp-sequential-thinking), [filesystem](https://github.com/mark3labs/mcp-filesystem-server)
