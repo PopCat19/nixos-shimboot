@@ -3,7 +3,13 @@ data/*
 /result
 /source/*
 *.bin
+*.zip*
+*.bak*
 llm-notes/*
 initramfs-patching-poc/extracted-kernel
 *.iso
 *.img
+debug*
+work*
+vmlinuz
+.crush*
