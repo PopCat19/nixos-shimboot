@@ -8,6 +8,8 @@
     kitty # Terminal emulator
     lightdm # Display manager
     xdg-desktop-portal-hyprland # XDG desktop portal backend for Hyprland
+    fastfetch
+    hwinfo
 
     (writeShellScriptBin "expand_rootfs" '' # Script to expand the root filesystem
       # NixOS equivalent of shimboot's expand_rootfs script

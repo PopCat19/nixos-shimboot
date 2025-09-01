@@ -1,5 +1,5 @@
 # CURRENT STATE: Not Ready
-Finally boots and logs into hyprland! Currently troubleshooting hyprland crash upon launching kitty. Check [here](https://github.com/PopCat19/nixos-shimboot#progress-and-obstacles) for current progress.
+Finally boots and logs into hyprland! Currently attempting to get networking working. Check [here](https://github.com/PopCat19/nixos-shimboot#progress-and-obstacles) for current progress.
 
 ## This is a vibecoded project
 As mentioned in the header:\
@@ -72,13 +72,15 @@ Flake status and roadmap for the current branch:
 - [x] Builds functional NixOS with running greeter (LightDM/SDDM)
 - [x] Builds functional NixOS with running user environment (probably with proper home-manager setup)
 - [x] PARTIAL: Builds functional NixOS with running hyprland (or xfce4)
+- [ ] Have functional networking
+- [ ] Have recovery kernel drivers (if possible?)
 - [ ] Builds functional NixOS with `nixos-rebuild` support (should be possible according to [`nixos-generators`](https://github.com/nix-community/nixos-generators))
 - [ ] Build and patch with ChromeOS recovery modules
 - [ ] Builds functional NixOS with LUKS2 support (never done this in my life)
 
 Current obstacles:
 - My irrefutable inexperience/unfamiliarity with the technical aspects of this codebase bottlenecking what needs to be done.
-- Troubleshooting potential graphics issue when launching Kitty. Referencing extracted journal logs for reference.
+- Networkmanager isn't showing any available networks. Referencing extracted journal logs for reference.
 
 ## The Sauce
 Bootloader and systemd patches as well as the reference for bootstrapping, partitioning, and workarounds are sourced from: [ading2210/shimboot](https://github.com/ading2210/shimboot) and [ading2210/chromeos-systemd](https://github.com/ading2210/chromeos-systemd)

@@ -25,6 +25,9 @@ log_error() {
     printf "${ANSI_RED}  ✗ %s${ANSI_CLEAR}\n" "$1"
 }
 
+# Ensure unfree packages are allowed for nix builds that require ChromeOS tools/firmware
+export NIXPKGS_ALLOW_UNFREE="${NIXPKGS_ALLOW_UNFREE:-1}"
+
 # === Config ===
 SYSTEM="x86_64-linux"
 WORKDIR="$(pwd)/work"
