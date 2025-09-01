@@ -165,6 +165,9 @@ function fish_greeting --description 'Shimboot greeting'
   else
     echo Welcome to NixOS Shimboot
   end
+  if type -q setup_nixos
+    echo "Tip: run 'setup_nixos' to configure Wi-Fi, expand rootfs, and set up your flake."
+  end
 end
 '';
     })
@@ -206,6 +209,134 @@ end
 
       echo "Done."
     '')
+    (writeShellScriptBin "setup_nixos" '' # Interactive post-install setup
+      set -euo pipefail
+
+      default_repo="https://github.com/PopCat19/nixos-shimboot.git"
+      config_dir="$HOME/nixos-config"
+
+      prompt_yes_no() {
+        # Usage: prompt_yes_no "Question" "Y" or "n" (default)
+        local question="$1"
+        local default_choice="$2"
+        local prompt="[Y/n]"
+        if [ "$default_choice" = "n" ]; then
+          prompt="[y/N]"
+        fi
+        local reply
+        read -r -p "$question $prompt " reply
+        reply="$(echo "''${reply:-}" | tr '[:upper:]' '[:lower:]')"
+        if [ -z "$reply" ]; then
+          if [ "$default_choice" = "n" ]; then
+            return 1
+          else
+            return 0
+          fi
+        fi
+        case "$reply" in
+          y|yes) return 0 ;;
+          n|no)  return 1 ;;
+          *)     # default fallback
+                 if [ "$default_choice" = "n" ]; then
+                   return 1
+                 else
+                   return 0
+                 fi
+                 ;;
+        esac
+      }
+
+      echo "=== Step 1: Configure Wi-Fi with nmcli ==="
+      if command -v nmcli >/dev/null 2>&1; then
+        echo "Scanning for Wi-Fi networks..."
+        nmcli dev wifi rescan >/dev/null 2>&1 || true
+        nmcli -f SSID,SECURITY,SIGNAL dev wifi list | sed '1!b; s/^/Available networks:\\n/'
+
+        if prompt_yes_no "Connect to a Wi-Fi network now?" "Y"; then
+          read -r -p "SSID: " SSID
+          if [ -z "$SSID" ]; then
+            echo "No SSID provided, skipping Wi-Fi setup."
+          else
+            read -r -s -p "PSK (hidden): " PSK
+            echo
+            echo "Connecting to '$SSID'..."
+            if nmcli dev wifi connect "$SSID" password "$PSK"; then
+              echo "Connected to '$SSID'."
+              # Try to set autoconnect
+              CONN_NAME="$(nmcli -t -f NAME,TYPE connection show | awk -F: '$2 == "802-11-wireless" {print $1; exit}')"
+              if [ -n "$CONN_NAME" ]; then
+                nmcli connection modify "$CONN_NAME" connection.autoconnect yes || true
+              fi
+            else
+              echo "Failed to connect via nmcli dev wifi connect. Trying to create a connection..."
+              nmcli connection add type wifi ifname "*" con-name "$SSID" ssid "$SSID" || true
+              nmcli connection modify "$SSID" wifi-sec.key-mgmt wpa-psk wifi-sec.psk "$PSK" || true
+              nmcli connection up "$SSID" || echo "Bring-up failed; please verify credentials later."
+            fi
+          fi
+        else
+          echo "Skipping Wi-Fi setup."
+        fi
+      else
+        echo "nmcli not found. Ensure NetworkManager is installed/enabled if Wi-Fi is needed."
+      fi
+      echo
+
+      echo "=== Step 2: Expand root filesystem (allocate full USB space) ==="
+      if prompt_yes_no "Execute 'sudo expand_rootfs' now?" "Y"; then
+        if command -v expand_rootfs >/dev/null 2>&1; then
+          sudo expand_rootfs || echo "expand_rootfs encountered an error. Review the logs above."
+        else
+          echo "expand_rootfs is not available on PATH."
+        fi
+      else
+        echo "Skipping root filesystem expansion."
+      fi
+      echo
+
+      echo "=== Step 3: Clone flake into ~/nixos-config ==="
+      read -r -p "Enter flake git remote (default: $default_repo): " repo_url
+      repo_url="''${repo_url:-$default_repo}"
+      mkdir -p "$HOME"
+      cd "$HOME"
+
+      if [ -d "$config_dir/.git" ] || [ -d "$config_dir" ]; then
+        echo "'$config_dir' already exists. Skipping clone."
+      else
+        echo "Cloning '$repo_url' into '$config_dir'..."
+        if ! git clone "$repo_url" "$config_dir"; then
+          echo "Clone failed. Please verify the URL and network connectivity."
+        fi
+      fi
+      echo
+
+      echo "=== Step 4: Rebuild NixOS from flake ==="
+      cd "$config_dir" 2>/dev/null || {
+        echo "Directory '$config_dir' not found; cannot rebuild. Exiting rebuild step."
+        fastfetch || true
+        exit 0
+      }
+
+      target_host="''${HOSTNAME:-nixos-shimboot}"
+      echo "Default rebuild target: .#$target_host"
+      if prompt_yes_no "Run 'sudo nixos-rebuild switch --flake .#$target_host --option sandbox false' now?" "Y"; then
+        if command -v sudo >/dev/null 2>&1; then
+          sudo nixos-rebuild switch --flake ".#$target_host" --option sandbox false || echo "nixos-rebuild failed; review errors above."
+        else
+          echo "sudo not found. Attempting without sudo..."
+          nixos-rebuild switch --flake ".#$target_host" --option sandbox false || echo "nixos-rebuild failed; review errors above."
+        fi
+      else
+        echo "Skipping nixos-rebuild."
+      fi
+      echo
+
+      echo "=== Step 5: System info ==="
+      fastfetch || true
+
+      echo "Setup complete."
+      exit 0
+    '')
   ];
   environment.etc."fish/conf.d/shimboot_greeting.fish".text = ''
 function fish_greeting --description 'Shimboot greeting'
@@ -214,7 +345,31 @@ function fish_greeting --description 'Shimboot greeting'
   else
     echo Welcome to NixOS Shimboot
   end
+  if type -q setup_nixos
+    echo "Tip: run 'setup_nixos' to configure Wi-Fi, expand rootfs, and set up your flake."
+  end
 end
 '';
-  programs.fish.enable = true;
+  environment.etc."fish/conf.d/shimboot_tip.fish".text = ''
+    if status is-interactive
+      if type -q setup_nixos
+        echo "Tip: run 'setup_nixos' to configure Wi-Fi, expand rootfs, and set up your flake."
+      end
+    end
+  '';
+  programs.fish = {
+  enable = true;
+  interactiveShellInit = ''
+function fish_greeting --description 'Shimboot greeting'
+  if type -q shimboot_greeter
+    shimboot_greeter
+  else
+    echo Welcome to NixOS Shimboot
+  end
+  if type -q setup_nixos
+    echo "Tip: run 'setup_nixos' to configure Wi-Fi, expand rootfs, and set up your flake."
+  end
+end
+'';
+};
 }
