@@ -67,6 +67,23 @@ log_info "Original kernel p2: $ORIGINAL_KERNEL"
 log_info "Patched initramfs dir: $PATCHED_INITRAMFS"
 log_info "Raw rootfs: $RAW_ROOTFS_IMG"
 
+# Build ChromeOS SHIM and determine RECOVERY per policy
+SHIM_BIN="$(nix build --impure .#chromeos-shim --print-out-paths)"
+RECOVERY_PATH=""
+if [ "${SKIP_RECOVERY:-0}" != "1" ]; then
+    if [ -n "${RECOVERY_BIN:-}" ]; then
+        RECOVERY_PATH="$RECOVERY_BIN"
+    else
+        RECOVERY_PATH="$(nix build --impure .#chromeos-recovery --print-out-paths)/recovery.bin"
+    fi
+fi
+log_info "ChromeOS shim: $SHIM_BIN"
+if [ -n "$RECOVERY_PATH" ]; then
+    log_info "Recovery image: $RECOVERY_PATH"
+else
+    log_info "Recovery image: skipped (SKIP_RECOVERY=1 or not provided)"
+fi
+
 # === Step 1: Copy raw rootfs image ===
 log_step "1/8" "Copy raw rootfs image"
 cp "$RAW_ROOTFS_IMG" "$WORKDIR/rootfs.img"
@@ -138,10 +155,58 @@ sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
 sudo mount "${LOOPDEV}p4" "$WORKDIR/mnt_rootfs"
 total_bytes=$(sudo du -sb "$WORKDIR/mnt_src_rootfs" | cut -f1)
 (cd "$WORKDIR/mnt_src_rootfs" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_rootfs" && sudo tar xf -)
-sudo umount "$WORKDIR/mnt_rootfs" "$WORKDIR/mnt_src_rootfs"
+
+# Keep rootfs mounted for driver injection; unmount only source rootfs
+sudo umount "$WORKDIR/mnt_src_rootfs"
 sudo losetup -d "$LOOPROOT"
 LOOPROOT=""
 
+# === Step 8.1: Harvest ChromeOS drivers and inject into mounted rootfs ===
+HARVEST_OUT="$WORKDIR/harvested"
+mkdir -p "$HARVEST_OUT"
+
+log_step "8.1" "Harvest ChromeOS drivers to $HARVEST_OUT"
+if [ -n "$RECOVERY_PATH" ]; then
+    sudo bash scripts/harvest-drivers.sh --shim "$SHIM_BIN" --recovery "$RECOVERY_PATH" --out "$HARVEST_OUT"
+else
+    sudo bash scripts/harvest-drivers.sh --shim "$SHIM_BIN" --out "$HARVEST_OUT"
+fi
+
+log_step "8.2" "Inject drivers into rootfs (p4)"
+# Replace modules from SHIM
+if [ -d "$HARVEST_OUT/lib/modules" ]; then
+    sudo rm -rf "$WORKDIR/mnt_rootfs/lib/modules"
+    sudo cp -a "$HARVEST_OUT/lib/modules" "$WORKDIR/mnt_rootfs/lib/modules"
+else
+    log_warn "No harvested lib/modules found; skipping module replacement"
+fi
+
+# Merge firmware from SHIM and RECOVERY
+sudo mkdir -p "$WORKDIR/mnt_rootfs/lib/firmware"
+if [ -d "$HARVEST_OUT/lib/firmware" ]; then
+    sudo cp -a "$HARVEST_OUT/lib/firmware/." "$WORKDIR/mnt_rootfs/lib/firmware/" || true
+fi
+
+# Merge modprobe.d into both lib and etc
+sudo mkdir -p "$WORKDIR/mnt_rootfs/lib/modprobe.d" "$WORKDIR/mnt_rootfs/etc/modprobe.d"
+if [ -d "$HARVEST_OUT/modprobe.d" ]; then
+    sudo cp -a "$HARVEST_OUT/modprobe.d/." "$WORKDIR/mnt_rootfs/lib/modprobe.d/" || true
+    sudo cp -a "$HARVEST_OUT/modprobe.d/." "$WORKDIR/mnt_rootfs/etc/modprobe.d/" || true
+fi
+
+# Decompress .ko.gz if any, then depmod for each kernel version
+sudo find "$WORKDIR/mnt_rootfs/lib/modules" -name "*.gz" -print0 | xargs -0 -r sudo gunzip
+for kdir in "$WORKDIR/mnt_rootfs/lib/modules/"*; do
+    [ -d "$kdir" ] || continue
+    ver="$(basename "$kdir")"
+    log_info "Running depmod for kernel $ver"
+    sudo depmod -b "$WORKDIR/mnt_rootfs" "$ver"
+done
+
+# Done injecting; unmount rootfs
+sudo umount "$WORKDIR/mnt_rootfs"
+
+# Detach loop devices used for target image
 sudo losetup -d "$LOOPDEV"
 LOOPDEV=""
 
