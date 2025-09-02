@@ -318,20 +318,16 @@ EOF_FLAKE
       target_host="''${HOSTNAME:-nixos-shimboot}"
       echo "Default rebuild target: .#$target_host"
 
-      # Auto-accept flake config and Cachix substituter to avoid interactive prompts
+      # Auto-accept flake config to avoid interactive prompts
       export NIX_CONFIG="''${NIX_CONFIG:-}
-accept-flake-config = true
-extra-substituters = https://shimboot-systemd-nixos.cachix.org
-extra-trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= shimboot-systemd-nixos.cachix.org-1:VcWmEtJq7hAZUOLM0s3njm6s9/Eux6k0TQdJ0o2kAAa="
+ accept-flake-config = true"
 
-      if prompt_yes_no "Run 'nixos-rebuild switch' now with Cachix/flake config auto-accepted?" "Y"; then
+      if prompt_yes_no "Run 'nixos-rebuild switch' now with flake config auto-accepted?" "Y"; then
         if command -v sudo >/dev/null 2>&1; then
           sudo NIX_CONFIG="$NIX_CONFIG" nixos-rebuild switch \
             --flake ".#$target_host" \
             --option sandbox false \
             --option accept-flake-config true \
-            --option extra-substituters https://shimboot-systemd-nixos.cachix.org \
-            --option extra-trusted-public-keys "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= shimboot-systemd-nixos.cachix.org-1:VcWmEtJq7hAZUOLM0s3njm6s9/Eux6k0TQdJ0o2kAAa=" \
             || echo "nixos-rebuild failed; review errors above."
         else
           echo "sudo not found. Attempting without sudo..."
@@ -339,8 +335,6 @@ extra-trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQF
             --flake ".#$target_host" \
             --option sandbox false \
             --option accept-flake-config true \
-            --option extra-substituters https://shimboot-systemd-nixos.cachix.org \
-            --option extra-trusted-public-keys "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= shimboot-systemd-nixos.cachix.org-1:VcWmEtJq7hAZUOLM0s3njm6s9/Eux6k0TQdJ0o2kAAa=" \
             || echo "nixos-rebuild failed; review errors above."
         fi
       else

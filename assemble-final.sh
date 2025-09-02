@@ -4,7 +4,7 @@ set -euo pipefail
 # Elevate to root so nix-daemon treats this client as trusted; required for substituters/trusted-public-keys
 # Use -H to set HOME to /root to avoid "$HOME is not owned by you" warnings under sudo.
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
-  echo "[assemble-final] Re-executing with sudo -H for trusted Cachix settings..."
+  echo "[assemble-final] Re-executing with sudo -H..."
   exec sudo -H "$0" "$@"
 fi
 
@@ -35,11 +35,6 @@ log_error() {
 # Ensure unfree packages are allowed for nix builds that require ChromeOS tools/firmware
 export NIXPKGS_ALLOW_UNFREE="${NIXPKGS_ALLOW_UNFREE:-1}"
 
-# Prefer Cachix prebuilt patched systemd for faster builds
-# Inject into NIX_CONFIG so it applies consistently (do not suppress dirty warnings)
-export NIX_CONFIG="$(printf '%s\n%s\n%s\n' "${NIX_CONFIG:-}" \
-  'extra-substituters = https://shimboot-systemd-nixos.cachix.org' \
-  'extra-trusted-public-keys = shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA=')"
 
 # === Config ===
 SYSTEM="x86_64-linux"

@@ -75,7 +75,6 @@ Flake status and roadmap for the current branch:
 - [x] Have functional networking
 - [x] UNVERIFIED: Have recovery kernel drivers
 - [x] `nix-shell -p firefox` works (firefox profile errors; user environment should be checked; note limited space without `expand_rootfs`)
-- [x] Have patched systemd cachix repository
 - [x] Builds functional NixOS with `nixos-rebuild` support (will require `--options disable sandbox` on kernels below 5.6 due to required kernel namespaces)
 - [ ] Minimal base_configuration to save space
 - [ ] Better main_configuration for hyprland and home-manager rice
