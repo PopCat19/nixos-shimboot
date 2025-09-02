@@ -14,7 +14,7 @@
       ];
       allowedUDPPorts = [
         53317   # Syncthing
-      ];;
+      ];
       checkReversePath = false;
     };
     hostName = "nixos-shimboot"; # Ensure $HOSTNAME matches flake attribute after first switch

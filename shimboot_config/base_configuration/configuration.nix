@@ -1,5 +1,8 @@
 { config, pkgs, lib, ... }:
 
+let
+  userConfig = import ../user-config.nix { };
+in
 {
   imports = [
     ./system_modules/boot.nix
@@ -16,9 +19,15 @@
     ./system_modules/users.nix
   ];
 
-  nix.settings.trusted-users = lib.mkAfter [ "root" "nixos-shimboot" ];
+  # Make user config available to modules
+  _module.args.userConfig = userConfig;
+
+  nix.settings.trusted-users = lib.mkAfter [ "root" "${userConfig.user.username}" ];
   nix.settings.substituters = lib.mkAfter [ "https://shimboot-systemd-nixos.cachix.org" ];
   nix.settings.trusted-public-keys = lib.mkAfter [ "shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA=" ];
+
+  # Enable fish shell since users use it
+  programs.fish.enable = true;
 
   # Preserve state semantics to avoid unexpected changes across upgrades
   system.stateVersion = "24.11";

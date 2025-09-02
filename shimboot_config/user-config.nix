@@ -1,28 +1,13 @@
 # Global user configuration file
-# Contains all user-configurable variables shared across NixOS hosts
+# Contains all user-configurable variables for nixos-shimboot
 
-{ hostname ? null, system ? "x86_64-linux", username ? "nixos-shimboot", machine ? "nixos-shimboot" }:
+{ hostname ? null, system ? "x86_64-linux", username ? "nixos-shimboot" }:
 
 rec {
   # Host configuration
   host = {
     inherit system;
-    hostname = if hostname == null then "${username}-${machine}" else hostname;
-  };
-
-  # Hosts metadata and helpers
-  hosts = rec {
-    # Machines defined under ./hosts/
-    machines = [ "nixos0" "surface0" "thinkpad0" ];
-    owner = username;
-    defaultMachine = "nixos0";
-    mk = m: "${owner}-${m}";
-    isValid = m: builtins.elem m machines;
-    # Selected machine (argument 'machine' may be overridden by callers)
-    selectedMachine =
-      if isValid machine then machine else defaultMachine;
-    # Derived hostname for the selected machine
-    derivedHostname = mk selectedMachine;
+    hostname = if hostname == null then username else hostname;
   };
 
   # Architecture detection helpers
@@ -53,7 +38,7 @@ rec {
     fullName = "PopCat19";
     email = "atsuo11111@gmail.com";
     shell = "fish";
-    
+
     extraGroups = [
       "wheel"
       "video"
@@ -71,39 +56,39 @@ rec {
       desktop = "zen-twilight.desktop";
       package = "zen-browser";
     };
-    
+
     terminal = {
       desktop = "kitty.desktop";
       package = "kitty";
       command = "kitty";
     };
-    
+
     editor = {
       desktop = "micro.desktop";
       package = "micro";
       command = "micro";
     };
-    
+
     fileManager = {
       desktop = "org.kde.dolphin.desktop";
       package = "kdePackages.dolphin";
     };
-    
+
     imageViewer = {
       desktop = "org.kde.gwenview.desktop";
       package = "kdePackages.gwenview";
     };
-    
+
     videoPlayer = {
       desktop = "mpv.desktop";
       package = "mpv";
     };
-    
+
     archiveManager = {
       desktop = "org.kde.ark.desktop";
       package = "kdePackages.ark";
     };
-    
+
     pdfViewer = {
       desktop = "org.kde.okular.desktop";
       package = "kdePackages.okular";
@@ -122,13 +107,6 @@ rec {
     music = "${home}/Music";
     desktop = "${home}/Desktop";
     syncthing = "${home}/syncthing-shared";
-  };
-
-  # Git configuration (used by home_modules/git.nix)
-  git = {
-    userName = user.fullName;
-    userEmail = user.email;
-    extraConfig = { };
   };
 
   # Network configuration moved to system_modules/networking.nix

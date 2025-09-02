@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, userConfig, ... }:
 
 {
   # User Configuration
@@ -8,11 +8,11 @@
         initialPassword = "nixos-user";
         shell = pkgs.fish;
       };
-      "nixos-user" = { # Regular user configuration
+      "${userConfig.user.username}" = { # Regular user configuration
         isNormalUser = true;
         initialPassword = "nixos-user";
         shell = pkgs.fish;
-        extraGroups = [ "wheel" "video" "audio" "networkmanager" "tty" ];
+        extraGroups = userConfig.user.extraGroups;
       };
     };
   };

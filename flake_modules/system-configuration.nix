@@ -3,6 +3,9 @@
 let
   system = "x86_64-linux";
 
+  # Import user configuration
+  userConfig = import ../shimboot_config/user-config.nix { };
+
   # Base = required system configuration only
   baseModules = [
     ../shimboot_config/base_configuration/configuration.nix
@@ -33,7 +36,7 @@ let
       home-manager.useUserPackages = true;
 
       # Delegate actual HM content to home.nix (split into programs.nix and packages.nix)
-      home-manager.users."nixos-user" = import ../shimboot_config/main_configuration/home_modules/home.nix;
+      home-manager.users."${userConfig.user.username}" = import ../shimboot_config/main_configuration/home_modules/home.nix;
     })
   ];
 in {

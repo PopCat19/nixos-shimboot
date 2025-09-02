@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, userConfig, ... }:
 
 {
   # Display Manager and Desktop Environment Configuration
@@ -46,7 +46,7 @@
       defaultSession = "hyprland-uwsm";
       autoLogin = {
         enable = true;
-        user = "nixos-user";
+        user = userConfig.user.username;
       };
     };
   };
