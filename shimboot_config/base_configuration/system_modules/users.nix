@@ -5,12 +5,12 @@
   users = {
     users = {
       root = { # Root user configuration
-        password = "nixos-user";
+        initialPassword = "nixos-user";
         shell = pkgs.fish;
       };
       "nixos-user" = { # Regular user configuration
         isNormalUser = true;
-        password = "nixos-user";
+        initialPassword = "nixos-user";
         shell = pkgs.fish;
         extraGroups = [ "wheel" "video" "audio" "networkmanager" "tty" ];
       };

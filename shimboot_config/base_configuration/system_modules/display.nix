@@ -44,6 +44,10 @@
     # Configure default session and auto-login (this is separate from the LightDM configuration)
     displayManager = {
       defaultSession = "hyprland";
+      autoLogin = {
+        enable = true;
+        user = "nixos-user";
+      };
     };
   };
   

@@ -15,6 +15,7 @@
     ./system_modules/hardware.nix
     ./system_modules/power-management.nix
     ./system_modules/display.nix
+    ./system_modules/users.nix
   ];
 
   # Preserve state semantics to avoid unexpected changes across upgrades
