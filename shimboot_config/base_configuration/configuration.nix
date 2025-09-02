@@ -9,9 +9,7 @@ in
     ./system_modules/networking.nix
     ./system_modules/filesystems.nix
     ./system_modules/packages.nix
-    ./system_modules/filesystem-helpers.nix
-    ./system_modules/setup-helpers.nix
-    ./system_modules/permissions-helpers.nix
+    ./system_modules/helpers/helpers.nix
     ./system_modules/security.nix
     ./system_modules/systemd.nix
     ./system_modules/localization.nix
