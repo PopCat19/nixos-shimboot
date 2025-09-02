@@ -83,6 +83,22 @@ Flake status and roadmap for the current branch:
 Current obstacles:
 - My irrefutable inexperience/unfamiliarity with the technical aspects of this codebase bottlenecking what needs to be done.
 
+## Binary cache for patched systemd
+
+This project configures the NixOS system image and the on-device helper-generated /etc/nixos to use a Cachix binary cache for the patched systemd. This avoids compiling systemd on Chromebook hardware.
+
+- Substituter: https://shimboot-systemd-nixos.cachix.org
+- Trusted public key: `shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA=`
+
+Notes:
+- The base image includes these settings via nix.settings.
+- The setup_nixos_config helper also writes them into /etc/nixos/configuration.nix so nixos-rebuild on device uses the cache automatically.
+- If you maintain your own configuration, add:
+```nix
+  nix.settings.substituters = [ "https://shimboot-systemd-nixos.cachix.org" ];
+  nix.settings.trusted-public-keys = [ "shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA=" ];
+```
+
 ## The Sauce
 Bootloader and systemd patches as well as the reference for bootstrapping, partitioning, and workarounds are sourced from: [ading2210/shimboot](https://github.com/ading2210/shimboot) and [ading2210/chromeos-systemd](https://github.com/ading2210/chromeos-systemd)
 

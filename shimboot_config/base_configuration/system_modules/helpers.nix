@@ -104,6 +104,8 @@
 
   # Ensure nix flakes are enabled on the target system
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.substituters = [ "https://shimboot-systemd-nixos.cachix.org" ];
+  nix.settings.trusted-public-keys = [ "shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA=" ];
 
   # Minimal essentials
   networking.hostName = "shimboot";

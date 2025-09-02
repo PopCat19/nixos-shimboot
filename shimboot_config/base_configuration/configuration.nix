@@ -17,6 +17,8 @@
   ];
 
   nix.settings.trusted-users = lib.mkAfter [ "root" "nixos-shimboot" ];
+  nix.settings.substituters = lib.mkAfter [ "https://shimboot-systemd-nixos.cachix.org" ];
+  nix.settings.trusted-public-keys = lib.mkAfter [ "shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA=" ];
 
   # Preserve state semantics to avoid unexpected changes across upgrades
   system.stateVersion = "24.11";
