@@ -6,7 +6,6 @@
       set -Ux NIXOS_CONFIG_DIR $HOME/nixos-config
       set -Ux NIXOS_FLAKE_HOSTNAME ${userConfig.host.hostname}
       set -Ux EDITOR ${userConfig.defaultApps.editor.command}
-      set -g fish_greeting ""
 
       fish_add_path $HOME/bin
       fish_add_path $HOME/.npm-global/bin
