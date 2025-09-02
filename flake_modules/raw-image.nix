@@ -3,6 +3,7 @@
 let
   system = "x86_64-linux";
   pkgs = nixpkgs.legacyPackages.${system};
+  userConfig = import ../shimboot_config/user-config.nix { };
 in {
   packages.${system} = {
     # Generate a raw image that includes the main configuration (reduces on-target build)
@@ -19,7 +20,7 @@ in {
         ({ config, pkgs, ... }: {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          home-manager.users."nixos-user" = import ../shimboot_config/main_configuration/home_modules/home.nix;
+          home-manager.users.${userConfig.user.username} = import ../shimboot_config/main_configuration/home_modules/home.nix;
         })
 
         # Raw image specific configuration

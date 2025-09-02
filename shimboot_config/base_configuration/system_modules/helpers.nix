@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, userConfig, ... }:
 
 {
   # Helper shell scripts packaged as binaries
@@ -109,7 +109,7 @@
 
   # Minimal essentials
   networking.hostName = "shimboot";
-  services.getty.autologinUser = "nixos-user";
+  services.getty.autologinUser = userConfig.user.username;
 
   system.stateVersion = "24.11";
 }
