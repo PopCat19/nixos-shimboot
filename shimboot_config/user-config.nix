@@ -55,6 +55,7 @@ rec {
     browser = {
       desktop = "zen-twilight.desktop";
       package = "zen-browser";
+      command = "zen-twilight";
     };
 
     terminal = {
@@ -72,6 +73,7 @@ rec {
     fileManager = {
       desktop = "org.kde.dolphin.desktop";
       package = "kdePackages.dolphin";
+      command = "dolphin";
     };
 
     imageViewer = {
@@ -92,6 +94,11 @@ rec {
     pdfViewer = {
       desktop = "org.kde.okular.desktop";
       package = "kdePackages.okular";
+    };
+
+    launcher = {
+      package = "fuzzel";
+      command = "fuzzel";
     };
   };
 

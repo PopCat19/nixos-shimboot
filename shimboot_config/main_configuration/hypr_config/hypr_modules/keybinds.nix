@@ -9,10 +9,10 @@
     # Application Variables
     "$term" = userConfig.defaultApps.terminal.command;
     "$editor" = userConfig.defaultApps.editor.command;
-    "$file" = userConfig.defaultApps.fileManager.package;
-    "$browser" = userConfig.defaultApps.browser.package;
-    "$menu" = "fuzzel --dmenu";
-    "$launcher" = "fuzzel";
+    "$file" = userConfig.defaultApps.fileManager.command;
+    "$browser" = userConfig.defaultApps.browser.command;
+    "$menu" = "${userConfig.defaultApps.launcher.command} --dmenu";
+    "$launcher" = userConfig.defaultApps.launcher.command;
 
     # Key bindings
     bind = [
@@ -38,10 +38,10 @@
 
       # Utilities
       "$mainMod+Shift, C, exec, hyprpicker -a"
-      # Clipboard: quick-paste latest entry (no menu)
-      "$mainMod, V, exec, bash -lc 'cliphist list | head -n1 | cliphist decode | wl-copy && sleep 0.05 && wtype -M ctrl -k v'"
       # Clipboard: open picker to choose entry, then paste
-      "$mainMod+Shift, V, exec, bash -lc \"cliphist list | fuzzel --dmenu --with-nth 2 | cliphist decode | wl-copy && sleep 0.05 && wtype -M ctrl -k v\""
+      "$mainMod, V, exec, bash -lc \"cliphist list | fuzzel --dmenu --with-nth 2 | cliphist decode | wl-copy && sleep 0.05 && wtype -M ctrl -k v\""
+      # Clipboard: quick-paste latest entry (no menu)
+      "$mainMod+Shift, V, exec, bash -lc 'cliphist list | head -n1 | cliphist decode | wl-copy && sleep 0.05 && wtype -M ctrl -k v'"
       "Ctrl+Alt, W, exec, systemctl --user restart hyprpanel.service"
 
       # Screenshots - Clipboard screenshots (primary keybindings)
