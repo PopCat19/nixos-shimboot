@@ -5,6 +5,7 @@
   imports = [
     ../base_configuration/configuration.nix
     ./system_modules/users.nix
+    ./system_modules/display.nix
     # Add more user/optional system modules here as needed
   ];
 }

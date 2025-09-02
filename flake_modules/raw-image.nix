@@ -19,7 +19,7 @@ in {
         ({ config, pkgs, ... }: {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          home-manager.users."nixos-user" = import ../shimboot_config/main_configuration/home_modules/nixos-user.nix;
+          home-manager.users."nixos-user" = import ../shimboot_config/main_configuration/home_modules/home.nix;
         })
 
         # Raw image specific configuration

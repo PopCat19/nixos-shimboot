@@ -1,6 +1,11 @@
 { config, pkgs, lib, self, ... }:
 
 {
+  # Ensure systemd tools are available system-wide (e.g., systemctl)
+  environment.systemPackages = with pkgs; [
+    systemd
+  ];
+
   # Systemd Configuration
   systemd = {
     package = pkgs.systemd.overrideAttrs (old: { # Overrides systemd package attributes

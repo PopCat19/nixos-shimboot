@@ -32,8 +32,8 @@ let
       home-manager.useGlobalPkgs = true;
       home-manager.useUserPackages = true;
 
-      # Delegate actual HM content to a file under main_configuration/home_modules
-      home-manager.users."nixos-user" = import ../shimboot_config/main_configuration/home_modules/nixos-user.nix;
+      # Delegate actual HM content to home.nix (split into programs.nix and packages.nix)
+      home-manager.users."nixos-user" = import ../shimboot_config/main_configuration/home_modules/home.nix;
     })
   ];
 in {

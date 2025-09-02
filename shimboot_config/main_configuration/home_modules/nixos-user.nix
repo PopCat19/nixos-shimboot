@@ -1,18 +1,4 @@
-{ pkgs, ... }: {
-  # Home Manager module for user "nixos-user"
-  home.stateVersion = "24.11";
-
-  programs.fish.enable = true;
-
-  programs.git = {
-    enable = true;
-    userName = "nixos-user";
-    userEmail = "nixos-user@example.invalid";
-  };
-
-  home.packages = with pkgs; [
-    git
-    btop
-    micro
-  ];
-}
+# DEPRECATED: Use home.nix instead of nixos-user.nix
+# This file remains for backward compatibility and forwards to home.nix.
+{ ... } @ args:
+  builtins.trace "DEPRECATED: shimboot_config/main_configuration/home_modules/nixos-user.nix is deprecated; use home.nix" ((import ./home.nix) args)

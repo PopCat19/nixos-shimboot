@@ -53,8 +53,8 @@
   
   # Ensure basic tools are available
   environment.systemPackages = with pkgs; [
-    systemd    # Provides systemctl
     hyprland    # Window manager
+    hyprshade
     lightdm     # Display manager
     lightdm-gtk-greeter # LightDM greeter
   ];
