@@ -8,7 +8,7 @@
 
     # Split modules
     ./environment.nix
-    ./programs.nix
+    ./fish.nix
     ./packages.nix
     ./starship.nix
     ./zen-browser.nix

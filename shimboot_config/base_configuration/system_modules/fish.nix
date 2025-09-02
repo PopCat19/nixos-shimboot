@@ -3,7 +3,7 @@
 {
   # System programs configuration
   # Fish and Starship are configured in home_modules for user-specific settings.
-  
+
   programs = {
     # Shell configuration
     fish = {
