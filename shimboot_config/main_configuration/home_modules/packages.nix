@@ -1,13 +1,10 @@
-{ pkgs, ... }: {
-  home.packages = with pkgs; [
-    vesktop
-    universal-android-debloater
-    android-tools
-    scrcpy
-    mpv
-    audacious
-    audacious-plugins
-    pureref
-    youtube-music
+{ ... }: {
+  imports = [
+    ./packages/communication.nix
+    ./packages/android.nix
+    ./packages/media.nix
+    ./packages/utilities.nix
+    ./packages/gaming.nix
+    ./packages/notifications.nix
   ];
 }
