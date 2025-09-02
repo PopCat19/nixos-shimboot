@@ -15,7 +15,6 @@
 
     # Additional home modules that were orphaned
     ./fcitx5.nix
-    ./fuzzel-config.nix
     ./kde.nix
     ./kitty.nix
     ./micro.nix

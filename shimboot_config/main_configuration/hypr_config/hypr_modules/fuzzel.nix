@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, userConfig, ... }:
 
 {
   # Fuzzel Launcher Configuration - Enhanced with Rose Pine theme and QoL features.
@@ -15,7 +15,7 @@
         inner-pad = 8; # Padding between border and content.
         image-size-ratio = 0.8; # Size ratio for application icons.
         show-actions = true; # Show application actions.
-        terminal = "kitty"; # Terminal for launching terminal applications.
+        terminal = userConfig.defaultApps.terminal.command; # Terminal for launching terminal applications.
         filter-desktop = true; # Filter desktop files.
         icon-theme = "Papirus-Dark"; # Icon theme to use.
         icons-enabled = true; # Enable application icons.
