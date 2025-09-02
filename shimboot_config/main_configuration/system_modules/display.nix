@@ -53,9 +53,7 @@
   
   # Ensure basic tools are available
   environment.systemPackages = with pkgs; [
-    hyprland    # Window manager
-    hyprshade
-    hyprpaper
+    brightnessctl
     lightdm     # Display manager
     lightdm-gtk-greeter # LightDM greeter
   ];
