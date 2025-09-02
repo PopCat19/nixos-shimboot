@@ -43,12 +43,14 @@ in {
     raw-efi-system = nixpkgs.lib.nixosSystem {
       inherit system;
       modules = baseModules;
+      specialArgs = { inherit self; };
     };
 
     # Full main system (base + optional/user modules inc. HM)
     nixos-shimboot = nixpkgs.lib.nixosSystem {
       inherit system;
       modules = mainModules;
+      specialArgs = { inherit self; };
     };
   };
 }
