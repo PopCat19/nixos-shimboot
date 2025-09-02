@@ -1,15 +1,16 @@
 # Key Bindings for Hyprland
 # ==========================
+{ userConfig, ... }:
 {
   wayland.windowManager.hyprland.settings = {
     # Main modifier key
     "$mainMod" = "SUPER";
 
     # Application Variables
-    "$term" = "kitty";
-    "$editor" = "micro";
-    "$file" = "dolphin";
-    "$browser" = "zen-twilight";
+    "$term" = userConfig.defaultApps.terminal.command;
+    "$editor" = userConfig.defaultApps.editor.command;
+    "$file" = userConfig.defaultApps.fileManager.package;
+    "$browser" = userConfig.defaultApps.browser.package;
     "$menu" = "fuzzel --dmenu";
     "$launcher" = "fuzzel";
 

@@ -7,6 +7,7 @@
     ../hypr_config/hypr_packages.nix
 
     # Split modules
+    ./environment.nix
     ./programs.nix
     ./packages.nix
     ./starship.nix

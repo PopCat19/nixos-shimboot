@@ -1,4 +1,4 @@
-{ pkgs, config, ... }:
+{ pkgs, config, userConfig, ... }:
 
 {
   # KDE applications and utilities (no desktop environment)
@@ -44,28 +44,28 @@
     <?xml version="1.0" encoding="UTF-8"?>
     <!DOCTYPE xbel PUBLIC "+//IDN pyxml.sourceforge.net//DTD XML Bookmark Exchange Language 1.0//EN//XML" "http://pyxml.sourceforge.net/topics/dtds/xbel-1.0.dtd">
     <xbel version="1.0">
-     <bookmark href="file:///home/${config.home.username}">
+     <bookmark href="file://${userConfig.directories.home}">
       <title>Home</title>
      </bookmark>
-     <bookmark href="file:///home/${config.home.username}/Desktop">
+     <bookmark href="file://${userConfig.directories.desktop}">
       <title>Desktop</title>
      </bookmark>
-     <bookmark href="file:///home/${config.home.username}/Documents">
+     <bookmark href="file://${userConfig.directories.documents}">
       <title>Documents</title>
      </bookmark>
-     <bookmark href="file:///home/${config.home.username}/Downloads">
+     <bookmark href="file://${userConfig.directories.downloads}">
       <title>Downloads</title>
      </bookmark>
-     <bookmark href="file:///home/${config.home.username}/Pictures">
+     <bookmark href="file://${userConfig.directories.pictures}">
       <title>Pictures</title>
      </bookmark>
-     <bookmark href="file:///home/${config.home.username}/Music">
+     <bookmark href="file://${userConfig.directories.music}">
       <title>Music</title>
      </bookmark>
-     <bookmark href="file:///home/${config.home.username}/Videos">
+     <bookmark href="file://${userConfig.directories.videos}">
       <title>Videos</title>
      </bookmark>
-     <bookmark href="file:///home/${config.home.username}/nixos-config">
+     <bookmark href="file://${userConfig.directories.home}/nixos-config">
       <title>nixos-config</title>
      </bookmark>
      <bookmark href="trash:/">
@@ -99,6 +99,6 @@
     Name=Open Terminal Here
     Name[en_US]=Open Terminal Here
     Icon=utilities-terminal
-    Exec=kitty --working-directory "%f"
+    Exec=${userConfig.defaultApps.terminal.command} --working-directory "%f"
   '';
 }
