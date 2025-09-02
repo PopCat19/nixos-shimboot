@@ -1,21 +1,11 @@
 {
-  # Import inputs from inputs module
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    nixos-generators = {
-      url = "github:nix-community/nixos-generators";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    home-manager = {
-      url = "github:nix-community/home-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-  };
+  # Import inputs from flake_modules
+  inputs = import ./flake_modules/inputs.nix;
   
   description = "NixOS configuration for raw image generation";
 
   # Combine all outputs from modules
-  outputs = { self, nixpkgs, nixos-generators, home-manager, ... }:
+  outputs = { self, nixpkgs, nixos-generators, home-manager, zen-browser, ... }:
     let
       system = "x86_64-linux";
       
