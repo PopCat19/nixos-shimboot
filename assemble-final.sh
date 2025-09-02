@@ -41,7 +41,59 @@ SYSTEM="x86_64-linux"
 WORKDIR="$(pwd)/work"
 IMAGE="$WORKDIR/shimboot.img"
 ROOTFS_NAME="${ROOTFS_NAME:-nixos}"
-INSPECT_AFTER="${1:-}"
+
+# CLI parsing: --rootfs {full|minimal}, --inspect, non-interactive via env ROOTFS_FLAVOR
+ROOTFS_FLAVOR="${ROOTFS_FLAVOR:-}"
+INSPECT_AFTER=""
+
+while [ $# -gt 0 ]; do
+  case "${1:-}" in
+    --rootfs)
+      ROOTFS_FLAVOR="${2:-}"
+      shift 2
+      ;;
+    --inspect)
+      INSPECT_AFTER="--inspect"
+      shift
+      ;;
+    *)
+      # Backward compat: if a single arg was passed previously as inspect flag
+      if [ "${1:-}" = "--inspect" ]; then
+        INSPECT_AFTER="--inspect"
+      fi
+      shift
+      ;;
+  esac
+done
+
+# Interactive prompt if not provided, default to full
+if [ -z "${ROOTFS_FLAVOR:-}" ]; then
+  if [ -t 0 ]; then
+    echo
+    echo "[assemble-final] Select rootfs flavor to build:"
+    echo "  1) full     (preferred) → uses main configuration (Home Manager, LightDM)"
+    echo "  2) minimal  (base-only) → standalone base with Hyprland via greetd"
+    read -rp "Enter choice [1/2, default=1]: " choice
+    case "${choice:-1}" in
+      2) ROOTFS_FLAVOR="minimal" ;;
+      *) ROOTFS_FLAVOR="full" ;;
+    esac
+  else
+    ROOTFS_FLAVOR="full"
+  fi
+fi
+
+if [ "${ROOTFS_FLAVOR}" != "full" ] && [ "${ROOTFS_FLAVOR}" != "minimal" ]; then
+  log_error "Invalid --rootfs value: '${ROOTFS_FLAVOR}'. Use 'full' or 'minimal'."
+  exit 1
+fi
+
+RAW_ROOTFS_ATTR="raw-rootfs"
+if [ "${ROOTFS_FLAVOR}" = "minimal" ]; then
+  RAW_ROOTFS_ATTR="raw-rootfs-minimal"
+fi
+
+log_info "Rootfs flavor: ${ROOTFS_FLAVOR} (attr: .#${RAW_ROOTFS_ATTR})"
 
 # === Cleanup workspace ===
 if [ -d "$WORKDIR" ]; then
@@ -70,7 +122,7 @@ trap cleanup EXIT
 log_step "0/8" "Building Nix outputs"
 ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config .#extracted-kernel --print-out-paths)/p2.bin"
 PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config .#initramfs-patching --print-out-paths)/patched-initramfs"
-RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config .#raw-rootfs --print-out-paths)/nixos.img"
+RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config .#${RAW_ROOTFS_ATTR} --print-out-paths)/nixos.img"
 log_info "Original kernel p2: $ORIGINAL_KERNEL"
 log_info "Patched initramfs dir: $PATCHED_INITRAMFS"
 log_info "Raw rootfs: $RAW_ROOTFS_IMG"

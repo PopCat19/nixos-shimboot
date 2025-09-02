@@ -47,5 +47,33 @@ in {
         })
       ];
     };
+
+    # Minimal/base-only raw image (no Home Manager, base configuration only)
+    raw-rootfs-minimal = nixos-generators.nixosGenerate {
+      inherit system;
+      format = "raw";
+      specialArgs = { inherit zen-browser; };
+
+      modules = [
+        # Base-only configuration (standalone Hyprland via greetd)
+        ../shimboot_config/base_configuration/configuration.nix
+
+        # Raw image specific configuration
+        ({ config, pkgs, ... }: {
+          # Enable serial console logging
+          boot.kernelParams = [ "console=ttyS0,115200" ];
+
+          # Enable Nix flakes
+          nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
+          # Enable automatic garbage collection
+          nix.gc = {
+            automatic = true;
+            dates = "weekly";
+            options = "--delete-older-than 30d";
+          };
+        })
+      ];
+    };
   };
 }

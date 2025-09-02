@@ -2,9 +2,12 @@
 
 let
   system = "x86_64-linux";
+  lib = nixpkgs.lib;
 
   # Import user configuration
   userConfig = import ../shimboot_config/user-config.nix { };
+  # Hostname (used to expose .#HOSTNAME and .#HOSTNAME-minimal)
+  hn = userConfig.host.hostname;
 
   # Base = required system configuration only
   baseModules = [
@@ -49,19 +52,39 @@ let
   ];
 in {
   # NixOS configurations for building the system
-  nixosConfigurations = {
-    # Strict base system (required components only)
-    raw-efi-system = nixpkgs.lib.nixosSystem {
-      inherit system;
-      modules = baseModules;
-      specialArgs = { inherit self zen-browser; };
-    };
+  nixosConfigurations =
+    let
+      baseSet = {
+        # Minimal/base-only target (host-qualified)
+        "${hn}-minimal" = nixpkgs.lib.nixosSystem {
+          inherit system;
+          modules = baseModules;
+          specialArgs = { inherit self zen-browser; };
+        };
 
-    # Full main system (base + optional/user modules inc. HM)
-    nixos-shimboot = nixpkgs.lib.nixosSystem {
-      inherit system;
-      modules = mainModules;
-      specialArgs = { inherit self zen-browser; };
-    };
-  };
+        # Full target (host-qualified, preferred)
+        "${hn}" = nixpkgs.lib.nixosSystem {
+          inherit system;
+          modules = mainModules;
+          specialArgs = { inherit self zen-browser; };
+        };
+      };
+
+      compatRaw = lib.optionalAttrs (hn != "raw-efi-system") {
+        raw-efi-system = nixpkgs.lib.nixosSystem {
+          inherit system;
+          modules = baseModules;
+          specialArgs = { inherit self zen-browser; };
+        };
+      };
+
+      compatShimboot = lib.optionalAttrs (hn != "nixos-shimboot") {
+        nixos-shimboot = nixpkgs.lib.nixosSystem {
+          inherit system;
+          modules = mainModules;
+          specialArgs = { inherit self zen-browser; };
+        };
+      };
+    in
+      baseSet // compatRaw // compatShimboot;
 }
