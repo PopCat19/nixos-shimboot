@@ -10,10 +10,8 @@
       trustedInterfaces = [ "lo" ];
       allowedTCPPorts = [
         22      # SSH
-        53317   # Syncthing
       ];
       allowedUDPPorts = [
-        53317   # Syncthing
       ];
       checkReversePath = false;
     };

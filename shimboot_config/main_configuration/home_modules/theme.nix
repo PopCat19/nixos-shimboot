@@ -15,10 +15,10 @@ let
     gtkFontSize = 11;
   };
 
-  cursorPackage = inputs.rose-pine-hyprcursor.packages.${system}.default;
+  cursorPackage = pkgs.rose-pine-hyprcursor;
   kvantumPkg = pkgs.kdePackages.qtstyleplugin-kvantum;
   rosePineKvantum = pkgs.rose-pine-kvantum;
-  rosePineGtk = pkgs.rose-pine-gtk-theme-full;
+  rosePineGtk = pkgs.rose-pine-gtk-theme;
 
   gtkCss = ''
     * {
@@ -409,7 +409,7 @@ in
     kdePackages.qtstyleplugin-kvantum
     libsForQt5.qtstyleplugin-kvantum
     rose-pine-kvantum
-    rose-pine-gtk-theme-full
+    rose-pine-gtk-theme
     cursorPackage
     catppuccin-gtk
     catppuccin-cursors

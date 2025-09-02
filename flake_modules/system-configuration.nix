@@ -34,7 +34,14 @@ let
     ({ config, pkgs, ... }: {
       home-manager.useGlobalPkgs = true;
       home-manager.useUserPackages = true;
-      home-manager.extraSpecialArgs = { inherit zen-browser; };
+      home-manager.extraSpecialArgs = { inherit zen-browser userConfig; inputs = self.inputs; };
+
+      # Make userConfig available to home modules
+      home-manager.sharedModules = [
+        ({ config, ... }: {
+          _module.args.userConfig = userConfig;
+        })
+      ];
 
       # Delegate actual HM content to home.nix (split into programs.nix and packages.nix)
       home-manager.users."${userConfig.user.username}" = import ../shimboot_config/main_configuration/home_modules/home.nix;

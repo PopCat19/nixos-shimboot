@@ -11,6 +11,15 @@
     ./packages.nix
     ./starship.nix
     ./zen-browser.nix
+
+    # Additional home modules that were orphaned
+    ./fcitx5.nix
+    ./fuzzel-config.nix
+    ./kde.nix
+    ./kitty.nix
+    ./micro.nix
+    ./qt-gtk-config.nix
+    ./theme.nix
   ];
 
   home.stateVersion = "24.11";

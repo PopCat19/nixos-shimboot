@@ -20,12 +20,6 @@
     libgsf                 # OLE/MSO thumbnails
     webp-pixbuf-loader     # WebP image support
 
-    # KDE utilities
-    kdePackages.kdialog      # Dialog boxes from shell scripts
-    kdePackages.keditbookmarks # Bookmark editor
-    kdePackages.kleopatra    # Certificate manager and GUI for GnuPG
-    kdePackages.kwalletmanager # Wallet management tool
-
     # Qt theming
     qt6Packages.qtstyleplugin-kvantum
     libsForQt5.qtstyleplugin-kvantum
@@ -70,9 +64,6 @@
      </bookmark>
      <bookmark href="file:///home/${config.home.username}/Videos">
       <title>Videos</title>
-     </bookmark>
-     <bookmark href="file:///home/${config.home.username}/syncthing-shared">
-      <title>Syncthing Shared</title>
      </bookmark>
      <bookmark href="file:///home/${config.home.username}/nixos-config">
       <title>nixos-config</title>

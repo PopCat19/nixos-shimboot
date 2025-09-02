@@ -21,7 +21,12 @@ in {
         ({ config, pkgs, ... }: {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          home-manager.extraSpecialArgs = { inherit zen-browser; };
+          home-manager.extraSpecialArgs = { inherit zen-browser userConfig; inputs = self.inputs; };
+          home-manager.sharedModules = [
+            ({ config, ... }: {
+              _module.args.userConfig = userConfig;
+            })
+          ];
           home-manager.users.${userConfig.user.username} = import ../shimboot_config/main_configuration/home_modules/home.nix;
         })
 

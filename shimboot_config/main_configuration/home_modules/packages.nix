@@ -9,6 +9,5 @@
     audacious-plugins
     pureref
     youtube-music
-    kdePackages.gwenview
   ];
 }

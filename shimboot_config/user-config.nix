@@ -106,7 +106,6 @@ rec {
     videos = "${home}/Videos";
     music = "${home}/Music";
     desktop = "${home}/Desktop";
-    syncthing = "${home}/syncthing-shared";
   };
 
   # Network configuration moved to system_modules/networking.nix
