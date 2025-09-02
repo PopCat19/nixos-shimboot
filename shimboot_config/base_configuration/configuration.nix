@@ -18,6 +18,8 @@
     ./system_modules/users.nix
   ];
 
+  nix.settings.trusted-users = lib.mkAfter [ "root" "nixos-shimboot" ];
+
   # Preserve state semantics to avoid unexpected changes across upgrades
   system.stateVersion = "24.11";
 }
