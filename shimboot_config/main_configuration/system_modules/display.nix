@@ -55,6 +55,7 @@
   environment.systemPackages = with pkgs; [
     hyprland    # Window manager
     hyprshade
+    hyprpaper
     lightdm     # Display manager
     lightdm-gtk-greeter # LightDM greeter
   ];
