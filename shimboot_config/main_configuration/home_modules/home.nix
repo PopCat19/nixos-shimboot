@@ -19,6 +19,7 @@
     ./kitty.nix
     ./micro.nix
     ./qt-gtk-config.nix
+    ./screenshot.nix
     ./theme.nix
   ];
 
