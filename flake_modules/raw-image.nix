@@ -1,4 +1,4 @@
-{ self, nixpkgs, nixos-generators, home-manager, ... }:
+{ self, nixpkgs, nixos-generators, home-manager, zen-browser, ... }:
 
 let
   system = "x86_64-linux";
@@ -10,7 +10,8 @@ in {
     raw-rootfs = nixos-generators.nixosGenerate {
       inherit system;
       format = "raw";
-      
+      specialArgs = { inherit zen-browser; };
+
       modules = [
         # Use the main configuration (which itself imports base)
         ../shimboot_config/main_configuration/configuration.nix
@@ -20,6 +21,7 @@ in {
         ({ config, pkgs, ... }: {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
+          home-manager.extraSpecialArgs = { inherit zen-browser; };
           home-manager.users.${userConfig.user.username} = import ../shimboot_config/main_configuration/home_modules/home.nix;
         })
 

@@ -9,6 +9,8 @@
     # Split modules
     ./programs.nix
     ./packages.nix
+    ./starship.nix
+    ./zen-browser.nix
   ];
 
   home.stateVersion = "24.11";

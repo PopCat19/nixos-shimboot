@@ -17,6 +17,9 @@ in
     ./system_modules/power-management.nix
     ./system_modules/display.nix
     ./system_modules/users.nix
+    ./system_modules/audio.nix
+    ./system_modules/programs.nix
+    ./system_modules/services.nix
   ];
 
   # Make user config available to modules

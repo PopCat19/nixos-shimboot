@@ -1,4 +1,4 @@
-{ self, nixpkgs, home-manager, ... }:
+{ self, nixpkgs, home-manager, zen-browser, ... }:
 
 let
   system = "x86_64-linux";
@@ -34,6 +34,7 @@ let
     ({ config, pkgs, ... }: {
       home-manager.useGlobalPkgs = true;
       home-manager.useUserPackages = true;
+      home-manager.extraSpecialArgs = { inherit zen-browser; };
 
       # Delegate actual HM content to home.nix (split into programs.nix and packages.nix)
       home-manager.users."${userConfig.user.username}" = import ../shimboot_config/main_configuration/home_modules/home.nix;
@@ -46,14 +47,14 @@ in {
     raw-efi-system = nixpkgs.lib.nixosSystem {
       inherit system;
       modules = baseModules;
-      specialArgs = { inherit self; };
+      specialArgs = { inherit self zen-browser; };
     };
 
     # Full main system (base + optional/user modules inc. HM)
     nixos-shimboot = nixpkgs.lib.nixosSystem {
       inherit system;
       modules = mainModules;
-      specialArgs = { inherit self; };
+      specialArgs = { inherit self zen-browser; };
     };
   };
 }

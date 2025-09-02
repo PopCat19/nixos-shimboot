@@ -5,14 +5,14 @@
   pkgs,
   config,
   lib,
-  inputs,
+  zen-browser,
   userConfig,
   ...
 }:
 
 {
   # Import the Zen Browser Home Manager module
-  imports = [ inputs.zen-browser.homeModules.twilight ];
+  imports = [ zen-browser.homeModules.twilight ];
 
   # Enable Zen Browser with configuration
   programs.zen-browser = {
