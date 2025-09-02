@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, userConfig, ... }:
 
 {
   # Networking Configuration
@@ -15,7 +15,7 @@
       ];
       checkReversePath = false;
     };
-    hostName = "nixos-shimboot"; # Ensure $HOSTNAME matches flake attribute after first switch
+    hostName = userConfig.host.hostname; # Use hostname from user configuration
     networkmanager = {
       enable = true; # Enable NetworkManager
       wifi.backend = "wpa_supplicant"; # Use wpa_supplicant for WiFi (more compatible with ChromeOS)
