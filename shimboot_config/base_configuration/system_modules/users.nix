@@ -6,12 +6,12 @@
     users = {
       root = { # Root user configuration
         initialPassword = "nixos-user";
-        shell = pkgs.fish;
+        shell = lib.mkForce pkgs.fish;
       };
       "nixos-user" = { # Regular user configuration
         isNormalUser = true;
         initialPassword = "nixos-user";
-        shell = pkgs.fish;
+        shell = lib.mkForce pkgs.fish;
         extraGroups = [ "wheel" "video" "audio" "networkmanager" "tty" ];
       };
     };

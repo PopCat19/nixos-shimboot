@@ -268,15 +268,42 @@ EOF_FLAKE
       echo "=== Step 3: Clone flake into ~/nixos-config ==="
       read -r -p "Enter flake git remote (default: $default_repo): " repo_url
       repo_url="''${repo_url:-$default_repo}"
+      read -r -p "Enter branch to checkout (leave blank for repo default): " repo_branch
       mkdir -p "$HOME"
       cd "$HOME"
 
       if [ -d "$config_dir/.git" ] || [ -d "$config_dir" ]; then
         echo "'$config_dir' already exists. Skipping clone."
+        # If a branch was provided and repo exists, attempt to switch to it
+        if [ -n "''${repo_branch:-}" ]; then
+          echo "Attempting to switch existing repo to branch '$repo_branch'..."
+          if command -v git >/dev/null 2>&1; then
+            (
+              cd "$config_dir" && \
+              git fetch origin "''${repo_branch}" || true
+              if git show-ref --verify --quiet "refs/heads/''${repo_branch}"; then
+                git checkout "''${repo_branch}" || true
+              elif git ls-remote --exit-code --heads origin "''${repo_branch}" >/dev/null 2>&1; then
+                git checkout -B "''${repo_branch}" "origin/''${repo_branch}" || true
+              else
+                echo "Branch '$repo_branch' not found locally or on origin; leaving current branch unchanged."
+              fi
+            )
+          fi
+        fi
       else
         echo "Cloning '$repo_url' into '$config_dir'..."
-        if ! git clone "$repo_url" "$config_dir"; then
-          echo "Clone failed. Please verify the URL and network connectivity."
+        if [ -n "''${repo_branch:-}" ]; then
+          if ! git clone --branch "$repo_branch" --single-branch "$repo_url" "$config_dir"; then
+            echo "Clone with branch '$repo_branch' failed. Falling back to default branch..."
+            if ! git clone "$repo_url" "$config_dir"; then
+              echo "Clone failed. Please verify the URL and network connectivity."
+            fi
+          fi
+        else
+          if ! git clone "$repo_url" "$config_dir"; then
+            echo "Clone failed. Please verify the URL and network connectivity."
+          fi
         fi
       fi
       echo
@@ -290,12 +317,31 @@ EOF_FLAKE
 
       target_host="''${HOSTNAME:-nixos-shimboot}"
       echo "Default rebuild target: .#$target_host"
-      if prompt_yes_no "Run 'sudo nixos-rebuild switch --flake .#$target_host --option sandbox false' now?" "Y"; then
+
+      # Auto-accept flake config and Cachix substituter to avoid interactive prompts
+      export NIX_CONFIG="''${NIX_CONFIG:-}
+accept-flake-config = true
+extra-substituters = https://shimboot-systemd-nixos.cachix.org
+trusted-public-keys = shimboot-systemd-nixos.cachix.org-1:VcWmEtJq7hAZUOLM0s3njm6s9/Eux6k0TQdJ0o2kAAa="
+
+      if prompt_yes_no "Run 'nixos-rebuild switch' now with Cachix/flake config auto-accepted?" "Y"; then
         if command -v sudo >/dev/null 2>&1; then
-          sudo nixos-rebuild switch --flake ".#$target_host" --option sandbox false || echo "nixos-rebuild failed; review errors above."
+          sudo NIX_CONFIG="$NIX_CONFIG" nixos-rebuild switch \
+            --flake ".#$target_host" \
+            --option sandbox false \
+            --option accept-flake-config true \
+            --option extra-substituters https://shimboot-systemd-nixos.cachix.org \
+            --option trusted-public-keys "shimboot-systemd-nixos.cachix.org-1:VcWmEtJq7hAZUOLM0s3njm6s9/Eux6k0TQdJ0o2kAAa=" \
+            || echo "nixos-rebuild failed; review errors above."
         else
           echo "sudo not found. Attempting without sudo..."
-          nixos-rebuild switch --flake ".#$target_host" --option sandbox false || echo "nixos-rebuild failed; review errors above."
+          NIX_CONFIG="$NIX_CONFIG" nixos-rebuild switch \
+            --flake ".#$target_host" \
+            --option sandbox false \
+            --option accept-flake-config true \
+            --option extra-substituters https://shimboot-systemd-nixos.cachix.org \
+            --option trusted-public-keys "shimboot-systemd-nixos.cachix.org-1:VcWmEtJq7hAZUOLM0s3njm6s9/Eux6k0TQdJ0o2kAAa=" \
+            || echo "nixos-rebuild failed; review errors above."
         fi
       else
         echo "Skipping nixos-rebuild."
