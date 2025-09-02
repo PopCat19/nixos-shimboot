@@ -1,6 +1,9 @@
 { config, pkgs, lib, userConfig, ... }:
 
 {
+  # Ensure main takes precedence over base's defaults
+  services.greetd.enable = lib.mkForce false;
+
   # Display Manager and Desktop Environment Configuration
   programs.hyprland = { # or wayland.windowManager.hyprland
       enable = true;
