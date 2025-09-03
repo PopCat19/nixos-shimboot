@@ -104,6 +104,28 @@ mount_ro_if_needed() {
   exit 3
 }
 
+# Ensure cleanup: always unmount /mnt/inspect_rootfs and any mounts of /dev/sdc4 before exiting
+cleanup() {
+  set +e
+  # Unmount our inspect mountpoint if mounted
+  if mountpoint -q /mnt/inspect_rootfs; then
+    sudo umount /mnt/inspect_rootfs || true
+  fi
+
+  # Ensure /dev/sdc4 is unmounted everywhere
+  if [[ -b /dev/sdc4 ]]; then
+    local mps
+    mps="$(lsblk -no MOUNTPOINT /dev/sdc4 | sed -e '/^$/d' || true)"
+    if [[ -n "$mps" ]]; then
+      while IFS= read -r mp; do
+        [[ -z "$mp" ]] && continue
+        sudo umount "$mp" || true
+      done <<< "$mps"
+    fi
+  fi
+}
+
+trap 'cleanup' EXIT INT TERM
 print_basic() {
   local MNT="$1"
   info "Using mount: $MNT"
