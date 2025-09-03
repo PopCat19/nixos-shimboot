@@ -16,23 +16,26 @@
   };
   programs.uwsm.enable = lib.mkDefault true;
 
-  # Minimal greeter: greetd autologin to Hyprland via UWSM (defaulted, guard with enable)
-  services.greetd = {
+  # LightDM for minimal/base: autologin to Hyprland via UWSM
+  services.xserver.displayManager.lightdm = {
     enable = lib.mkDefault true;
+    greeters.gtk.enable = lib.mkDefault true;
+  };
 
-    # Only define settings when greetd is enabled (prevents merging when main disables it)
-    settings = lib.mkIf config.services.greetd.enable {
-      default_session = {
-        command = lib.mkDefault "${pkgs.uwsm}/bin/uwsm start hyprland-uwsm";
-        # Upstream defaults to "greeter"; force our autologin user to avoid equal-priority conflicts
-        user = lib.mkForce userConfig.user.username;
-      };
-      # initial_session helps on TTY after logouts
-      initial_session = {
-        command = lib.mkDefault "${pkgs.uwsm}/bin/uwsm start hyprland-uwsm";
-        user = lib.mkForce userConfig.user.username;
-      };
-    };
+  services.xserver.displayManager.session = [
+    {
+      manage = "window";
+      name = "hyprland";
+      start = ''
+        ${pkgs.hyprland}/bin/Hyprland
+      '';
+    }
+  ];
+
+  services.displayManager.defaultSession = lib.mkDefault "hyprland-uwsm";
+  services.displayManager.autoLogin = {
+    enable = lib.mkDefault true;
+    user = lib.mkDefault userConfig.user.username;
   };
 
   # Wayland-friendly defaults for Electron/Chromium apps
@@ -54,4 +57,11 @@
   };
 
   programs.dconf.enable = lib.mkDefault true;
+
+  # Ensure basic tools are available
+  environment.systemPackages = with pkgs; [
+    brightnessctl
+    lightdm     # Display manager
+    lightdm-gtk-greeter # LightDM greeter
+  ];
 }
