@@ -34,9 +34,9 @@ ensure_mountpoint() {
 detect_from_lsblk() {
   info "Enumerating block devices (sudo lsblk)..."
   # NAME,SIZE,FSTYPE,MOUNTPOINT,TYPE,RM,HOTPLUG,MODEL
-  sudo lsblk -p -o NAME,SIZE,FSTYPE,MOUNTPOINT,TYPE,RM,HOTPLUG,MODEL
-  echo
-  echo "Select a partition to inspect (e.g., /dev/sdc4)."
+  sudo lsblk -p -o NAME,SIZE,FSTYPE,MOUNTPOINT,TYPE,RM,HOTPLUG,MODEL >&2
+  echo >&2
+  echo "Select a partition to inspect (e.g., /dev/sdc4)." >&2
   read -rp "Device path [/dev/sdc4]: " DEV
   DEV="${DEV:-/dev/sdc4}"
   if [[ ! -e "$DEV" ]]; then
