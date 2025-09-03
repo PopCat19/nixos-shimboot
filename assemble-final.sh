@@ -46,6 +46,11 @@ ROOTFS_NAME="${ROOTFS_NAME:-nixos}"
 ROOTFS_FLAVOR="${ROOTFS_FLAVOR:-}"
 INSPECT_AFTER=""
 
+# Cleanup options
+CLEANUP_ROOTFS=0
+CLEANUP_NO_DRY_RUN=0
+CLEANUP_KEEP=""
+
 while [ $# -gt 0 ]; do
   case "${1:-}" in
     --rootfs)
@@ -55,6 +60,18 @@ while [ $# -gt 0 ]; do
     --inspect)
       INSPECT_AFTER="--inspect"
       shift
+      ;;
+    --cleanup-rootfs)
+      CLEANUP_ROOTFS=1
+      shift
+      ;;
+    --cleanup-no-dry-run)
+      CLEANUP_NO_DRY_RUN=1
+      shift
+      ;;
+    --cleanup-keep)
+      CLEANUP_KEEP="${2:-}"
+      shift 2
       ;;
     *)
       # Backward compat: if a single arg was passed previously as inspect flag
@@ -271,8 +288,24 @@ sudo umount "$WORKDIR/mnt_rootfs"
 # Detach loop devices used for target image
 sudo losetup -d "$LOOPDEV"
 LOOPDEV=""
-
 log_info "✅ Final image created at: $IMAGE"
+
+# === Optional cleanup of old shimboot rootfs generations ===
+if [ "${CLEANUP_ROOTFS:-0}" -eq 1 ]; then
+    log_step "Cleanup" "Pruning older shimboot rootfs generations"
+    # Build arguments for cleanup script
+    CLEANUP_CMD=(sudo bash scripts/cleanup-shimboot-rootfs.sh --results-dir "$(pwd)")
+    if [ -n "${CLEANUP_KEEP:-}" ]; then
+        CLEANUP_CMD+=("--keep" "$CLEANUP_KEEP")
+    fi
+    if [ "${CLEANUP_NO_DRY_RUN:-0}" -eq 1 ]; then
+        CLEANUP_CMD+=("--no-dry-run")
+    else
+        CLEANUP_CMD+=("--dry-run")
+    fi
+    "${CLEANUP_CMD[@]}"
+fi
+
 
 # === Optional inspection ===
 if [ "$INSPECT_AFTER" = "--inspect" ]; then
