@@ -8,7 +8,7 @@
 #       2) GC roots directory (-g/--gcroots), if provided
 #       3) Repo "result*" symlinks in a specified directory (-r/--results-dir, default: current repo)
 #   - Identify candidates that look like "rootfs" (default pattern: "*-nixos-disk-image")
-#   - Keep the newest N (default 3), delete older ones via `nix-store --delete` only
+#   - Keep the newest N (default 1), delete older ones via `nix-store --delete` only
 #   - Optionally remove stale "result*" symlinks that reference deleted store paths
 #
 # This avoids global GC and therefore avoids rebuilding other outputs.
@@ -18,7 +18,7 @@
 #   - Sufficient permissions to unlink symlinks and delete store paths (usually needs sudo)
 #
 # Usage examples:
-#   Dry-run, keep last 3 (default), scanning repo symlinks:
+#   Dry-run, keep last 1 (default), scanning repo symlinks:
 #     sudo ./scripts/cleanup-shimboot-rootfs.sh
 #
 #   Delete for real:
@@ -32,7 +32,7 @@
 #
 set -euo pipefail
 
-KEEP=3
+KEEP=1
 DRY_RUN=1
 PROFILE=""
 GCROOTS=""
@@ -49,7 +49,7 @@ usage() {
 Usage: cleanup-shimboot-rootfs.sh [options]
 
 Options:
-  -k, --keep N                  Number of newest generations to keep (default: 3)
+  -k, --keep N                  Number of newest generations to keep (default: 1)
   -n, --dry-run                 Do not perform deletions (default)
       --no-dry-run             Perform deletions
   -p, --profile PATH            Nix profile that tracks shimboot generations
@@ -320,7 +320,7 @@ if [[ -n "$PROFILE" ]]; then
 fi
 
 # With set -u, guard for unset arrays using ${ORDERED+x} and ${#ORDERED[@]-0}
-if [[ ( -z ${ORDERED+x} || ${#ORDERED[@]-0} -eq 0 ) && -n "$GCROOTS" ]]; then
+if [[ ( -z ${ORDERED+x} || ${#ORDERED[@]} -eq 0 ) && -n "$GCROOTS" ]]; then
   log "Discovering via GC roots: $GCROOTS"
   local_rank=0
   gcroots_output=$(discover_via_gcroots "$GCROOTS")
@@ -349,7 +349,7 @@ if [[ -z ${ORDERED+x} || ${#ORDERED[@]} -eq 0 ]]; then
 fi
 
 # With set -u, guard for unset arrays using ${ORDERED+x} and ${#ORDERED[@]-0}
-if [[ -z ${ORDERED+x} || ${#ORDERED[@]-0} -eq 0 ]]; then
+if [[ -z ${ORDERED+x} || ${#ORDERED[@]} -eq 0 ]]; then
   # Final fallback: scan the Nix store for /nix/store/*${PATTERN}*/nixos.img
   log "Discovering via Nix store glob: /nix/store/*${PATTERN}*/nixos.img"
   store_output="$(discover_via_store_glob)"
@@ -366,7 +366,7 @@ if [[ -z ${ORDERED+x} || ${#ORDERED[@]-0} -eq 0 ]]; then
 fi
 
 # If still nothing, exit cleanly
-if [[ -z ${ORDERED+x} || ${#ORDERED[@]-0} -eq 0 ]]; then
+if [[ -z ${ORDERED+x} || ${#ORDERED[@]} -eq 0 ]]; then
   warn "No rootfs candidates discovered. Nothing to do."
   exit 0
 fi
@@ -417,10 +417,21 @@ done
 # Compute closure sizes for reporting
 calc_size_bytes() {
   local p="$1"
+  local out num
   if command -v nix >/dev/null 2>&1; then
-    nix path-info --closure-size "$p" 2>/dev/null | awk '{print $1}' | tail -n1
+    # nix path-info --closure-size can output "PATH SIZE" or similar; pick the last numeric field.
+    out="$(nix path-info --closure-size "$p" 2>/dev/null | tail -n1 || true)"
+    num="$(awk '{
+      for (i=NF; i>=1; i--) if ($i ~ /^[0-9]+$/) {print $i; exit}
+    }' <<<"$out")"
+    echo "${num:-0}"
   elif command -v nix-store >/dev/null 2>&1; then
-    nix-store -q --size "$p" 2>/dev/null | awk '{print $1}' | tail -n1
+    # nix-store -q --size often prints "SIZE PATH" or just SIZE; pick the last numeric field.
+    out="$(nix-store -q --size "$p" 2>/dev/null | tail -n1 || true)"
+    num="$(awk '{
+      for (i=NF; i>=1; i--) if ($i ~ /^[0-9]+$/) {print $i; exit}
+    }' <<<"$out")"
+    echo "${num:-0}"
   else
     echo 0
   fi
