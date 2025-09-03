@@ -8,7 +8,7 @@ Check [progress and obstacles](https://github.com/PopCat19/nixos-shimboot#progre
 > 
 > ...please don't expect this to be a perfectly reliable and/or readable codebase. This should be treated as a proof of concept since no one else seemed to have tried this as of writing.\
 > |\
-> Consider creating a fork if you're serious in building a functional NixOS shimboot or similar.
+> Consider creating a fork for reference if you're also interested in building a functional NixOS shimboot or similar.
 
 With that being said, contributions and feedbacks are welcome :3
 
@@ -19,7 +19,10 @@ I've made a bunch of progress initially from [nixos-shimboot-legacy](https://git
 
 The reason I made this repo and moved from [nixos-shimboot-legacy](https://github.com/PopCat19/nixos-shimboot-legacy/tree/qemu-method2) is due to the inherited contributers and commits from [ading2210/shimboot](https://github.com/ading2210/shimboot), which considering how I'll only use the bootloader and systemd `mount_nofollow` patch from that repo, I wanted to initialize a clean repo to avoid misconceptions. (with also how I expected this repo to be experimental since I vibecoded most of it)
 
-So far it's been unsurprisingly miserable and messy; this project itself could fit in Michael MJD's "but everything goes wrong" series. That being said, it does make progress considerably rewarding.
+So far it's been unsurprisingly miserable and messy. That being said, it does make progress considerably rewarding. Here's some personally notable achivements so far:
+1. "wow, it actually builds??"
+2. "how's it booting already!?"
+3. "HYPRLANDD LETS GOOOOOOO!!!!!1!!11"
 
 Check out [nixos-shimboot-legacy](https://github.com/PopCat19/nixos-shimboot-legacy/tree/qemu-method2) if you want to try out a bootable (dedede) NixOS that only boots into LightDM since the home environment is borked to the brim! (It's not documented well, be warned)
 
