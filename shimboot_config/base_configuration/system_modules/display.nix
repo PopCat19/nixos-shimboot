@@ -14,16 +14,24 @@
     xwayland.enable = lib.mkDefault true;
   };
 
-  # Wayland-native autologin via greetd (replaces LightDM)
-  services.greetd = {
+  # LightDM for minimal/base: no autologin; provide Hyprland session
+  services.xserver.displayManager.lightdm = {
     enable = lib.mkDefault true;
-    settings = {
-      default_session = {
-        command = "${pkgs.hyprland}/bin/Hyprland";
-        user = lib.mkForce userConfig.user.username;
-      };
-    };
+    greeters.gtk.enable = lib.mkDefault true;
   };
+
+  services.xserver.displayManager.session = [
+    {
+      manage = "window";
+      name = "hyprland";
+      start = ''
+        ${pkgs.hyprland}/bin/Hyprland
+      '';
+    }
+  ];
+
+  services.displayManager.defaultSession = lib.mkDefault "hyprland";
+  # Do not enable autologin here; main configuration will enforce no-autologin explicitly.
 
   # Wayland-friendly defaults for Electron/Chromium apps
   environment.sessionVariables = {
@@ -48,5 +56,7 @@
   # Ensure basic tools are available
   environment.systemPackages = with pkgs; [
     brightnessctl
+    lightdm     # Display manager
+    lightdm-gtk-greeter # LightDM greeter
   ];
 }

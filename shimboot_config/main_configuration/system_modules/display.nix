@@ -19,23 +19,41 @@
   # Services Configuration
   services = {
     xserver = {
-      enable = true; # Keep X server for Xwayland; no display manager when using greetd
+      enable = true; # Enable X server for LightDM
+      displayManager = {
+        lightdm = {
+          enable = true;
+          greeters = {
+            gtk = {
+              enable = true;
+            };
+          };
+        };
+        # Provide Hyprland session entry for LightDM
+        session = [
+          {
+            manage = "window";
+            name = "hyprland";
+            start = ''
+              ${pkgs.hyprland}/bin/Hyprland
+            '';
+          }
+        ];
+      };
       xkb.layout = "us"; # Keyboard layout
       videoDrivers = [ "intel" ]; # Video drivers
     };
-    greetd = {
-      enable = true;
-      settings = {
-        default_session = {
-          command = "${pkgs.hyprland}/bin/Hyprland";
-          user = lib.mkForce userConfig.user.username;
-        };
-      };
+    # Explicitly disable autologin
+    displayManager = {
+      defaultSession = "hyprland";
+      autoLogin.enable = false;
     };
   };
   
   # Ensure basic tools are available
   environment.systemPackages = with pkgs; [
     brightnessctl
+    lightdm     # Display manager
+    lightdm-gtk-greeter # LightDM greeter
   ];
 }
