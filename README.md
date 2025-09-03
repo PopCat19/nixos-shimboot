@@ -1,5 +1,5 @@
 # CURRENT STATE: partial
-Finally boots and logs into hyprland! Currently finishing nixos-rebuild workflow, helpers, and main_configuration defaults. Check [here](https://github.com/PopCat19/nixos-shimboot#progress-and-obstacles) for current progress.
+Finally boots and logs into hyprland! Currently finishing up systemd cachix implementation and configurations. Check [here](https://github.com/PopCat19/nixos-shimboot#progress-and-obstacles) for current progress.
 
 ## This is a vibecoded project
 As mentioned in the header:\
@@ -76,8 +76,10 @@ Flake status and roadmap for the current branch:
 - [x] UNVERIFIED: Have recovery kernel drivers
 - [x] `nix-shell -p firefox` works (firefox profile errors; user environment should be checked; note limited space without `expand_rootfs`)
 - [x] Builds functional NixOS with `nixos-rebuild` support (will require `--options disable sandbox` on kernels below 5.6 due to required kernel namespaces)
-- [ ] Minimal base_configuration to save space
-- [ ] Better main_configuration for hyprland and home-manager rice
+- [x] Minimal base_configuration to save space
+- [x] NEEDS TESTING: Better main_configuration for hyprland and home-manager rice
+- [ ] Implement systemd cachix store to avoid recompilation
+- [ ] Refine scripts
 - [ ] Builds functional NixOS with LUKS2 support (never done this in my life ;-;)
 
 Current obstacles:
