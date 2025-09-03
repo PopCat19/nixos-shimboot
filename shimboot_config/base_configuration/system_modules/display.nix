@@ -12,9 +12,7 @@
   programs.hyprland = {
     enable = lib.mkDefault true;
     xwayland.enable = lib.mkDefault true;
-    withUWSM = lib.mkDefault true;
   };
-  programs.uwsm.enable = lib.mkDefault true;
 
   # LightDM for minimal/base: autologin to Hyprland via UWSM
   services.xserver.displayManager.lightdm = {
@@ -32,7 +30,7 @@
     }
   ];
 
-  services.displayManager.defaultSession = lib.mkDefault "hyprland-uwsm";
+  services.displayManager.defaultSession = lib.mkDefault "hyprland";
   services.displayManager.autoLogin = {
     enable = lib.mkDefault true;
     user = lib.mkDefault userConfig.user.username;

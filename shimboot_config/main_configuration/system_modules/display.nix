@@ -46,7 +46,7 @@
     };
     # Configure default session and auto-login (this is separate from the LightDM configuration)
     displayManager = {
-      defaultSession = "hyprland-uwsm";
+      defaultSession = "hyprland";
       autoLogin = {
         enable = true;
         user = userConfig.user.username;
