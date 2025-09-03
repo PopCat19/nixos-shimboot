@@ -26,9 +26,6 @@
 
   # System services
   services = {
-    # Wayland seat management for wlroots/Hyprland
-    seatd.enable = true;
-
     # Storage / Packaging
     udisks2.enable = true;
 

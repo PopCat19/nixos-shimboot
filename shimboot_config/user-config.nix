@@ -46,7 +46,6 @@ rec {
       "networkmanager"
       "i2c"
       "input"
-      "seat"
       "libvirtd"
     ] ++ (if host.hostname == "${username}-surface0" then [ "surface-control" ] else []);
   };
