@@ -36,6 +36,8 @@
   services.displayManager.autoLogin = {
     enable = lib.mkDefault true;
     user = lib.mkDefault userConfig.user.username;
+    # Reduce race with greeter showing before autologin kicks in
+    
   };
 
   # Wayland-friendly defaults for Electron/Chromium apps

@@ -1,19 +1,20 @@
 { config, pkgs, lib, userConfig, ... }:
 
 {
-  # User Configuration
-  users = {
-    users = {
-      root = { # Root user configuration
-        initialPassword = "nixos-user";
-        shell = pkgs.fish;
-      };
-      "${userConfig.user.username}" = { # Regular user configuration
-        isNormalUser = true;
-        initialPassword = "nixos-user";
-        shell = pkgs.fish;
-        extraGroups = userConfig.user.extraGroups;
-      };
+  # Keep user DB declarative; set plain password during activation (bring-up friendly).
+  # For production, replace with hashedPassword/hashedPasswordFile.
+  users.mutableUsers = lib.mkDefault false;
+
+  users.users = {
+    root = {
+      shell = pkgs.fish;
+      password = "nixos-shimboot";
+    };
+    "${userConfig.user.username}" = {
+      isNormalUser = true;
+      shell = pkgs.fish;
+      extraGroups = userConfig.user.extraGroups;
+      password = "nixos-shimboot";
     };
   };
 }
