@@ -2,7 +2,17 @@
 
 let
   system = "x86_64-linux";
-  pkgs = nixpkgs.legacyPackages.${system};
+  pkgs = import nixpkgs {
+    inherit system;
+    config = {
+      allowUnfree = true;
+      allowUnfreePredicate = pkg:
+        builtins.elem (nixpkgs.lib.getName pkg) [
+          "chromeos-shim"
+          "chromeos-recovery"
+        ];
+    };
+  };
 
   # Import generated manifest from fetch-manifest.sh
   dededeManifest = import ../dedede-manifest.nix;

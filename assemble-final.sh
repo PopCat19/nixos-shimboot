@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Elevate to root so nix-daemon treats this client as trusted; required for substituters/trusted-public-keys
+# Use -H to set HOME to /root to avoid "$HOME is not owned by you" warnings under sudo.
+if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+  echo "[assemble-final] Re-executing with sudo -H..."
+  exec sudo -H "$0" "$@"
+fi
+
 # === Colors & Logging ===
 ANSI_CLEAR='\033[0m'
 ANSI_BOLD='\033[1m'
@@ -28,12 +35,82 @@ log_error() {
 # Ensure unfree packages are allowed for nix builds that require ChromeOS tools/firmware
 export NIXPKGS_ALLOW_UNFREE="${NIXPKGS_ALLOW_UNFREE:-1}"
 
+
 # === Config ===
 SYSTEM="x86_64-linux"
 WORKDIR="$(pwd)/work"
 IMAGE="$WORKDIR/shimboot.img"
 ROOTFS_NAME="${ROOTFS_NAME:-nixos}"
-INSPECT_AFTER="${1:-}"
+
+# CLI parsing: --rootfs {full|minimal}, --inspect, non-interactive via env ROOTFS_FLAVOR
+ROOTFS_FLAVOR="${ROOTFS_FLAVOR:-}"
+INSPECT_AFTER=""
+
+# Cleanup options
+CLEANUP_ROOTFS=0
+CLEANUP_NO_DRY_RUN=0
+CLEANUP_KEEP=""
+
+while [ $# -gt 0 ]; do
+  case "${1:-}" in
+    --rootfs)
+      ROOTFS_FLAVOR="${2:-}"
+      shift 2
+      ;;
+    --inspect)
+      INSPECT_AFTER="--inspect"
+      shift
+      ;;
+    --cleanup-rootfs)
+      CLEANUP_ROOTFS=1
+      shift
+      ;;
+    --cleanup-no-dry-run|--no-dry-run)
+      CLEANUP_NO_DRY_RUN=1
+      shift
+      ;;
+    --cleanup-keep|--keep)
+      CLEANUP_KEEP="${2:-}"
+      shift 2
+      ;;
+    *)
+      # Backward compat: if a single arg was passed previously as inspect flag
+      if [ "${1:-}" = "--inspect" ]; then
+        INSPECT_AFTER="--inspect"
+      fi
+      shift
+      ;;
+  esac
+done
+
+# Interactive prompt if not provided, default to full
+if [ -z "${ROOTFS_FLAVOR:-}" ]; then
+  if [ -t 0 ]; then
+    echo
+    echo "[assemble-final] Select rootfs flavor to build:"
+    echo "  1) full     (preferred) → uses main configuration (Home Manager, LightDM)"
+    echo "  2) minimal  (base-only) → standalone base with Hyprland via greetd"
+    read -rp "Enter choice [1/2, default=1]: " choice
+    case "${choice:-1}" in
+      2) ROOTFS_FLAVOR="minimal" ;;
+      *) ROOTFS_FLAVOR="full" ;;
+    esac
+  else
+    ROOTFS_FLAVOR="full"
+  fi
+fi
+
+if [ "${ROOTFS_FLAVOR}" != "full" ] && [ "${ROOTFS_FLAVOR}" != "minimal" ]; then
+  log_error "Invalid --rootfs value: '${ROOTFS_FLAVOR}'. Use 'full' or 'minimal'."
+  exit 1
+fi
+
+RAW_ROOTFS_ATTR="raw-rootfs"
+if [ "${ROOTFS_FLAVOR}" = "minimal" ]; then
+  RAW_ROOTFS_ATTR="raw-rootfs-minimal"
+fi
+
+log_info "Rootfs flavor: ${ROOTFS_FLAVOR} (attr: .#${RAW_ROOTFS_ATTR})"
 
 # === Cleanup workspace ===
 if [ -d "$WORKDIR" ]; then
@@ -60,21 +137,21 @@ trap cleanup EXIT
 
 # === Step 0: Build Nix outputs ===
 log_step "0/8" "Building Nix outputs"
-ORIGINAL_KERNEL="$(nix build --impure .#extracted-kernel --print-out-paths)/p2.bin"
-PATCHED_INITRAMFS="$(nix build --impure .#initramfs-patching --print-out-paths)/patched-initramfs"
-RAW_ROOTFS_IMG="$(nix build --impure .#raw-rootfs --print-out-paths)/nixos.img"
+ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config .#extracted-kernel --print-out-paths)/p2.bin"
+PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config .#initramfs-patching --print-out-paths)/patched-initramfs"
+RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config .#${RAW_ROOTFS_ATTR} --print-out-paths)/nixos.img"
 log_info "Original kernel p2: $ORIGINAL_KERNEL"
 log_info "Patched initramfs dir: $PATCHED_INITRAMFS"
 log_info "Raw rootfs: $RAW_ROOTFS_IMG"
 
 # Build ChromeOS SHIM and determine RECOVERY per policy
-SHIM_BIN="$(nix build --impure .#chromeos-shim --print-out-paths)"
+SHIM_BIN="$(nix build --impure --accept-flake-config .#chromeos-shim --print-out-paths)"
 RECOVERY_PATH=""
 if [ "${SKIP_RECOVERY:-0}" != "1" ]; then
     if [ -n "${RECOVERY_BIN:-}" ]; then
         RECOVERY_PATH="$RECOVERY_BIN"
     else
-        RECOVERY_PATH="$(nix build --impure .#chromeos-recovery --print-out-paths)/recovery.bin"
+        RECOVERY_PATH="$(nix build --impure --accept-flake-config .#chromeos-recovery --print-out-paths)/recovery.bin"
     fi
 fi
 log_info "ChromeOS shim: $SHIM_BIN"
@@ -211,8 +288,24 @@ sudo umount "$WORKDIR/mnt_rootfs"
 # Detach loop devices used for target image
 sudo losetup -d "$LOOPDEV"
 LOOPDEV=""
-
 log_info "✅ Final image created at: $IMAGE"
+
+# === Optional cleanup of old shimboot rootfs generations ===
+if [ "${CLEANUP_ROOTFS:-0}" -eq 1 ]; then
+    log_step "Cleanup" "Pruning older shimboot rootfs generations"
+    # Build arguments for cleanup script
+    CLEANUP_CMD=(sudo bash scripts/cleanup-shimboot-rootfs.sh --results-dir "$(pwd)")
+    if [ -n "${CLEANUP_KEEP:-}" ]; then
+        CLEANUP_CMD+=("--keep" "$CLEANUP_KEEP")
+    fi
+    if [ "${CLEANUP_NO_DRY_RUN:-0}" -eq 1 ]; then
+        CLEANUP_CMD+=("--no-dry-run")
+    else
+        CLEANUP_CMD+=("--dry-run")
+    fi
+    "${CLEANUP_CMD[@]}"
+fi
+
 
 # === Optional inspection ===
 if [ "$INSPECT_AFTER" = "--inspect" ]; then
