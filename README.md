@@ -8,9 +8,11 @@ Check [progress and obstacles](https://github.com/PopCat19/nixos-shimboot#progre
 > 
 > ...please don't expect this to be a perfectly reliable and/or readable codebase. This should be treated as a proof of concept since no one else seemed to have tried this as of writing.\
 > |\
-> Consider creating a fork if you're serious in building a functional NixOS shimboot or similar. With that being said, contributions and feedbacks are welcome :3
-> 
----
+> Consider creating a fork if you're serious in building a functional NixOS shimboot or similar.
+
+With that being said, contributions and feedbacks are welcome :3
+
+# NixOS Shimboot
 I made this project because no one (from what I've seen) made a NixOS shimboot (yet?). Hence, I created this repo since the existing scripts from [ading2210/shimboot](https://github.com/ading2210/shimboot) is mostly incompatible to build with a non-FHS distro like NixOS.
 
 I've made a bunch of progress initially from [nixos-shimboot-legacy](https://github.com/PopCat19/nixos-shimboot-legacy/tree/qemu-method2), which was also a fork from [shimboot-nixos](https://github.com/PopCat19/shimboot-nixos). 
