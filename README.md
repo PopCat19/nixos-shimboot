@@ -80,7 +80,9 @@ Flake status and roadmap for the current branch:
 - [x] NEEDS TESTING: Better main_configuration for hyprland and home-manager rice
 - [ ] Implement systemd cachix store to avoid recompilation
 - [ ] Refine scripts
-- [ ] Builds functional NixOS with LUKS2 support (never done this in my life ;-;)
+- [ ] Refine configurations
+- [ ] Attempt to implement generation selector within bootstrapper (if possible)
+- [ ] Build functional NixOS with LUKS2 support (never done this in my life ;-;)
 
 Current obstacles:
 - My irrefutable inexperience/unfamiliarity with the technical aspects of this codebase bottlenecking what needs to be done.
