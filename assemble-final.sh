@@ -65,11 +65,11 @@ while [ $# -gt 0 ]; do
       CLEANUP_ROOTFS=1
       shift
       ;;
-    --cleanup-no-dry-run)
+    --cleanup-no-dry-run|--no-dry-run)
       CLEANUP_NO_DRY_RUN=1
       shift
       ;;
-    --cleanup-keep)
+    --cleanup-keep|--keep)
       CLEANUP_KEEP="${2:-}"
       shift 2
       ;;
