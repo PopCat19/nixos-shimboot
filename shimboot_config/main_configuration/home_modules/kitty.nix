@@ -1,6 +1,8 @@
-{ pkgs, userConfig, ... }:
-
 {
+  pkgs,
+  userConfig,
+  ...
+}: {
   programs.kitty = {
     enable = true;
     settings = {

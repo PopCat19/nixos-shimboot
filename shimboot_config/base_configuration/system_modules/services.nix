@@ -1,8 +1,6 @@
-{ pkgs, ... }:
-
-{
+{pkgs, ...}: {
   # System services configuration
-  
+
   # Journald configuration
   services.journald.extraConfig = ''
     MaxRetentionSec=3day

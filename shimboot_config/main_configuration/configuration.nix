@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   # Main system configuration imports base configuration and adds optional/user modules
   imports = [
     ../base_configuration/configuration.nix

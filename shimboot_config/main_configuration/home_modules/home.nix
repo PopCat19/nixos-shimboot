@@ -1,4 +1,4 @@
-{ ... }: {
+{...}: {
   # General Home Manager settings and user-level imports
   imports = [
     ../hypr_config/hyprland.nix

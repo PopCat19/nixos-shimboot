@@ -1,6 +1,4 @@
-{ pkgs, ... }:
-
-{
+{pkgs, ...}: {
   # Fonts configuration
   fonts.packages = with pkgs; [
     # Core fonts
@@ -11,9 +9,9 @@
     noto-fonts-extra
 
     # Fonts used by applications
-    google-fonts  # Contains M+ Outline Fonts (Rounded Mplus 1c)
-    jetbrains-mono  # Monospace font for terminals and coding
-    nerd-fonts.jetbrains-mono  # JetBrains Mono with nerd font symbols
+    google-fonts # Contains M+ Outline Fonts (Rounded Mplus 1c)
+    jetbrains-mono # Monospace font for terminals and coding
+    nerd-fonts.jetbrains-mono # JetBrains Mono with nerd font symbols
   ];
 
   fonts.fontconfig = {
@@ -31,7 +29,7 @@
         "JetBrainsMono Nerd Font"
         "Noto Sans Mono"
       ];
-      emoji = [ "Noto Color Emoji" ];
+      emoji = ["Noto Color Emoji"];
     };
   };
 }

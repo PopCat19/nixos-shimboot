@@ -1,11 +1,15 @@
-{ self, nixpkgs, home-manager, zen-browser, ... }:
-
-let
+{
+  self,
+  nixpkgs,
+  home-manager,
+  zen-browser,
+  ...
+}: let
   system = "x86_64-linux";
   lib = nixpkgs.lib;
 
   # Import user configuration
-  userConfig = import ../shimboot_config/user-config.nix { };
+  userConfig = import ../shimboot_config/user-config.nix {};
   # Hostname (used to expose .#HOSTNAME and .#HOSTNAME-minimal)
   hn = userConfig.host.hostname;
 
@@ -14,9 +18,13 @@ let
     ../shimboot_config/base_configuration/configuration.nix
 
     # Base-level defaults/tuning common to all variants
-    ({ config, pkgs, ... }: {
+    ({
+      config,
+      pkgs,
+      ...
+    }: {
       # Enable Nix flakes
-      nix.settings.experimental-features = [ "nix-command" "flakes" ];
+      nix.settings.experimental-features = ["nix-command" "flakes"];
 
       # Enable automatic garbage collection
       nix.gc = {
@@ -34,14 +42,21 @@ let
     # Integrate Home Manager for user-level config
     home-manager.nixosModules.home-manager
 
-    ({ config, pkgs, ... }: {
+    ({
+      config,
+      pkgs,
+      ...
+    }: {
       home-manager.useGlobalPkgs = true;
       home-manager.useUserPackages = true;
-      home-manager.extraSpecialArgs = { inherit zen-browser userConfig; inputs = self.inputs; };
+      home-manager.extraSpecialArgs = {
+        inherit zen-browser userConfig;
+        inputs = self.inputs;
+      };
 
       # Make userConfig available to home modules
       home-manager.sharedModules = [
-        ({ config, ... }: {
+        ({config, ...}: {
           _module.args.userConfig = userConfig;
         })
       ];
@@ -52,39 +67,38 @@ let
   ];
 in {
   # NixOS configurations for building the system
-  nixosConfigurations =
-    let
-      baseSet = {
-        # Minimal/base-only target (host-qualified)
-        "${hn}-minimal" = nixpkgs.lib.nixosSystem {
-          inherit system;
-          modules = baseModules;
-          specialArgs = { inherit self zen-browser; };
-        };
-
-        # Full target (host-qualified, preferred)
-        "${hn}" = nixpkgs.lib.nixosSystem {
-          inherit system;
-          modules = mainModules;
-          specialArgs = { inherit self zen-browser; };
-        };
+  nixosConfigurations = let
+    baseSet = {
+      # Minimal/base-only target (host-qualified)
+      "${hn}-minimal" = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = baseModules;
+        specialArgs = {inherit self zen-browser;};
       };
 
-      compatRaw = lib.optionalAttrs (hn != "raw-efi-system") {
-        raw-efi-system = nixpkgs.lib.nixosSystem {
-          inherit system;
-          modules = baseModules;
-          specialArgs = { inherit self zen-browser; };
-        };
+      # Full target (host-qualified, preferred)
+      "${hn}" = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = mainModules;
+        specialArgs = {inherit self zen-browser;};
       };
+    };
 
-      compatShimboot = lib.optionalAttrs (hn != "nixos-shimboot") {
-        nixos-shimboot = nixpkgs.lib.nixosSystem {
-          inherit system;
-          modules = mainModules;
-          specialArgs = { inherit self zen-browser; };
-        };
+    compatRaw = lib.optionalAttrs (hn != "raw-efi-system") {
+      raw-efi-system = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = baseModules;
+        specialArgs = {inherit self zen-browser;};
       };
-    in
-      baseSet // compatRaw // compatShimboot;
+    };
+
+    compatShimboot = lib.optionalAttrs (hn != "nixos-shimboot") {
+      nixos-shimboot = nixpkgs.lib.nixosSystem {
+        inherit system;
+        modules = mainModules;
+        specialArgs = {inherit self zen-browser;};
+      };
+    };
+  in
+    baseSet // compatRaw // compatShimboot;
 }

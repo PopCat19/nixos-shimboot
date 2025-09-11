@@ -1,6 +1,8 @@
-{ self, nixpkgs, ... }:
-
-let
+{
+  self,
+  nixpkgs,
+  ...
+}: let
   system = "x86_64-linux";
   pkgs = nixpkgs.legacyPackages.${system};
 
@@ -17,8 +19,8 @@ in {
       coreutils
       gawk
       gnugrep
-      gptfdisk          # sgdisk
-      vboot_reference   # cgpt, vbutil_kernel
+      gptfdisk # sgdisk
+      vboot_reference # cgpt, vbutil_kernel
     ];
 
     buildPhase = ''
@@ -107,7 +109,7 @@ in {
       '';
       license = licenses.unfree;
       platforms = platforms.linux;
-      maintainers = [ "shimboot developers" ];
+      maintainers = ["shimboot developers"];
     };
   };
 }

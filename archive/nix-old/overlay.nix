@@ -4,8 +4,10 @@
   # We are modifying the 'systemd' package.
   systemd = prev.systemd.overrideAttrs (oldAttrs: {
     # Add our patch to the list of existing patches.
-    patches = (oldAttrs.patches or []) ++ [
-      ../nix/patches/systemd_unstable.patch
-    ];
+    patches =
+      (oldAttrs.patches or [])
+      ++ [
+        ../nix/patches/systemd_unstable.patch
+      ];
   });
 })

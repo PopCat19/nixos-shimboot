@@ -1,4 +1,4 @@
-{ ... }: {
+{...}: {
   imports = [
     ./packages/communication.nix
     ./packages/android.nix

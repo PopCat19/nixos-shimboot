@@ -1,12 +1,10 @@
 # home-hyprpanel.nix
 # HyprPanel configuration with Rose Pine theme integration
 # Based on documentation: https://hyprpanel.com/
-{ ... }:
-{
+{...}: {
   # HyprPanel is available in nixpkgs and has a home-manager module
   # No need for separate flake input - just enable the program
   programs.hyprpanel = {
-
     # Enable the module.
     # Default: false
     enable = true;
@@ -25,9 +23,9 @@
       # Layout configuration - Configure bar layouts for monitors
       "bar.layouts" = {
         "*" = {
-          left = [ "dashboard" "workspaces" "media" ];
-          middle = [ ];
-          right = [ "cputemp" "battery" "network" "bluetooth" "volume" "systray" "clock" "notifications" ];
+          left = ["dashboard" "workspaces" "media"];
+          middle = [];
+          right = ["cputemp" "battery" "network" "bluetooth" "volume" "systray" "clock" "notifications"];
         };
       };
 

@@ -1,14 +1,19 @@
-{ config, pkgs, lib, userConfig, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  userConfig,
+  ...
+}: {
   # Ensure main takes precedence over base's defaults
   # greetd is enabled in the services.greetd block below
 
   # Display Manager and Desktop Environment Configuration
-  programs.hyprland = { # or wayland.windowManager.hyprland
-      enable = true;
-      xwayland.enable = true;
-    };
+  programs.hyprland = {
+    # or wayland.windowManager.hyprland
+    enable = true;
+    xwayland.enable = true;
+  };
 
   # Configure user session environment for Hyprland
   environment.sessionVariables = {
@@ -41,7 +46,7 @@
         ];
       };
       xkb.layout = "us"; # Keyboard layout
-      videoDrivers = [ "intel" ]; # Video drivers
+      videoDrivers = ["intel"]; # Video drivers
     };
     # Explicitly disable autologin
     displayManager = {
@@ -49,11 +54,11 @@
       autoLogin.enable = false;
     };
   };
-  
+
   # Ensure basic tools are available
   environment.systemPackages = with pkgs; [
     brightnessctl
-    lightdm     # Display manager
+    lightdm # Display manager
     lightdm-gtk-greeter # LightDM greeter
   ];
 }

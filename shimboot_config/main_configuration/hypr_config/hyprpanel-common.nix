@@ -2,12 +2,10 @@
 # HyprPanel common configuration with Rose Pine theme integration
 # This contains all shared settings except bar.layouts which are host-specific
 # Based on documentation: https://hyprpanel.com/
-{ ... }:
-{
+{...}: {
   # HyprPanel is available in nixpkgs and has a home-manager module
   # No need for separate flake input - just enable the program
   programs.hyprpanel = {
-
     # Enable the module.
     # Default: false
     enable = true;

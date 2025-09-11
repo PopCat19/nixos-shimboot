@@ -1,6 +1,5 @@
 # Animation Configuration for Hyprland
 # =====================================
-
 {
   wayland.windowManager.hyprland.settings = {
     # Animation configuration

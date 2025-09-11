@@ -1,4 +1,9 @@
-{ lib, pkgs, userConfig, ... }: {
+{
+  lib,
+  pkgs,
+  userConfig,
+  ...
+}: {
   # Fish shell configuration for home-manager
   home.file.".config/fish/themes" = {
     source = ../../fish_themes;
@@ -20,21 +25,29 @@
     '';
 
     functions = {
-      list-fish-helpers = let content = builtins.readFile ../../base_configuration/system_modules/fish_functions/list-fish-helpers.fish;
-      lines = lib.splitString "\n" content;
-      in lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
+      list-fish-helpers = let
+        content = builtins.readFile ../../base_configuration/system_modules/fish_functions/list-fish-helpers.fish;
+        lines = lib.splitString "\n" content;
+      in
+        lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
 
-      nixos-rebuild-basic = let content = builtins.readFile ../../base_configuration/system_modules/fish_functions/nixos-rebuild-basic.fish;
-      lines = lib.splitString "\n" content;
-      in lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
+      nixos-rebuild-basic = let
+        content = builtins.readFile ../../base_configuration/system_modules/fish_functions/nixos-rebuild-basic.fish;
+        lines = lib.splitString "\n" content;
+      in
+        lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
 
-      nixos-flake-update = let content = builtins.readFile ../../base_configuration/system_modules/fish_functions/nixos-flake-update.fish;
-      lines = lib.splitString "\n" content;
-      in lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
+      nixos-flake-update = let
+        content = builtins.readFile ../../base_configuration/system_modules/fish_functions/nixos-flake-update.fish;
+        lines = lib.splitString "\n" content;
+      in
+        lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
 
-      fix-fish-history = let content = builtins.readFile ../../base_configuration/system_modules/fish_functions/fix-fish-history.fish;
-      lines = lib.splitString "\n" content;
-      in lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
+      fix-fish-history = let
+        content = builtins.readFile ../../base_configuration/system_modules/fish_functions/fix-fish-history.fish;
+        lines = lib.splitString "\n" content;
+      in
+        lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
     };
 
     shellAbbrs = {

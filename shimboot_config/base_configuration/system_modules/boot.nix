@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   # Bootloader Configuration
   boot = {
     loader = {
@@ -12,6 +15,6 @@
       availableKernelModules = [];
       kernelModules = []; # Modules to be included in the kernel
     };
-    kernelParams = [ ]; # Kernel parameters
+    kernelParams = []; # Kernel parameters
   };
 }
