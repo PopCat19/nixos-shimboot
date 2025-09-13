@@ -2,20 +2,19 @@
 set -euo pipefail
 
 # write-shimboot-image.sh
-# Safe, interactive dd/ddrescue helper for imaging a disk with shimboot.
+# Safe, interactive dd helper for imaging a disk with shimboot.
 #
 # Default image:
 #   /home/popcat19/nixos-shimboot/work/shimboot.img
 #
 # Modes:
-#   - Use pv + dd for imaging with progress; falls back to plain dd if pv is unavailable.
+#   - Uses dd with status=progress for imaging.
 #
 # Partitions listing:
-#   - Always lists partitions:
-#       * Before selection (global overview)
-#       * After selection (target-only overview)
-#       * After auto-unmount (target-only overview)
-#       * Immediately before write (target-only overview)
+#   - Displays:
+#       * Global overview before selection
+#       * Target-only overview after selection
+#       * Target-only overview after auto-unmount (immediately before write)
 #
 # Candidate filtering:
 #   - Hides current system disks (root, home, boot/efi, swap) from safe candidates.
@@ -27,7 +26,6 @@ set -euo pipefail
 #
 # Cleanup:
 #   - Robust EXIT trap to ensure we leave no temp artifacts on non-zero exit.
-#   - Removes temporary ddrescue map file on non-zero exit (and on success by default).
 #
 # Options:
 #   -i, --input PATH         Input image path (default: /home/popcat19/nixos-shimboot/work/shimboot.img)
@@ -40,9 +38,6 @@ set -euo pipefail
 #   --auto-unmount           Attempt to unmount target device automatically (default)
 #   --no-auto-unmount        Do not try to unmount; abort if mounted
 #   --force-part             Allow writing to a partition (TYPE=part). Use with extreme caution!
-#   --writer MODE            Writer: auto (default), ddrescue, dd
-#   --require-ddrescue       Fail if ddrescue cannot be used (instead of falling back to dd)
-#   --keep-map               Keep ddrescue map file even on success (default is to delete)
 #   --ignore LIST            Comma-separated device names or /dev paths to hide and block (e.g., "sda,/dev/sdc")
 #   --ignore-file PATH       File with one entry per line (device name or /dev path); lines starting with # are ignored
 #   -h, --help               Show help
@@ -62,8 +57,6 @@ LIST_ONLY="false"
 LIST_ALL="false"
 ALLOW_PARTITION="false"
 AUTO_UNMOUNT="true"
-KEEP_MAP="false"
-VERIFY="false"
 ALLOW_LARGE="false"
 # Ignore list entries
 IGNORE_ENTRIES=()
@@ -121,15 +114,6 @@ trap on_exit EXIT
 # ---------- General helpers ----------
 has_command() { command -v "$1" >/dev/null 2>&1; }
 
-is_nix_env() {
-  if has_command nix-shell; then
-    return 0
-  fi
-  if [[ -r /etc/os-release ]] && grep -qi 'ID=nixos' /etc/os-release; then
-    return 0
-  fi
-  return 1
-}
 
 prompt_yes_no() {
   local prompt="$1"
@@ -163,7 +147,7 @@ prompt_yes_no() {
 require_root() {
   if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
     warn "Re-executing with sudo..."
-    exec sudo --preserve-env=INPUT_IMAGE,OUTPUT_DEVICE,SKIP_CONFIRM,COUNTDOWN,DRY_RUN,LIST_ONLY,LIST_ALL,ALLOW_PARTITION,AUTO_UNMOUNT,WRITER_MODE,REQUIRE_DDRESCUE,KEEP_MAP "$0" "$@"
+    exec sudo "$0" "$@"
   fi
 }
 
@@ -186,7 +170,6 @@ Options:
   --force-part             Allow writing to a partition (TYPE=part). Use with extreme caution!
   --ignore LIST            Comma-separated device names or /dev paths to hide and block (e.g., "sda,/dev/sdc")
   --ignore-file PATH       File with one entry per line (device name or /dev path); lines starting with # are ignored
-  --verify                 Verify the device matches the image after writing (cmp or sha256)
   --allow-large            Allow targets > 128GiB without extra confirmation (non-interactive)
   -h, --help               Show this help
 EOF
@@ -388,9 +371,6 @@ parse_disk_line() {
 
 # ---------- Candidate listing ----------
 list_candidates() {
-  local rootpk
-  rootpk="$(findmnt -no SOURCE / 2>/dev/null | xargs -r -I{} bash -c 'lsblk -no PKNAME "$(readlink -f "{}")" 2>/dev/null || true' | head -n1 || true)"
-
   echo -e "${BOLD}SAFE candidate devices (not mounted, not system disks):${RESET}"
   printf "%-12s %-10s %-8s %-6s %-4s %-5s %s\n" "DEVICE" "SIZE" "TRAN" "RM" "ROTA" "TYPE" "MODEL"
   echo "--------------------------------------------------------------------------------"
@@ -660,51 +640,8 @@ prompt_for_device() {
 
 run_writer() {
   local img="$1" dev="$2"
-  if has_command pv; then
-    action "Writing with pv + dd..."
-    pv -B 4M -- "${img}" | dd of="${dev}" bs=4M conv=fsync status=none
-  else
-    action "Writing with dd..."
-    dd if="${img}" of="${dev}" bs=4M status=progress conv=fsync
-  fi
-}
-
-# ---------- Verification ----------
-verify_written() {
-  local img="$1" dev="$2"
-  local bytes hr
-  bytes="$(stat -Lc %s "$img")"
-  hr="$(numfmt --to=iec --suffix=B --format='%.2f' "${bytes}" 2>/dev/null || echo "${bytes} bytes")"
-  section "Verification"
-  note "Comparing device against image (${hr})"
-
-  if has_command cmp; then
-    if cmp -n "${bytes}" "$img" "$dev" >/dev/null 2>&1; then
-      success "Verification PASSED (cmp)."
-      return 0
-    else
-      error "Verification FAILED (cmp mismatch)."
-      return 1
-    fi
-  fi
-
-  if has_command sha256sum; then
-    local img_hash dev_hash
-    action "Computing image SHA256..."
-    img_hash="$(sha256sum "$img" | awk '{print $1}')"
-    action "Computing device SHA256 (first ${hr})..."
-    dev_hash="$(head -c "${bytes}" "$dev" | sha256sum | awk '{print $1}')"
-    if [[ "$img_hash" == "$dev_hash" ]]; then
-      success "Verification PASSED (sha256)."
-      return 0
-    else
-      error "Verification FAILED (sha256 mismatch)."
-      return 1
-    fi
-  fi
-
-  warn "No cmp or sha256sum available; skipping verification."
-  return 0
+  action "Writing with dd..."
+  dd if="${img}" of="${dev}" bs=4M status=progress conv=fsync
 }
 
 # ---------- Main logic helpers ----------
@@ -746,8 +683,6 @@ parse_args() {
         AUTO_UNMOUNT="false"; shift;;
       --force-part)
         ALLOW_PARTITION="true"; shift;;
-      --keep-map)
-        KEEP_MAP="true"; shift;;
       --ignore)
         IFS=',' read -ra ignore_items <<< "${2:-}"
         for item in "${ignore_items[@]}"; do add_ignore_entry "$item"; done
@@ -755,8 +690,6 @@ parse_args() {
       --ignore-file)
         load_ignore_file "${2:-}"
         shift 2;;
-      --verify)
-        VERIFY="true"; shift;;
       --allow-large)
         ALLOW_LARGE="true"; shift;;
       -h|--help)
@@ -770,11 +703,11 @@ parse_args() {
 }
 
 main() {
+  # Ensure we have root privileges early to avoid env preservation complexity
+  require_root "$@"
+
   # Parse command-line arguments
   parse_args "$@"
-
-  # Ensure we have root privileges
-  require_root "$@"
 
   # Collect system disk names to avoid overwriting them
   collect_system_pknames
@@ -806,8 +739,6 @@ main() {
     exit 6
   fi
 
-  # After validation view (no unmount yet)
-  print_device_tree "${OUTPUT_DEVICE}"
 
   # Gather display info
   local dev_size_bytes img_size_bytes dev_size_h img_size_h model tran type name
@@ -857,11 +788,8 @@ main() {
   fi
 
 
-  # Final pre-write partitions display and confirmation
-  print_device_tree "${OUTPUT_DEVICE}"
-
   if [[ "${DRY_RUN}" == "true" ]]; then
-    info "[DRY-RUN] Would write using dd (with pv if available)"
+    info "[DRY-RUN] Would write using dd"
     echo "[DRY-RUN] dd if='${INPUT_IMAGE}' of='${OUTPUT_DEVICE}' bs=4M status=progress conv=fsync"
     info "[DRY-RUN] No data has been written."
     exit 0
@@ -885,13 +813,6 @@ main() {
   action "Syncing buffers..."
   sync
 
-  # Optional verification step
-  if [[ "${VERIFY}" == "true" ]]; then
-    if ! verify_written "${INPUT_IMAGE}" "${OUTPUT_DEVICE}"; then
-      error "Post-write verification failed."
-      exit 11
-    fi
-  fi
 
   success "Completed writing image to ${OUTPUT_DEVICE}."
   note "You may now remove the device safely after ensuring all activity LEDs are idle."
