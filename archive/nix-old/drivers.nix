@@ -1,17 +1,19 @@
 # ./nix/drivers.nix
-{ pkgs, shimFile }:
-
+{
+  pkgs,
+  shimFile,
+}:
 pkgs.stdenv.mkDerivation {
   name = "chromebook-drivers";
   src = shimFile;
 
   # Tools needed to perform the extraction.
-  nativeBuildInputs = [ pkgs.vboot_reference pkgs.e2fsprogs ];
+  nativeBuildInputs = [pkgs.vboot_reference pkgs.e2fsprogs];
 
   # This derivation cannot be built in the normal Nix sandbox because it
   # needs to create loop devices and mount filesystems.
   # You must build it with: nix build .#drivers --option sandbox false
-  __impureHostDeps = [ "/dev/loop-control" "/dev/mapper/control" ];
+  __impureHostDeps = ["/dev/loop-control" "/dev/mapper/control"];
 
   unpackPhase = ''
     # Don't unpack the source, we just need the path to it.

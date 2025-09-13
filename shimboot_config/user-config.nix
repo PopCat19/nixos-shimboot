@@ -1,13 +1,17 @@
 # Global user configuration file
 # Contains all user-configurable variables for nixos-shimboot
-
-{ hostname ? null, system ? "x86_64-linux", username ? "nixos-shimboot" }:
-
-rec {
+{
+  hostname ? null,
+  system ? "x86_64-linux",
+  username ? "nixos-shimboot",
+}: rec {
   # Host configuration
   host = {
     inherit system;
-    hostname = if hostname == null then username else hostname;
+    hostname =
+      if hostname == null
+      then username
+      else hostname;
   };
 
   # Architecture detection helpers
@@ -29,7 +33,10 @@ rec {
     preferredTerminal = "kitty";
 
     # Helper functions
-    onlyX86_64 = packages: if isX86_64 then packages else [];
+    onlyX86_64 = packages:
+      if isX86_64
+      then packages
+      else [];
   };
 
   # User credentials
@@ -39,15 +46,21 @@ rec {
     email = "atsuo11111@gmail.com";
     shell = "fish";
 
-    extraGroups = [
-      "wheel"
-      "video"
-      "audio"
-      "networkmanager"
-      "i2c"
-      "input"
-      "libvirtd"
-    ] ++ (if host.hostname == "${username}-surface0" then [ "surface-control" ] else []);
+    extraGroups =
+      [
+        "wheel"
+        "video"
+        "audio"
+        "networkmanager"
+        "i2c"
+        "input"
+        "libvirtd"
+      ]
+      ++ (
+        if host.hostname == "${username}-surface0"
+        then ["surface-control"]
+        else []
+      );
   };
 
   # Default applications
@@ -117,5 +130,4 @@ rec {
 
   # Network configuration moved to system_modules/networking.nix
   # Host-specific overrides may still set `network` in userConfig if needed.
-
 }

@@ -1,6 +1,10 @@
-{ config, pkgs, lib, userConfig, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  userConfig,
+  ...
+}: {
   # Hardware Configuration
   hardware = {
     enableRedistributableFirmware = true; # Enable non-free firmware

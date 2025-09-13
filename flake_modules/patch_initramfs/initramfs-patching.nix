@@ -1,6 +1,7 @@
-{ self, nixpkgs }:
-
-let
+{
+  self,
+  nixpkgs,
+}: let
   system = "x86_64-linux";
   pkgs = nixpkgs.legacyPackages.${system};
 
@@ -67,7 +68,7 @@ in {
       description = "Patch ChromeOS initramfs with custom bootloader files";
       license = licenses.unfree;
       platforms = platforms.linux;
-      maintainers = [ "shimboot developers" ];
+      maintainers = ["shimboot developers"];
     };
   };
 }

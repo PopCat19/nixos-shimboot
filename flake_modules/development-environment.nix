@@ -1,6 +1,8 @@
-{ self, nixpkgs, ... }:
-
-let
+{
+  self,
+  nixpkgs,
+  ...
+}: let
   system = "x86_64-linux";
   pkgs = nixpkgs.legacyPackages.${system};
 in {
@@ -10,7 +12,7 @@ in {
       pkgs.nixos-generators
       nixpkgs-fmt
     ];
-    
+
     shellHook = ''
       echo "Welcome to the NixOS raw-efi development environment!"
       echo "Available commands:"

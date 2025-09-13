@@ -1,6 +1,7 @@
-{ self, nixpkgs }:
-
-let
+{
+  self,
+  nixpkgs,
+}: let
   system = "x86_64-linux";
   pkgs = nixpkgs.legacyPackages.${system};
   extractedKernel = self.packages.${system}.extracted-kernel;
@@ -112,7 +113,7 @@ in {
       description = "Extract initramfs from ChromeOS kernel blob using futility with multi-layer decompression";
       license = licenses.unfree;
       platforms = platforms.linux;
-      maintainers = [ "shimboot developers" ];
+      maintainers = ["shimboot developers"];
     };
   };
 }

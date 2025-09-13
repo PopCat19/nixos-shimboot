@@ -1,13 +1,14 @@
-{ self, nixpkgs }:
-
-let
+{
+  self,
+  nixpkgs,
+}: let
   system = "x86_64-linux";
   pkgs = nixpkgs.legacyPackages.${system};
 
   # Inputs from previous steps
   patchedKernel = self.packages.${system}.kernel-repack;
   bootloaderDir = ./../../bootloader;
-  rootfsImage   = self.packages.${system}.raw-rootfs; # raw-rootfs derivation
+  rootfsImage = self.packages.${system}.raw-rootfs; # raw-rootfs derivation
 in {
   packages.${system}.final-image = pkgs.stdenv.mkDerivation {
     name = "shimboot-final-image";
@@ -100,7 +101,7 @@ in {
       description = "Final shimboot GPT image with patched kernel, bootloader, and rootfs from raw-rootfs";
       license = licenses.unfree;
       platforms = platforms.linux;
-      maintainers = [ "shimboot developers" ];
+      maintainers = ["shimboot developers"];
     };
   };
 }

@@ -1,6 +1,10 @@
-{ config, pkgs, lib, userConfig, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  userConfig,
+  ...
+}: {
   # X server basics (not strictly required for Hyprland, but harmless)
   services.xserver = {
     enable = lib.mkDefault true;
@@ -56,7 +60,7 @@
   # Ensure basic tools are available
   environment.systemPackages = with pkgs; [
     brightnessctl
-    lightdm     # Display manager
+    lightdm # Display manager
     lightdm-gtk-greeter # LightDM greeter
   ];
 }

@@ -1,6 +1,10 @@
-{ config, pkgs, lib, userConfig, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  userConfig,
+  ...
+}: {
   # Keep user DB declarative; set plain password during activation (bring-up friendly).
   # For production, replace with hashedPassword/hashedPasswordFile.
   users.mutableUsers = lib.mkDefault false;

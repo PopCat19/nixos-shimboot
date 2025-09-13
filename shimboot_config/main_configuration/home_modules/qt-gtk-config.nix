@@ -1,64 +1,68 @@
-{ pkgs, config, lib, userConfig, ... }:
-
 {
+  pkgs,
+  config,
+  lib,
+  userConfig,
+  ...
+}: {
   # XDG MIME Applications Configuration
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {
       # Web browsers
-      "x-scheme-handler/http" = [ userConfig.defaultApps.browser.desktop ];
-      "x-scheme-handler/https" = [ userConfig.defaultApps.browser.desktop ];
-      "text/html" = [ userConfig.defaultApps.browser.desktop ];
-      "application/xhtml+xml" = [ userConfig.defaultApps.browser.desktop ];
+      "x-scheme-handler/http" = [userConfig.defaultApps.browser.desktop];
+      "x-scheme-handler/https" = [userConfig.defaultApps.browser.desktop];
+      "text/html" = [userConfig.defaultApps.browser.desktop];
+      "application/xhtml+xml" = [userConfig.defaultApps.browser.desktop];
 
       # Terminal
-      "application/x-terminal-emulator" = [ userConfig.defaultApps.terminal.desktop ];
-      "x-scheme-handler/terminal" = [ userConfig.defaultApps.terminal.desktop ];
+      "application/x-terminal-emulator" = [userConfig.defaultApps.terminal.desktop];
+      "x-scheme-handler/terminal" = [userConfig.defaultApps.terminal.desktop];
 
       # Text files
-      "text/plain" = [ userConfig.defaultApps.editor.desktop ];
-      "text/x-readme" = [ userConfig.defaultApps.editor.desktop ];
-      "text/x-log" = [ userConfig.defaultApps.editor.desktop ];
-      "application/json" = [ userConfig.defaultApps.editor.desktop ];
-      "text/x-python" = [ userConfig.defaultApps.editor.desktop ];
-      "text/x-shellscript" = [ userConfig.defaultApps.editor.desktop ];
-      "text/x-script" = [ userConfig.defaultApps.editor.desktop ];
+      "text/plain" = [userConfig.defaultApps.editor.desktop];
+      "text/x-readme" = [userConfig.defaultApps.editor.desktop];
+      "text/x-log" = [userConfig.defaultApps.editor.desktop];
+      "application/json" = [userConfig.defaultApps.editor.desktop];
+      "text/x-python" = [userConfig.defaultApps.editor.desktop];
+      "text/x-shellscript" = [userConfig.defaultApps.editor.desktop];
+      "text/x-script" = [userConfig.defaultApps.editor.desktop];
 
       # Images
-      "image/jpeg" = [ userConfig.defaultApps.imageViewer.desktop ];
-      "image/png" = [ userConfig.defaultApps.imageViewer.desktop ];
-      "image/gif" = [ userConfig.defaultApps.imageViewer.desktop ];
-      "image/webp" = [ userConfig.defaultApps.imageViewer.desktop ];
-      "image/svg+xml" = [ userConfig.defaultApps.imageViewer.desktop ];
+      "image/jpeg" = [userConfig.defaultApps.imageViewer.desktop];
+      "image/png" = [userConfig.defaultApps.imageViewer.desktop];
+      "image/gif" = [userConfig.defaultApps.imageViewer.desktop];
+      "image/webp" = [userConfig.defaultApps.imageViewer.desktop];
+      "image/svg+xml" = [userConfig.defaultApps.imageViewer.desktop];
 
       # Videos
-      "video/mp4" = [ userConfig.defaultApps.videoPlayer.desktop ];
-      "video/mkv" = [ userConfig.defaultApps.videoPlayer.desktop ];
-      "video/avi" = [ userConfig.defaultApps.videoPlayer.desktop ];
-      "video/webm" = [ userConfig.defaultApps.videoPlayer.desktop ];
-      "video/x-matroska" = [ userConfig.defaultApps.videoPlayer.desktop ];
+      "video/mp4" = [userConfig.defaultApps.videoPlayer.desktop];
+      "video/mkv" = [userConfig.defaultApps.videoPlayer.desktop];
+      "video/avi" = [userConfig.defaultApps.videoPlayer.desktop];
+      "video/webm" = [userConfig.defaultApps.videoPlayer.desktop];
+      "video/x-matroska" = [userConfig.defaultApps.videoPlayer.desktop];
 
       # Audio
-      "audio/mpeg" = [ userConfig.defaultApps.videoPlayer.desktop ];
-      "audio/ogg" = [ userConfig.defaultApps.videoPlayer.desktop ];
-      "audio/wav" = [ userConfig.defaultApps.videoPlayer.desktop ];
-      "audio/flac" = [ userConfig.defaultApps.videoPlayer.desktop ];
+      "audio/mpeg" = [userConfig.defaultApps.videoPlayer.desktop];
+      "audio/ogg" = [userConfig.defaultApps.videoPlayer.desktop];
+      "audio/wav" = [userConfig.defaultApps.videoPlayer.desktop];
+      "audio/flac" = [userConfig.defaultApps.videoPlayer.desktop];
 
       # Archives
-      "application/zip" = [ userConfig.defaultApps.archiveManager.desktop ];
-      "application/x-tar" = [ userConfig.defaultApps.archiveManager.desktop ];
-      "application/x-compressed-tar" = [ userConfig.defaultApps.archiveManager.desktop ];
-      "application/x-7z-compressed" = [ userConfig.defaultApps.archiveManager.desktop ];
+      "application/zip" = [userConfig.defaultApps.archiveManager.desktop];
+      "application/x-tar" = [userConfig.defaultApps.archiveManager.desktop];
+      "application/x-compressed-tar" = [userConfig.defaultApps.archiveManager.desktop];
+      "application/x-7z-compressed" = [userConfig.defaultApps.archiveManager.desktop];
 
       # File manager
-      "inode/directory" = [ userConfig.defaultApps.fileManager.desktop ];
+      "inode/directory" = [userConfig.defaultApps.fileManager.desktop];
 
       # PDF
-      "application/pdf" = [ userConfig.defaultApps.pdfViewer.desktop ];
+      "application/pdf" = [userConfig.defaultApps.pdfViewer.desktop];
     };
     associations.added = {
-      "application/x-terminal-emulator" = [ userConfig.defaultApps.terminal.desktop ];
-      "x-scheme-handler/terminal" = [ userConfig.defaultApps.terminal.desktop ];
+      "application/x-terminal-emulator" = [userConfig.defaultApps.terminal.desktop];
+      "x-scheme-handler/terminal" = [userConfig.defaultApps.terminal.desktop];
     };
   };
 

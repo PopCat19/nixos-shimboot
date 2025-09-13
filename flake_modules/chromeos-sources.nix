@@ -1,6 +1,8 @@
-{ self, nixpkgs, ... }:
-
-let
+{
+  self,
+  nixpkgs,
+  ...
+}: let
   system = "x86_64-linux";
   pkgs = import nixpkgs {
     inherit system;
@@ -20,12 +22,15 @@ let
   chunkBaseUrl = "https://cdn.cros.download/files/dedede";
 
   # Fetch each chunk as a fixed-output derivation
-  chunkDrvs = map (chunk:
-    pkgs.fetchurl {
-      url = "${chunkBaseUrl}/${chunk.name}";
-      sha256 = chunk.sha256;
-    }
-  ) dededeManifest.chunks;
+  chunkDrvs =
+    map (
+      chunk:
+        pkgs.fetchurl {
+          url = "${chunkBaseUrl}/${chunk.name}";
+          sha256 = chunk.sha256;
+        }
+    )
+    dededeManifest.chunks;
 
   chromeosShim = pkgs.stdenv.mkDerivation {
     name = "chromeos-shim";
@@ -36,7 +41,7 @@ let
     outputHashAlgo = "sha256";
     outputHash = dededeManifest.hash;
 
-    nativeBuildInputs = [ pkgs.unzip ];
+    nativeBuildInputs = [pkgs.unzip];
 
     buildCommand = ''
       echo "Joining ${toString (builtins.length dededeManifest.chunks)} chunks..."
@@ -54,7 +59,7 @@ let
       '';
       license = licenses.unfree;
       platforms = platforms.linux;
-      maintainers = [ "shimboot developers" ];
+      maintainers = ["shimboot developers"];
     };
   };
 
@@ -67,7 +72,7 @@ let
       sha256 = "IbflWCE9x6Xvt67SfdGFEWTs4184soTKfjggGhV7kzA=";
     };
 
-    nativeBuildInputs = [ pkgs.unzip ];
+    nativeBuildInputs = [pkgs.unzip];
 
     unpackPhase = ''
       runHook preUnpack
@@ -100,10 +105,9 @@ let
       description = "ChromeOS recovery firmware for dedede board";
       license = licenses.unfree;
       platforms = platforms.linux;
-      maintainers = [ "shimboot developers" ];
+      maintainers = ["shimboot developers"];
     };
   };
-
 in {
   packages.${system} = {
     chromeos-shim = chromeosShim;

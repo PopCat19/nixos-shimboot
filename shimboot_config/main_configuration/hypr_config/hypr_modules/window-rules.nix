@@ -1,6 +1,5 @@
 # Window Rules for Hyprland
 # ==========================
-
 {
   wayland.windowManager.hyprland.settings = {
     # Window rules v2

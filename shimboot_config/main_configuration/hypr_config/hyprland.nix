@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  ...
+}: {
   imports = [
     ./hypr_modules/colors.nix
     ./hypr_modules/environment.nix
@@ -15,7 +18,7 @@
   wayland.windowManager.hyprland = {
     enable = true;
     package = pkgs.hyprland;
-    
+
     settings = {
       source = [
         "~/.config/hypr/monitors.conf"

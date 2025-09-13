@@ -1,14 +1,16 @@
-{ config, pkgs, ... }:
-
 {
+  config,
+  pkgs,
+  ...
+}: {
   # Screenshot configuration for Hyprland using grimblast
 
   home.packages = with pkgs; [
     # Core screenshot tools
-    hyprshot                           # Primary screenshot tool for Hyprland
-    kdePackages.gwenview               # Image viewer
-    libnotify                          # Desktop notifications (notify-send)
-    jq                                 # For parsing hyprctl JSON (app name)
+    hyprshot # Primary screenshot tool for Hyprland
+    kdePackages.gwenview # Image viewer
+    libnotify # Desktop notifications (notify-send)
+    jq # For parsing hyprctl JSON (app name)
   ];
 
   # Create Screenshots directory

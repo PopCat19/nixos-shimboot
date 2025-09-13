@@ -1,15 +1,19 @@
-{ config, pkgs, lib, userConfig, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  userConfig,
+  ...
+}: {
   # Networking Configuration
   networking = {
     dhcpcd.enable = false; # Disable dhcpcd in favor of NetworkManager
     firewall = {
       enable = true;
       # network overrides deprecated — use canonical defaults here
-      trustedInterfaces = [ "lo" ];
+      trustedInterfaces = ["lo"];
       allowedTCPPorts = [
-        22      # SSH
+        22 # SSH
       ];
       allowedUDPPorts = [
       ];
@@ -25,7 +29,7 @@
   };
 
   # Load WiFi modules at boot (matching upstream shimboot configuration)
-  boot.kernelModules = [ "iwlmvm" "ccm" "8021q" "tun" ];
+  boot.kernelModules = ["iwlmvm" "ccm" "8021q" "tun"];
 
   # Handle potential rfkill issues on ChromeOS devices
   system.activationScripts.rfkillUnblockWlan = {

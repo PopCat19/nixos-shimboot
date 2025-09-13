@@ -1,16 +1,21 @@
-{ self, nixpkgs, nixos-generators, home-manager, zen-browser, ... }:
-
-let
+{
+  self,
+  nixpkgs,
+  nixos-generators,
+  home-manager,
+  zen-browser,
+  ...
+}: let
   system = "x86_64-linux";
   pkgs = nixpkgs.legacyPackages.${system};
-  userConfig = import ../shimboot_config/user-config.nix { };
+  userConfig = import ../shimboot_config/user-config.nix {};
 in {
   packages.${system} = {
     # Generate a raw image that includes the main configuration (reduces on-target build)
     raw-rootfs = nixos-generators.nixosGenerate {
       inherit system;
       format = "raw";
-      specialArgs = { inherit zen-browser; };
+      specialArgs = {inherit zen-browser;};
 
       modules = [
         # Use the main configuration (which itself imports base)
@@ -18,12 +23,19 @@ in {
 
         # Integrate Home Manager for user-level configuration like the full system build
         home-manager.nixosModules.home-manager
-        ({ config, pkgs, ... }: {
+        ({
+          config,
+          pkgs,
+          ...
+        }: {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          home-manager.extraSpecialArgs = { inherit zen-browser userConfig; inputs = self.inputs; };
+          home-manager.extraSpecialArgs = {
+            inherit zen-browser userConfig;
+            inputs = self.inputs;
+          };
           home-manager.sharedModules = [
-            ({ config, ... }: {
+            ({config, ...}: {
               _module.args.userConfig = userConfig;
             })
           ];
@@ -31,13 +43,17 @@ in {
         })
 
         # Raw image specific configuration
-        ({ config, pkgs, ... }: {
+        ({
+          config,
+          pkgs,
+          ...
+        }: {
           # Enable serial console logging
-          boot.kernelParams = [ "console=ttyS0,115200" ];
-          
+          boot.kernelParams = ["console=ttyS0,115200"];
+
           # Enable Nix flakes
-          nix.settings.experimental-features = [ "nix-command" "flakes" ];
-          
+          nix.settings.experimental-features = ["nix-command" "flakes"];
+
           # Enable automatic garbage collection
           nix.gc = {
             automatic = true;
@@ -52,19 +68,23 @@ in {
     raw-rootfs-minimal = nixos-generators.nixosGenerate {
       inherit system;
       format = "raw";
-      specialArgs = { inherit zen-browser; };
+      specialArgs = {inherit zen-browser;};
 
       modules = [
         # Base-only configuration (standalone Hyprland via greetd)
         ../shimboot_config/base_configuration/configuration.nix
 
         # Raw image specific configuration
-        ({ config, pkgs, ... }: {
+        ({
+          config,
+          pkgs,
+          ...
+        }: {
           # Enable serial console logging
-          boot.kernelParams = [ "console=ttyS0,115200" ];
+          boot.kernelParams = ["console=ttyS0,115200"];
 
           # Enable Nix flakes
-          nix.settings.experimental-features = [ "nix-command" "flakes" ];
+          nix.settings.experimental-features = ["nix-command" "flakes"];
 
           # Enable automatic garbage collection
           nix.gc = {

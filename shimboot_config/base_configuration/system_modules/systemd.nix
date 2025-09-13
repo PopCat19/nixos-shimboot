@@ -1,6 +1,10 @@
-{ config, pkgs, lib, self, ... }:
-
 {
+  config,
+  pkgs,
+  lib,
+  self,
+  ...
+}: {
   # Ensure systemd tools are available system-wide (e.g., systemctl)
   environment.systemPackages = with pkgs; [
     systemd
@@ -8,9 +12,11 @@
 
   # Systemd Configuration
   systemd = {
-    package = pkgs.systemd.overrideAttrs (old: { # Overrides systemd package attributes
-      patches = (old.patches or []) ++
-        [
+    package = pkgs.systemd.overrideAttrs (old: {
+      # Overrides systemd package attributes
+      patches =
+        (old.patches or [])
+        ++ [
           # Patch for mountpoint-util.c to use direct mount() call instead of mount_nofollow()
           (pkgs.writeText "mountpoint-util.patch" ''
             diff --git a/src/basic/mountpoint-util.c b/src/basic/mountpoint-util.c
@@ -42,15 +48,16 @@
             -        return mount_fd(source, fd, filesystemtype, mountflags, data);
             +        return RET_NERRNO(mount(source, target, filesystemtype, mountflags, data));
              }
-             
+
              const char* mount_propagation_flag_to_string(unsigned long flags) {
           '')
         ];
     });
-    services.kill-frecon = { # Service to kill frecon
+    services.kill-frecon = {
+      # Service to kill frecon
       description = "Kill frecon to allow X11 to start";
-      wantedBy = [ "graphical.target" ];
-      before = [ "display-manager.service" ];
+      wantedBy = ["graphical.target"];
+      before = ["display-manager.service"];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
@@ -61,11 +68,12 @@
       };
     };
   };
-  
+
   # Services Configuration
   services.accounts-daemon.enable = true; # Enable AccountsService for PolicyKit
-  
-  services.logind = { # Logind service configuration
+
+  services.logind = {
+    # Logind service configuration
     settings = {
       Login = {
         HandleLidSwitch = "ignore";

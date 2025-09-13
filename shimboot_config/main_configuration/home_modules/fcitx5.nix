@@ -1,6 +1,4 @@
-{ pkgs, ... }:
-
-{
+{pkgs, ...}: {
   # **INPUT METHOD CONFIGURATION**
   # Configures Fcitx5 for input methods with full Wayland support.
   i18n.inputMethod = {
@@ -53,10 +51,7 @@
   '';
 
   # Manually link fcitx5 rose pine themes to user directory
-  home.file.".local/share/fcitx5/themes/rose-pine".source =
-    "${pkgs.fcitx5-rose-pine}/share/fcitx5/themes/rose-pine";
-  home.file.".local/share/fcitx5/themes/rose-pine-dawn".source =
-    "${pkgs.fcitx5-rose-pine}/share/fcitx5/themes/rose-pine-dawn";
-  home.file.".local/share/fcitx5/themes/rose-pine-moon".source =
-    "${pkgs.fcitx5-rose-pine}/share/fcitx5/themes/rose-pine-moon";
+  home.file.".local/share/fcitx5/themes/rose-pine".source = "${pkgs.fcitx5-rose-pine}/share/fcitx5/themes/rose-pine";
+  home.file.".local/share/fcitx5/themes/rose-pine-dawn".source = "${pkgs.fcitx5-rose-pine}/share/fcitx5/themes/rose-pine-dawn";
+  home.file.".local/share/fcitx5/themes/rose-pine-moon".source = "${pkgs.fcitx5-rose-pine}/share/fcitx5/themes/rose-pine-moon";
 }
