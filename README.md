@@ -84,7 +84,7 @@ Flake status and roadmap (not a spec) for the current branch:
 - [x] Builds functional NixOS with `nixos-rebuild` support (requires appending `--options disable sandbox` on kernels below 5.6 due to missing kernel namespaces)
 - [x] Setup minimal base_configuration
 - [x] Setup initial main_configuration for hyprland and home-manager
-- [ ] Apply proper recovery firmware patches to be used for ChromeOS ROOT_A/B; see upstream shimboot for reference
+- [ ] Apply proper recovery firmware patches on a separate (read-only?) partition to be used for ChromeOS ROOT_A/B; see upstream shimboot for reference
 - [ ] Refine main_configuration [primarily to fixup qt/gtk theme configurations, bwrap/steam, hyprpanel (dunst already running), and rewrite nixos_setup for better experience]
 - [ ] Implement systemd cachix store to avoid recompilation on potato hardware
 - [ ] Refine and cleanup scripts and helpers
