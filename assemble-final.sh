@@ -186,6 +186,32 @@ else
     log_info "Recovery image: skipped (SKIP_RECOVERY=1 or not provided)"
 fi
 
+# === Step 0.5: Harvest ChromeOS drivers (modules/firmware/modprobe.d)
+HARVEST_OUT="$WORKDIR/harvested"
+mkdir -p "$HARVEST_OUT"
+log_step "0.5/8" "Harvest ChromeOS drivers"
+if [ -n "$RECOVERY_PATH" ]; then
+    bash scripts/harvest-drivers.sh --shim "$SHIM_BIN" --recovery "$RECOVERY_PATH" --out "$HARVEST_OUT"
+else
+    bash scripts/harvest-drivers.sh --shim "$SHIM_BIN" --out "$HARVEST_OUT"
+fi
+
+# Decompress module .ko.gz and precompute depmod metadata
+if [ -d "$HARVEST_OUT/lib/modules" ]; then
+    compressed_files="$(find "$HARVEST_OUT/lib/modules" -type f -name '*.gz' 2>/dev/null || true)"
+    if [ -n "$compressed_files" ]; then
+        echo "$compressed_files" | xargs -r -n1 gunzip -f || true
+    fi
+    for kdir in "$HARVEST_OUT/lib/modules/"*; do
+        [ -d "$kdir" ] || continue
+        kver="$(basename "$kdir")"
+        log_info "Running depmod for kernel $kver"
+        depmod -b "$HARVEST_OUT" "$kver" || true
+    done
+else
+    log_warn "No harvested modules found under $HARVEST_OUT/lib/modules"
+fi
+
 # === Step 1: Copy raw rootfs image ===
 log_step "1/8" "Copy raw rootfs image"
 cp "$RAW_ROOTFS_IMG" "$WORKDIR/rootfs.img"
@@ -266,9 +292,39 @@ sudo umount "$WORKDIR/mnt_src_rootfs"
 sudo losetup -d "$LOOPROOT"
 LOOPROOT=""
 
-# === Step 8.1-8.2 removed ===
-# NixOS manages kernel modules, firmware, and modprobe.d declaratively.
-# No driver harvesting or rootfs mutation performed at assembly time.
+# === Step 8.1: Inject harvested drivers into rootfs (optional) ===
+DRIVERS_MODE="${DRIVERS_MODE:-inject}"
+
+case "$DRIVERS_MODE" in
+  inject)
+    log_step "8.1" "Inject drivers into rootfs (/lib/modules, /lib/firmware, modprobe.d)"
+    if [ -d "$HARVEST_OUT/lib/modules" ]; then
+      sudo rm -rf "$WORKDIR/mnt_rootfs/lib/modules"
+      sudo mkdir -p "$WORKDIR/mnt_rootfs/lib"
+      sudo cp -a "$HARVEST_OUT/lib/modules" "$WORKDIR/mnt_rootfs/lib/modules"
+    else
+      log_warn "No harvested lib/modules; skipping module injection"
+    fi
+    if [ -d "$HARVEST_OUT/lib/firmware" ]; then
+      sudo mkdir -p "$WORKDIR/mnt_rootfs/lib/firmware"
+      sudo cp -a "$HARVEST_OUT/lib/firmware/." "$WORKDIR/mnt_rootfs/lib/firmware/"
+    else
+      log_warn "No harvested lib/firmware; skipping firmware injection"
+    fi
+    if [ -d "$HARVEST_OUT/modprobe.d" ]; then
+      sudo mkdir -p "$WORKDIR/mnt_rootfs/lib/modprobe.d" "$WORKDIR/mnt_rootfs/etc/modprobe.d"
+      sudo cp -a "$HARVEST_OUT/modprobe.d/." "$WORKDIR/mnt_rootfs/lib/modprobe.d/" 2>/dev/null || true
+      sudo cp -a "$HARVEST_OUT/modprobe.d/." "$WORKDIR/mnt_rootfs/etc/modprobe.d/" 2>/dev/null || true
+    fi
+    ;;
+  none)
+    log_info "DRIVERS_MODE=none; leaving rootfs unchanged"
+    ;;
+  vendor|CROSDRV)
+    log_warn "DRIVERS_MODE=${DRIVERS_MODE} requested, but vendor partition is not yet implemented in this assembler"
+    ;;
+esac
+
 # Unmount rootfs
 sudo umount "$WORKDIR/mnt_rootfs"
 
