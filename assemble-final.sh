@@ -203,6 +203,19 @@ else
     bash scripts/harvest-drivers.sh --shim "$SHIM_BIN" --out "$HARVEST_OUT"
 fi
 
+# === Step 0.6: Augment firmware with upstream ChromiumOS linux-firmware ===
+if [ "${FIRMWARE_UPSTREAM:-1}" != "0" ]; then
+    log_step "0.6/8" "Augment firmware with upstream linux-firmware"
+    UPSTREAM_FW_DIR="$WORKDIR/linux-firmware.upstream"
+    if [ ! -d "$UPSTREAM_FW_DIR" ]; then
+        # Shallow clone to reduce time/size
+        git clone --depth=1 https://chromium.googlesource.com/chromiumos/third_party/linux-firmware "$UPSTREAM_FW_DIR" || true
+    fi
+    mkdir -p "$HARVEST_OUT/lib/firmware"
+    # Merge, preserving attributes; ignore errors on collisions
+    sudo cp -a "$UPSTREAM_FW_DIR/." "$HARVEST_OUT/lib/firmware/" 2>/dev/null || true
+fi
+
 # Decompress module .ko.gz and precompute depmod metadata
 if [ -d "$HARVEST_OUT/lib/modules" ]; then
     compressed_files="$(find "$HARVEST_OUT/lib/modules" -type f -name '*.gz' 2>/dev/null || true)"

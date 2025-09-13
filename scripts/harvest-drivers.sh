@@ -102,20 +102,21 @@ if [[ ! -b "${SHIM_LOOP}p3" ]]; then
 fi
 sudo mount -o ro "${SHIM_LOOP}p3" "${MNT_SHIM}"
 
-# Copy lib/modules and lib/firmware preserving attributes
-mkdir -p "${OUT}/lib"
+# Copy lib/modules and lib/firmware; dereference firmware symlinks
+mkdir -p "${OUT}/lib/modules" "${OUT}/lib/firmware"
 if [[ -d "${MNT_SHIM}/lib/modules" ]]; then
   log_info "Copying SHIM lib/modules → ${OUT}/lib/modules"
-  sudo cp -ar "${MNT_SHIM}/lib/modules" "${OUT}/lib/modules"
+  # Keep module tree structure; avoid nesting an extra 'modules' dir
+  sudo cp -a "${MNT_SHIM}/lib/modules/." "${OUT}/lib/modules/"
 else
   log_warn "SHIM has no lib/modules directory"
 fi
 if [[ -d "${MNT_SHIM}/lib/firmware" ]]; then
-  log_info "Copying SHIM lib/firmware → ${OUT}/lib/firmware"
-  sudo cp -ar "${MNT_SHIM}/lib/firmware" "${OUT}/lib/firmware"
+  log_info "Copying SHIM lib/firmware (dereference symlinks) → ${OUT}/lib/firmware"
+  # Follow symlinks so /opt/* targets are copied as real files into the stash
+  sudo cp -a "${MNT_SHIM}/lib/firmware/." "${OUT}/lib/firmware/"
 else
   log_warn "SHIM has no lib/firmware directory"
-  mkdir -p "${OUT}/lib/firmware"
 fi
 
 # --- Optional: mount RECOVERY p3 and merge firmware + collect modprobe.d ---
@@ -132,11 +133,11 @@ if [[ -n "${RECOVERY:-}" ]]; then
   fi
   sudo mount -o ro "${RECOVERY_LOOP}p3" "${MNT_RECOVERY}"
 
-  # Merge firmware
+  # Merge firmware (dereference symlinks)
   mkdir -p "${OUT}/lib/firmware"
   if [[ -d "${MNT_RECOVERY}/lib/firmware" ]]; then
-    log_info "Merging RECOVERY firmware → ${OUT}/lib/firmware"
-    sudo cp -ar "${MNT_RECOVERY}/lib/firmware/." "${OUT}/lib/firmware/" 2>/dev/null || true
+    log_info "Merging RECOVERY firmware (dereference symlinks) → ${OUT}/lib/firmware"
+    sudo cp -a "${MNT_RECOVERY}/lib/firmware/." "${OUT}/lib/firmware/" 2>/dev/null || true
   else
     log_warn "RECOVERY has no lib/firmware directory"
   fi

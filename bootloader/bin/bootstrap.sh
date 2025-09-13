@@ -83,47 +83,105 @@ find_all_partitions() {
   echo "$(find_rootfs_partitions)"
 }
 
-# locate the vendor helper partition (shimboot_rootfs:vendor)
+# locate the vendor helper partition (shimboot_rootfs:vendor or FS label shimboot_vendor)
 find_vendor_partition() {
-  local p="$(cgpt find -l 'shimboot_rootfs:vendor' 2>/dev/null | head -n1)"
-  if [ "$p" ]; then
-    echo "$p"
+  # Prefer filesystem label first (fast path)
+  if [ -e "/dev/disk/by-label/shimboot_vendor" ]; then
+    # resolve symlink if possible; fall back to path
+    local dev="/dev/disk/by-label/shimboot_vendor"
+    echo "$dev"
     return 0
   fi
-
-  # fallback: parse fdisk like find_rootfs_partitions does
-  local disks=$(fdisk -l | sed -n "s/Disk \(\/dev\/.*\):.*/\1/p")
-  for disk in $disks; do
-    local idx=$(fdisk -l $disk | sed -n "s/^[ ]\+\([0-9]\+\).*shimboot_rootfs:vendor$/\1/p" | head -n1)
-    if [ "$idx" ]; then
-      get_part_dev "$disk" "$idx"
+  
+  # Guard blkid usage - not all busybox builds have full blkid support
+  if command -v blkid >/dev/null 2>&1; then
+    local dev_from_label="$(blkid -L shimboot_vendor 2>/dev/null || true)"
+    if [ -n "$dev_from_label" ]; then
+      echo "$dev_from_label"
       return 0
     fi
-  done
+
+    # Try PARTLABEL via blkid (GPT partition name) - may not work in busybox
+    local dev_from_partlabel="$(blkid -t PARTLABEL='shimboot_rootfs:vendor' -o device 2>/dev/null | head -n1 || true)"
+    if [ -n "$dev_from_partlabel" ]; then
+      echo "$dev_from_partlabel"
+      return 0
+    fi
+  fi
+
+  # cgpt label fallback (preferred on ChromeOS devices)
+  if command -v cgpt >/dev/null 2>&1; then
+    local p="$(cgpt find -l 'shimboot_rootfs:vendor' 2>/dev/null | head -n1)"
+    if [ -n "$p" ]; then
+      echo "$p"
+      return 0
+    fi
+  fi
+
+  # fdisk fallback (best-effort; output format varies)
+  if command -v fdisk >/dev/null 2>&1; then
+    local disks
+    disks="$(fdisk -l 2>/dev/null | sed -n "s/Disk \(\/dev\/.*\):.*/\1/p")"
+    for disk in $disks; do
+      # capture the device path in the first column (e.g., /dev/sdc5) when the line contains our PARTLABEL
+      local dev_guess
+      dev_guess="$(fdisk -l "$disk" 2>/dev/null | sed -n "s/^[[:space:]]*\\(\/dev\/[^[:space:]]\\+\\)[[:space:]].*shimboot_rootfs:vendor.*/\\1/p" | head -n1)"
+      if [ -n "$dev_guess" ]; then
+        echo "$dev_guess"
+        return 0
+      fi
+    done
+  fi
+
   return 1
 }
 
-# mount vendor and bind its modules/firmware into the target root
+# mount vendor and bind its modules/firmware into the target root (no tmpfs staging)
 bind_vendor_into() {
   local target_root="/newroot"
   local vendor_part="$(find_vendor_partition)"
   if [ ! "$vendor_part" ]; then
+    echo "vendor: not found"
     return 0
   fi
 
+  echo "vendor: device=${vendor_part}"
   echo "mounting vendor partition at ${target_root}/.vendor (read-only)"
   mkdir -p "${target_root}/.vendor"
   if mount -o ro "$vendor_part" "${target_root}/.vendor"; then
-    if [ -d "${target_root}/.vendor/lib/modules" ]; then
+    echo "vendor: mounted"
+
+    # Direct bind from vendor mount - no tmpfs staging to reduce memory pressure
+    # Only bind non-empty directories to avoid masking system paths
+    if [ -d "${target_root}/.vendor/lib/modules" ] && find "${target_root}/.vendor/lib/modules" -type f -name "*.ko*" 2>/dev/null | head -n1 | grep -q .; then
+      echo "binding vendor modules to ${target_root}/lib/modules"
       mkdir -p "${target_root}/lib/modules"
-      mount -o bind "${target_root}/.vendor/lib/modules" "${target_root}/lib/modules"
+      if mount -o bind "${target_root}/.vendor/lib/modules" "${target_root}/lib/modules"; then
+        echo "vendor: modules bound successfully"
+      else
+        echo "vendor: failed to bind modules - skipping"
+      fi
+    else
+      echo "vendor: no modules found or directory empty"
     fi
-    if [ -d "${target_root}/.vendor/lib/firmware" ]; then
+
+    if [ -d "${target_root}/.vendor/lib/firmware" ] && find "${target_root}/.vendor/lib/firmware" -type f 2>/dev/null | head -n1 | grep -q .; then
+      echo "binding vendor firmware to ${target_root}/lib/firmware"
       mkdir -p "${target_root}/lib/firmware"
-      mount -o bind "${target_root}/.vendor/lib/firmware" "${target_root}/lib/firmware"
+      if mount -o bind "${target_root}/.vendor/lib/firmware" "${target_root}/lib/firmware"; then
+        echo "vendor: firmware bound successfully"
+      else
+        echo "vendor: failed to bind firmware - skipping"
+      fi
+    else
+      echo "vendor: no firmware found or directory empty"
     fi
+
+    # Keep vendor filesystem mounted - it will persist across pivot_root
+    # Do not unmount vendor device as we have active bind mounts from it
+    echo "vendor: keeping mounted for active bind mounts"
   else
-    echo "failed to mount vendor partition"
+    echo "failed to mount vendor partition at ${target_root}/.vendor"
   fi
 }
 
@@ -257,7 +315,25 @@ copy_progress() {
   local source="$1"
   local destination="$2"
   mkdir -p "$destination"
-  tar -cf - -C "${source}" . | pv -f | tar -xf - -C "${destination}"
+  # Fallback to plain tar if pv is unavailable in the initramfs
+  if command -v pv >/dev/null 2>&1; then
+    tar -cf - -C "${source}" . | pv -f | tar -xf - -C "${destination}"
+  else
+    tar -cf - -C "${source}" . | tar -xf - -C "${destination}"
+  fi
+}
+
+debug_dir() {
+  local path="$1"
+  if [ -d "$path" ]; then
+    local files="$(find "$path" -type f 2>/dev/null | wc -l)"
+    local size_k="$(du -sk "$path" 2>/dev/null | awk '{print $1}')"
+    echo "DEBUG: $path -> files=${files} size=${size_k}K"
+    # list top-level entries for quick sanity
+    ls -la "$path" 2>/dev/null | head -n 20 || true
+  else
+    echo "DEBUG: $path (missing)"
+  fi
 }
 
 print_donor_selector() {
@@ -377,7 +453,7 @@ boot_target() {
       fi
     fi
   fi
-  # mount vendor partition and bind modules/firmware if present
+  # mount vendor partition and copy modules/firmware if present
   bind_vendor_into
   #bind mount /dev/console to show systemd boot msgs
   if [ -f "/bin/frecon-lite" ]; then
@@ -408,11 +484,16 @@ boot_chromeos() {
   mount -t tmpfs -o mode=0555 run /newroot/run
   mkdir -p -m 0755 /newroot/run/lock
 
-  echo "mounting donor partition"
+  echo "mounting donor partition: $donor"
   local donor_mount="/newroot/tmp/donor_mnt"
   local donor_files="/newroot/tmp/donor"
   mkdir -p $donor_mount
+  donor_label="$(blkid -o value -s LABEL "$donor" 2>/dev/null || true)"
+  echo "donor: device=$donor label=${donor_label:-N/A}"
   mount -o ro $donor $donor_mount
+  echo "donor: mounted at $donor_mount"
+  debug_dir "$donor_mount/lib/modules"
+  debug_dir "$donor_mount/lib/firmware"
 
   # Safely handle missing directories on donor (e.g., vendor may be empty)
   mkdir -p "$donor_files"
@@ -420,49 +501,58 @@ boot_chromeos() {
   if [ -d "$donor_mount/lib/modules" ] || [ -d "$donor_mount/lib/firmware" ]; then
     mkdir -p "$donor_files/lib/modules" "$donor_files/lib/firmware"
 
-    # Decide whether to copy modules based on kernel version match with target ChromeOS rootfs
-    donor_module_version=""
-    target_module_version=""
+    # Always copy donor modules when present (no version gating)
     if [ -d "$donor_mount/lib/modules" ]; then
-      donor_module_version="$(ls -1 "$donor_mount/lib/modules" 2>/dev/null | head -n1)"
-    fi
-    if [ -d "/newroot/lib/modules" ]; then
-      target_module_version="$(ls -1 "/newroot/lib/modules" 2>/dev/null | head -n1)"
-    fi
-
-    copy_modules_flag=""
-    if [ -n "$donor_module_version" ] && [ -n "$target_module_version" ] && [ "$donor_module_version" = "$target_module_version" ]; then
-      copy_modules_flag="yes"
-      echo "module version match: $donor_module_version (donor) == $target_module_version (target), will copy modules"
-    else
-      if [ -n "$donor_module_version" ] || [ -n "$target_module_version" ]; then
-        echo "module version mismatch or unknown; donor='$donor_module_version' target='$target_module_version' — skipping modules copy"
-      else
-        echo "no module version information; skipping modules copy"
-      fi
-    fi
-
-    if [ "$copy_modules_flag" = "yes" ]; then
       echo "copying modules to tmpfs (may take a while)"
-      copy_progress "$donor_mount/lib/modules" "$donor_files/lib/modules" 2>/dev/null || true
+      debug_dir "$donor_mount/lib/modules"
+      mkdir -p "$donor_files/lib/modules"
+      if ! copy_progress "$donor_mount/lib/modules" "$donor_files/lib/modules" 2>/dev/null; then
+        cp -a "$donor_mount/lib/modules/." "$donor_files/lib/modules/" 2>/dev/null || true
+      fi
+      sync
+      echo "donor: modules staged"
+      debug_dir "$donor_files/lib/modules"
     else
-      echo "not copying donor modules"
-      rm -rf "$donor_files/lib/modules" 2>/dev/null || true
-      mkdir -p "$donor_files/lib/modules" # keep path for bind checks, but will skip bind if empty
+      echo "no modules directory in donor; skipping modules copy"
     fi
 
     if [ -d "$donor_mount/lib/firmware" ]; then
       echo "copying firmware to tmpfs (may take a while)"
-      copy_progress "$donor_mount/lib/firmware" "$donor_files/lib/firmware" 2>/dev/null || true
+      debug_dir "$donor_mount/lib/firmware"
+      mkdir -p "$donor_files/lib/firmware"
+      if ! copy_progress "$donor_mount/lib/firmware" "$donor_files/lib/firmware" 2>/dev/null; then
+        cp -a "$donor_mount/lib/firmware/." "$donor_files/lib/firmware/" 2>/dev/null || true
+      fi
+      sync
+      echo "donor: firmware staged"
+      debug_dir "$donor_files/lib/firmware"
     else
       echo "no firmware directory in donor; skipping firmware copy"
     fi
 
+    # For vendor donor, copy into /newroot; otherwise bind if non-empty
+    donor_is_vendor=""
+    # Detect by filesystem label first (robust even if path differs)
+    if blkid -o value -s LABEL "$donor" 2>/dev/null | grep -qx "shimboot_vendor"; then
+      donor_is_vendor="1"
+    else
+      # Fallback: compare against discovered vendor device path
+      vp="$(blkid -L shimboot_vendor 2>/dev/null || find_vendor_partition 2>/dev/null || true)"
+      if [ -n "$vp" ] && [ "$donor" = "$vp" ]; then
+        donor_is_vendor="1"
+      fi
+    fi
+
+    # Use bind mounts for both vendor and regular donors to avoid writing to read-only ChromeOS roots
     # Bind only if non-empty to avoid masking system paths with empty dirs
     if [ -d "$donor_files/lib/modules" ] && ls -1 "$donor_files/lib/modules" 2>/dev/null | grep -q .; then
+      echo "binding donor modules to /newroot/lib/modules"
+      mkdir -p /newroot/lib/modules
       mount -o bind "$donor_files/lib/modules" /newroot/lib/modules
     fi
     if [ -d "$donor_files/lib/firmware" ] && ls -1 "$donor_files/lib/firmware" 2>/dev/null | grep -q .; then
+      echo "binding donor firmware to /newroot/lib/firmware"
+      mkdir -p /newroot/lib/firmware
       mount -o bind "$donor_files/lib/firmware" /newroot/lib/firmware
     fi
   else
