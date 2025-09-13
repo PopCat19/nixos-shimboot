@@ -33,6 +33,10 @@ echo "=== Top-level rootfs structure ==="
 sudo ls -l "$WORKDIR/rootfs"
 
 echo
+echo "[INFO] Filesystem label for rootfs partition (should be: ${ROOTFS_NAME:-nixos})"
+sudo blkid "${LOOPDEV}p4" || true
+
+echo
 if [ -f "$WORKDIR/rootfs/sbin/init" ]; then
     echo "✅ Found /sbin/init"
 elif [ -f "$WORKDIR/rootfs/init" ]; then

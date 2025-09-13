@@ -124,16 +124,41 @@ LOOPDEV=""
 LOOPROOT=""
 
 cleanup() {
-    log_info "Unmounting and detaching loop devices..."
+    log_info "Cleanup: unmounting and detaching loop devices..."
     set +e
-    for mnt in "$WORKDIR/mnt_rootfs" "$WORKDIR/mnt_bootloader" "$WORKDIR/mnt_src_rootfs"; do
-        if mountpoint -q "$mnt"; then sudo umount "$mnt"; fi
+
+    # Try to unmount known mount points (normal, then lazy if busy)
+    for mnt in "$WORKDIR/mnt_rootfs" "$WORKDIR/mnt_bootloader" "$WORKDIR/mnt_src_rootfs" "$WORKDIR/inspect_rootfs"; do
+        if mountpoint -q "$mnt"; then
+            sudo umount "$mnt" || sudo umount -l "$mnt"
+        fi
     done
-    if [ -n "$LOOPDEV" ] && losetup "$LOOPDEV" &>/dev/null; then sudo losetup -d "$LOOPDEV"; fi
-    if [ -n "$LOOPROOT" ] && losetup "$LOOPROOT" &>/dev/null; then sudo losetup -d "$LOOPROOT"; fi
+
+    # Give kernel a moment to release references
+    sync
+    sleep 0.5
+
+    # Detach any loops recorded in variables if they still exist
+    if [ -n "${LOOPDEV:-}" ] && losetup "${LOOPDEV}" &>/dev/null; then
+        sudo losetup -d "${LOOPDEV}" || true
+    fi
+    if [ -n "${LOOPROOT:-}" ] && losetup "${LOOPROOT}" &>/dev/null; then
+        sudo losetup -d "${LOOPROOT}" || true
+    fi
+
+    # Detach any loop devices still associated with our images (belt and suspenders)
+    for img in "$IMAGE" "$WORKDIR/rootfs.img"; do
+        if [ -n "${img:-}" ] && [ -e "${img}" ]; then
+            while read -r dev; do
+                [ -n "$dev" ] || continue
+                sudo losetup -d "$dev" || true
+            done < <(losetup -j "$img" | cut -d: -f1)
+        fi
+    done
+
     set -e
 }
-trap cleanup EXIT
+trap cleanup EXIT INT TERM
 
 # === Step 0: Build Nix outputs ===
 log_step "0/8" "Building Nix outputs"
@@ -218,7 +243,8 @@ MKFS_EXT4_FLAGS="-O ^orphan_file,^metadata_csum_seed"
 sudo mkfs.ext4 -q $MKFS_EXT4_FLAGS "${LOOPDEV}p1"
 sudo dd if="$ORIGINAL_KERNEL" of="${LOOPDEV}p2" bs=1M conv=fsync status=progress
 sudo mkfs.ext2 -q "${LOOPDEV}p3"
-sudo mkfs.ext4 -q $MKFS_EXT4_FLAGS "${LOOPDEV}p4"
+# IMPORTANT: Label rootfs as $ROOTFS_NAME so NixOS can resolve fileSystems."/".device = /dev/disk/by-label/${ROOTFS_NAME}
+sudo mkfs.ext4 -q -L "$ROOTFS_NAME" $MKFS_EXT4_FLAGS "${LOOPDEV}p4"
 
 # === Step 7: Populate bootloader partition ===
 log_step "7/8" "Populate bootloader partition"
@@ -235,54 +261,15 @@ sudo mount "${LOOPDEV}p4" "$WORKDIR/mnt_rootfs"
 total_bytes=$(sudo du -sb "$WORKDIR/mnt_src_rootfs" | cut -f1)
 (cd "$WORKDIR/mnt_src_rootfs" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_rootfs" && sudo tar xf -)
 
-# Keep rootfs mounted for driver injection; unmount only source rootfs
+# Source rootfs unmounted; target rootfs remains mounted briefly before finalization
 sudo umount "$WORKDIR/mnt_src_rootfs"
 sudo losetup -d "$LOOPROOT"
 LOOPROOT=""
 
-# === Step 8.1: Harvest ChromeOS drivers and inject into mounted rootfs ===
-HARVEST_OUT="$WORKDIR/harvested"
-mkdir -p "$HARVEST_OUT"
-
-log_step "8.1" "Harvest ChromeOS drivers to $HARVEST_OUT"
-if [ -n "$RECOVERY_PATH" ]; then
-    sudo bash scripts/harvest-drivers.sh --shim "$SHIM_BIN" --recovery "$RECOVERY_PATH" --out "$HARVEST_OUT"
-else
-    sudo bash scripts/harvest-drivers.sh --shim "$SHIM_BIN" --out "$HARVEST_OUT"
-fi
-
-log_step "8.2" "Inject drivers into rootfs (p4)"
-# Replace modules from SHIM
-if [ -d "$HARVEST_OUT/lib/modules" ]; then
-    sudo mkdir -p "$WORKDIR/mnt_rootfs/lib"
-    sudo rm -rf "$WORKDIR/mnt_rootfs/lib/modules"
-    sudo cp -a "$HARVEST_OUT/lib/modules" "$WORKDIR/mnt_rootfs/lib/modules"
-else
-    log_warn "No harvested lib/modules found; skipping module replacement"
-fi
-
-# Merge firmware from SHIM and RECOVERY
-sudo mkdir -p "$WORKDIR/mnt_rootfs/lib/firmware"
-if [ -d "$HARVEST_OUT/lib/firmware" ]; then
-    sudo cp -a "$HARVEST_OUT/lib/firmware/." "$WORKDIR/mnt_rootfs/lib/firmware/" || true
-fi
-
-# Merge modprobe.d into lib only (avoid overriding policy in /etc)
-sudo mkdir -p "$WORKDIR/mnt_rootfs/lib/modprobe.d"
-if [ -d "$HARVEST_OUT/modprobe.d" ]; then
-    sudo cp -a "$HARVEST_OUT/modprobe.d/." "$WORKDIR/mnt_rootfs/lib/modprobe.d/" || true
-fi
-
-# Decompress .ko.gz if any, then depmod for each kernel version
-sudo find "$WORKDIR/mnt_rootfs/lib/modules" -name "*.gz" -print0 | xargs -0 -r sudo gunzip
-for kdir in "$WORKDIR/mnt_rootfs/lib/modules/"*; do
-    [ -d "$kdir" ] || continue
-    ver="$(basename "$kdir")"
-    log_info "Running depmod for kernel $ver"
-    sudo depmod -b "$WORKDIR/mnt_rootfs" "$ver"
-done
-
-# Done injecting; unmount rootfs
+# === Step 8.1-8.2 removed ===
+# NixOS manages kernel modules, firmware, and modprobe.d declaratively.
+# No driver harvesting or rootfs mutation performed at assembly time.
+# Unmount rootfs
 sudo umount "$WORKDIR/mnt_rootfs"
 
 # Detach loop devices used for target image
