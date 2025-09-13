@@ -83,6 +83,50 @@ find_all_partitions() {
   echo "$(find_rootfs_partitions)"
 }
 
+# locate the vendor helper partition (shimboot_rootfs:vendor)
+find_vendor_partition() {
+  local p="$(cgpt find -l 'shimboot_rootfs:vendor' 2>/dev/null | head -n1)"
+  if [ "$p" ]; then
+    echo "$p"
+    return 0
+  fi
+
+  # fallback: parse fdisk like find_rootfs_partitions does
+  local disks=$(fdisk -l | sed -n "s/Disk \(\/dev\/.*\):.*/\1/p")
+  for disk in $disks; do
+    local idx=$(fdisk -l $disk | sed -n "s/^[ ]\+\([0-9]\+\).*shimboot_rootfs:vendor$/\1/p" | head -n1)
+    if [ "$idx" ]; then
+      get_part_dev "$disk" "$idx"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# mount vendor and bind its modules/firmware into the target root
+bind_vendor_into() {
+  local target_root="/newroot"
+  local vendor_part="$(find_vendor_partition)"
+  if [ ! "$vendor_part" ]; then
+    return 0
+  fi
+
+  echo "mounting vendor partition at ${target_root}/.vendor (read-only)"
+  mkdir -p "${target_root}/.vendor"
+  if mount -o ro "$vendor_part" "${target_root}/.vendor"; then
+    if [ -d "${target_root}/.vendor/lib/modules" ]; then
+      mkdir -p "${target_root}/lib/modules"
+      mount -o bind "${target_root}/.vendor/lib/modules" "${target_root}/lib/modules"
+    fi
+    if [ -d "${target_root}/.vendor/lib/firmware" ]; then
+      mkdir -p "${target_root}/lib/firmware"
+      mount -o bind "${target_root}/.vendor/lib/firmware" "${target_root}/lib/firmware"
+    fi
+  else
+    echo "failed to mount vendor partition"
+  fi
+}
+
 #from original bootstrap.sh
 move_mounts() {
   local base_mounts="/sys /proc /dev"
@@ -134,6 +178,11 @@ print_selector() {
       #i don't know of a better way to split a string in the busybox shell
       local part_path=$(echo $rootfs_partition | cut -d ":" -f 1)
       local part_name=$(echo $rootfs_partition | cut -d ":" -f 2)
+      local part_flags=$(echo $rootfs_partition | cut -d ":" -f 3)
+      # hide vendor helper partition from menu
+      if [ "$part_name" = "vendor" ]; then
+        continue
+      fi
       echo "${i}) ${part_name} on ${part_path}"
       i=$((i+1))
     done
@@ -178,6 +227,11 @@ get_selection() {
     local part_path=$(echo $rootfs_partition | cut -d ":" -f 1)
     local part_name=$(echo $rootfs_partition | cut -d ":" -f 2)
     local part_flags=$(echo $rootfs_partition | cut -d ":" -f 3)
+
+    # skip vendor helper partition from selection indices
+    if [ "$part_name" = "vendor" ]; then
+      continue
+    fi
 
     if [ "$selection" = "$i" ]; then
       echo "selected $part_path"
@@ -323,8 +377,10 @@ boot_target() {
       fi
     fi
   fi
+  # mount vendor partition and bind modules/firmware if present
+  bind_vendor_into
   #bind mount /dev/console to show systemd boot msgs
-  if [ -f "/bin/frecon-lite" ]; then 
+  if [ -f "/bin/frecon-lite" ]; then
     rm -f /dev/console
     touch /dev/console #this has to be a regular file otherwise the system crashes afterwards
     mount -o bind "$TTY1" /dev/console
@@ -357,11 +413,62 @@ boot_chromeos() {
   local donor_files="/newroot/tmp/donor"
   mkdir -p $donor_mount
   mount -o ro $donor $donor_mount
-  echo "copying modules and firmware to tmpfs (this may take a while)"
-  copy_progress $donor_mount/lib/modules $donor_files/lib/modules
-  copy_progress $donor_mount/lib/firmware $donor_files/lib/firmware
-  mount -o bind $donor_files/lib/modules /newroot/lib/modules
-  mount -o bind $donor_files/lib/firmware /newroot/lib/firmware
+
+  # Safely handle missing directories on donor (e.g., vendor may be empty)
+  mkdir -p "$donor_files"
+  echo "preparing donor drivers from $donor_mount"
+  if [ -d "$donor_mount/lib/modules" ] || [ -d "$donor_mount/lib/firmware" ]; then
+    mkdir -p "$donor_files/lib/modules" "$donor_files/lib/firmware"
+
+    # Decide whether to copy modules based on kernel version match with target ChromeOS rootfs
+    donor_module_version=""
+    target_module_version=""
+    if [ -d "$donor_mount/lib/modules" ]; then
+      donor_module_version="$(ls -1 "$donor_mount/lib/modules" 2>/dev/null | head -n1)"
+    fi
+    if [ -d "/newroot/lib/modules" ]; then
+      target_module_version="$(ls -1 "/newroot/lib/modules" 2>/dev/null | head -n1)"
+    fi
+
+    copy_modules_flag=""
+    if [ -n "$donor_module_version" ] && [ -n "$target_module_version" ] && [ "$donor_module_version" = "$target_module_version" ]; then
+      copy_modules_flag="yes"
+      echo "module version match: $donor_module_version (donor) == $target_module_version (target), will copy modules"
+    else
+      if [ -n "$donor_module_version" ] || [ -n "$target_module_version" ]; then
+        echo "module version mismatch or unknown; donor='$donor_module_version' target='$target_module_version' — skipping modules copy"
+      else
+        echo "no module version information; skipping modules copy"
+      fi
+    fi
+
+    if [ "$copy_modules_flag" = "yes" ]; then
+      echo "copying modules to tmpfs (may take a while)"
+      copy_progress "$donor_mount/lib/modules" "$donor_files/lib/modules" 2>/dev/null || true
+    else
+      echo "not copying donor modules"
+      rm -rf "$donor_files/lib/modules" 2>/dev/null || true
+      mkdir -p "$donor_files/lib/modules" # keep path for bind checks, but will skip bind if empty
+    fi
+
+    if [ -d "$donor_mount/lib/firmware" ]; then
+      echo "copying firmware to tmpfs (may take a while)"
+      copy_progress "$donor_mount/lib/firmware" "$donor_files/lib/firmware" 2>/dev/null || true
+    else
+      echo "no firmware directory in donor; skipping firmware copy"
+    fi
+
+    # Bind only if non-empty to avoid masking system paths with empty dirs
+    if [ -d "$donor_files/lib/modules" ] && ls -1 "$donor_files/lib/modules" 2>/dev/null | grep -q .; then
+      mount -o bind "$donor_files/lib/modules" /newroot/lib/modules
+    fi
+    if [ -d "$donor_files/lib/firmware" ] && ls -1 "$donor_files/lib/firmware" 2>/dev/null | grep -q .; then
+      mount -o bind "$donor_files/lib/firmware" /newroot/lib/firmware
+    fi
+  else
+    echo "donor has no lib/modules or lib/firmware; skipping driver bind"
+  fi
+
   umount $donor_mount
   rm -rf $donor_mount
 

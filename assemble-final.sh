@@ -57,6 +57,10 @@ while [ $# -gt 0 ]; do
       ROOTFS_FLAVOR="${2:-}"
       shift 2
       ;;
+    --drivers)
+      DRIVERS_MODE="${2:-vendor}"
+      shift 2
+      ;;
     --inspect)
       INSPECT_AFTER="--inspect"
       shift
@@ -111,6 +115,9 @@ if [ "${ROOTFS_FLAVOR}" = "minimal" ]; then
 fi
 
 log_info "Rootfs flavor: ${ROOTFS_FLAVOR} (attr: .#${RAW_ROOTFS_ATTR})"
+# Default drivers mode to 'vendor' unless overridden by --drivers or env
+DRIVERS_MODE="${DRIVERS_MODE:-vendor}"
+log_info "Drivers mode: ${DRIVERS_MODE} (vendor|inject|none)"
 
 # === Cleanup workspace ===
 if [ -d "$WORKDIR" ]; then
@@ -227,8 +234,30 @@ sudo losetup -d "$LOOPROOT"
 LOOPROOT=""
 
 ROOTFS_PART_SIZE=$(( (ROOTFS_SIZE_MB * 12 / 10) + 5 ))
-TOTAL_SIZE_MB=$((1 + 32 + 20 + ROOTFS_PART_SIZE))
+
+# Estimate vendor partition size from harvested drivers
+VENDOR_SRC_SIZE_MB=0
+if [ -d "$HARVEST_OUT/lib/modules" ]; then
+  VENDOR_SRC_SIZE_MB=$(( VENDOR_SRC_SIZE_MB + $(sudo du -sm "$HARVEST_OUT/lib/modules" | cut -f1) ))
+fi
+if [ -d "$HARVEST_OUT/lib/firmware" ]; then
+  VENDOR_SRC_SIZE_MB=$(( VENDOR_SRC_SIZE_MB + $(sudo du -sm "$HARVEST_OUT/lib/firmware" | cut -f1) ))
+fi
+
+if [ "$VENDOR_SRC_SIZE_MB" -le 0 ]; then
+  # Default vendor size when no harvest is available
+  VENDOR_PART_SIZE=256
+  log_warn "No harvested drivers; defaulting vendor partition to ${VENDOR_PART_SIZE} MB"
+else
+  # 20% headroom + 32MB buffer
+  VENDOR_PART_SIZE=$(( (VENDOR_SRC_SIZE_MB * 12 / 10) + 32 ))
+fi
+
+# Compute end of rootfs and total size (MiB)
+ROOTFS_END_MB=$((54 + ROOTFS_PART_SIZE))
+TOTAL_SIZE_MB=$((1 + 32 + 20 + ROOTFS_PART_SIZE + VENDOR_PART_SIZE))
 log_info "Rootfs partition size: ${ROOTFS_PART_SIZE} MB"
+log_info "Vendor partition size: ${VENDOR_PART_SIZE} MB"
 log_info "Total image size: ${TOTAL_SIZE_MB} MB"
 
 # === Step 3: Create empty image ===
@@ -236,7 +265,7 @@ log_step "3/8" "Create empty image"
 fallocate -l ${TOTAL_SIZE_MB}M "$IMAGE"
 
 # === Step 4: Partition image ===
-log_step "4/8" "Partition image (GPT, ChromeOS GUIDs)"
+log_step "4/8" "Partition image (GPT, ChromeOS GUIDs + vendor)"
 parted --script "$IMAGE" \
   mklabel gpt \
   mkpart stateful ext4 1MiB 2MiB \
@@ -247,8 +276,12 @@ parted --script "$IMAGE" \
   mkpart bootloader ext2 34MiB 54MiB \
   name 3 BOOT \
   type 3 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC \
-  mkpart rootfs ext4 54MiB 100% \
-  name 4 "shimboot_rootfs:${ROOTFS_NAME}"
+  mkpart rootfs ext4 54MiB ${ROOTFS_END_MB}MiB \
+  name 4 "shimboot_rootfs:${ROOTFS_NAME}" \
+  type 4 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC \
+  mkpart vendor ext4 ${ROOTFS_END_MB}MiB 100% \
+  name 5 "shimboot_rootfs:vendor" \
+  type 5 0FC63DAF-8483-4772-8E79-3D69D8477DE4
 
 log_info "Partition table:"
 sudo partx -o NR,START,END,SIZE,TYPE,NAME,UUID -g --show "$IMAGE"
@@ -271,6 +304,8 @@ sudo dd if="$ORIGINAL_KERNEL" of="${LOOPDEV}p2" bs=1M conv=fsync status=progress
 sudo mkfs.ext2 -q "${LOOPDEV}p3"
 # IMPORTANT: Label rootfs as $ROOTFS_NAME so NixOS can resolve fileSystems."/".device = /dev/disk/by-label/${ROOTFS_NAME}
 sudo mkfs.ext4 -q -L "$ROOTFS_NAME" $MKFS_EXT4_FLAGS "${LOOPDEV}p4"
+# Vendor partition (drivers/firmware donor)
+sudo mkfs.ext4 -q -L "shimboot_vendor" $MKFS_EXT4_FLAGS "${LOOPDEV}p5"
 
 # === Step 7: Populate bootloader partition ===
 log_step "7/8" "Populate bootloader partition"
@@ -293,9 +328,83 @@ sudo losetup -d "$LOOPROOT"
 LOOPROOT=""
 
 # === Step 8.1: Inject harvested drivers into rootfs (optional) ===
-DRIVERS_MODE="${DRIVERS_MODE:-inject}"
+# DRIVERS_MODE set earlier (default 'vendor'); valid: vendor|inject|none
 
 case "$DRIVERS_MODE" in
+  vendor|CROSDRV)
+    log_step "8.1" "Populate vendor partition with harvested drivers (/lib/modules, /lib/firmware)"
+    if [ ! -b "${LOOPDEV}p5" ]; then
+      log_error "Vendor partition p5 not found on ${LOOPDEV}"
+    else
+      sudo mkdir -p "$WORKDIR/mnt_vendor"
+      sudo mount "${LOOPDEV}p5" "$WORKDIR/mnt_vendor"
+      sudo mkdir -p "$WORKDIR/mnt_vendor/lib/modules" "$WORKDIR/mnt_vendor/lib/firmware"
+
+      if [ -d "$HARVEST_OUT/lib/modules" ]; then
+        log_info "Copying modules to vendor..."
+        sudo cp -a "$HARVEST_OUT/lib/modules/." "$WORKDIR/mnt_vendor/lib/modules/"
+      else
+        log_warn "No harvested lib/modules; nothing to place into vendor partition"
+      fi
+
+      if [ -d "$HARVEST_OUT/lib/firmware" ]; then
+        log_info "Copying firmware to vendor..."
+        sudo cp -a "$HARVEST_OUT/lib/firmware/." "$WORKDIR/mnt_vendor/lib/firmware/"
+      else
+        log_warn "No harvested lib/firmware; nothing to place into vendor partition"
+      fi
+
+      sudo sync
+      sudo umount "$WORKDIR/mnt_vendor"
+    fi
+    ;;
+  both)
+    log_step "8.1" "Populate vendor partition with harvested drivers, then inject into rootfs"
+    if [ ! -b "${LOOPDEV}p5" ]; then
+      log_error "Vendor partition p5 not found on ${LOOPDEV}"
+    else
+      sudo mkdir -p "$WORKDIR/mnt_vendor"
+      sudo mount "${LOOPDEV}p5" "$WORKDIR/mnt_vendor"
+      sudo mkdir -p "$WORKDIR/mnt_vendor/lib/modules" "$WORKDIR/mnt_vendor/lib/firmware"
+
+      if [ -d "$HARVEST_OUT/lib/modules" ]; then
+        log_info "Copying modules to vendor..."
+        sudo cp -a "$HARVEST_OUT/lib/modules/." "$WORKDIR/mnt_vendor/lib/modules/"
+      else
+        log_warn "No harvested lib/modules; nothing to place into vendor partition"
+      fi
+
+      if [ -d "$HARVEST_OUT/lib/firmware" ]; then
+        log_info "Copying firmware to vendor..."
+        sudo cp -a "$HARVEST_OUT/lib/firmware/." "$WORKDIR/mnt_vendor/lib/firmware/"
+      else
+        log_warn "No harvested lib/firmware; nothing to place into vendor partition"
+      fi
+
+      sudo sync
+      sudo umount "$WORKDIR/mnt_vendor"
+    fi
+
+    log_step "8.1b" "Inject drivers into rootfs (/lib/modules, /lib/firmware, modprobe.d)"
+    if [ -d "$HARVEST_OUT/lib/modules" ]; then
+      sudo rm -rf "$WORKDIR/mnt_rootfs/lib/modules"
+      sudo mkdir -p "$WORKDIR/mnt_rootfs/lib"
+      sudo cp -a "$HARVEST_OUT/lib/modules" "$WORKDIR/mnt_rootfs/lib/modules"
+    else
+      log_warn "No harvested lib/modules; skipping module injection"
+    fi
+    if [ -d "$HARVEST_OUT/lib/firmware" ]; then
+      sudo mkdir -p "$WORKDIR/mnt_rootfs/lib/firmware"
+      sudo cp -a "$HARVEST_OUT/lib/firmware/." "$WORKDIR/mnt_rootfs/lib/firmware/"
+    else
+      log_warn "No harvested lib/firmware; skipping firmware injection"
+    fi
+    if [ -d "$HARVEST_OUT/modprobe.d" ]; then
+      sudo mkdir -p "$WORKDIR/mnt_rootfs/lib/modprobe.d" "$WORKDIR/mnt_rootfs/etc/modprobe.d"
+      sudo cp -a "$HARVEST_OUT/modprobe.d/." "$WORKDIR/mnt_rootfs/lib/modprobe.d/" 2>/dev/null || true
+      sudo cp -a "$HARVEST_OUT/modprobe.d/." "$WORKDIR/mnt_rootfs/etc/modprobe.d/" 2>/dev/null || true
+    fi
+    ;;
   inject)
     log_step "8.1" "Inject drivers into rootfs (/lib/modules, /lib/firmware, modprobe.d)"
     if [ -d "$HARVEST_OUT/lib/modules" ]; then
@@ -320,8 +429,23 @@ case "$DRIVERS_MODE" in
   none)
     log_info "DRIVERS_MODE=none; leaving rootfs unchanged"
     ;;
-  vendor|CROSDRV)
-    log_warn "DRIVERS_MODE=${DRIVERS_MODE} requested, but vendor partition is not yet implemented in this assembler"
+  *)
+    log_warn "Unknown DRIVERS_MODE='${DRIVERS_MODE}', defaulting to vendor populate"
+    if [ -b "${LOOPDEV}p5" ]; then
+      sudo mkdir -p "$WORKDIR/mnt_vendor"
+      sudo mount "${LOOPDEV}p5" "$WORKDIR/mnt_vendor"
+      sudo mkdir -p "$WORKDIR/mnt_vendor/lib/modules" "$WORKDIR/mnt_vendor/lib/firmware"
+      if [ -d "$HARVEST_OUT/lib/modules" ]; then
+        sudo cp -a "$HARVEST_OUT/lib/modules/." "$WORKDIR/mnt_vendor/lib/modules/"
+      fi
+      if [ -d "$HARVEST_OUT/lib/firmware" ]; then
+        sudo cp -a "$HARVEST_OUT/lib/firmware/." "$WORKDIR/mnt_vendor/lib/firmware/"
+      fi
+      sudo sync
+      sudo umount "$WORKDIR/mnt_vendor"
+    else
+      log_error "Vendor partition p5 not found on ${LOOPDEV}"
+    fi
     ;;
 esac
 
