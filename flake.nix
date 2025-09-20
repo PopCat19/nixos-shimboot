@@ -33,29 +33,30 @@
   }: let
     system = "x86_64-linux";
 
-    # Import all module outputs
+    # Import module outputs
+    # Core system and development modules
     rawImageOutputs = import ./flake_modules/raw-image.nix {inherit self nixpkgs nixos-generators home-manager zen-browser;};
     systemConfigurationOutputs = import ./flake_modules/system-configuration.nix {inherit self nixpkgs home-manager zen-browser;};
     developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix {inherit self nixpkgs;};
+    
+    # ChromeOS and patch_initramfs modules
+    chromeosSourcesOutputs = import ./flake_modules/chromeos-sources.nix {inherit self nixpkgs;};
     kernelExtractionOutputs = import ./flake_modules/patch_initramfs/kernel-extraction.nix {inherit self nixpkgs;};
     initramfsExtractionOutputs = import ./flake_modules/patch_initramfs/initramfs-extraction.nix {inherit self nixpkgs;};
     initramfsPatchingOutputs = import ./flake_modules/patch_initramfs/initramfs-patching.nix {inherit self nixpkgs;};
-    # finalImageOutputs = import ./flake_modules/patch_initramfs/final-image.nix { inherit self nixpkgs; };
-    chromeosSourcesOutputs = import ./flake_modules/chromeos-sources.nix {inherit self nixpkgs;};
-    # Patched systemd as a standalone package
-    systemdPatchedOutputs = import ./flake_modules/systemd-patched.nix {inherit self nixpkgs;};
+    
 
     # Merge packages from all modules
     packages = {
       ${system} =
+        # Core image generation packages
         (rawImageOutputs.packages.${system} or {})
+        # ChromeOS source packages
+        // (chromeosSourcesOutputs.packages.${system} or {})
+        # Initramfs patching pipeline packages
         // (kernelExtractionOutputs.packages.${system} or {})
         // (initramfsExtractionOutputs.packages.${system} or {})
-        // (initramfsPatchingOutputs.packages.${system} or {})
-        //
-        # (finalImageOutputs.packages.${system} or {}) //
-        (chromeosSourcesOutputs.packages.${system} or {})
-        // (systemdPatchedOutputs.packages.${system} or {});
+        // (initramfsPatchingOutputs.packages.${system} or {});
     };
 
     # Set default package to raw-rootfs
