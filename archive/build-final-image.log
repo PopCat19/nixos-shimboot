@@ -1,2781 +1,0 @@
->> [1;32mStarting shimboot NixOS image build process...[0m
-   [0;36mProject root: /home/popcat19/nixos-shimboot[0m
-   [0;36mShim file: /home/popcat19/nixos-shimboot/data/shim.bin[0m
-   [0;36mRecovery file: /home/popcat19/nixos-shimboot/data/recovery.bin[0m
-   [0;36mKernel file: /home/popcat19/nixos-shimboot/data/kernel.bin[0m
-   [0;36mBootloader dir: /home/popcat19/nixos-shimboot/bootloader[0m
-   [0;36mOutput path: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mScript PID: 33400[0m
-   [0;36mUser: popcat19 (UID: 1000, GID: 100)[0m
-   [0;36mGroups: users wheel audio video networkmanager libvirtd input i2c[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/recovery.bin exists - will harvest additional drivers[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
-   [0;36mStarting sudo keepalive process...[0m
-   [0;36mSudo keepalive PID: 33428[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32mNixOS raw image generated at /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
-   [0;36mImage size: -r--r--r-- 1 root root 11G Dec 31  1969 /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
->> [1;32mStep 2: Harvesting kernel, initramfs, and modules from shim...[0m
->> [1;32mHarvesting kernel, initramfs, and modules from shim...[0m
->> [1;32mWorking directory: /tmp/tmp.X6vCeu[0m
-   [0;36mTemp directory permissions: drwx------ 2 popcat19 users 4096 Aug  4 05:00 /tmp/tmp.X6vCeu[0m
->> [1;32mMounting original ChromeOS rootfs to harvest modules...[0m
-   [0;36mAssigned shim loop device: /dev/loop0[0m
-   [0;36mMounting shim rootfs partition: /dev/loop0p3 -> /tmp/shim_rootfs_mount.noE14t[0m
-   [0;36mLooking for modules in /tmp/shim_rootfs_mount.noE14t/lib/modules/5.4.85-22138-ga9994f5cad40[0m
->> [1;32mFound modules for kernel 5.4.85-22138-ga9994f5cad40, copying...[0m
-   [0;36mShim modules harvested successfully to /tmp/tmp.X6vCeu/kernel_modules[0m
->> [1;32mHarvesting firmware from shim...[0m
-   [0;36mShim firmware copied to /tmp/tmp.X6vCeu/firmware[0m
-   [0;36mUnmounting /tmp/shim_rootfs_mount.noE14t...[0m
-   [0;36mRemoving temp directory /tmp/shim_rootfs_mount.noE14t...[0m
-   [0;36mDetaching loop device /dev/loop0...[0m
->> [1;32mMounting recovery image to harvest additional drivers...[0m
-   [0;36mAssigned recovery loop device: /dev/loop0[0m
-   [0;36mMounting recovery rootfs partition: /dev/loop0p3 -> /tmp/recovery_rootfs_mount.1sYyeL[0m
->> [1;32mHarvesting additional firmware from recovery image...[0m
-   [0;36mRecovery firmware merged into /tmp/tmp.X6vCeu/firmware[0m
->> [1;32mHarvesting modprobe configurations from recovery...[0m
-   [0;36mRecovery lib modprobe.d copied[0m
-   [0;36mRecovery etc modprobe.d copied[0m
-   [0;36mUnmounting /tmp/recovery_rootfs_mount.1sYyeL...[0m
-   [0;36mRemoving temp directory /tmp/recovery_rootfs_mount.1sYyeL...[0m
-   [0;36mDetaching loop device /dev/loop0...[0m
->> [1;32mExtracting kernel partition (KERN-A)...[0m
-   [0;36mRunning: sudo cgpt show -i 2 "/home/popcat19/nixos-shimboot/data/shim.bin"[0m
-   [0;36mcgpt output:[0m
-   [0;36m       start        size    part  contents
-          69       65536       2  Label: "KERN-A"
-                                  Type: ChromeOS kernel
-                                  UUID: B5BAF579-07EF-A747-858B-87C0E507CD29
-                                  Attr: priority=15 tries=15 successful=1 [0m
-   [0;36mPartition start: 69, size: 65536[0m
-   [0;36mExtracting kernel with dd...[0m
-65536+0 records in
-65536+0 records out
-33554432 bytes (34 MB, 32 MiB) copied, 0.243517 s, 138 MB/s
-   [0;36mFixing ownership of /home/popcat19/nixos-shimboot/data/kernel.bin...[0m
->> [1;32mExtracting initramfs from kernel...[0m
-   [0;36mStage 1: Finding gzip offset...[0m
-
-                                                                              /home/popcat19/nixos-shimboot/data/kernel.bin
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-DECIMAL                            HEXADECIMAL                        DESCRIPTION
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-66282                              0x102EA                            gzip compressed data, operating system: Unix, timestamp: 1970-01-01 00:00:00, total size: 11241091 bytes
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-Analyzed 1 file for 1 file signatures (1 magic patterns) in 104.0 milliseconds
-   [0;36mGzip offset: 66282[0m
-   [0;36mStage 1: Decompressing kernel...[0m
-
-gzip: stdin: decompression OK, trailing garbage ignored
-   [0;36mStage 2: Finding XZ offset...[0m
-
-                                                                                 /tmp/tmp.X6vCeu/decompressed_kernel.bin
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-DECIMAL                            HEXADECIMAL                        DESCRIPTION
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-0                                  0x0                                ELF binary, 64-bit executable, AMD X86-64 for System-V (Unix), little endian
-19193152                           0x124DD40                          CRC32 polynomial table, little endian
-22018539                           0x14FF9EB                          Copyright text: "Copyright(c) Pierre Ossman "
-23003520                           0x15F0180                          SHA256 hash constants, little endian
-23003776                           0x15F0280                          SHA256 hash constants, little endian
-23003792                           0x15F0290                          SHA256 hash constants, little endian
-23007232                           0x15F1000                          ELF binary, 64-bit shared object, AMD X86-64 for System-V (Unix), little endian
-23011328                           0x15F2000                          ELF binary, 32-bit shared object, x86 for System-V (Unix), little endian
-25208512                           0x180A6C0                          AES S-Box
-25208768                           0x180A7C0                          AES S-Box
-32961504                           0x1F6F3E0                          XZ compressed data, total size: 1867492 bytes
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-Analyzed 1 file for 85 file signatures (187 magic patterns) in 216.0 milliseconds
-   [0;36mXZ offset: 32961504[0m
-   [0;36mStage 2: Extracting XZ cpio archive...[0m
-xz: (stdin): Compressed data is corrupt
-cpio: dev/null: Cannot mknod: Operation not permitted
-cpio: dev/zero: Cannot mknod: Operation not permitted
-cpio: dev/console: Cannot mknod: Operation not permitted
-9998 blocks
-   [0;36mInitramfs extraction complete.[0m
->> [1;32mPatching initramfs with shimboot bootloader...[0m
-   [0;36mOriginal init script: /tmp/tmp.X6vCeu/initramfs_extracted/init[0m
-   [0;36mCopying bootloader from: /home/popcat19/nixos-shimboot/bootloader[0m
-   [0;36mAdding exec hook to init script...[0m
-   [0;36mMaking bootloader scripts executable...[0m
-   [0;36mInitramfs patching complete[0m
->> [1;32mStep 3: Mounting NixOS image...[0m
->> [1;32mMounting source NixOS image to extract rootfs...[0m
-   [0;36mNixOS image path: /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
-   [0;36mAssigned NixOS source loop device: /dev/loop0[0m
-   [0;36mMounting NixOS source partition: /dev/loop0p1 -> /tmp/nixos_source_mount[0m
->> [1;32mStep 4: Assembling final disk image...[0m
->> [1;32mAssembling the final disk image...[0m
-   [0;36mOutput path: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mEstimating required rootfs size from source NixOS image...[0m
-   [0;36mNixOS used space: 7905MB[0m
-   [0;36mFinal rootfs partition size: 10776MB[0m
-   [0;36mBootloader partition size: 32MB[0m
-   [0;36mTotal image size: 10841MB[0m
->> [1;32mCreating 10841MB disk image[0m
-   [0;36mCreating disk image with dd: bs=1M count=10841[0m
-1736441856 bytes (1.7 GB, 1.6 GiB) copied, 1 s, 1.7 GB/s3404726272 bytes (3.4 GB, 3.2 GiB) copied, 2 s, 1.7 GB/s3927965696 bytes (3.9 GB, 3.7 GiB) copied, 3 s, 1.3 GB/s4364173312 bytes (4.4 GB, 4.1 GiB) copied, 4 s, 1.1 GB/s4752146432 bytes (4.8 GB, 4.4 GiB) copied, 5 s, 950 MB/s5350883328 bytes (5.4 GB, 5.0 GiB) copied, 6 s, 892 MB/s5699010560 bytes (5.7 GB, 5.3 GiB) copied, 7 s, 814 MB/s6005194752 bytes (6.0 GB, 5.6 GiB) copied, 8 s, 749 MB/s6301941760 bytes (6.3 GB, 5.9 GiB) copied, 9 s, 700 MB/s6685720576 bytes (6.7 GB, 6.2 GiB) copied, 10 s, 668 MB/s7113539584 bytes (7.1 GB, 6.6 GiB) copied, 11 s, 646 MB/s7463763968 bytes (7.5 GB, 7.0 GiB) copied, 12 s, 622 MB/s7824474112 bytes (7.8 GB, 7.3 GiB) copied, 13 s, 601 MB/s8153726976 bytes (8.2 GB, 7.6 GiB) copied, 14 s, 582 MB/s8455716864 bytes (8.5 GB, 7.9 GiB) copied, 15 s, 563 MB/s8757706752 bytes (8.8 GB, 8.2 GiB) copied, 16 s, 547 MB/s9061793792 bytes (9.1 GB, 8.4 GiB) copied, 17 s, 533 MB/s9377415168 bytes (9.4 GB, 8.7 GiB) copied, 18 s, 521 MB/s9717153792 bytes (9.7 GB, 9.0 GiB) copied, 19 s, 511 MB/s10072621056 bytes (10 GB, 9.4 GiB) copied, 20 s, 504 MB/s10470031360 bytes (10 GB, 9.8 GiB) copied, 21 s, 498 MB/s10853810176 bytes (11 GB, 10 GiB) copied, 22 s, 493 MB/s 11193548800 bytes (11 GB, 10 GiB) copied, 23 s, 487 MB/s
-10841+0 records in
-10841+0 records out
-11367612416 bytes (11 GB, 11 GiB) copied, 23.5493 s, 483 MB/s
->> [1;32mPartitioning disk image[0m
-   [0;36mVerifying partition table:[0m
-Disk /home/popcat19/nixos-shimboot/shimboot_nixos.bin: 10.59 GiB, 11367612416 bytes, 22202368 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-Disklabel type: gpt
-Disk identifier: B986B3F4-722D-4D7F-A6A5-0A7EF9500F4A
-
-Device                                             Start      End  Sectors  Size Type
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin1   2048     4095     2048    1M Linux filesystem
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin2   4096    69631    65536   32M ChromeOS kernel
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin3  69632   135167    65536   32M ChromeOS root fs
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin4 135168 22200319 22065152 10.5G Linux filesystem
->> [1;32mCreating loop device for final image[0m
-   [0;36mAssigned final image loop device: /dev/loop1[0m
->> [1;32mFormatting partitions[0m
-mke2fs 1.47.2 (1-Jan-2025)
-
-Filesystem too small for a journal
-32+0 records in
-32+0 records out
-33554432 bytes (34 MB, 32 MiB) copied, 0.3625 s, 92.6 MB/s
-mke2fs 1.47.2 (1-Jan-2025)
-mke2fs 1.47.2 (1-Jan-2025)
->> [1;32mCopying bootloader...[0m
-   [0;36mUnmounting /tmp/shim_bootloader...[0m
->> [1;32mCopying NixOS rootfs... (this may take a while)[0m
-   [0;36mCopying rootfs from source image to partition...[0m
-   [0;36mRootfs copy complete[0m
->> [1;32mCreating systemd init symlink...[0m
-   [0;36mFound systemd binary at: /tmp/new_rootfs/nix/store/wq3ivni0plh7g8xl3my8qr9llh4dy7q4-systemd-257.6/lib/systemd/systemd[0m
-   [0;36mCreating symlink /init -> /nix/store/wq3ivni0plh7g8xl3my8qr9llh4dy7q4-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mInjecting harvested kernel modules into new rootfs...[0m
-   [0;36mModules copied to /tmp/new_rootfs/lib/modules/[0m
->> [1;32mDecompressing kernel modules if needed...[0m
->> [1;32mInjecting harvested firmware into new rootfs...[0m
-   [0;36mFirmware copied to /tmp/new_rootfs/lib/firmware/[0m
->> [1;32mInjecting modprobe configurations into new rootfs...[0m
-   [0;36mModprobe configurations copied[0m
-   [0;36mManually creating traditional symlinks...[0m
->> [1;32mResetting machine-id for golden image...[0m
-   [0;36mEnsured /etc/machine-id is ready for first-boot generation.[0m
-   [0;36mFixing ownership of output file...[0m
->> [1;32mAll done! Your shimboot NixOS image is ready at: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mFinal image size: -rw-r--r-- 1 popcat19 users 11G Aug  4 05:02 /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
->> [1;32m✓ Built with recovery image drivers - should have better hardware support[0m
-
->> [1;32mLast 200 lines of the build log:[0m
->> [1;32mStarting shimboot NixOS image build process...[0m
-   [0;36mProject root: /home/popcat19/nixos-shimboot[0m
-   [0;36mShim file: /home/popcat19/nixos-shimboot/data/shim.bin[0m
-   [0;36mRecovery file: /home/popcat19/nixos-shimboot/data/recovery.bin[0m
-   [0;36mKernel file: /home/popcat19/nixos-shimboot/data/kernel.bin[0m
-   [0;36mBootloader dir: /home/popcat19/nixos-shimboot/bootloader[0m
-   [0;36mOutput path: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mScript PID: 33400[0m
-   [0;36mUser: popcat19 (UID: 1000, GID: 100)[0m
-   [0;36mGroups: users wheel audio video networkmanager libvirtd input i2c[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/recovery.bin exists - will harvest additional drivers[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
-   [0;36mStarting sudo keepalive process...[0m
-   [0;36mSudo keepalive PID: 33428[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32mNixOS raw image generated at /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
-   [0;36mImage size: -r--r--r-- 1 root root 11G Dec 31  1969 /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
->> [1;32mStep 2: Harvesting kernel, initramfs, and modules from shim...[0m
->> [1;32mHarvesting kernel, initramfs, and modules from shim...[0m
->> [1;32mWorking directory: /tmp/tmp.X6vCeu[0m
-   [0;36mTemp directory permissions: drwx------ 2 popcat19 users 4096 Aug  4 05:00 /tmp/tmp.X6vCeu[0m
->> [1;32mMounting original ChromeOS rootfs to harvest modules...[0m
-   [0;36mAssigned shim loop device: /dev/loop0[0m
-   [0;36mMounting shim rootfs partition: /dev/loop0p3 -> /tmp/shim_rootfs_mount.noE14t[0m
-   [0;36mLooking for modules in /tmp/shim_rootfs_mount.noE14t/lib/modules/5.4.85-22138-ga9994f5cad40[0m
->> [1;32mFound modules for kernel 5.4.85-22138-ga9994f5cad40, copying...[0m
-   [0;36mShim modules harvested successfully to /tmp/tmp.X6vCeu/kernel_modules[0m
->> [1;32mHarvesting firmware from shim...[0m
-   [0;36mShim firmware copied to /tmp/tmp.X6vCeu/firmware[0m
-   [0;36mUnmounting /tmp/shim_rootfs_mount.noE14t...[0m
-   [0;36mRemoving temp directory /tmp/shim_rootfs_mount.noE14t...[0m
-   [0;36mDetaching loop device /dev/loop0...[0m
->> [1;32mMounting recovery image to harvest additional drivers...[0m
-   [0;36mAssigned recovery loop device: /dev/loop0[0m
-   [0;36mMounting recovery rootfs partition: /dev/loop0p3 -> /tmp/recovery_rootfs_mount.1sYyeL[0m
->> [1;32mHarvesting additional firmware from recovery image...[0m
-   [0;36mRecovery firmware merged into /tmp/tmp.X6vCeu/firmware[0m
->> [1;32mHarvesting modprobe configurations from recovery...[0m
-   [0;36mRecovery lib modprobe.d copied[0m
-   [0;36mRecovery etc modprobe.d copied[0m
-   [0;36mUnmounting /tmp/recovery_rootfs_mount.1sYyeL...[0m
-   [0;36mRemoving temp directory /tmp/recovery_rootfs_mount.1sYyeL...[0m
-   [0;36mDetaching loop device /dev/loop0...[0m
->> [1;32mExtracting kernel partition (KERN-A)...[0m
-   [0;36mRunning: sudo cgpt show -i 2 "/home/popcat19/nixos-shimboot/data/shim.bin"[0m
-   [0;36mcgpt output:[0m
-   [0;36m       start        size    part  contents
-          69       65536       2  Label: "KERN-A"
-                                  Type: ChromeOS kernel
-                                  UUID: B5BAF579-07EF-A747-858B-87C0E507CD29
-                                  Attr: priority=15 tries=15 successful=1 [0m
-   [0;36mPartition start: 69, size: 65536[0m
-   [0;36mExtracting kernel with dd...[0m
-65536+0 records in
-65536+0 records out
-33554432 bytes (34 MB, 32 MiB) copied, 0.243517 s, 138 MB/s
-   [0;36mFixing ownership of /home/popcat19/nixos-shimboot/data/kernel.bin...[0m
->> [1;32mExtracting initramfs from kernel...[0m
-   [0;36mStage 1: Finding gzip offset...[0m
-
-                                                                              /home/popcat19/nixos-shimboot/data/kernel.bin
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-DECIMAL                            HEXADECIMAL                        DESCRIPTION
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-66282                              0x102EA                            gzip compressed data, operating system: Unix, timestamp: 1970-01-01 00:00:00, total size: 11241091 bytes
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-Analyzed 1 file for 1 file signatures (1 magic patterns) in 104.0 milliseconds
-   [0;36mGzip offset: 66282[0m
-   [0;36mStage 1: Decompressing kernel...[0m
-
-gzip: stdin: decompression OK, trailing garbage ignored
-   [0;36mStage 2: Finding XZ offset...[0m
-
-                                                                                 /tmp/tmp.X6vCeu/decompressed_kernel.bin
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-DECIMAL                            HEXADECIMAL                        DESCRIPTION
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-0                                  0x0                                ELF binary, 64-bit executable, AMD X86-64 for System-V (Unix), little endian
-19193152                           0x124DD40                          CRC32 polynomial table, little endian
-22018539                           0x14FF9EB                          Copyright text: "Copyright(c) Pierre Ossman "
-23003520                           0x15F0180                          SHA256 hash constants, little endian
-23003776                           0x15F0280                          SHA256 hash constants, little endian
-23003792                           0x15F0290                          SHA256 hash constants, little endian
-23007232                           0x15F1000                          ELF binary, 64-bit shared object, AMD X86-64 for System-V (Unix), little endian
-23011328                           0x15F2000                          ELF binary, 32-bit shared object, x86 for System-V (Unix), little endian
-25208512                           0x180A6C0                          AES S-Box
-25208768                           0x180A7C0                          AES S-Box
-32961504                           0x1F6F3E0                          XZ compressed data, total size: 1867492 bytes
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-Analyzed 1 file for 85 file signatures (187 magic patterns) in 216.0 milliseconds
-   [0;36mXZ offset: 32961504[0m
-   [0;36mStage 2: Extracting XZ cpio archive...[0m
-xz: (stdin): Compressed data is corrupt
-cpio: dev/null: Cannot mknod: Operation not permitted
-cpio: dev/zero: Cannot mknod: Operation not permitted
-cpio: dev/console: Cannot mknod: Operation not permitted
-9998 blocks
-   [0;36mInitramfs extraction complete.[0m
->> [1;32mPatching initramfs with shimboot bootloader...[0m
-   [0;36mOriginal init script: /tmp/tmp.X6vCeu/initramfs_extracted/init[0m
-   [0;36mCopying bootloader from: /home/popcat19/nixos-shimboot/bootloader[0m
-   [0;36mAdding exec hook to init script...[0m
-   [0;36mMaking bootloader scripts executable...[0m
-   [0;36mInitramfs patching complete[0m
->> [1;32mStep 3: Mounting NixOS image...[0m
->> [1;32mMounting source NixOS image to extract rootfs...[0m
-   [0;36mNixOS image path: /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
-   [0;36mAssigned NixOS source loop device: /dev/loop0[0m
-   [0;36mMounting NixOS source partition: /dev/loop0p1 -> /tmp/nixos_source_mount[0m
->> [1;32mStep 4: Assembling final disk image...[0m
->> [1;32mAssembling the final disk image...[0m
-   [0;36mOutput path: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mEstimating required rootfs size from source NixOS image...[0m
-   [0;36mNixOS used space: 7905MB[0m
-   [0;36mFinal rootfs partition size: 10776MB[0m
-   [0;36mBootloader partition size: 32MB[0m
-   [0;36mTotal image size: 10841MB[0m
->> [1;32mCreating 10841MB disk image[0m
-   [0;36mCreating disk image with dd: bs=1M count=10841[0m
-1736441856 bytes (1.7 GB, 1.6 GiB) copied, 1 s, 1.7 GB/s3404726272 bytes (3.4 GB, 3.2 GiB) copied, 2 s, 1.7 GB/s3927965696 bytes (3.9 GB, 3.7 GiB) copied, 3 s, 1.3 GB/s4364173312 bytes (4.4 GB, 4.1 GiB) copied, 4 s, 1.1 GB/s4752146432 bytes (4.8 GB, 4.4 GiB) copied, 5 s, 950 MB/s5350883328 bytes (5.4 GB, 5.0 GiB) copied, 6 s, 892 MB/s5699010560 bytes (5.7 GB, 5.3 GiB) copied, 7 s, 814 MB/s6005194752 bytes (6.0 GB, 5.6 GiB) copied, 8 s, 749 MB/s6301941760 bytes (6.3 GB, 5.9 GiB) copied, 9 s, 700 MB/s6685720576 bytes (6.7 GB, 6.2 GiB) copied, 10 s, 668 MB/s7113539584 bytes (7.1 GB, 6.6 GiB) copied, 11 s, 646 MB/s7463763968 bytes (7.5 GB, 7.0 GiB) copied, 12 s, 622 MB/s7824474112 bytes (7.8 GB, 7.3 GiB) copied, 13 s, 601 MB/s8153726976 bytes (8.2 GB, 7.6 GiB) copied, 14 s, 582 MB/s8455716864 bytes (8.5 GB, 7.9 GiB) copied, 15 s, 563 MB/s8757706752 bytes (8.8 GB, 8.2 GiB) copied, 16 s, 547 MB/s9061793792 bytes (9.1 GB, 8.4 GiB) copied, 17 s, 533 MB/s9377415168 bytes (9.4 GB, 8.7 GiB) copied, 18 s, 521 MB/s9717153792 bytes (9.7 GB, 9.0 GiB) copied, 19 s, 511 MB/s10072621056 bytes (10 GB, 9.4 GiB) copied, 20 s, 504 MB/s10470031360 bytes (10 GB, 9.8 GiB) copied, 21 s, 498 MB/s10853810176 bytes (11 GB, 10 GiB) copied, 22 s, 493 MB/s 11193548800 bytes (11 GB, 10 GiB) copied, 23 s, 487 MB/s
-10841+0 records in
-10841+0 records out
-11367612416 bytes (11 GB, 11 GiB) copied, 23.5493 s, 483 MB/s
->> [1;32mPartitioning disk image[0m
-   [0;36mVerifying partition table:[0m
-Disk /home/popcat19/nixos-shimboot/shimboot_nixos.bin: 10.59 GiB, 11367612416 bytes, 22202368 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-Disklabel type: gpt
-Disk identifier: B986B3F4-722D-4D7F-A6A5-0A7EF9500F4A
-
-Device                                             Start      End  Sectors  Size Type
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin1   2048     4095     2048    1M Linux filesystem
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin2   4096    69631    65536   32M ChromeOS kernel
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin3  69632   135167    65536   32M ChromeOS root fs
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin4 135168 22200319 22065152 10.5G Linux filesystem
->> [1;32mCreating loop device for final image[0m
-   [0;36mAssigned final image loop device: /dev/loop1[0m
->> [1;32mFormatting partitions[0m
-mke2fs 1.47.2 (1-Jan-2025)
-
-Filesystem too small for a journal
-32+0 records in
-32+0 records out
-33554432 bytes (34 MB, 32 MiB) copied, 0.3625 s, 92.6 MB/s
-mke2fs 1.47.2 (1-Jan-2025)
-mke2fs 1.47.2 (1-Jan-2025)
->> [1;32mCopying bootloader...[0m
-   [0;36mUnmounting /tmp/shim_bootloader...[0m
->> [1;32mCopying NixOS rootfs... (this may take a while)[0m
-   [0;36mCopying rootfs from source image to partition...[0m
-   [0;36mRootfs copy complete[0m
->> [1;32mCreating systemd init symlink...[0m
-   [0;36mFound systemd binary at: /tmp/new_rootfs/nix/store/wq3ivni0plh7g8xl3my8qr9llh4dy7q4-systemd-257.6/lib/systemd/systemd[0m
-   [0;36mCreating symlink /init -> /nix/store/wq3ivni0plh7g8xl3my8qr9llh4dy7q4-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mInjecting harvested kernel modules into new rootfs...[0m
-   [0;36mModules copied to /tmp/new_rootfs/lib/modules/[0m
->> [1;32mDecompressing kernel modules if needed...[0m
->> [1;32mInjecting harvested firmware into new rootfs...[0m
-   [0;36mFirmware copied to /tmp/new_rootfs/lib/firmware/[0m
->> [1;32mInjecting modprobe configurations into new rootfs...[0m
-   [0;36mModprobe configurations copied[0m
-   [0;36mManually creating traditional symlinks...[0m
->> [1;32mResetting machine-id for golden image...[0m
-   [0;36mEnsured /etc/machine-id is ready for first-boot generation.[0m
-   [0;36mFixing ownership of output file...[0m
->> [1;32mAll done! Your shimboot NixOS image is ready at: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mFinal image size: -rw-r--r-- 1 popcat19 users 11G Aug  4 05:02 /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
->> [1;32m✓ Built with recovery image drivers - should have better hardware support[0m
-
->> [1;32mLast 200 lines of the build log:[0m
->> [1;32mCleaning up...[0m
-   [0;36mKilling sudo keepalive process (PID: 33428)...[0m
-   [0;36mUnmounting /tmp/new_rootfs...[0m
-   [0;36mUnmounting /tmp/nixos_source_mount...[0m
-   [0;36mDetaching loop device /dev/loop0...[0m
-   [0;36mDetaching loop device /dev/loop1...[0m
-   [0;36mRemoving temp directory /tmp/tmp.X6vCeu...[0m
-./scripts/build-final-image.sh: line 84: check_prerequisites: command not found
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32mNixOS raw image generated at /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
-   [0;36mImage size: -r--r--r-- 1 root root 11G Dec 31  1969 /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
->> [1;32mStep 2: Harvesting kernel, initramfs, and modules from shim...[0m
-./scripts/build-final-image.sh: line 98: harvest_components: command not found
->> [1;32mStep 3: Mounting NixOS image...[0m
->> [1;32mMounting source NixOS image to extract rootfs...[0m
-   [0;36mNixOS image path: /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
-   [0;36mAssigned NixOS source loop device: /dev/loop2[0m
-   [0;36mMounting NixOS source partition: /dev/loop2p1 -> /tmp/nixos_source_mount[0m
->> [1;32mStep 4: Assembling final disk image...[0m
->> [1;32mAssembling the final disk image...[0m
-   [0;36mOutput path: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mEstimating required rootfs size from source NixOS image...[0m
-   [0;36mNixOS used space: 7905MB[0m
-   [0;36mFinal rootfs partition size: 10776MB[0m
-   [0;36mBootloader partition size: 32MB[0m
-   [0;36mTotal image size: 10841MB[0m
->> [1;32mCreating 10841MB disk image[0m
-   [0;36mCreating disk image with dd: bs=1M count=10841[0m
-1749024768 bytes (1.7 GB, 1.6 GiB) copied, 1 s, 1.7 GB/s3381657600 bytes (3.4 GB, 3.1 GiB) copied, 2 s, 1.7 GB/s3919577088 bytes (3.9 GB, 3.7 GiB) copied, 3 s, 1.3 GB/s4336910336 bytes (4.3 GB, 4.0 GiB) copied, 4 s, 1.1 GB/s4747952128 bytes (4.7 GB, 4.4 GiB) copied, 5 s, 949 MB/s5161091072 bytes (5.2 GB, 4.8 GiB) copied, 6 s, 860 MB/s5564792832 bytes (5.6 GB, 5.2 GiB) copied, 7 s, 794 MB/s5912920064 bytes (5.9 GB, 5.5 GiB) copied, 8 s, 739 MB/s6219104256 bytes (6.2 GB, 5.8 GiB) copied, 9 s, 691 MB/s6524239872 bytes (6.5 GB, 6.1 GiB) copied, 10 s, 652 MB/s6798966784 bytes (6.8 GB, 6.3 GiB) copied, 11 s, 618 MB/s7072645120 bytes (7.1 GB, 6.6 GiB) copied, 12 s, 589 MB/s7335837696 bytes (7.3 GB, 6.8 GiB) copied, 13 s, 564 MB/s7581204480 bytes (7.6 GB, 7.1 GiB) copied, 14 s, 542 MB/s7804551168 bytes (7.8 GB, 7.3 GiB) copied, 15 s, 520 MB/s8013217792 bytes (8.0 GB, 7.5 GiB) copied, 16 s, 497 MB/s8212447232 bytes (8.2 GB, 7.6 GiB) copied, 17 s, 483 MB/s8399093760 bytes (8.4 GB, 7.8 GiB) copied, 18 s, 466 MB/s8579448832 bytes (8.6 GB, 8.0 GiB) copied, 19 s, 451 MB/s8761901056 bytes (8.8 GB, 8.2 GiB) copied, 20 s, 438 MB/s8937013248 bytes (8.9 GB, 8.3 GiB) copied, 21 s, 425 MB/s9111076864 bytes (9.1 GB, 8.5 GiB) copied, 22 s, 414 MB/s9291431936 bytes (9.3 GB, 8.7 GiB) copied, 23 s, 404 MB/s9469689856 bytes (9.5 GB, 8.8 GiB) copied, 24 s, 394 MB/s9645850624 bytes (9.6 GB, 9.0 GiB) copied, 25 s, 386 MB/s9835642880 bytes (9.8 GB, 9.2 GiB) copied, 26 s, 378 MB/s10033823744 bytes (10 GB, 9.3 GiB) copied, 27 s, 372 MB/s10241441792 bytes (10 GB, 9.5 GiB) copied, 28 s, 366 MB/s10449059840 bytes (10 GB, 9.7 GiB) copied, 29 s, 360 MB/s10655629312 bytes (11 GB, 9.9 GiB) copied, 30 s, 355 MB/s10862198784 bytes (11 GB, 10 GiB) copied, 31 s, 350 MB/s 11062476800 bytes (11 GB, 10 GiB) copied, 32 s, 346 MB/s11269046272 bytes (11 GB, 10 GiB) copied, 33 s, 341 MB/s
-10841+0 records in
-10841+0 records out
-11367612416 bytes (11 GB, 11 GiB) copied, 33.44 s, 340 MB/s
->> [1;32mPartitioning disk image[0m
-   [0;36mVerifying partition table:[0m
-Disk /home/popcat19/nixos-shimboot/shimboot_nixos.bin: 10.59 GiB, 11367612416 bytes, 22202368 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-Disklabel type: gpt
-Disk identifier: 8F0C6850-B0B4-496F-9029-079F57F4A2B8
-
-Device                                             Start      End  Sectors  Size Type
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin1   2048     4095     2048    1M Linux filesystem
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin2   4096    69631    65536   32M ChromeOS kernel
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin3  69632   135167    65536   32M ChromeOS root fs
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin4 135168 22200319 22065152 10.5G Linux filesystem
->> [1;32mCreating loop device for final image[0m
-   [0;36mAssigned final image loop device: /dev/loop3[0m
->> [1;32mFormatting partitions[0m
-mke2fs 1.47.2 (1-Jan-2025)
-
-Filesystem too small for a journal
-32+0 records in
-32+0 records out
-33554432 bytes (34 MB, 32 MiB) copied, 0.513859 s, 65.3 MB/s
-mke2fs 1.47.2 (1-Jan-2025)
-mke2fs 1.47.2 (1-Jan-2025)
->> [1;32mCopying bootloader...[0m
-cp: cannot stat '/initramfs_extracted/*': No such file or directory
-   [0;36mUnmounting /tmp/shim_bootloader...[0m
->> [1;32mCopying NixOS rootfs... (this may take a while)[0m
-   [0;36mCopying rootfs from source image to partition...[0m
-   [0;36mRootfs copy complete[0m
->> [1;32mCreating systemd init symlink...[0m
-   [0;36mSearching for patched systemd binaries...[0m
-   [0;36mVerifying systemd patch in /tmp/new_rootfs/nix/store/wq3ivni0plh7g8xl3my8qr9llh4dy7q4-systemd-257.6/lib/systemd/systemd[0m
-   [0;36mmount_nofollow function not found in systemd binary[0m
-   [0;36mVerifying systemd patch in /tmp/new_rootfs/nix/store/ajbhzaswxr7xp7y1glmv4ma8i8mxichv-systemd-minimal-257.6/lib/systemd/systemd[0m
-   [0;36mmount_nofollow function not found in systemd binary[0m
-   [0;36mVerifying systemd patch in /tmp/new_rootfs/nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
-   [0;36mmount_nofollow function not found in systemd binary[0m
-!! [1;31mNo patched systemd binary found in the Nix store![0m
-!! [1;31mThe build requires systemd to be patched with the mount_nofollow patch.[0m
-!! [1;31mPlease ensure the systemd package in your configuration includes the patch.[0m
-   [0;36mAvailable systemd binaries:[0m
-   [0;36m  - /tmp/new_rootfs/nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
-   [0;36m  - /tmp/new_rootfs/nix/store/ajbhzaswxr7xp7y1glmv4ma8i8mxichv-systemd-minimal-257.6/lib/systemd/systemd[0m
-   [0;36m  - /tmp/new_rootfs/nix/store/wq3ivni0plh7g8xl3my8qr9llh4dy7q4-systemd-257.6/lib/systemd/systemd[0m
-./scripts/lib/assemble.sh: line 1: cleanup: command not found
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32mNixOS raw image generated at /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
-   [0;36mImage size: -r--r--r-- 1 root root 11G Dec 31  1969 /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
->> [1;32mStep 2: Harvesting kernel, initramfs, and modules from shim...[0m
->> [1;32mHarvesting kernel, initramfs, and modules from shim...[0m
-   [0;36mWorking directory: /tmp/tmp.D2ILGgDvwn[0m
-   [0;36mTemp directory permissions: drwx------ 2 popcat19 users 4096 Aug  4 05:24 /tmp/tmp.D2ILGgDvwn[0m
->> [1;32mExtracting kernel partition (KERN-A)...[0m
-   [0;36mRunning: sudo cgpt show -i 2 "/home/popcat19/nixos-shimboot/data/shim.bin"[0m
-   [0;36mcgpt output:[0m
-   [0;36m       start        size    part  contents
-          69       65536       2  Label: "KERN-A"
-                                  Type: ChromeOS kernel
-                                  UUID: B5BAF579-07EF-A747-858B-87C0E507CD29
-                                  Attr: priority=15 tries=15 successful=1 [0m
-   [0;36mPartition start: 69, size: 65536[0m
-   [0;36mExtracting kernel with dd...[0m
-65536+0 records in
-65536+0 records out
-33554432 bytes (34 MB, 32 MiB) copied, 0.356787 s, 94.0 MB/s
-   [0;36mFixing ownership of /home/popcat19/nixos-shimboot/data/kernel.bin...[0m
->> [1;32mExtracting initramfs from kernel...[0m
-   [0;36mStage 1: Finding gzip offset...[0m
-
-                                                                              /home/popcat19/nixos-shimboot/data/kernel.bin
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-DECIMAL                            HEXADECIMAL                        DESCRIPTION
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-66282                              0x102EA                            gzip compressed data, operating system: Unix, timestamp: 1970-01-01 00:00:00, total size: 11241091 bytes
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-Analyzed 1 file for 1 file signatures (1 magic patterns) in 121.0 milliseconds
-   [0;36mGzip offset: 66282[0m
-   [0;36mStage 1: Decompressing kernel...[0m
-
-gzip: stdin: decompression OK, trailing garbage ignored
-   [0;36mStage 2: Finding XZ offset...[0m
-
-                                                                               /tmp/tmp.D2ILGgDvwn/decompressed_kernel.bin
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-DECIMAL                            HEXADECIMAL                        DESCRIPTION
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-0                                  0x0                                ELF binary, 64-bit executable, AMD X86-64 for System-V (Unix), little endian
-19193152                           0x124DD40                          CRC32 polynomial table, little endian
-22018539                           0x14FF9EB                          Copyright text: "Copyright(c) Pierre Ossman "
-23003520                           0x15F0180                          SHA256 hash constants, little endian
-23003776                           0x15F0280                          SHA256 hash constants, little endian
-23003792                           0x15F0290                          SHA256 hash constants, little endian
-23007232                           0x15F1000                          ELF binary, 64-bit shared object, AMD X86-64 for System-V (Unix), little endian
-23011328                           0x15F2000                          ELF binary, 32-bit shared object, x86 for System-V (Unix), little endian
-25208512                           0x180A6C0                          AES S-Box
-25208768                           0x180A7C0                          AES S-Box
-32961504                           0x1F6F3E0                          XZ compressed data, total size: 1867492 bytes
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-Analyzed 1 file for 85 file signatures (187 magic patterns) in 256.0 milliseconds
-   [0;36mXZ offset: 32961504[0m
-   [0;36mStage 2: Extracting XZ cpio archive...[0m
-xz: (stdin): Compressed data is corrupt
-cpio: dev/null: Cannot mknod: Operation not permitted
-cpio: dev/zero: Cannot mknod: Operation not permitted
-cpio: dev/console: Cannot mknod: Operation not permitted
-9998 blocks
-   [0;36mInitramfs extraction complete.[0m
->> [1;32mPatching initramfs with shimboot bootloader...[0m
-   [0;36mOriginal init script: /tmp/tmp.D2ILGgDvwn/initramfs_extracted/init[0m
-   [0;36mCopying bootloader from: /home/popcat19/nixos-shimboot/bootloader[0m
-   [0;36mAdding exec hook to init script...[0m
-   [0;36mMaking bootloader scripts executable...[0m
-   [0;36mInitramfs patching complete[0m
->> [1;32mMounting original ChromeOS rootfs to harvest modules...[0m
-   [0;36mAssigned shim loop device: /dev/loop4[0m
-   [0;36mMounting shim rootfs partition: /dev/loop4p3 -> /tmp/shim_rootfs_mount.CWgL7H[0m
-   [0;36mLooking for modules in /tmp/shim_rootfs_mount.CWgL7H/lib/modules/5.4.85-22138-ga9994f5cad40[0m
->> [1;32mFound modules for kernel 5.4.85-22138-ga9994f5cad40, copying...[0m
-   [0;36mShim modules harvested successfully to /tmp/tmp.D2ILGgDvwn/kernel_modules[0m
->> [1;32mHarvesting firmware from shim...[0m
-   [0;36mShim firmware copied to /tmp/tmp.D2ILGgDvwn/firmware[0m
-   [0;36mUnmounting /tmp/shim_rootfs_mount.CWgL7H...[0m
-   [0;36mRemoving temp directory /tmp/shim_rootfs_mount.CWgL7H...[0m
-   [0;36mDetaching loop device /dev/loop4...[0m
-./scripts/build-final-image.sh: line 129: harvest_shim_firmware: command not found
->> [1;32mStep 3: Mounting NixOS image...[0m
->> [1;32mMounting source NixOS image to extract rootfs...[0m
-   [0;36mNixOS image path: /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
-   [0;36mAssigned NixOS source loop device: /dev/loop4[0m
-   [0;36mMounting NixOS source partition: /dev/loop4p1 -> /tmp/nixos_source_mount[0m
->> [1;32mStep 4: Assembling final disk image...[0m
->> [1;32mAssembling the final disk image...[0m
-   [0;36mOutput path: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mEstimating required rootfs size from source NixOS image...[0m
-   [0;36mNixOS used space: 7905MB[0m
-   [0;36mFinal rootfs partition size: 10776MB[0m
-   [0;36mBootloader partition size: 32MB[0m
-   [0;36mTotal image size: 10841MB[0m
->> [1;32mCreating 10841MB disk image[0m
-   [0;36mCreating disk image with dd: bs=1M count=10841[0m
-1737490432 bytes (1.7 GB, 1.6 GiB) copied, 1 s, 1.7 GB/s3161456640 bytes (3.2 GB, 2.9 GiB) copied, 2 s, 1.6 GB/s3524263936 bytes (3.5 GB, 3.3 GiB) copied, 3 s, 1.2 GB/s3793747968 bytes (3.8 GB, 3.5 GiB) copied, 4 s, 946 MB/s4025483264 bytes (4.0 GB, 3.7 GiB) copied, 5 s, 804 MB/s4250927104 bytes (4.3 GB, 4.0 GiB) copied, 6 s, 708 MB/s4441767936 bytes (4.4 GB, 4.1 GiB) copied, 7 s, 624 MB/s4667211776 bytes (4.7 GB, 4.3 GiB) copied, 8 s, 583 MB/s4871684096 bytes (4.9 GB, 4.5 GiB) copied, 9 s, 541 MB/s5046796288 bytes (5.0 GB, 4.7 GiB) copied, 10 s, 502 MB/s5279580160 bytes (5.3 GB, 4.9 GiB) copied, 11 s, 480 MB/s5470420992 bytes (5.5 GB, 5.1 GiB) copied, 12 s, 456 MB/s5652873216 bytes (5.7 GB, 5.3 GiB) copied, 13 s, 434 MB/s5836374016 bytes (5.8 GB, 5.4 GiB) copied, 14 s, 417 MB/s6021971968 bytes (6.0 GB, 5.6 GiB) copied, 15 s, 401 MB/s6207569920 bytes (6.2 GB, 5.8 GiB) copied, 16 s, 388 MB/s6398410752 bytes (6.4 GB, 6.0 GiB) copied, 17 s, 376 MB/s6587154432 bytes (6.6 GB, 6.1 GiB) copied, 18 s, 366 MB/s6766460928 bytes (6.8 GB, 6.3 GiB) copied, 19 s, 356 MB/s6942621696 bytes (6.9 GB, 6.5 GiB) copied, 20 s, 347 MB/s7116685312 bytes (7.1 GB, 6.6 GiB) copied, 21 s, 339 MB/s7293894656 bytes (7.3 GB, 6.8 GiB) copied, 22 s, 331 MB/s7475298304 bytes (7.5 GB, 7.0 GiB) copied, 23 s, 325 MB/s7661944832 bytes (7.7 GB, 7.1 GiB) copied, 24 s, 319 MB/s7849639936 bytes (7.8 GB, 7.3 GiB) copied, 25 s, 314 MB/s8035237888 bytes (8.0 GB, 7.5 GiB) copied, 26 s, 309 MB/s8203010048 bytes (8.2 GB, 7.6 GiB) copied, 27 s, 304 MB/s8378122240 bytes (8.4 GB, 7.8 GiB) copied, 28 s, 299 MB/s8555331584 bytes (8.6 GB, 8.0 GiB) copied, 29 s, 295 MB/s8731492352 bytes (8.7 GB, 8.1 GiB) copied, 30 s, 291 MB/s8900313088 bytes (8.9 GB, 8.3 GiB) copied, 31 s, 287 MB/s9077522432 bytes (9.1 GB, 8.5 GiB) copied, 32 s, 284 MB/s9240051712 bytes (9.2 GB, 8.6 GiB) copied, 33 s, 280 MB/s9441378304 bytes (9.4 GB, 8.8 GiB) copied, 34 s, 278 MB/s9622781952 bytes (9.6 GB, 9.0 GiB) copied, 35 s, 275 MB/s9803137024 bytes (9.8 GB, 9.1 GiB) copied, 36 s, 272 MB/s9983492096 bytes (10 GB, 9.3 GiB) copied, 37 s, 270 MB/s 10162798592 bytes (10 GB, 9.5 GiB) copied, 38 s, 267 MB/s10342105088 bytes (10 GB, 9.6 GiB) copied, 39 s, 265 MB/s10521411584 bytes (11 GB, 9.8 GiB) copied, 40 s, 263 MB/s10699669504 bytes (11 GB, 10 GiB) copied, 41 s, 261 MB/s 10876878848 bytes (11 GB, 10 GiB) copied, 42 s, 259 MB/s11055136768 bytes (11 GB, 10 GiB) copied, 43 s, 257 MB/s11231297536 bytes (11 GB, 10 GiB) copied, 44 s, 255 MB/s
-10841+0 records in
-10841+0 records out
-11367612416 bytes (11 GB, 11 GiB) copied, 44.7734 s, 254 MB/s
->> [1;32mPartitioning disk image[0m
-   [0;36mVerifying partition table:[0m
-Disk /home/popcat19/nixos-shimboot/shimboot_nixos.bin: 10.59 GiB, 11367612416 bytes, 22202368 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-Disklabel type: gpt
-Disk identifier: E1985F82-E309-48AC-A898-895926953C70
-
-Device                                             Start      End  Sectors  Size Type
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin1   2048     4095     2048    1M Linux filesystem
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin2   4096    69631    65536   32M ChromeOS kernel
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin3  69632   135167    65536   32M ChromeOS root fs
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin4 135168 22200319 22065152 10.5G Linux filesystem
->> [1;32mCreating loop device for final image[0m
-   [0;36mAssigned final image loop device: /dev/loop5[0m
->> [1;32mFormatting partitions[0m
-mke2fs 1.47.2 (1-Jan-2025)
-
-Filesystem too small for a journal
-32+0 records in
-32+0 records out
-33554432 bytes (34 MB, 32 MiB) copied, 0.372319 s, 90.1 MB/s
-mke2fs 1.47.2 (1-Jan-2025)
-mke2fs 1.47.2 (1-Jan-2025)
->> [1;32mCopying bootloader...[0m
-   [0;36mUnmounting /tmp/shim_bootloader...[0m
->> [1;32mCopying NixOS rootfs... (this may take a while)[0m
-   [0;36mCopying rootfs from source image to partition...[0m
-   [0;36mRootfs copy complete[0m
->> [1;32mCreating systemd init symlink...[0m
-   [0;36mSearching for patched systemd binaries...[0m
-   [0;36mVerifying systemd patch in /tmp/new_rootfs/nix/store/wq3ivni0plh7g8xl3my8qr9llh4dy7q4-systemd-257.6/lib/systemd/systemd[0m
-   [0;36mmount_nofollow function not found in systemd binary[0m
-   [0;36mVerifying systemd patch in /tmp/new_rootfs/nix/store/ajbhzaswxr7xp7y1glmv4ma8i8mxichv-systemd-minimal-257.6/lib/systemd/systemd[0m
-   [0;36mmount_nofollow function not found in systemd binary[0m
-   [0;36mVerifying systemd patch in /tmp/new_rootfs/nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
-   [0;36mmount_nofollow function not found in systemd binary[0m
-!! [1;31mNo patched systemd binary found in the Nix store![0m
-!! [1;31mThe build requires systemd to be patched with the mount_nofollow patch.[0m
-!! [1;31mPlease ensure the systemd package in your configuration includes the patch.[0m
-   [0;36mAvailable systemd binaries:[0m
-   [0;36m  - /tmp/new_rootfs/nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
-   [0;36m  - /tmp/new_rootfs/nix/store/ajbhzaswxr7xp7y1glmv4ma8i8mxichv-systemd-minimal-257.6/lib/systemd/systemd[0m
-   [0;36m  - /tmp/new_rootfs/nix/store/wq3ivni0plh7g8xl3my8qr9llh4dy7q4-systemd-257.6/lib/systemd/systemd[0m
-./scripts/lib/assemble.sh: line 1: cleanup: command not found
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32mNixOS raw image generated at /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
-   [0;36mImage size: -r--r--r-- 1 root root 11G Dec 31  1969 /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
->> [1;32mStep 2: Harvesting kernel, initramfs, and modules from shim...[0m
->> [1;32mHarvesting kernel, initramfs, and modules from shim...[0m
-   [0;36mWorking directory: /tmp/tmp.qkMW26Jar5[0m
-   [0;36mTemp directory permissions: drwx------ 2 popcat19 users 4096 Aug  4 05:28 /tmp/tmp.qkMW26Jar5[0m
->> [1;32mExtracting kernel partition (KERN-A)...[0m
-   [0;36mRunning: sudo cgpt show -i 2 "/home/popcat19/nixos-shimboot/data/shim.bin"[0m
-   [0;36mcgpt output:[0m
-   [0;36m       start        size    part  contents
-          69       65536       2  Label: "KERN-A"
-                                  Type: ChromeOS kernel
-                                  UUID: B5BAF579-07EF-A747-858B-87C0E507CD29
-                                  Attr: priority=15 tries=15 successful=1 [0m
-   [0;36mPartition start: size, size: contents[0m
-   [0;36mExtracting kernel with dd...[0m
-dd: invalid number: 'size'
-   [0;36mFixing ownership of /home/popcat19/nixos-shimboot/data/kernel.bin...[0m
->> [1;32mExtracting initramfs from kernel...[0m
-   [0;36mStage 1: Finding gzip offset...[0m
-   [0;36mGzip offset: 66282[0m
-   [0;36mStage 1: Decompressing kernel...[0m
-
-gzip: stdin: decompression OK, trailing garbage ignored
-   [0;36mStage 2: Finding XZ offset...[0m
-   [0;36mXZ offset: 32961504[0m
-   [0;36mStage 2: Extracting XZ cpio archive...[0m
-xz: (stdin): Compressed data is corrupt
-   [0;36mInitramfs extraction complete.[0m
->> [1;32mPatching initramfs with shimboot bootloader...[0m
-   [0;36mOriginal init script: /tmp/tmp.qkMW26Jar5/initramfs_extracted/init[0m
-   [0;36mCopying bootloader from: /home/popcat19/nixos-shimboot/bootloader[0m
-chmod: cannot access '/tmp/tmp.qkMW26Jar5/initramfs_extracted/bootloader/init': No such file or directory
-chmod: cannot access '/tmp/tmp.qkMW26Jar5/initramfs_extracted/bootloader/hooks/exec': No such file or directory
-   [0;36mInitramfs patching complete[0m
->> [1;32mMounting original ChromeOS rootfs to harvest modules...[0m
-   [0;36mMounting shim rootfs partition: /dev/loop0p3 -> /tmp/tmp.zPGOPdRNfB[0m
-   [0;36mAssigned shim loop device: /dev/loop6[0m
-mount: /tmp/tmp.zPGOPdRNfB: wrong fs type, bad option, bad superblock on /dev/loop6p3, missing codepage or helper program, or other error.
-       dmesg(1) may have more information after failed mount system call.
-find: ‘/tmp/tmp.zPGOPdRNfB/lib/modules’: No such file or directory
-   [0;36mNo modules directory found in shim rootfs[0m
-   [0;36mRemoving temp directory /tmp/tmp.zPGOPdRNfB...[0m
-   [0;36mDetaching loop device /dev/loop6...[0m
->> [1;32mHarvesting firmware from shim...[0m
-   [0;36mNo firmware directory found in shim rootfs[0m
->> [1;32mStep 3: Mounting NixOS image...[0m
->> [1;32mMounting source NixOS image to extract rootfs...[0m
-   [0;36mNixOS image path: /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
-   [0;36mAssigned NixOS source loop device: /dev/loop6[0m
-   [0;36mMounting NixOS source partition: /dev/loop6p1 -> /tmp/nixos_source_mount[0m
->> [1;32mStep 4: Assembling final disk image...[0m
->> [1;32mAssembling the final disk image...[0m
-   [0;36mOutput path: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mEstimating required rootfs size from source NixOS image...[0m
-   [0;36mNixOS used space: 7905MB[0m
-   [0;36mFinal rootfs partition size: 10776MB[0m
-   [0;36mBootloader partition size: 32MB[0m
-   [0;36mTotal image size: 10841MB[0m
->> [1;32mCreating 10841MB disk image[0m
-   [0;36mCreating disk image with dd: bs=1M count=10841[0m
-1609564160 bytes (1.6 GB, 1.5 GiB) copied, 1 s, 1.6 GB/s3099590656 bytes (3.1 GB, 2.9 GiB) copied, 2 s, 1.5 GB/s3686793216 bytes (3.7 GB, 3.4 GiB) copied, 3 s, 1.2 GB/s3963617280 bytes (4.0 GB, 3.7 GiB) copied, 4 s, 988 MB/s4201644032 bytes (4.2 GB, 3.9 GiB) copied, 5 s, 839 MB/s4421844992 bytes (4.4 GB, 4.1 GiB) copied, 6 s, 736 MB/s4647288832 bytes (4.6 GB, 4.3 GiB) copied, 7 s, 662 MB/s4919918592 bytes (4.9 GB, 4.6 GiB) copied, 8 s, 615 MB/s5243928576 bytes (5.2 GB, 4.9 GiB) copied, 9 s, 581 MB/s5829033984 bytes (5.8 GB, 5.4 GiB) copied, 10 s, 583 MB/s6380584960 bytes (6.4 GB, 5.9 GiB) copied, 11 s, 580 MB/s6970933248 bytes (7.0 GB, 6.5 GiB) copied, 12 s, 581 MB/s7536115712 bytes (7.5 GB, 7.0 GiB) copied, 13 s, 580 MB/s8121221120 bytes (8.1 GB, 7.6 GiB) copied, 14 s, 580 MB/s8671723520 bytes (8.7 GB, 8.1 GiB) copied, 15 s, 578 MB/s9235857408 bytes (9.2 GB, 8.6 GiB) copied, 16 s, 577 MB/s9684647936 bytes (9.7 GB, 9.0 GiB) copied, 18 s, 550 MB/s10213130240 bytes (10 GB, 9.5 GiB) copied, 18 s, 567 MB/s10603200512 bytes (11 GB, 9.9 GiB) copied, 19 s, 558 MB/s11012145152 bytes (11 GB, 10 GiB) copied, 20 s, 551 MB/s 
-10841+0 records in
-10841+0 records out
-11367612416 bytes (11 GB, 11 GiB) copied, 20.9403 s, 543 MB/s
->> [1;32mPartitioning disk image[0m
-   [0;36mVerifying partition table:[0m
-Disk /home/popcat19/nixos-shimboot/shimboot_nixos.bin: 10.59 GiB, 11367612416 bytes, 22202368 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-Disklabel type: gpt
-Disk identifier: B97B6EDB-A256-4F8F-9501-FC7AC9EB1F1B
-
-Device                                             Start      End  Sectors  Size Type
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin1   2048     4095     2048    1M Linux filesystem
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin2   4096    69631    65536   32M ChromeOS kernel
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin3  69632   135167    65536   32M ChromeOS root fs
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin4 135168 22200319 22065152 10.5G Linux filesystem
->> [1;32mCreating loop device for final image[0m
-   [0;36mAssigned final image loop device: /dev/loop7[0m
->> [1;32mFormatting partitions[0m
-mke2fs 1.47.2 (1-Jan-2025)
-
-Filesystem too small for a journal
-32+0 records in
-32+0 records out
-33554432 bytes (34 MB, 32 MiB) copied, 0.412744 s, 81.3 MB/s
-mke2fs 1.47.2 (1-Jan-2025)
-mke2fs 1.47.2 (1-Jan-2025)
->> [1;32mCopying bootloader...[0m
-   [0;36mUnmounting /tmp/shim_bootloader...[0m
->> [1;32mCopying NixOS rootfs... (this may take a while)[0m
-   [0;36mCopying rootfs from source image to partition...[0m
-   [0;36mRootfs copy complete[0m
->> [1;32mCreating systemd init symlink...[0m
-   [0;36mSearching for patched systemd binaries...[0m
-   [0;36mUsing manually specified systemd binary path: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mUsing patched systemd binary[0m
-   [0;36mFound systemd binary at: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
-   [0;36mCreating symlink /init -> /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mSystemd symlink created successfully using systemd 257.6[0m
->> [1;32mInjecting harvested kernel modules into new rootfs...[0m
-!! [1;31mHarvested kernel modules not found in temp directory. Skipping.[0m
->> [1;32mInjecting harvested firmware into new rootfs...[0m
-   [0;36mFirmware copied to /tmp/new_rootfs/lib/firmware/[0m
-   [0;36mManually creating traditional symlinks...[0m
->> [1;32mResetting machine-id for golden image...[0m
-   [0;36mEnsured /etc/machine-id is ready for first-boot generation.[0m
-   [0;36mFixing ownership of output file...[0m
->> [1;32mAll done! Your shimboot NixOS image is ready at: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mFinal image size: -rw-r--r-- 1 popcat19 users 11G Aug  4 05:30 /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
->> [1;32m⚠ Built without recovery image - consider adding ./data/recovery.bin for better compatibility[0m
->> [1;32mBuild completed successfully![0m
-./scripts/build-final-image.sh: line 1: cleanup: command not found
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
-   [0;36mChecking sudo access...[0m
-!! [1;31mThis script requires sudo access[0m
->> [1;32mCleaning up...[0m
-   [0;36mUnmounting /tmp/new_rootfs...[0m
-   [0;36mUnmounting /tmp/nixos_source_mount...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32mNixOS raw image generated at /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
-   [0;36mImage size: -r--r--r-- 1 root root 11G Dec 31  1969 /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
->> [1;32mStep 2: Harvesting kernel, initramfs, and modules from shim...[0m
->> [1;32mHarvesting kernel, initramfs, and modules from shim...[0m
-   [0;36mWorking directory: /tmp/tmp.TxCXCymrpN[0m
-   [0;36mTemp directory permissions: drwx------ 2 popcat19 users 4096 Aug  4 05:44 /tmp/tmp.TxCXCymrpN[0m
->> [1;32mExtracting kernel partition (KERN-A)...[0m
-   [0;36mRunning: sudo cgpt show -i 2 "/home/popcat19/nixos-shimboot/data/shim.bin"[0m
-   [0;36mcgpt output:[0m
-   [0;36m       start        size    part  contents
-          69       65536       2  Label: "KERN-A"
-                                  Type: ChromeOS kernel
-                                  UUID: B5BAF579-07EF-A747-858B-87C0E507CD29
-                                  Attr: priority=15 tries=15 successful=1 [0m
-   [0;36mPartition start: size, size: contents[0m
-   [0;36mExtracting kernel with dd...[0m
-dd: invalid number: 'size'
-   [0;36mFixing ownership of /home/popcat19/nixos-shimboot/data/kernel.bin...[0m
->> [1;32mExtracting initramfs from kernel...[0m
-   [0;36mStage 1: Finding gzip offset...[0m
-   [0;36mGzip offset: 66282[0m
-   [0;36mStage 1: Decompressing kernel...[0m
-
-gzip: stdin: decompression OK, trailing garbage ignored
-   [0;36mStage 2: Finding XZ offset...[0m
-   [0;36mXZ offset: 32961504[0m
-   [0;36mStage 2: Extracting XZ cpio archive...[0m
-xz: (stdin): Compressed data is corrupt
-   [0;36mInitramfs extraction complete.[0m
->> [1;32mPatching initramfs with shimboot bootloader...[0m
-   [0;36mOriginal init script: /tmp/tmp.TxCXCymrpN/initramfs_extracted/init[0m
-   [0;36mCopying bootloader from: /home/popcat19/nixos-shimboot/bootloader[0m
-chmod: cannot access '/tmp/tmp.TxCXCymrpN/initramfs_extracted/bootloader/init': No such file or directory
-chmod: cannot access '/tmp/tmp.TxCXCymrpN/initramfs_extracted/bootloader/hooks/exec': No such file or directory
-   [0;36mInitramfs patching complete[0m
->> [1;32mMounting original ChromeOS rootfs to harvest modules...[0m
-   [0;36mMounting shim rootfs partition: /dev/loop0p3 -> /tmp/tmp.F2soZPOJMn[0m
-   [0;36mAssigned shim loop device: /dev/loop8[0m
-mount: /tmp/tmp.F2soZPOJMn: wrong fs type, bad option, bad superblock on /dev/loop8p3, missing codepage or helper program, or other error.
-       dmesg(1) may have more information after failed mount system call.
-find: ‘/tmp/tmp.F2soZPOJMn/lib/modules’: No such file or directory
-   [0;36mNo modules directory found in shim rootfs[0m
-   [0;36mRemoving temp directory /tmp/tmp.F2soZPOJMn...[0m
-   [0;36mDetaching loop device /dev/loop8...[0m
->> [1;32mHarvesting firmware from shim...[0m
-   [0;36mNo firmware directory found in shim rootfs[0m
->> [1;32mStep 3: Mounting NixOS image...[0m
->> [1;32mMounting source NixOS image to extract rootfs...[0m
-   [0;36mNixOS image path: /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
-   [0;36mAssigned NixOS source loop device: /dev/loop8[0m
-   [0;36mMounting NixOS source partition: /dev/loop8p1 -> /tmp/nixos_source_mount[0m
->> [1;32mStep 4: Assembling final disk image...[0m
->> [1;32mAssembling the final disk image...[0m
-   [0;36mOutput path: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mEstimating required rootfs size from source NixOS image...[0m
-   [0;36mNixOS used space: 7905MB[0m
-   [0;36mFinal rootfs partition size: 10776MB[0m
-   [0;36mBootloader partition size: 32MB[0m
-   [0;36mTotal image size: 10841MB[0m
->> [1;32mCreating 10841MB disk image[0m
-   [0;36mCreating disk image with dd: bs=1M count=10841[0m
-1776287744 bytes (1.8 GB, 1.7 GiB) copied, 1 s, 1.8 GB/s3422552064 bytes (3.4 GB, 3.2 GiB) copied, 2 s, 1.7 GB/s4352638976 bytes (4.4 GB, 4.1 GiB) copied, 3 s, 1.4 GB/s4849664000 bytes (4.8 GB, 4.5 GiB) copied, 4 s, 1.2 GB/s5315231744 bytes (5.3 GB, 5.0 GiB) copied, 5 s, 1.1 GB/s5757730816 bytes (5.8 GB, 5.4 GiB) copied, 6 s, 960 MB/s6145703936 bytes (6.1 GB, 5.7 GiB) copied, 7 s, 874 MB/s6505365504 bytes (6.5 GB, 6.1 GiB) copied, 8 s, 812 MB/s6793723904 bytes (6.8 GB, 6.3 GiB) copied, 9 s, 754 MB/s6996099072 bytes (7.0 GB, 6.5 GiB) copied, 10 s, 695 MB/s7172259840 bytes (7.2 GB, 6.7 GiB) copied, 11 s, 651 MB/s7338983424 bytes (7.3 GB, 6.8 GiB) copied, 12 s, 611 MB/s7494172672 bytes (7.5 GB, 7.0 GiB) copied, 13 s, 576 MB/s7635730432 bytes (7.6 GB, 7.1 GiB) copied, 14 s, 545 MB/s7784628224 bytes (7.8 GB, 7.2 GiB) copied, 15 s, 519 MB/s7935623168 bytes (7.9 GB, 7.4 GiB) copied, 16 s, 496 MB/s8113881088 bytes (8.1 GB, 7.6 GiB) copied, 17 s, 477 MB/s8335130624 bytes (8.3 GB, 7.8 GiB) copied, 18 s, 463 MB/s8580497408 bytes (8.6 GB, 8.0 GiB) copied, 19 s, 452 MB/s8800698368 bytes (8.8 GB, 8.2 GiB) copied, 20 s, 440 MB/s9021947904 bytes (9.0 GB, 8.4 GiB) copied, 21 s, 430 MB/s9226420224 bytes (9.2 GB, 8.6 GiB) copied, 22 s, 419 MB/s9426698240 bytes (9.4 GB, 8.8 GiB) copied, 23 s, 410 MB/s9624879104 bytes (9.6 GB, 9.0 GiB) copied, 24 s, 401 MB/s9808379904 bytes (9.8 GB, 9.1 GiB) copied, 25 s, 392 MB/s9987686400 bytes (10 GB, 9.3 GiB) copied, 26 s, 384 MB/s 10165944320 bytes (10 GB, 9.5 GiB) copied, 27 s, 376 MB/s10365173760 bytes (10 GB, 9.7 GiB) copied, 28 s, 370 MB/s10609491968 bytes (11 GB, 9.9 GiB) copied, 29 s, 366 MB/s10888413184 bytes (11 GB, 10 GiB) copied, 30 s, 363 MB/s 11271143424 bytes (11 GB, 10 GiB) copied, 31 s, 364 MB/s
-10841+0 records in
-10841+0 records out
-11367612416 bytes (11 GB, 11 GiB) copied, 31.155 s, 365 MB/s
->> [1;32mPartitioning disk image[0m
-   [0;36mVerifying partition table:[0m
-Disk /home/popcat19/nixos-shimboot/shimboot_nixos.bin: 10.59 GiB, 11367612416 bytes, 22202368 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-Disklabel type: gpt
-Disk identifier: 4B370152-1096-4060-8506-8EEC817D1164
-
-Device                                             Start      End  Sectors  Size Type
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin1   2048     4095     2048    1M Linux filesystem
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin2   4096    69631    65536   32M ChromeOS kernel
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin3  69632   135167    65536   32M ChromeOS root fs
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin4 135168 22200319 22065152 10.5G Linux filesystem
->> [1;32mCreating loop device for final image[0m
-   [0;36mAssigned final image loop device: /dev/loop9[0m
->> [1;32mFormatting partitions[0m
-mke2fs 1.47.2 (1-Jan-2025)
-
-Filesystem too small for a journal
-32+0 records in
-32+0 records out
-33554432 bytes (34 MB, 32 MiB) copied, 0.271988 s, 123 MB/s
-mke2fs 1.47.2 (1-Jan-2025)
-mke2fs 1.47.2 (1-Jan-2025)
->> [1;32mCopying bootloader...[0m
-   [0;36mUnmounting /tmp/shim_bootloader...[0m
->> [1;32mCopying NixOS rootfs... (this may take a while)[0m
-   [0;36mCopying rootfs from source image to partition...[0m
-   [0;36mRootfs copy complete[0m
->> [1;32mCreating systemd init symlink...[0m
-   [0;36mSearching for patched systemd binaries...[0m
-   [0;36mUsing manually specified systemd binary path: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mUsing patched systemd binary[0m
-   [0;36mFound systemd binary at: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
-   [0;36mCreating symlink /init -> /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mSystemd symlink created successfully using systemd 257.6[0m
->> [1;32mInjecting harvested kernel modules into new rootfs...[0m
-!! [1;31mHarvested kernel modules not found in temp directory. Skipping.[0m
->> [1;32mInjecting harvested firmware into new rootfs...[0m
-   [0;36mFirmware copied to /tmp/new_rootfs/lib/firmware/[0m
-   [0;36mManually creating traditional symlinks...[0m
->> [1;32mResetting machine-id for golden image...[0m
-   [0;36mEnsured /etc/machine-id is ready for first-boot generation.[0m
-   [0;36mFixing ownership of output file...[0m
->> [1;32mAll done! Your shimboot NixOS image is ready at: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mFinal image size: -rw-r--r-- 1 popcat19 users 11G Aug  4 05:46 /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
->> [1;32m⚠ Built without recovery image - consider adding ./data/recovery.bin for better compatibility[0m
->> [1;32mBuild completed successfully![0m
->> [1;32mCleaning up...[0m
-   [0;36mUnmounting /tmp/new_rootfs...[0m
-   [0;36mUnmounting /tmp/nixos_source_mount...[0m
-   [0;36mDetaching loop device /dev/loop9...[0m
-   [0;36mDetaching loop device /dev/loop8...[0m
-   [0;36mRemoving temp directory /tmp/tmp.TxCXCymrpN...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32mNixOS raw image generated at /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
-   [0;36mImage size: -r--r--r-- 1 root root 11G Dec 31  1969 /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
->> [1;32mStep 2: Harvesting kernel, initramfs, and modules from shim...[0m
->> [1;32mHarvesting kernel, initramfs, and modules from shim...[0m
-   [0;36mWorking directory: /tmp/tmp.OVRcioE2F9[0m
-   [0;36mTemp directory permissions: drwx------ 2 popcat19 users 4096 Aug  4 06:49 /tmp/tmp.OVRcioE2F9[0m
->> [1;32mExtracting kernel partition (KERN-A)...[0m
-   [0;36mRunning: sudo cgpt show -i 2 "/home/popcat19/nixos-shimboot/data/shim.bin"[0m
-   [0;36mcgpt output:[0m
-   [0;36m       start        size    part  contents
-          69       65536       2  Label: "KERN-A"
-                                  Type: ChromeOS kernel
-                                  UUID: B5BAF579-07EF-A747-858B-87C0E507CD29
-                                  Attr: priority=15 tries=15 successful=1 [0m
-   [0;36mPartition start: size, size: contents[0m
-   [0;36mExtracting kernel with dd...[0m
-dd: invalid number: 'size'
-   [0;36mFixing ownership of /home/popcat19/nixos-shimboot/data/kernel.bin...[0m
->> [1;32mExtracting initramfs from kernel...[0m
-   [0;36mStage 1: Finding gzip offset...[0m
-   [0;36mGzip offset: 66282[0m
-   [0;36mStage 1: Decompressing kernel...[0m
-
-gzip: stdin: decompression OK, trailing garbage ignored
-   [0;36mStage 2: Finding XZ offset...[0m
-   [0;36mXZ offset: 32961504[0m
-   [0;36mStage 2: Extracting XZ cpio archive...[0m
-xz: (stdin): Compressed data is corrupt
-   [0;36mInitramfs extraction complete.[0m
->> [1;32mPatching initramfs with shimboot bootloader...[0m
-   [0;36mOriginal init script: /tmp/tmp.OVRcioE2F9/initramfs_extracted/init[0m
-   [0;36mCopying bootloader from: /home/popcat19/nixos-shimboot/bootloader[0m
-chmod: cannot access '/tmp/tmp.OVRcioE2F9/initramfs_extracted/bootloader/init': No such file or directory
-chmod: cannot access '/tmp/tmp.OVRcioE2F9/initramfs_extracted/bootloader/hooks/exec': No such file or directory
-   [0;36mInitramfs patching complete[0m
->> [1;32mMounting original ChromeOS rootfs to harvest modules...[0m
-   [0;36mMounting shim rootfs partition: /dev/loop0p3 -> /tmp/tmp.Iyrvfc6Dj0[0m
-   [0;36mAssigned shim loop device: /dev/loop0[0m
-mount: /tmp/tmp.Iyrvfc6Dj0: wrong fs type, bad option, bad superblock on /dev/loop0p3, missing codepage or helper program, or other error.
-       dmesg(1) may have more information after failed mount system call.
-find: ‘/tmp/tmp.Iyrvfc6Dj0/lib/modules’: No such file or directory
-   [0;36mNo modules directory found in shim rootfs[0m
-   [0;36mRemoving temp directory /tmp/tmp.Iyrvfc6Dj0...[0m
-   [0;36mDetaching loop device /dev/loop0...[0m
->> [1;32mHarvesting firmware from shim...[0m
-   [0;36mNo firmware directory found in shim rootfs[0m
->> [1;32mStep 3: Mounting NixOS image...[0m
->> [1;32mMounting source NixOS image to extract rootfs...[0m
-   [0;36mNixOS image path: /nix/store/ms1bhlgsljlhr9qviyypsjkad47lyiwd-nixos-disk-image/nixos.img[0m
-   [0;36mAssigned NixOS source loop device: /dev/loop0[0m
-   [0;36mMounting NixOS source partition: /dev/loop0p1 -> /tmp/nixos_source_mount[0m
->> [1;32mStep 4: Assembling final disk image...[0m
->> [1;32mAssembling the final disk image...[0m
-   [0;36mOutput path: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mEstimating required rootfs size from source NixOS image...[0m
-   [0;36mNixOS used space: 7905MB[0m
-   [0;36mFinal rootfs partition size: 10776MB[0m
-   [0;36mBootloader partition size: 32MB[0m
-   [0;36mTotal image size: 10841MB[0m
->> [1;32mCreating 10841MB disk image[0m
-   [0;36mCreating disk image with dd: bs=1M count=10841[0m
-1769996288 bytes (1.8 GB, 1.6 GiB) copied, 1 s, 1.8 GB/s3508535296 bytes (3.5 GB, 3.3 GiB) copied, 2 s, 1.8 GB/s3996123136 bytes (4.0 GB, 3.7 GiB) copied, 3 s, 1.3 GB/s4297064448 bytes (4.3 GB, 4.0 GiB) copied, 4 s, 1.1 GB/s4574937088 bytes (4.6 GB, 4.3 GiB) copied, 5 s, 915 MB/s4837081088 bytes (4.8 GB, 4.5 GiB) copied, 6 s, 804 MB/s5102370816 bytes (5.1 GB, 4.8 GiB) copied, 7 s, 728 MB/s5345640448 bytes (5.3 GB, 5.0 GiB) copied, 8 s, 667 MB/s5575278592 bytes (5.6 GB, 5.2 GiB) copied, 9 s, 619 MB/s5793382400 bytes (5.8 GB, 5.4 GiB) copied, 10 s, 579 MB/s5992611840 bytes (6.0 GB, 5.6 GiB) copied, 11 s, 545 MB/s6181355520 bytes (6.2 GB, 5.8 GiB) copied, 12 s, 515 MB/s6359613440 bytes (6.4 GB, 5.9 GiB) copied, 13 s, 489 MB/s6530531328 bytes (6.5 GB, 6.1 GiB) copied, 14 s, 466 MB/s6699352064 bytes (6.7 GB, 6.2 GiB) copied, 15 s, 446 MB/s6862929920 bytes (6.9 GB, 6.4 GiB) copied, 16 s, 429 MB/s7032799232 bytes (7.0 GB, 6.5 GiB) copied, 17 s, 414 MB/s7210008576 bytes (7.2 GB, 6.7 GiB) copied, 18 s, 400 MB/s7403995136 bytes (7.4 GB, 6.9 GiB) copied, 19 s, 390 MB/s7627341824 bytes (7.6 GB, 7.1 GiB) copied, 20 s, 381 MB/s7870611456 bytes (7.9 GB, 7.3 GiB) copied, 21 s, 375 MB/s8119123968 bytes (8.1 GB, 7.6 GiB) copied, 22 s, 369 MB/s8372879360 bytes (8.4 GB, 7.8 GiB) copied, 23 s, 364 MB/s8628731904 bytes (8.6 GB, 8.0 GiB) copied, 24 s, 360 MB/s8894021632 bytes (8.9 GB, 8.3 GiB) copied, 25 s, 356 MB/s9187622912 bytes (9.2 GB, 8.6 GiB) copied, 26 s, 353 MB/s9512681472 bytes (9.5 GB, 8.9 GiB) copied, 27 s, 352 MB/s9812574208 bytes (9.8 GB, 9.1 GiB) copied, 28 s, 350 MB/s10085203968 bytes (10 GB, 9.4 GiB) copied, 29 s, 348 MB/s10358882304 bytes (10 GB, 9.6 GiB) copied, 30 s, 345 MB/s10648289280 bytes (11 GB, 9.9 GiB) copied, 31 s, 343 MB/s10975444992 bytes (11 GB, 10 GiB) copied, 32 s, 343 MB/s 
-10841+0 records in
-10841+0 records out
-11367612416 bytes (11 GB, 11 GiB) copied, 32.8493 s, 346 MB/s
->> [1;32mPartitioning disk image[0m
-   [0;36mVerifying partition table:[0m
-Disk /home/popcat19/nixos-shimboot/shimboot_nixos.bin: 10.59 GiB, 11367612416 bytes, 22202368 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-Disklabel type: gpt
-Disk identifier: 92E330EF-CCC0-4ACF-8FF6-2B13E5DF6919
-
-Device                                             Start      End  Sectors  Size Type
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin1   2048     4095     2048    1M Linux filesystem
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin2   4096    69631    65536   32M ChromeOS kernel
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin3  69632   135167    65536   32M ChromeOS root fs
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin4 135168 22200319 22065152 10.5G Linux filesystem
->> [1;32mCreating loop device for final image[0m
-   [0;36mAssigned final image loop device: /dev/loop1[0m
->> [1;32mFormatting partitions[0m
-mke2fs 1.47.2 (1-Jan-2025)
-
-Filesystem too small for a journal
-32+0 records in
-32+0 records out
-33554432 bytes (34 MB, 32 MiB) copied, 0.263855 s, 127 MB/s
-mke2fs 1.47.2 (1-Jan-2025)
-mke2fs 1.47.2 (1-Jan-2025)
->> [1;32mCopying bootloader...[0m
-   [0;36mUnmounting /tmp/shim_bootloader...[0m
->> [1;32mCopying NixOS rootfs... (this may take a while)[0m
-   [0;36mCopying rootfs from source image to partition...[0m
-   [0;36mRootfs copy complete[0m
->> [1;32mCreating systemd init symlink...[0m
-   [0;36mSearching for patched systemd binaries...[0m
-   [0;36mUsing manually specified systemd binary path: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mUsing patched systemd binary[0m
-   [0;36mFound systemd binary at: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
-   [0;36mCreating symlink /init -> /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mSystemd symlink created successfully using systemd 257.6[0m
->> [1;32mInjecting harvested kernel modules into new rootfs...[0m
-!! [1;31mHarvested kernel modules not found in temp directory. Skipping.[0m
->> [1;32mInjecting harvested firmware into new rootfs...[0m
-   [0;36mFirmware copied to /tmp/new_rootfs/lib/firmware/[0m
-   [0;36mManually creating traditional symlinks...[0m
->> [1;32mResetting machine-id for golden image...[0m
-   [0;36mEnsured /etc/machine-id is ready for first-boot generation.[0m
-   [0;36mFixing ownership of output file...[0m
->> [1;32mAll done! Your shimboot NixOS image is ready at: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mFinal image size: -rw-r--r-- 1 popcat19 users 11G Aug  4 06:51 /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
->> [1;32m⚠ Built without recovery image - consider adding ./data/recovery.bin for better compatibility[0m
->> [1;32mBuild completed successfully![0m
->> [1;32mCleaning up...[0m
-   [0;36mUnmounting /tmp/new_rootfs...[0m
-   [0;36mUnmounting /tmp/nixos_source_mount...[0m
-   [0;36mDetaching loop device /dev/loop1...[0m
-   [0;36mDetaching loop device /dev/loop0...[0m
-   [0;36mRemoving temp directory /tmp/tmp.OVRcioE2F9...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
->> [1;32mNixOS raw image generated at /nix/store/xiwvw1apb68kh2fh2cvsq9k4qb2lapig-nixos-disk-image/nixos.img[0m
-   [0;36mImage size: -r--r--r-- 1 root root 11G Dec 31  1969 /nix/store/xiwvw1apb68kh2fh2cvsq9k4qb2lapig-nixos-disk-image/nixos.img[0m
->> [1;32mStep 2: Harvesting kernel, initramfs, and modules from shim...[0m
->> [1;32mHarvesting kernel, initramfs, and modules from shim...[0m
-   [0;36mWorking directory: /tmp/tmp.ZD0II5k2un[0m
-   [0;36mTemp directory permissions: drwx------ 2 popcat19 users 4096 Aug  4 08:49 /tmp/tmp.ZD0II5k2un[0m
->> [1;32mExtracting kernel partition (KERN-A)...[0m
-   [0;36mRunning: sudo cgpt show -i 2 "/home/popcat19/nixos-shimboot/data/shim.bin"[0m
-   [0;36mcgpt output:[0m
-   [0;36m       start        size    part  contents
-          69       65536       2  Label: "KERN-A"
-                                  Type: ChromeOS kernel
-                                  UUID: B5BAF579-07EF-A747-858B-87C0E507CD29
-                                  Attr: priority=15 tries=15 successful=1 [0m
-   [0;36mPartition start: size, size: contents[0m
-   [0;36mExtracting kernel with dd...[0m
-dd: invalid number: 'size'
-   [0;36mFixing ownership of /home/popcat19/nixos-shimboot/data/kernel.bin...[0m
->> [1;32mExtracting initramfs from kernel...[0m
-   [0;36mStage 1: Finding gzip offset...[0m
-   [0;36mGzip offset: 66282[0m
-   [0;36mStage 1: Decompressing kernel...[0m
-
-gzip: stdin: decompression OK, trailing garbage ignored
-   [0;36mStage 2: Finding XZ offset...[0m
-   [0;36mXZ offset: 32961504[0m
-   [0;36mStage 2: Extracting XZ cpio archive...[0m
-xz: (stdin): Compressed data is corrupt
-   [0;36mInitramfs extraction complete.[0m
->> [1;32mPatching initramfs with shimboot bootloader...[0m
-   [0;36mOriginal init script: /tmp/tmp.ZD0II5k2un/initramfs_extracted/init[0m
-   [0;36mCopying bootloader from: /home/popcat19/nixos-shimboot/bootloader[0m
-chmod: cannot access '/tmp/tmp.ZD0II5k2un/initramfs_extracted/bootloader/init': No such file or directory
-chmod: cannot access '/tmp/tmp.ZD0II5k2un/initramfs_extracted/bootloader/hooks/exec': No such file or directory
-   [0;36mInitramfs patching complete[0m
->> [1;32mMounting original ChromeOS rootfs to harvest modules...[0m
-   [0;36mMounting shim rootfs partition: /dev/loop0p3 -> /tmp/tmp.ohcRrmKqXb[0m
-   [0;36mAssigned shim loop device: /dev/loop10[0m
-mount: /tmp/tmp.ohcRrmKqXb: wrong fs type, bad option, bad superblock on /dev/loop10p3, missing codepage or helper program, or other error.
-       dmesg(1) may have more information after failed mount system call.
-find: ‘/tmp/tmp.ohcRrmKqXb/lib/modules’: No such file or directory
-   [0;36mNo modules directory found in shim rootfs[0m
-   [0;36mRemoving temp directory /tmp/tmp.ohcRrmKqXb...[0m
-   [0;36mDetaching loop device /dev/loop10...[0m
->> [1;32mHarvesting firmware from shim...[0m
-   [0;36mNo firmware directory found in shim rootfs[0m
->> [1;32mStep 3: Mounting NixOS image...[0m
->> [1;32mMounting source NixOS image to extract rootfs...[0m
-   [0;36mNixOS image path: /nix/store/xiwvw1apb68kh2fh2cvsq9k4qb2lapig-nixos-disk-image/nixos.img[0m
-   [0;36mAssigned NixOS source loop device: /dev/loop10[0m
-   [0;36mMounting NixOS source partition: /dev/loop10p1 -> /tmp/nixos_source_mount[0m
->> [1;32mStep 4: Assembling final disk image...[0m
->> [1;32mAssembling the final disk image...[0m
-   [0;36mOutput path: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mEstimating required rootfs size from source NixOS image...[0m
-   [0;36mNixOS used space: 7905MB[0m
-   [0;36mFinal rootfs partition size: 10776MB[0m
-   [0;36mBootloader partition size: 32MB[0m
-   [0;36mTotal image size: 10841MB[0m
->> [1;32mCreating 10841MB disk image[0m
-   [0;36mCreating disk image with dd: bs=1M count=10841[0m
-1821376512 bytes (1.8 GB, 1.7 GiB) copied, 1 s, 1.8 GB/s3386900480 bytes (3.4 GB, 3.2 GiB) copied, 2 s, 1.7 GB/s3826253824 bytes (3.8 GB, 3.6 GiB) copied, 3 s, 1.3 GB/s4139778048 bytes (4.1 GB, 3.9 GiB) copied, 4 s, 1.0 GB/s4416602112 bytes (4.4 GB, 4.1 GiB) copied, 5 s, 882 MB/s4690280448 bytes (4.7 GB, 4.4 GiB) copied, 6 s, 781 MB/s4952424448 bytes (5.0 GB, 4.6 GiB) copied, 7 s, 707 MB/s5199888384 bytes (5.2 GB, 4.8 GiB) copied, 8 s, 650 MB/s5430575104 bytes (5.4 GB, 5.1 GiB) copied, 9 s, 603 MB/s5641338880 bytes (5.6 GB, 5.3 GiB) copied, 10 s, 564 MB/s5833228288 bytes (5.8 GB, 5.4 GiB) copied, 11 s, 530 MB/s6007291904 bytes (6.0 GB, 5.6 GiB) copied, 12 s, 500 MB/s6165626880 bytes (6.2 GB, 5.7 GiB) copied, 13 s, 474 MB/s6321864704 bytes (6.3 GB, 5.9 GiB) copied, 14 s, 451 MB/s6473908224 bytes (6.5 GB, 6.0 GiB) copied, 15 s, 432 MB/s6653214720 bytes (6.7 GB, 6.2 GiB) copied, 16 s, 416 MB/s6888095744 bytes (6.9 GB, 6.4 GiB) copied, 17 s, 405 MB/s7180648448 bytes (7.2 GB, 6.7 GiB) copied, 18 s, 399 MB/s7672430592 bytes (7.7 GB, 7.1 GiB) copied, 19 s, 404 MB/s8097103872 bytes (8.1 GB, 7.5 GiB) copied, 20 s, 404 MB/s8518631424 bytes (8.5 GB, 7.9 GiB) copied, 21 s, 406 MB/s8951693312 bytes (9.0 GB, 8.3 GiB) copied, 22 s, 407 MB/s9477029888 bytes (9.5 GB, 8.8 GiB) copied, 23 s, 412 MB/s10001317888 bytes (10 GB, 9.3 GiB) copied, 24 s, 417 MB/s10557063168 bytes (11 GB, 9.8 GiB) copied, 25 s, 422 MB/s11128537088 bytes (11 GB, 10 GiB) copied, 26 s, 428 MB/s 
-10841+0 records in
-10841+0 records out
-11367612416 bytes (11 GB, 11 GiB) copied, 26.508 s, 429 MB/s
->> [1;32mPartitioning disk image[0m
-   [0;36mVerifying partition table:[0m
-Disk /home/popcat19/nixos-shimboot/shimboot_nixos.bin: 10.59 GiB, 11367612416 bytes, 22202368 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-Disklabel type: gpt
-Disk identifier: 192A38EE-58B3-4142-BB18-A7CEB0BF1949
-
-Device                                             Start      End  Sectors  Size Type
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin1   2048     4095     2048    1M Linux filesystem
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin2   4096    69631    65536   32M ChromeOS kernel
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin3  69632   135167    65536   32M ChromeOS root fs
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin4 135168 22200319 22065152 10.5G Linux filesystem
->> [1;32mCreating loop device for final image[0m
-   [0;36mAssigned final image loop device: /dev/loop11[0m
->> [1;32mFormatting partitions[0m
-mke2fs 1.47.2 (1-Jan-2025)
-
-Filesystem too small for a journal
-32+0 records in
-32+0 records out
-33554432 bytes (34 MB, 32 MiB) copied, 0.396664 s, 84.6 MB/s
-mke2fs 1.47.2 (1-Jan-2025)
-mke2fs 1.47.2 (1-Jan-2025)
->> [1;32mCopying bootloader...[0m
-   [0;36mUnmounting /tmp/shim_bootloader...[0m
->> [1;32mCopying NixOS rootfs... (this may take a while)[0m
-   [0;36mCopying rootfs from source image to partition...[0m
-   [0;36mRootfs copy complete[0m
->> [1;32mCreating systemd init symlink...[0m
-   [0;36mSearching for patched systemd binaries...[0m
-   [0;36mUsing manually specified systemd binary path: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mUsing patched systemd binary[0m
-   [0;36mFound systemd binary at: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
-   [0;36mCreating symlink /init -> /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mSystemd symlink created successfully using systemd 257.6[0m
->> [1;32mInjecting harvested kernel modules into new rootfs...[0m
-!! [1;31mHarvested kernel modules not found in temp directory. Skipping.[0m
->> [1;32mInjecting harvested firmware into new rootfs...[0m
-   [0;36mFirmware copied to /tmp/new_rootfs/lib/firmware/[0m
-   [0;36mManually creating traditional symlinks...[0m
->> [1;32mResetting machine-id for golden image...[0m
-   [0;36mEnsured /etc/machine-id is ready for first-boot generation.[0m
-   [0;36mFixing ownership of output file...[0m
->> [1;32mAll done! Your shimboot NixOS image is ready at: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mFinal image size: -rw-r--r-- 1 popcat19 users 11G Aug  4 08:51 /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
->> [1;32m⚠ Built without recovery image - consider adding ./data/recovery.bin for better compatibility[0m
->> [1;32mBuild completed successfully![0m
->> [1;32mCleaning up...[0m
-   [0;36mUnmounting /tmp/new_rootfs...[0m
-   [0;36mUnmounting /tmp/nixos_source_mount...[0m
-   [0;36mDetaching loop device /dev/loop11...[0m
-   [0;36mDetaching loop device /dev/loop10...[0m
-   [0;36mRemoving temp directory /tmp/tmp.ZD0II5k2un...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
-!! [1;31mFailed to extract NixOS image path from nixos-generate output[0m
-!! [1;31mCheck the output above for error messages[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
->> [1;32mNixOS raw image generated at /nix/store/k83ss52xyal05gchan7hcmizbgdsg9zy-nixos-disk-image/nixos.img[0m
-   [0;36mImage size: -r--r--r-- 1 root root 11G Dec 31  1969 /nix/store/k83ss52xyal05gchan7hcmizbgdsg9zy-nixos-disk-image/nixos.img[0m
->> [1;32mStep 2: Harvesting kernel, initramfs, and modules from shim...[0m
->> [1;32mHarvesting kernel, initramfs, and modules from shim...[0m
-   [0;36mWorking directory: /tmp/tmp.SAxZF1SAbt[0m
-   [0;36mTemp directory permissions: drwx------ 2 popcat19 users 4096 Aug  4 09:16 /tmp/tmp.SAxZF1SAbt[0m
->> [1;32mExtracting kernel partition (KERN-A)...[0m
-   [0;36mRunning: sudo cgpt show -i 2 "/home/popcat19/nixos-shimboot/data/shim.bin"[0m
-   [0;36mcgpt output:[0m
-   [0;36m       start        size    part  contents
-          69       65536       2  Label: "KERN-A"
-                                  Type: ChromeOS kernel
-                                  UUID: B5BAF579-07EF-A747-858B-87C0E507CD29
-                                  Attr: priority=15 tries=15 successful=1 [0m
-   [0;36mPartition start: size, size: contents[0m
-   [0;36mExtracting kernel with dd...[0m
-dd: invalid number: 'size'
-   [0;36mFixing ownership of /home/popcat19/nixos-shimboot/data/kernel.bin...[0m
->> [1;32mExtracting initramfs from kernel...[0m
-   [0;36mStage 1: Finding gzip offset...[0m
-   [0;36mGzip offset: 66282[0m
-   [0;36mStage 1: Decompressing kernel...[0m
-
-gzip: stdin: decompression OK, trailing garbage ignored
-   [0;36mStage 2: Finding XZ offset...[0m
-   [0;36mXZ offset: 32961504[0m
-   [0;36mStage 2: Extracting XZ cpio archive...[0m
-xz: (stdin): Compressed data is corrupt
-   [0;36mInitramfs extraction complete.[0m
->> [1;32mPatching initramfs with shimboot bootloader...[0m
-   [0;36mOriginal init script: /tmp/tmp.SAxZF1SAbt/initramfs_extracted/init[0m
-   [0;36mCopying bootloader from: /home/popcat19/nixos-shimboot/bootloader[0m
-chmod: cannot access '/tmp/tmp.SAxZF1SAbt/initramfs_extracted/bootloader/init': No such file or directory
-chmod: cannot access '/tmp/tmp.SAxZF1SAbt/initramfs_extracted/bootloader/hooks/exec': No such file or directory
-   [0;36mInitramfs patching complete[0m
->> [1;32mMounting original ChromeOS rootfs to harvest modules...[0m
-   [0;36mMounting shim rootfs partition: /dev/loop0p3 -> /tmp/tmp.9EdIt39HZJ[0m
-   [0;36mAssigned shim loop device: /dev/loop10[0m
-mount: /tmp/tmp.9EdIt39HZJ: wrong fs type, bad option, bad superblock on /dev/loop10p3, missing codepage or helper program, or other error.
-       dmesg(1) may have more information after failed mount system call.
-find: ‘/tmp/tmp.9EdIt39HZJ/lib/modules’: No such file or directory
-   [0;36mNo modules directory found in shim rootfs[0m
-   [0;36mRemoving temp directory /tmp/tmp.9EdIt39HZJ...[0m
-   [0;36mDetaching loop device /dev/loop10...[0m
->> [1;32mHarvesting firmware from shim...[0m
-   [0;36mNo firmware directory found in shim rootfs[0m
->> [1;32mStep 3: Mounting NixOS image...[0m
->> [1;32mMounting source NixOS image to extract rootfs...[0m
-   [0;36mNixOS image path: /nix/store/k83ss52xyal05gchan7hcmizbgdsg9zy-nixos-disk-image/nixos.img[0m
-   [0;36mAssigned NixOS source loop device: /dev/loop10[0m
-   [0;36mMounting NixOS source partition: /dev/loop10p1 -> /tmp/nixos_source_mount[0m
->> [1;32mStep 4: Assembling final disk image...[0m
->> [1;32mAssembling the final disk image...[0m
-   [0;36mOutput path: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mEstimating required rootfs size from source NixOS image...[0m
-   [0;36mNixOS used space: 7811MB[0m
-   [0;36mFinal rootfs partition size: 10654MB[0m
-   [0;36mBootloader partition size: 32MB[0m
-   [0;36mTotal image size: 10719MB[0m
->> [1;32mCreating 10719MB disk image[0m
-   [0;36mCreating disk image with dd: bs=1M count=10719[0m
-1656750080 bytes (1.7 GB, 1.5 GiB) copied, 1 s, 1.7 GB/s3309305856 bytes (3.3 GB, 3.1 GiB) copied, 2 s, 1.7 GB/s3891265536 bytes (3.9 GB, 3.6 GiB) copied, 3 s, 1.3 GB/s4322230272 bytes (4.3 GB, 4.0 GiB) copied, 4 s, 1.1 GB/s4704960512 bytes (4.7 GB, 4.4 GiB) copied, 5 s, 941 MB/s5064622080 bytes (5.1 GB, 4.7 GiB) copied, 6 s, 843 MB/s5422186496 bytes (5.4 GB, 5.0 GiB) copied, 7 s, 775 MB/s5811208192 bytes (5.8 GB, 5.4 GiB) copied, 8 s, 726 MB/s6211764224 bytes (6.2 GB, 5.8 GiB) copied, 9 s, 690 MB/s6666846208 bytes (6.7 GB, 6.2 GiB) copied, 10 s, 666 MB/s7096762368 bytes (7.1 GB, 6.6 GiB) copied, 11 s, 645 MB/s7482638336 bytes (7.5 GB, 7.0 GiB) copied, 12 s, 623 MB/s7851737088 bytes (7.9 GB, 7.3 GiB) copied, 13 s, 604 MB/s8199864320 bytes (8.2 GB, 7.6 GiB) copied, 14 s, 586 MB/s8524922880 bytes (8.5 GB, 7.9 GiB) copied, 15 s, 568 MB/s8797552640 bytes (8.8 GB, 8.2 GiB) copied, 16 s, 550 MB/s9119465472 bytes (9.1 GB, 8.5 GiB) copied, 17 s, 536 MB/s9421455360 bytes (9.4 GB, 8.8 GiB) copied, 18 s, 523 MB/s9749659648 bytes (9.7 GB, 9.1 GiB) copied, 19 s, 513 MB/s10108272640 bytes (10 GB, 9.4 GiB) copied, 20 s, 505 MB/s10501488640 bytes (11 GB, 9.8 GiB) copied, 21 s, 500 MB/s10923016192 bytes (11 GB, 10 GiB) copied, 22 s, 496 MB/s 
-10719+0 records in
-10719+0 records out
-11239686144 bytes (11 GB, 10 GiB) copied, 22.7387 s, 494 MB/s
->> [1;32mPartitioning disk image[0m
-   [0;36mVerifying partition table:[0m
-Disk /home/popcat19/nixos-shimboot/shimboot_nixos.bin: 10.47 GiB, 11239686144 bytes, 21952512 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-Disklabel type: gpt
-Disk identifier: 5DEB690B-0E47-44E8-AE8D-3689F3B7F6A4
-
-Device                                             Start      End  Sectors  Size Type
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin1   2048     4095     2048    1M Linux filesystem
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin2   4096    69631    65536   32M ChromeOS kernel
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin3  69632   135167    65536   32M ChromeOS root fs
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin4 135168 21950463 21815296 10.4G Linux filesystem
->> [1;32mCreating loop device for final image[0m
-   [0;36mAssigned final image loop device: /dev/loop11[0m
->> [1;32mFormatting partitions[0m
-mke2fs 1.47.2 (1-Jan-2025)
-
-Filesystem too small for a journal
-32+0 records in
-32+0 records out
-33554432 bytes (34 MB, 32 MiB) copied, 0.283888 s, 118 MB/s
-mke2fs 1.47.2 (1-Jan-2025)
-mke2fs 1.47.2 (1-Jan-2025)
->> [1;32mCopying bootloader...[0m
-   [0;36mUnmounting /tmp/shim_bootloader...[0m
->> [1;32mCopying NixOS rootfs... (this may take a while)[0m
-   [0;36mCopying rootfs from source image to partition...[0m
-   [0;36mRootfs copy complete[0m
->> [1;32mCreating systemd init symlink...[0m
-   [0;36mSearching for patched systemd binaries...[0m
-   [0;36mUsing manually specified systemd binary path: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mUsing patched systemd binary[0m
-   [0;36mFound systemd binary at: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
-   [0;36mCreating symlink /init -> /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mSystemd symlink created successfully using systemd 257.6[0m
->> [1;32mInjecting harvested kernel modules into new rootfs...[0m
-!! [1;31mHarvested kernel modules not found in temp directory. Skipping.[0m
->> [1;32mInjecting harvested firmware into new rootfs...[0m
-   [0;36mFirmware copied to /tmp/new_rootfs/lib/firmware/[0m
-   [0;36mManually creating traditional symlinks...[0m
->> [1;32mResetting machine-id for golden image...[0m
-   [0;36mEnsured /etc/machine-id is ready for first-boot generation.[0m
-   [0;36mFixing ownership of output file...[0m
->> [1;32mAll done! Your shimboot NixOS image is ready at: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mFinal image size: -rw-r--r-- 1 popcat19 users 11G Aug  4 09:18 /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
->> [1;32m⚠ Built without recovery image - consider adding ./data/recovery.bin for better compatibility[0m
->> [1;32mBuild completed successfully![0m
->> [1;32mCleaning up...[0m
-   [0;36mUnmounting /tmp/new_rootfs...[0m
-   [0;36mUnmounting /tmp/nixos_source_mount...[0m
-   [0;36mDetaching loop device /dev/loop11...[0m
-   [0;36mDetaching loop device /dev/loop10...[0m
-   [0;36mRemoving temp directory /tmp/tmp.SAxZF1SAbt...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
-!! [1;31mFailed to extract NixOS image path from nixos-generate output[0m
-!! [1;31mCheck the output above for error messages[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
-!! [1;31mFailed to extract NixOS image path from nixos-generate output[0m
-!! [1;31mCheck the output above for error messages[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
-!! [1;31mFailed to extract NixOS image path from nixos-generate output[0m
-!! [1;31mCheck the output above for error messages[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
->> [1;32mNixOS raw image generated at /nix/store/8gwp3r1dhkirl96j2x3k6v2n8f2hlscx-nixos-disk-image/nixos.img[0m
-   [0;36mImage size: -r--r--r-- 1 root root 11G Dec 31  1969 /nix/store/8gwp3r1dhkirl96j2x3k6v2n8f2hlscx-nixos-disk-image/nixos.img[0m
->> [1;32mStep 2: Harvesting kernel, initramfs, and modules from shim...[0m
->> [1;32mHarvesting kernel, initramfs, and modules from shim...[0m
-   [0;36mWorking directory: /tmp/tmp.fbMNmybOk9[0m
-   [0;36mTemp directory permissions: drwx------ 2 popcat19 users 4096 Aug  4 09:33 /tmp/tmp.fbMNmybOk9[0m
->> [1;32mExtracting kernel partition (KERN-A)...[0m
-   [0;36mRunning: sudo cgpt show -i 2 "/home/popcat19/nixos-shimboot/data/shim.bin"[0m
-   [0;36mcgpt output:[0m
-   [0;36m       start        size    part  contents
-          69       65536       2  Label: "KERN-A"
-                                  Type: ChromeOS kernel
-                                  UUID: B5BAF579-07EF-A747-858B-87C0E507CD29
-                                  Attr: priority=15 tries=15 successful=1 [0m
-   [0;36mPartition start: size, size: contents[0m
-   [0;36mExtracting kernel with dd...[0m
-dd: invalid number: 'size'
-   [0;36mFixing ownership of /home/popcat19/nixos-shimboot/data/kernel.bin...[0m
->> [1;32mExtracting initramfs from kernel...[0m
-   [0;36mStage 1: Finding gzip offset...[0m
-   [0;36mGzip offset: 66282[0m
-   [0;36mStage 1: Decompressing kernel...[0m
-
-gzip: stdin: decompression OK, trailing garbage ignored
-   [0;36mStage 2: Finding XZ offset...[0m
-   [0;36mXZ offset: 32961504[0m
-   [0;36mStage 2: Extracting XZ cpio archive...[0m
-xz: (stdin): Compressed data is corrupt
-   [0;36mInitramfs extraction complete.[0m
->> [1;32mPatching initramfs with shimboot bootloader...[0m
-   [0;36mOriginal init script: /tmp/tmp.fbMNmybOk9/initramfs_extracted/init[0m
-   [0;36mCopying bootloader from: /home/popcat19/nixos-shimboot/bootloader[0m
-chmod: cannot access '/tmp/tmp.fbMNmybOk9/initramfs_extracted/bootloader/init': No such file or directory
-chmod: cannot access '/tmp/tmp.fbMNmybOk9/initramfs_extracted/bootloader/hooks/exec': No such file or directory
-   [0;36mInitramfs patching complete[0m
->> [1;32mMounting original ChromeOS rootfs to harvest modules...[0m
-   [0;36mMounting shim rootfs partition: /dev/loop0p3 -> /tmp/tmp.u6e0C3GqVB[0m
-   [0;36mAssigned shim loop device: /dev/loop10[0m
-mount: /tmp/tmp.u6e0C3GqVB: wrong fs type, bad option, bad superblock on /dev/loop10p3, missing codepage or helper program, or other error.
-       dmesg(1) may have more information after failed mount system call.
-find: ‘/tmp/tmp.u6e0C3GqVB/lib/modules’: No such file or directory
-   [0;36mNo modules directory found in shim rootfs[0m
-   [0;36mRemoving temp directory /tmp/tmp.u6e0C3GqVB...[0m
-   [0;36mDetaching loop device /dev/loop10...[0m
->> [1;32mHarvesting firmware from shim...[0m
-   [0;36mNo firmware directory found in shim rootfs[0m
->> [1;32mStep 3: Mounting NixOS image...[0m
->> [1;32mMounting source NixOS image to extract rootfs...[0m
-   [0;36mNixOS image path: /nix/store/8gwp3r1dhkirl96j2x3k6v2n8f2hlscx-nixos-disk-image/nixos.img[0m
-   [0;36mAssigned NixOS source loop device: /dev/loop10[0m
-   [0;36mMounting NixOS source partition: /dev/loop10p1 -> /tmp/nixos_source_mount[0m
->> [1;32mStep 4: Assembling final disk image...[0m
->> [1;32mAssembling the final disk image...[0m
-   [0;36mOutput path: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mEstimating required rootfs size from source NixOS image...[0m
-   [0;36mNixOS used space: 7880MB[0m
-   [0;36mFinal rootfs partition size: 10744MB[0m
-   [0;36mBootloader partition size: 32MB[0m
-   [0;36mTotal image size: 10809MB[0m
->> [1;32mCreating 10809MB disk image[0m
-   [0;36mCreating disk image with dd: bs=1M count=10809[0m
-1590689792 bytes (1.6 GB, 1.5 GiB) copied, 1 s, 1.6 GB/s3282042880 bytes (3.3 GB, 3.1 GiB) copied, 2 s, 1.6 GB/s4080009216 bytes (4.1 GB, 3.8 GiB) copied, 3 s, 1.4 GB/s4571791360 bytes (4.6 GB, 4.3 GiB) copied, 4 s, 1.1 GB/s5007998976 bytes (5.0 GB, 4.7 GiB) copied, 5 s, 1.0 GB/s5397020672 bytes (5.4 GB, 5.0 GiB) copied, 6 s, 899 MB/s5772410880 bytes (5.8 GB, 5.4 GiB) copied, 7 s, 824 MB/s6119489536 bytes (6.1 GB, 5.7 GiB) copied, 8 s, 764 MB/s6441402368 bytes (6.4 GB, 6.0 GiB) copied, 9 s, 715 MB/s6751780864 bytes (6.8 GB, 6.3 GiB) copied, 10 s, 675 MB/s7032799232 bytes (7.0 GB, 6.5 GiB) copied, 11 s, 639 MB/s7285506048 bytes (7.3 GB, 6.8 GiB) copied, 12 s, 606 MB/s7514095616 bytes (7.5 GB, 7.0 GiB) copied, 13 s, 578 MB/s7708082176 bytes (7.7 GB, 7.2 GiB) copied, 14 s, 551 MB/s7905214464 bytes (7.9 GB, 7.4 GiB) copied, 15 s, 527 MB/s8167358464 bytes (8.2 GB, 7.6 GiB) copied, 16 s, 510 MB/s8485076992 bytes (8.5 GB, 7.9 GiB) copied, 17 s, 499 MB/s8858370048 bytes (8.9 GB, 8.2 GiB) copied, 18 s, 492 MB/s9258926080 bytes (9.3 GB, 8.6 GiB) copied, 19 s, 487 MB/s9728688128 bytes (9.7 GB, 9.1 GiB) copied, 20 s, 486 MB/s10179575808 bytes (10 GB, 9.5 GiB) copied, 21 s, 485 MB/s10597957632 bytes (11 GB, 9.9 GiB) copied, 22 s, 482 MB/s11001659392 bytes (11 GB, 10 GiB) copied, 23 s, 478 MB/s 
-10809+0 records in
-10809+0 records out
-11334057984 bytes (11 GB, 11 GiB) copied, 23.7416 s, 477 MB/s
->> [1;32mPartitioning disk image[0m
-   [0;36mVerifying partition table:[0m
-Disk /home/popcat19/nixos-shimboot/shimboot_nixos.bin: 10.56 GiB, 11334057984 bytes, 22136832 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-Disklabel type: gpt
-Disk identifier: 6ECF3229-EA99-48BE-AB4E-470915197B34
-
-Device                                             Start      End  Sectors  Size Type
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin1   2048     4095     2048    1M Linux filesystem
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin2   4096    69631    65536   32M ChromeOS kernel
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin3  69632   135167    65536   32M ChromeOS root fs
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin4 135168 22134783 21999616 10.5G Linux filesystem
->> [1;32mCreating loop device for final image[0m
-   [0;36mAssigned final image loop device: /dev/loop11[0m
->> [1;32mFormatting partitions[0m
-mke2fs 1.47.2 (1-Jan-2025)
-
-Filesystem too small for a journal
-32+0 records in
-32+0 records out
-33554432 bytes (34 MB, 32 MiB) copied, 0.336979 s, 99.6 MB/s
-mke2fs 1.47.2 (1-Jan-2025)
-mke2fs 1.47.2 (1-Jan-2025)
->> [1;32mCopying bootloader...[0m
-   [0;36mUnmounting /tmp/shim_bootloader...[0m
->> [1;32mCopying NixOS rootfs... (this may take a while)[0m
-   [0;36mCopying rootfs from source image to partition...[0m
-   [0;36mRootfs copy complete[0m
->> [1;32mCreating systemd init symlink...[0m
-   [0;36mSearching for patched systemd binaries...[0m
-   [0;36mUsing manually specified systemd binary path: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mUsing patched systemd binary[0m
-   [0;36mFound systemd binary at: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
-   [0;36mCreating symlink /init -> /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mSystemd symlink created successfully using systemd 257.6[0m
->> [1;32mInjecting harvested kernel modules into new rootfs...[0m
-!! [1;31mHarvested kernel modules not found in temp directory. Skipping.[0m
->> [1;32mInjecting harvested firmware into new rootfs...[0m
-   [0;36mFirmware copied to /tmp/new_rootfs/lib/firmware/[0m
-   [0;36mManually creating traditional symlinks...[0m
->> [1;32mResetting machine-id for golden image...[0m
-   [0;36mEnsured /etc/machine-id is ready for first-boot generation.[0m
-   [0;36mFixing ownership of output file...[0m
->> [1;32mAll done! Your shimboot NixOS image is ready at: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mFinal image size: -rw-r--r-- 1 popcat19 users 11G Aug  4 09:35 /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
->> [1;32m⚠ Built without recovery image - consider adding ./data/recovery.bin for better compatibility[0m
->> [1;32mBuild completed successfully![0m
->> [1;32mCleaning up...[0m
-   [0;36mUnmounting /tmp/new_rootfs...[0m
-   [0;36mUnmounting /tmp/nixos_source_mount...[0m
-   [0;36mDetaching loop device /dev/loop11...[0m
-   [0;36mDetaching loop device /dev/loop10...[0m
-   [0;36mRemoving temp directory /tmp/tmp.fbMNmybOk9...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
-!! [1;31mFailed to extract NixOS image path from nixos-generate output[0m
-!! [1;31mCheck the output above for error messages[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
-!! [1;31mFailed to extract NixOS image path from nixos-generate output[0m
-!! [1;31mCheck the output above for error messages[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
-!! [1;31mFailed to extract NixOS image path from nixos-generate output[0m
-!! [1;31mCheck the output above for error messages[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
-!! [1;31mFailed to extract NixOS image path from nixos-generate output[0m
-!! [1;31mCheck the output above for error messages[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
-!! [1;31mFailed to extract NixOS image path from nixos-generate output[0m
-!! [1;31mCheck the output above for error messages[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
->> [1;32mNixOS raw image generated at /nix/store/d5f830kliwn8lnpvlf9lf67183zkngbx-nixos-disk-image/nixos.img[0m
-   [0;36mImage size: -r--r--r-- 1 root root 11G Dec 31  1969 /nix/store/d5f830kliwn8lnpvlf9lf67183zkngbx-nixos-disk-image/nixos.img[0m
->> [1;32mStep 2: Harvesting kernel, initramfs, and modules from shim...[0m
->> [1;32mHarvesting kernel, initramfs, and modules from shim...[0m
-   [0;36mWorking directory: /tmp/tmp.sJbfZJpYvk[0m
-   [0;36mTemp directory permissions: drwx------ 2 popcat19 users 4096 Aug  4 09:58 /tmp/tmp.sJbfZJpYvk[0m
->> [1;32mExtracting kernel partition (KERN-A)...[0m
-   [0;36mRunning: sudo cgpt show -i 2 "/home/popcat19/nixos-shimboot/data/shim.bin"[0m
-   [0;36mcgpt output:[0m
-   [0;36m       start        size    part  contents
-          69       65536       2  Label: "KERN-A"
-                                  Type: ChromeOS kernel
-                                  UUID: B5BAF579-07EF-A747-858B-87C0E507CD29
-                                  Attr: priority=15 tries=15 successful=1 [0m
-   [0;36mPartition start: size, size: contents[0m
-   [0;36mExtracting kernel with dd...[0m
-dd: invalid number: 'size'
-   [0;36mFixing ownership of /home/popcat19/nixos-shimboot/data/kernel.bin...[0m
->> [1;32mExtracting initramfs from kernel...[0m
-   [0;36mStage 1: Finding gzip offset...[0m
-   [0;36mGzip offset: 66282[0m
-   [0;36mStage 1: Decompressing kernel...[0m
-
-gzip: stdin: decompression OK, trailing garbage ignored
-   [0;36mStage 2: Finding XZ offset...[0m
-   [0;36mXZ offset: 32961504[0m
-   [0;36mStage 2: Extracting XZ cpio archive...[0m
-xz: (stdin): Compressed data is corrupt
-   [0;36mInitramfs extraction complete.[0m
->> [1;32mPatching initramfs with shimboot bootloader...[0m
-   [0;36mOriginal init script: /tmp/tmp.sJbfZJpYvk/initramfs_extracted/init[0m
-   [0;36mCopying bootloader from: /home/popcat19/nixos-shimboot/bootloader[0m
-chmod: cannot access '/tmp/tmp.sJbfZJpYvk/initramfs_extracted/bootloader/init': No such file or directory
-chmod: cannot access '/tmp/tmp.sJbfZJpYvk/initramfs_extracted/bootloader/hooks/exec': No such file or directory
-   [0;36mInitramfs patching complete[0m
->> [1;32mMounting original ChromeOS rootfs to harvest modules...[0m
-   [0;36mMounting shim rootfs partition: /dev/loop0p3 -> /tmp/tmp.tF4RlqKUNZ[0m
-   [0;36mAssigned shim loop device: /dev/loop10[0m
-mount: /tmp/tmp.tF4RlqKUNZ: wrong fs type, bad option, bad superblock on /dev/loop10p3, missing codepage or helper program, or other error.
-       dmesg(1) may have more information after failed mount system call.
-find: ‘/tmp/tmp.tF4RlqKUNZ/lib/modules’: No such file or directory
-   [0;36mNo modules directory found in shim rootfs[0m
-   [0;36mRemoving temp directory /tmp/tmp.tF4RlqKUNZ...[0m
-   [0;36mDetaching loop device /dev/loop10...[0m
->> [1;32mHarvesting firmware from shim...[0m
-   [0;36mNo firmware directory found in shim rootfs[0m
->> [1;32mStep 3: Mounting NixOS image...[0m
->> [1;32mMounting source NixOS image to extract rootfs...[0m
-   [0;36mNixOS image path: /nix/store/d5f830kliwn8lnpvlf9lf67183zkngbx-nixos-disk-image/nixos.img[0m
-   [0;36mAssigned NixOS source loop device: /dev/loop10[0m
-   [0;36mMounting NixOS source partition: /dev/loop10p1 -> /tmp/nixos_source_mount[0m
->> [1;32mStep 4: Assembling final disk image...[0m
->> [1;32mAssembling the final disk image...[0m
-   [0;36mOutput path: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mEstimating required rootfs size from source NixOS image...[0m
-   [0;36mNixOS used space: 7943MB[0m
-   [0;36mFinal rootfs partition size: 10825MB[0m
-   [0;36mBootloader partition size: 32MB[0m
-   [0;36mTotal image size: 10890MB[0m
->> [1;32mCreating 10890MB disk image[0m
-   [0;36mCreating disk image with dd: bs=1M count=10890[0m
-1630535680 bytes (1.6 GB, 1.5 GiB) copied, 1 s, 1.6 GB/s3090153472 bytes (3.1 GB, 2.9 GiB) copied, 2 s, 1.5 GB/s3737124864 bytes (3.7 GB, 3.5 GiB) copied, 3 s, 1.2 GB/s4292870144 bytes (4.3 GB, 4.0 GiB) copied, 4 s, 1.1 GB/s4841275392 bytes (4.8 GB, 4.5 GiB) copied, 5 s, 968 MB/s5383389184 bytes (5.4 GB, 5.0 GiB) copied, 6 s, 897 MB/s5896142848 bytes (5.9 GB, 5.5 GiB) copied, 7 s, 841 MB/s6362759168 bytes (6.4 GB, 5.9 GiB) copied, 8 s, 795 MB/s6795821056 bytes (6.8 GB, 6.3 GiB) copied, 9 s, 754 MB/s7177502720 bytes (7.2 GB, 6.7 GiB) copied, 10 s, 718 MB/s7545552896 bytes (7.5 GB, 7.0 GiB) copied, 11 s, 685 MB/s7899971584 bytes (7.9 GB, 7.4 GiB) copied, 12 s, 658 MB/s8226078720 bytes (8.2 GB, 7.7 GiB) copied, 13 s, 633 MB/s8554283008 bytes (8.6 GB, 8.0 GiB) copied, 14 s, 611 MB/s8855224320 bytes (8.9 GB, 8.2 GiB) copied, 15 s, 590 MB/s9132048384 bytes (9.1 GB, 8.5 GiB) copied, 16 s, 571 MB/s9397338112 bytes (9.4 GB, 8.8 GiB) copied, 17 s, 553 MB/s9659482112 bytes (9.7 GB, 9.0 GiB) copied, 18 s, 536 MB/s9915334656 bytes (9.9 GB, 9.2 GiB) copied, 19 s, 522 MB/s10172235776 bytes (10 GB, 9.5 GiB) copied, 20 s, 509 MB/s10444865536 bytes (10 GB, 9.7 GiB) copied, 21 s, 497 MB/s10716446720 bytes (11 GB, 10 GiB) copied, 22 s, 487 MB/s 11018436608 bytes (11 GB, 10 GiB) copied, 23 s, 479 MB/s11352932352 bytes (11 GB, 11 GiB) copied, 24 s, 473 MB/s
-10890+0 records in
-10890+0 records out
-11418992640 bytes (11 GB, 11 GiB) copied, 24.1819 s, 472 MB/s
->> [1;32mPartitioning disk image[0m
-   [0;36mVerifying partition table:[0m
-Disk /home/popcat19/nixos-shimboot/shimboot_nixos.bin: 10.63 GiB, 11418992640 bytes, 22302720 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-Disklabel type: gpt
-Disk identifier: 72D7B4C9-7AE0-4823-B57A-E88DBE86E1CE
-
-Device                                             Start      End  Sectors  Size Type
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin1   2048     4095     2048    1M Linux filesystem
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin2   4096    69631    65536   32M ChromeOS kernel
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin3  69632   135167    65536   32M ChromeOS root fs
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin4 135168 22300671 22165504 10.6G Linux filesystem
->> [1;32mCreating loop device for final image[0m
-   [0;36mAssigned final image loop device: /dev/loop11[0m
->> [1;32mFormatting partitions[0m
-mke2fs 1.47.2 (1-Jan-2025)
-
-Filesystem too small for a journal
-32+0 records in
-32+0 records out
-33554432 bytes (34 MB, 32 MiB) copied, 0.285988 s, 117 MB/s
-mke2fs 1.47.2 (1-Jan-2025)
-mke2fs 1.47.2 (1-Jan-2025)
->> [1;32mCopying bootloader...[0m
-   [0;36mUnmounting /tmp/shim_bootloader...[0m
->> [1;32mCopying NixOS rootfs... (this may take a while)[0m
-   [0;36mCopying rootfs from source image to partition...[0m
-   [0;36mRootfs copy complete[0m
->> [1;32mCreating systemd init symlink...[0m
-   [0;36mSearching for patched systemd binaries...[0m
-   [0;36mUsing manually specified systemd binary path: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mUsing patched systemd binary[0m
-   [0;36mFound systemd binary at: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
-   [0;36mCreating symlink /init -> /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mSystemd symlink created successfully using systemd 257.6[0m
->> [1;32mInjecting harvested kernel modules into new rootfs...[0m
-!! [1;31mHarvested kernel modules not found in temp directory. Skipping.[0m
->> [1;32mInjecting harvested firmware into new rootfs...[0m
-   [0;36mFirmware copied to /tmp/new_rootfs/lib/firmware/[0m
-   [0;36mManually creating traditional symlinks...[0m
->> [1;32mResetting machine-id for golden image...[0m
-   [0;36mEnsured /etc/machine-id is ready for first-boot generation.[0m
-   [0;36mFixing ownership of output file...[0m
->> [1;32mAll done! Your shimboot NixOS image is ready at: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mFinal image size: -rw-r--r-- 1 popcat19 users 11G Aug  4 10:00 /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
->> [1;32m⚠ Built without recovery image - consider adding ./data/recovery.bin for better compatibility[0m
->> [1;32mBuild completed successfully![0m
->> [1;32mCleaning up...[0m
-   [0;36mUnmounting /tmp/new_rootfs...[0m
-   [0;36mUnmounting /tmp/nixos_source_mount...[0m
-   [0;36mDetaching loop device /dev/loop11...[0m
-   [0;36mDetaching loop device /dev/loop10...[0m
-   [0;36mRemoving temp directory /tmp/tmp.sJbfZJpYvk...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
->> [1;32mNixOS raw image generated at /nix/store/jz20jb9n806x3h00yn7g0c13m8rjqm2z-nixos-disk-image/nixos.img[0m
-   [0;36mImage size: -r--r--r-- 1 root root 8.6G Dec 31  1969 /nix/store/jz20jb9n806x3h00yn7g0c13m8rjqm2z-nixos-disk-image/nixos.img[0m
->> [1;32mStep 2: Harvesting kernel, initramfs, and modules from shim...[0m
->> [1;32mHarvesting kernel, initramfs, and modules from shim...[0m
-   [0;36mWorking directory: /tmp/tmp.7vpqnZkmyQ[0m
-   [0;36mTemp directory permissions: drwx------ 2 popcat19 users 4096 Aug  4 10:41 /tmp/tmp.7vpqnZkmyQ[0m
->> [1;32mExtracting kernel partition (KERN-A)...[0m
-   [0;36mRunning: sudo cgpt show -i 2 "/home/popcat19/nixos-shimboot/data/shim.bin"[0m
-   [0;36mcgpt output:[0m
-   [0;36m       start        size    part  contents
-          69       65536       2  Label: "KERN-A"
-                                  Type: ChromeOS kernel
-                                  UUID: B5BAF579-07EF-A747-858B-87C0E507CD29
-                                  Attr: priority=15 tries=15 successful=1 [0m
-   [0;36mPartition start: size, size: contents[0m
-   [0;36mExtracting kernel with dd...[0m
-dd: invalid number: 'size'
-   [0;36mFixing ownership of /home/popcat19/nixos-shimboot/data/kernel.bin...[0m
->> [1;32mExtracting initramfs from kernel...[0m
-   [0;36mStage 1: Finding gzip offset...[0m
-   [0;36mGzip offset: 66282[0m
-   [0;36mStage 1: Decompressing kernel...[0m
-
-gzip: stdin: decompression OK, trailing garbage ignored
-   [0;36mStage 2: Finding XZ offset...[0m
-   [0;36mXZ offset: 32961504[0m
-   [0;36mStage 2: Extracting XZ cpio archive...[0m
-xz: (stdin): Compressed data is corrupt
-   [0;36mInitramfs extraction complete.[0m
->> [1;32mPatching initramfs with shimboot bootloader...[0m
-   [0;36mOriginal init script: /tmp/tmp.7vpqnZkmyQ/initramfs_extracted/init[0m
-   [0;36mCopying bootloader from: /home/popcat19/nixos-shimboot/bootloader[0m
-chmod: cannot access '/tmp/tmp.7vpqnZkmyQ/initramfs_extracted/bootloader/init': No such file or directory
-chmod: cannot access '/tmp/tmp.7vpqnZkmyQ/initramfs_extracted/bootloader/hooks/exec': No such file or directory
-   [0;36mInitramfs patching complete[0m
->> [1;32mMounting original ChromeOS rootfs to harvest modules...[0m
-   [0;36mMounting shim rootfs partition: /dev/loop0p3 -> /tmp/tmp.FYTklIR0zW[0m
-   [0;36mAssigned shim loop device: /dev/loop10[0m
-mount: /tmp/tmp.FYTklIR0zW: wrong fs type, bad option, bad superblock on /dev/loop10p3, missing codepage or helper program, or other error.
-       dmesg(1) may have more information after failed mount system call.
-find: ‘/tmp/tmp.FYTklIR0zW/lib/modules’: No such file or directory
-   [0;36mNo modules directory found in shim rootfs[0m
-   [0;36mRemoving temp directory /tmp/tmp.FYTklIR0zW...[0m
-   [0;36mDetaching loop device /dev/loop10...[0m
->> [1;32mHarvesting firmware from shim...[0m
-   [0;36mNo firmware directory found in shim rootfs[0m
->> [1;32mStep 3: Mounting NixOS image...[0m
->> [1;32mMounting source NixOS image to extract rootfs...[0m
-   [0;36mNixOS image path: /nix/store/jz20jb9n806x3h00yn7g0c13m8rjqm2z-nixos-disk-image/nixos.img[0m
-   [0;36mAssigned NixOS source loop device: /dev/loop10[0m
-   [0;36mMounting NixOS source partition: /dev/loop10p1 -> /tmp/nixos_source_mount[0m
->> [1;32mStep 4: Assembling final disk image...[0m
->> [1;32mAssembling the final disk image...[0m
-   [0;36mOutput path: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mEstimating required rootfs size from source NixOS image...[0m
-   [0;36mNixOS used space: 6278MB[0m
-   [0;36mFinal rootfs partition size: 8661MB[0m
-   [0;36mBootloader partition size: 32MB[0m
-   [0;36mTotal image size: 8726MB[0m
->> [1;32mCreating 8726MB disk image[0m
-   [0;36mCreating disk image with dd: bs=1M count=8726[0m
-1763704832 bytes (1.8 GB, 1.6 GiB) copied, 1 s, 1.8 GB/s3100639232 bytes (3.1 GB, 2.9 GiB) copied, 2 s, 1.5 GB/s3588227072 bytes (3.6 GB, 3.3 GiB) copied, 3 s, 1.2 GB/s4098883584 bytes (4.1 GB, 3.8 GiB) copied, 4 s, 1.0 GB/s4568645632 bytes (4.6 GB, 4.3 GiB) copied, 5 s, 913 MB/s4956618752 bytes (5.0 GB, 4.6 GiB) copied, 6 s, 826 MB/s5338300416 bytes (5.3 GB, 5.0 GiB) copied, 7 s, 762 MB/s5755633664 bytes (5.8 GB, 5.4 GiB) copied, 8 s, 719 MB/s6247415808 bytes (6.2 GB, 5.8 GiB) copied, 9 s, 693 MB/s6763315200 bytes (6.8 GB, 6.3 GiB) copied, 10 s, 676 MB/s7237271552 bytes (7.2 GB, 6.7 GiB) copied, 11 s, 658 MB/s7637827584 bytes (7.6 GB, 7.1 GiB) copied, 12 s, 636 MB/s7981760512 bytes (8.0 GB, 7.4 GiB) copied, 13 s, 614 MB/s8325693440 bytes (8.3 GB, 7.8 GiB) copied, 14 s, 594 MB/s8708423680 bytes (8.7 GB, 8.1 GiB) copied, 15 s, 580 MB/s9144631296 bytes (9.1 GB, 8.5 GiB) copied, 16 s, 571 MB/s
-8726+0 records in
-8726+0 records out
-9149874176 bytes (9.1 GB, 8.5 GiB) copied, 16.0069 s, 572 MB/s
->> [1;32mPartitioning disk image[0m
-   [0;36mVerifying partition table:[0m
-Disk /home/popcat19/nixos-shimboot/shimboot_nixos.bin: 8.52 GiB, 9149874176 bytes, 17870848 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-Disklabel type: gpt
-Disk identifier: 5C488884-6A03-44CE-8F8A-2B48714A9E0A
-
-Device                                             Start      End  Sectors  Size Type
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin1   2048     4095     2048    1M Linux filesystem
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin2   4096    69631    65536   32M ChromeOS kernel
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin3  69632   135167    65536   32M ChromeOS root fs
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin4 135168 17868799 17733632  8.5G Linux filesystem
->> [1;32mCreating loop device for final image[0m
-   [0;36mAssigned final image loop device: /dev/loop11[0m
->> [1;32mFormatting partitions[0m
-mke2fs 1.47.2 (1-Jan-2025)
-
-Filesystem too small for a journal
-32+0 records in
-32+0 records out
-33554432 bytes (34 MB, 32 MiB) copied, 0.384142 s, 87.3 MB/s
-mke2fs 1.47.2 (1-Jan-2025)
-mke2fs 1.47.2 (1-Jan-2025)
->> [1;32mCopying bootloader...[0m
-   [0;36mUnmounting /tmp/shim_bootloader...[0m
->> [1;32mCopying NixOS rootfs... (this may take a while)[0m
-   [0;36mCopying rootfs from source image to partition...[0m
-   [0;36mRootfs copy complete[0m
->> [1;32mCreating systemd init symlink...[0m
-   [0;36mSearching for patched systemd binaries...[0m
-   [0;36mUsing manually specified systemd binary path: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mUsing patched systemd binary[0m
-   [0;36mFound systemd binary at: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
-   [0;36mCreating symlink /init -> /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mSystemd symlink created successfully using systemd 257.6[0m
->> [1;32mInjecting harvested kernel modules into new rootfs...[0m
-!! [1;31mHarvested kernel modules not found in temp directory. Skipping.[0m
->> [1;32mInjecting harvested firmware into new rootfs...[0m
-   [0;36mFirmware copied to /tmp/new_rootfs/lib/firmware/[0m
-   [0;36mManually creating traditional symlinks...[0m
->> [1;32mResetting machine-id for golden image...[0m
-   [0;36mEnsured /etc/machine-id is ready for first-boot generation.[0m
-   [0;36mFixing ownership of output file...[0m
->> [1;32mAll done! Your shimboot NixOS image is ready at: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mFinal image size: -rw-r--r-- 1 popcat19 users 8.6G Aug  4 10:42 /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
->> [1;32m⚠ Built without recovery image - consider adding ./data/recovery.bin for better compatibility[0m
->> [1;32mBuild completed successfully![0m
->> [1;32mCleaning up...[0m
-   [0;36mUnmounting /tmp/new_rootfs...[0m
-   [0;36mUnmounting /tmp/nixos_source_mount...[0m
-   [0;36mDetaching loop device /dev/loop11...[0m
-   [0;36mDetaching loop device /dev/loop10...[0m
-   [0;36mRemoving temp directory /tmp/tmp.7vpqnZkmyQ...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
-!! [1;31mFailed to extract NixOS image path from nixos-generate output[0m
-!! [1;31mCheck the output above for error messages[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
-!! [1;31mFailed to extract NixOS image path from nixos-generate output[0m
-!! [1;31mCheck the output above for error messages[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
-!! [1;31mFailed to extract NixOS image path from nixos-generate output[0m
-!! [1;31mCheck the output above for error messages[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
-!! [1;31mFailed to extract NixOS image path from nixos-generate output[0m
-!! [1;31mCheck the output above for error messages[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
->> [1;32mNixOS raw image generated at /nix/store/4q5s3ghna4i3nkmlbq6pyfppdn1az5if-nixos-disk-image/nixos.img[0m
-   [0;36mImage size: -r--r--r-- 1 root root 8.6G Dec 31  1969 /nix/store/4q5s3ghna4i3nkmlbq6pyfppdn1az5if-nixos-disk-image/nixos.img[0m
->> [1;32mStep 2: Harvesting kernel, initramfs, and modules from shim...[0m
->> [1;32mHarvesting kernel, initramfs, and modules from shim...[0m
-   [0;36mWorking directory: /tmp/tmp.7NUbnEilgn[0m
-   [0;36mTemp directory permissions: drwx------ 2 popcat19 users 4096 Aug  4 11:42 /tmp/tmp.7NUbnEilgn[0m
->> [1;32mExtracting kernel partition (KERN-A)...[0m
-   [0;36mRunning: sudo cgpt show -i 2 "/home/popcat19/nixos-shimboot/data/shim.bin"[0m
-   [0;36mcgpt output:[0m
-   [0;36m       start        size    part  contents
-          69       65536       2  Label: "KERN-A"
-                                  Type: ChromeOS kernel
-                                  UUID: B5BAF579-07EF-A747-858B-87C0E507CD29
-                                  Attr: priority=15 tries=15 successful=1 [0m
-   [0;36mPartition start: size, size: contents[0m
-   [0;36mExtracting kernel with dd...[0m
-dd: invalid number: 'size'
-   [0;36mFixing ownership of /home/popcat19/nixos-shimboot/data/kernel.bin...[0m
->> [1;32mExtracting initramfs from kernel...[0m
-   [0;36mStage 1: Finding gzip offset...[0m
-   [0;36mGzip offset: 66282[0m
-   [0;36mStage 1: Decompressing kernel...[0m
-
-gzip: stdin: decompression OK, trailing garbage ignored
-   [0;36mStage 2: Finding XZ offset...[0m
-   [0;36mXZ offset: 32961504[0m
-   [0;36mStage 2: Extracting XZ cpio archive...[0m
-xz: (stdin): Compressed data is corrupt
-   [0;36mInitramfs extraction complete.[0m
->> [1;32mPatching initramfs with shimboot bootloader...[0m
-   [0;36mOriginal init script: /tmp/tmp.7NUbnEilgn/initramfs_extracted/init[0m
-   [0;36mCopying bootloader from: /home/popcat19/nixos-shimboot/bootloader[0m
-chmod: cannot access '/tmp/tmp.7NUbnEilgn/initramfs_extracted/bootloader/init': No such file or directory
-chmod: cannot access '/tmp/tmp.7NUbnEilgn/initramfs_extracted/bootloader/hooks/exec': No such file or directory
-   [0;36mInitramfs patching complete[0m
->> [1;32mMounting original ChromeOS rootfs to harvest modules...[0m
-   [0;36mMounting shim rootfs partition: /dev/loop0p3 -> /tmp/tmp.WAYTnejn46[0m
-   [0;36mAssigned shim loop device: /dev/loop10[0m
-mount: /tmp/tmp.WAYTnejn46: wrong fs type, bad option, bad superblock on /dev/loop10p3, missing codepage or helper program, or other error.
-       dmesg(1) may have more information after failed mount system call.
-find: ‘/tmp/tmp.WAYTnejn46/lib/modules’: No such file or directory
-   [0;36mNo modules directory found in shim rootfs[0m
-   [0;36mRemoving temp directory /tmp/tmp.WAYTnejn46...[0m
-   [0;36mDetaching loop device /dev/loop10...[0m
->> [1;32mHarvesting firmware from shim...[0m
-   [0;36mNo firmware directory found in shim rootfs[0m
->> [1;32mStep 3: Mounting NixOS image...[0m
->> [1;32mMounting source NixOS image to extract rootfs...[0m
-   [0;36mNixOS image path: /nix/store/4q5s3ghna4i3nkmlbq6pyfppdn1az5if-nixos-disk-image/nixos.img[0m
-   [0;36mAssigned NixOS source loop device: /dev/loop10[0m
-   [0;36mMounting NixOS source partition: /dev/loop10p1 -> /tmp/nixos_source_mount[0m
->> [1;32mStep 4: Assembling final disk image...[0m
->> [1;32mAssembling the final disk image...[0m
-   [0;36mOutput path: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mEstimating required rootfs size from source NixOS image...[0m
-   [0;36mNixOS used space: 6285MB[0m
-   [0;36mFinal rootfs partition size: 8670MB[0m
-   [0;36mBootloader partition size: 32MB[0m
-   [0;36mTotal image size: 8735MB[0m
->> [1;32mCreating 8735MB disk image[0m
-   [0;36mCreating disk image with dd: bs=1M count=8735[0m
-1540358144 bytes (1.5 GB, 1.4 GiB) copied, 1 s, 1.5 GB/s3211788288 bytes (3.2 GB, 3.0 GiB) copied, 2 s, 1.6 GB/s3887071232 bytes (3.9 GB, 3.6 GiB) copied, 3 s, 1.3 GB/s4334813184 bytes (4.3 GB, 4.0 GiB) copied, 4 s, 1.1 GB/s4774166528 bytes (4.8 GB, 4.4 GiB) copied, 5 s, 954 MB/s5167382528 bytes (5.2 GB, 4.8 GiB) copied, 6 s, 861 MB/s5509218304 bytes (5.5 GB, 5.1 GiB) copied, 7 s, 787 MB/s5824839680 bytes (5.8 GB, 5.4 GiB) copied, 8 s, 728 MB/s6089080832 bytes (6.1 GB, 5.7 GiB) copied, 9 s, 677 MB/s6305087488 bytes (6.3 GB, 5.9 GiB) copied, 10 s, 630 MB/s6488588288 bytes (6.5 GB, 6.0 GiB) copied, 11 s, 589 MB/s6656360448 bytes (6.7 GB, 6.2 GiB) copied, 12 s, 554 MB/s6817841152 bytes (6.8 GB, 6.3 GiB) copied, 13 s, 524 MB/s6976176128 bytes (7.0 GB, 6.5 GiB) copied, 14 s, 498 MB/s7144996864 bytes (7.1 GB, 6.7 GiB) copied, 15 s, 476 MB/s7374635008 bytes (7.4 GB, 6.9 GiB) copied, 16 s, 461 MB/s7657750528 bytes (7.7 GB, 7.1 GiB) copied, 17 s, 450 MB/s8001683456 bytes (8.0 GB, 7.5 GiB) copied, 18 s, 444 MB/s8571060224 bytes (8.6 GB, 8.0 GiB) copied, 19 s, 451 MB/s9145679872 bytes (9.1 GB, 8.5 GiB) copied, 20 s, 457 MB/s
-8735+0 records in
-8735+0 records out
-9159311360 bytes (9.2 GB, 8.5 GiB) copied, 20.0183 s, 458 MB/s
->> [1;32mPartitioning disk image[0m
-   [0;36mVerifying partition table:[0m
-Disk /home/popcat19/nixos-shimboot/shimboot_nixos.bin: 8.53 GiB, 9159311360 bytes, 17889280 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-Disklabel type: gpt
-Disk identifier: 73F41FBD-A4FA-4548-A68D-18DE1C6F4F3F
-
-Device                                             Start      End  Sectors  Size Type
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin1   2048     4095     2048    1M Linux filesystem
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin2   4096    69631    65536   32M ChromeOS kernel
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin3  69632   135167    65536   32M ChromeOS root fs
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin4 135168 17887231 17752064  8.5G Linux filesystem
->> [1;32mCreating loop device for final image[0m
-   [0;36mAssigned final image loop device: /dev/loop11[0m
->> [1;32mFormatting partitions[0m
-mke2fs 1.47.2 (1-Jan-2025)
-
-Filesystem too small for a journal
-32+0 records in
-32+0 records out
-33554432 bytes (34 MB, 32 MiB) copied, 0.4369 s, 76.8 MB/s
-mke2fs 1.47.2 (1-Jan-2025)
-mke2fs 1.47.2 (1-Jan-2025)
->> [1;32mCopying bootloader...[0m
-   [0;36mUnmounting /tmp/shim_bootloader...[0m
->> [1;32mCopying NixOS rootfs... (this may take a while)[0m
-   [0;36mCopying rootfs from source image to partition...[0m
-   [0;36mRootfs copy complete[0m
->> [1;32mCreating systemd init symlink...[0m
-   [0;36mSearching for patched systemd binaries...[0m
-   [0;36mUsing manually specified systemd binary path: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mUsing patched systemd binary[0m
-   [0;36mFound systemd binary at: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
-   [0;36mCreating symlink /init -> /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mSystemd symlink created successfully using systemd 257.6[0m
->> [1;32mInjecting harvested kernel modules into new rootfs...[0m
-!! [1;31mHarvested kernel modules not found in temp directory. Skipping.[0m
->> [1;32mInjecting harvested firmware into new rootfs...[0m
-   [0;36mFirmware copied to /tmp/new_rootfs/lib/firmware/[0m
-   [0;36mManually creating traditional symlinks...[0m
->> [1;32mResetting machine-id for golden image...[0m
-   [0;36mEnsured /etc/machine-id is ready for first-boot generation.[0m
-   [0;36mFixing ownership of output file...[0m
->> [1;32mAll done! Your shimboot NixOS image is ready at: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mFinal image size: -rw-r--r-- 1 popcat19 users 8.6G Aug  4 11:43 /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
->> [1;32m⚠ Built without recovery image - consider adding ./data/recovery.bin for better compatibility[0m
->> [1;32mBuild completed successfully![0m
->> [1;32mCleaning up...[0m
-   [0;36mUnmounting /tmp/new_rootfs...[0m
-   [0;36mUnmounting /tmp/nixos_source_mount...[0m
-   [0;36mDetaching loop device /dev/loop11...[0m
-   [0;36mDetaching loop device /dev/loop10...[0m
-   [0;36mRemoving temp directory /tmp/tmp.7NUbnEilgn...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
-!! [1;31mFailed to extract NixOS image path from nixos-generate output[0m
-!! [1;31mCheck the output above for error messages[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
->> [1;32mNixOS raw image generated at /nix/store/3vi9wzf293ys5sr3bx6160ighml97qkz-nixos-disk-image/nixos.img[0m
-   [0;36mImage size: -r--r--r-- 1 root root 8.6G Dec 31  1969 /nix/store/3vi9wzf293ys5sr3bx6160ighml97qkz-nixos-disk-image/nixos.img[0m
->> [1;32mStep 2: Harvesting kernel, initramfs, and modules from shim...[0m
->> [1;32mHarvesting kernel, initramfs, and modules from shim...[0m
-   [0;36mWorking directory: /tmp/tmp.vMfnvqYhLR[0m
-   [0;36mTemp directory permissions: drwx------ 2 popcat19 users 4096 Aug  4 12:04 /tmp/tmp.vMfnvqYhLR[0m
->> [1;32mExtracting kernel partition (KERN-A)...[0m
-   [0;36mRunning: sudo cgpt show -i 2 "/home/popcat19/nixos-shimboot/data/shim.bin"[0m
-   [0;36mcgpt output:[0m
-   [0;36m       start        size    part  contents
-          69       65536       2  Label: "KERN-A"
-                                  Type: ChromeOS kernel
-                                  UUID: B5BAF579-07EF-A747-858B-87C0E507CD29
-                                  Attr: priority=15 tries=15 successful=1 [0m
-   [0;36mPartition start: size, size: contents[0m
-   [0;36mExtracting kernel with dd...[0m
-dd: invalid number: 'size'
-   [0;36mFixing ownership of /home/popcat19/nixos-shimboot/data/kernel.bin...[0m
->> [1;32mExtracting initramfs from kernel...[0m
-   [0;36mStage 1: Finding gzip offset...[0m
-   [0;36mGzip offset: 66282[0m
-   [0;36mStage 1: Decompressing kernel...[0m
-
-gzip: stdin: decompression OK, trailing garbage ignored
-   [0;36mStage 2: Finding XZ offset...[0m
-   [0;36mXZ offset: 32961504[0m
-   [0;36mStage 2: Extracting XZ cpio archive...[0m
-xz: (stdin): Compressed data is corrupt
-   [0;36mInitramfs extraction complete.[0m
->> [1;32mPatching initramfs with shimboot bootloader...[0m
-   [0;36mOriginal init script: /tmp/tmp.vMfnvqYhLR/initramfs_extracted/init[0m
-   [0;36mCopying bootloader from: /home/popcat19/nixos-shimboot/bootloader[0m
-chmod: cannot access '/tmp/tmp.vMfnvqYhLR/initramfs_extracted/bootloader/init': No such file or directory
-chmod: cannot access '/tmp/tmp.vMfnvqYhLR/initramfs_extracted/bootloader/hooks/exec': No such file or directory
-   [0;36mInitramfs patching complete[0m
->> [1;32mMounting original ChromeOS rootfs to harvest modules...[0m
-   [0;36mMounting shim rootfs partition: /dev/loop0p3 -> /tmp/tmp.3pRz1zt99J[0m
-   [0;36mAssigned shim loop device: /dev/loop10[0m
-mount: /tmp/tmp.3pRz1zt99J: wrong fs type, bad option, bad superblock on /dev/loop10p3, missing codepage or helper program, or other error.
-       dmesg(1) may have more information after failed mount system call.
-find: ‘/tmp/tmp.3pRz1zt99J/lib/modules’: No such file or directory
-   [0;36mNo modules directory found in shim rootfs[0m
-   [0;36mRemoving temp directory /tmp/tmp.3pRz1zt99J...[0m
-   [0;36mDetaching loop device /dev/loop10...[0m
->> [1;32mHarvesting firmware from shim...[0m
-   [0;36mNo firmware directory found in shim rootfs[0m
->> [1;32mStep 3: Mounting NixOS image...[0m
->> [1;32mMounting source NixOS image to extract rootfs...[0m
-   [0;36mNixOS image path: /nix/store/3vi9wzf293ys5sr3bx6160ighml97qkz-nixos-disk-image/nixos.img[0m
-   [0;36mAssigned NixOS source loop device: /dev/loop10[0m
-   [0;36mMounting NixOS source partition: /dev/loop10p1 -> /tmp/nixos_source_mount[0m
->> [1;32mStep 4: Assembling final disk image...[0m
->> [1;32mAssembling the final disk image...[0m
-   [0;36mOutput path: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mEstimating required rootfs size from source NixOS image...[0m
-   [0;36mNixOS used space: 6278MB[0m
-   [0;36mFinal rootfs partition size: 8661MB[0m
-   [0;36mBootloader partition size: 32MB[0m
-   [0;36mTotal image size: 8726MB[0m
->> [1;32mCreating 8726MB disk image[0m
-   [0;36mCreating disk image with dd: bs=1M count=8726[0m
-1598029824 bytes (1.6 GB, 1.5 GiB) copied, 1 s, 1.6 GB/s3121610752 bytes (3.1 GB, 2.9 GiB) copied, 2 s, 1.6 GB/s3651141632 bytes (3.7 GB, 3.4 GiB) copied, 3 s, 1.2 GB/s4071620608 bytes (4.1 GB, 3.8 GiB) copied, 4 s, 1.0 GB/s4390387712 bytes (4.4 GB, 4.1 GiB) copied, 5 s, 877 MB/s4739563520 bytes (4.7 GB, 4.4 GiB) copied, 6 s, 789 MB/s5061476352 bytes (5.1 GB, 4.7 GiB) copied, 7 s, 723 MB/s5356126208 bytes (5.4 GB, 5.0 GiB) copied, 8 s, 670 MB/s5622464512 bytes (5.6 GB, 5.2 GiB) copied, 9 s, 624 MB/s5873074176 bytes (5.9 GB, 5.5 GiB) copied, 10 s, 587 MB/s6109003776 bytes (6.1 GB, 5.7 GiB) copied, 11 s, 555 MB/s6321864704 bytes (6.3 GB, 5.9 GiB) copied, 12 s, 526 MB/s6534725632 bytes (6.5 GB, 6.1 GiB) copied, 13 s, 502 MB/s6733955072 bytes (6.7 GB, 6.3 GiB) copied, 14 s, 481 MB/s6924795904 bytes (6.9 GB, 6.4 GiB) copied, 15 s, 462 MB/s7109345280 bytes (7.1 GB, 6.6 GiB) copied, 16 s, 444 MB/s7281311744 bytes (7.3 GB, 6.8 GiB) copied, 17 s, 428 MB/s7450132480 bytes (7.5 GB, 6.9 GiB) copied, 18 s, 414 MB/s7601127424 bytes (7.6 GB, 7.1 GiB) copied, 19 s, 400 MB/s7747928064 bytes (7.7 GB, 7.2 GiB) copied, 20 s, 387 MB/s7889485824 bytes (7.9 GB, 7.3 GiB) copied, 21 s, 376 MB/s8028946432 bytes (8.0 GB, 7.5 GiB) copied, 22 s, 365 MB/s8164212736 bytes (8.2 GB, 7.6 GiB) copied, 23 s, 355 MB/s8297381888 bytes (8.3 GB, 7.7 GiB) copied, 24 s, 346 MB/s8436842496 bytes (8.4 GB, 7.9 GiB) copied, 25 s, 337 MB/s8578400256 bytes (8.6 GB, 8.0 GiB) copied, 26 s, 330 MB/s8722055168 bytes (8.7 GB, 8.1 GiB) copied, 27 s, 323 MB/s8877244416 bytes (8.9 GB, 8.3 GiB) copied, 28 s, 317 MB/s9035579392 bytes (9.0 GB, 8.4 GiB) copied, 29 s, 312 MB/s
-8726+0 records in
-8726+0 records out
-9149874176 bytes (9.1 GB, 8.5 GiB) copied, 29.7414 s, 308 MB/s
->> [1;32mPartitioning disk image[0m
-   [0;36mVerifying partition table:[0m
-Disk /home/popcat19/nixos-shimboot/shimboot_nixos.bin: 8.52 GiB, 9149874176 bytes, 17870848 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-Disklabel type: gpt
-Disk identifier: E7B36F5F-9F5B-4D56-A820-69491BE2204B
-
-Device                                             Start      End  Sectors  Size Type
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin1   2048     4095     2048    1M Linux filesystem
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin2   4096    69631    65536   32M ChromeOS kernel
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin3  69632   135167    65536   32M ChromeOS root fs
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin4 135168 17868799 17733632  8.5G Linux filesystem
->> [1;32mCreating loop device for final image[0m
-   [0;36mAssigned final image loop device: /dev/loop11[0m
->> [1;32mFormatting partitions[0m
-mke2fs 1.47.2 (1-Jan-2025)
-
-Filesystem too small for a journal
-32+0 records in
-32+0 records out
-33554432 bytes (34 MB, 32 MiB) copied, 0.357118 s, 94.0 MB/s
-mke2fs 1.47.2 (1-Jan-2025)
-mke2fs 1.47.2 (1-Jan-2025)
->> [1;32mCopying bootloader...[0m
-   [0;36mUnmounting /tmp/shim_bootloader...[0m
->> [1;32mCopying NixOS rootfs... (this may take a while)[0m
-   [0;36mCopying rootfs from source image to partition...[0m
-   [0;36mRootfs copy complete[0m
->> [1;32mCreating systemd init symlink...[0m
-   [0;36mSearching for patched systemd binaries...[0m
-   [0;36mUsing manually specified systemd binary path: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mUsing patched systemd binary[0m
-   [0;36mFound systemd binary at: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
-   [0;36mCreating symlink /init -> /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mSystemd symlink created successfully using systemd 257.6[0m
->> [1;32mInjecting harvested kernel modules into new rootfs...[0m
-!! [1;31mHarvested kernel modules not found in temp directory. Skipping.[0m
->> [1;32mInjecting harvested firmware into new rootfs...[0m
-   [0;36mFirmware copied to /tmp/new_rootfs/lib/firmware/[0m
-   [0;36mManually creating traditional symlinks...[0m
->> [1;32mResetting machine-id for golden image...[0m
-   [0;36mEnsured /etc/machine-id is ready for first-boot generation.[0m
-   [0;36mFixing ownership of output file...[0m
->> [1;32mAll done! Your shimboot NixOS image is ready at: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mFinal image size: -rw-r--r-- 1 popcat19 users 8.6G Aug  4 12:06 /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
->> [1;32m⚠ Built without recovery image - consider adding ./data/recovery.bin for better compatibility[0m
->> [1;32mBuild completed successfully![0m
->> [1;32mCleaning up...[0m
-   [0;36mUnmounting /tmp/new_rootfs...[0m
-   [0;36mUnmounting /tmp/nixos_source_mount...[0m
-   [0;36mDetaching loop device /dev/loop11...[0m
-   [0;36mDetaching loop device /dev/loop10...[0m
-   [0;36mRemoving temp directory /tmp/tmp.vMfnvqYhLR...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
-!! [1;31mFailed to extract NixOS image path from nixos-generate output[0m
-!! [1;31mCheck the output above for error messages[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
-!! [1;31mFailed to extract NixOS image path from nixos-generate output[0m
-!! [1;31mCheck the output above for error messages[0m
->> [1;32mCleaning up...[0m
-   [0;36mCleanup complete.[0m
->> [1;32mChecking prerequisites...[0m
-   [0;36m✓ nix found at /run/current-system/sw/bin/nix[0m
-   [0;36m✓ cgpt found at /etc/profiles/per-user/popcat19/bin/cgpt[0m
-   [0;36m✓ binwalk found at /etc/profiles/per-user/popcat19/bin/binwalk[0m
-   [0;36m✓ nixos-generate found at /etc/profiles/per-user/popcat19/bin/nixos-generate[0m
-   [0;36m✓ jq found at /etc/profiles/per-user/popcat19/bin/jq[0m
-   [0;36m✓ hexdump found at /run/current-system/sw/bin/hexdump[0m
-   [0;36m✓ strings found at /run/current-system/sw/bin/strings[0m
-   [0;36m✓ fdisk found at /run/current-system/sw/bin/fdisk[0m
-   [0;36m✓ tar found at /run/current-system/sw/bin/tar[0m
-   [0;36m✓ gunzip found at /run/current-system/sw/bin/gunzip[0m
-   [0;36m✓ git found at /run/current-system/sw/bin/git[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/data/shim.bin exists[0m
-   [0;36m✓ /home/popcat19/nixos-shimboot/bootloader exists[0m
->> [1;32m✓ WiFi credentials file found at /home/popcat19/nixos-shimboot/wifi-credentials.json[0m
-   [0;36mWiFi autoconnect will be configured in the built image[0m
-   [0;36m✓ WiFi credentials JSON is valid[0m
->> [1;32m  WiFi Network: Beave_Net_IoT (Security: wpa2-psk)[0m
-   [0;36mChecking sudo access...[0m
-   [0;36mSudo access confirmed[0m
->> [1;32mStep 1: Building NixOS raw disk image...[0m
->> [1;32m  This may take 10-30 minutes on first run as it downloads and builds all packages...[0m
->> [1;32m  Building with verbose output to show progress...[0m
-
-   [0;36mRunning: nixos-generate -f raw -c ./configuration.nix --system x86_64-linux --show-trace[0m
-
->> [1;32mNixOS raw image generated at /nix/store/kakwgrijp4mnvmx6ysq3daj56h0rw0p6-nixos-disk-image/nixos.img[0m
-   [0;36mImage size: -r--r--r-- 1 root root 8.6G Dec 31  1969 /nix/store/kakwgrijp4mnvmx6ysq3daj56h0rw0p6-nixos-disk-image/nixos.img[0m
->> [1;32mStep 2: Harvesting kernel, initramfs, and modules from shim...[0m
->> [1;32mHarvesting kernel, initramfs, and modules from shim...[0m
-   [0;36mWorking directory: /tmp/tmp.BiJjW0Imbu[0m
-   [0;36mTemp directory permissions: drwx------ 2 popcat19 users 4096 Aug  4 12:21 /tmp/tmp.BiJjW0Imbu[0m
->> [1;32mExtracting kernel partition (KERN-A)...[0m
-   [0;36mRunning: sudo cgpt show -i 2 "/home/popcat19/nixos-shimboot/data/shim.bin"[0m
-   [0;36mcgpt output:[0m
-   [0;36m       start        size    part  contents
-          69       65536       2  Label: "KERN-A"
-                                  Type: ChromeOS kernel
-                                  UUID: B5BAF579-07EF-A747-858B-87C0E507CD29
-                                  Attr: priority=15 tries=15 successful=1 [0m
-   [0;36mPartition start: size, size: contents[0m
-   [0;36mExtracting kernel with dd...[0m
-dd: invalid number: 'size'
-   [0;36mFixing ownership of /home/popcat19/nixos-shimboot/data/kernel.bin...[0m
->> [1;32mExtracting initramfs from kernel...[0m
-   [0;36mStage 1: Finding gzip offset...[0m
-   [0;36mGzip offset: 66282[0m
-   [0;36mStage 1: Decompressing kernel...[0m
-
-gzip: stdin: decompression OK, trailing garbage ignored
-   [0;36mStage 2: Finding XZ offset...[0m
-   [0;36mXZ offset: 32961504[0m
-   [0;36mStage 2: Extracting XZ cpio archive...[0m
-xz: (stdin): Compressed data is corrupt
-   [0;36mInitramfs extraction complete.[0m
->> [1;32mPatching initramfs with shimboot bootloader...[0m
-   [0;36mOriginal init script: /tmp/tmp.BiJjW0Imbu/initramfs_extracted/init[0m
-   [0;36mCopying bootloader from: /home/popcat19/nixos-shimboot/bootloader[0m
-chmod: cannot access '/tmp/tmp.BiJjW0Imbu/initramfs_extracted/bootloader/init': No such file or directory
-chmod: cannot access '/tmp/tmp.BiJjW0Imbu/initramfs_extracted/bootloader/hooks/exec': No such file or directory
-   [0;36mInitramfs patching complete[0m
->> [1;32mMounting original ChromeOS rootfs to harvest modules...[0m
-   [0;36mMounting shim rootfs partition: /dev/loop0p3 -> /tmp/tmp.Iqf7NcsXVj[0m
-   [0;36mAssigned shim loop device: /dev/loop10[0m
-mount: /tmp/tmp.Iqf7NcsXVj: wrong fs type, bad option, bad superblock on /dev/loop10p3, missing codepage or helper program, or other error.
-       dmesg(1) may have more information after failed mount system call.
-find: ‘/tmp/tmp.Iqf7NcsXVj/lib/modules’: No such file or directory
-   [0;36mNo modules directory found in shim rootfs[0m
-   [0;36mRemoving temp directory /tmp/tmp.Iqf7NcsXVj...[0m
-   [0;36mDetaching loop device /dev/loop10...[0m
->> [1;32mHarvesting firmware from shim...[0m
-   [0;36mNo firmware directory found in shim rootfs[0m
->> [1;32mStep 3: Mounting NixOS image...[0m
->> [1;32mMounting source NixOS image to extract rootfs...[0m
-   [0;36mNixOS image path: /nix/store/kakwgrijp4mnvmx6ysq3daj56h0rw0p6-nixos-disk-image/nixos.img[0m
-   [0;36mAssigned NixOS source loop device: /dev/loop10[0m
-   [0;36mMounting NixOS source partition: /dev/loop10p1 -> /tmp/nixos_source_mount[0m
->> [1;32mStep 4: Assembling final disk image...[0m
->> [1;32mAssembling the final disk image...[0m
-   [0;36mOutput path: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mEstimating required rootfs size from source NixOS image...[0m
-   [0;36mNixOS used space: 6279MB[0m
-   [0;36mFinal rootfs partition size: 8662MB[0m
-   [0;36mBootloader partition size: 32MB[0m
-   [0;36mTotal image size: 8727MB[0m
->> [1;32mCreating 8727MB disk image[0m
-   [0;36mCreating disk image with dd: bs=1M count=8727[0m
-1663041536 bytes (1.7 GB, 1.5 GiB) copied, 1 s, 1.7 GB/s2863661056 bytes (2.9 GB, 2.7 GiB) copied, 2 s, 1.4 GB/s3207593984 bytes (3.2 GB, 3.0 GiB) copied, 3 s, 1.1 GB/s3578789888 bytes (3.6 GB, 3.3 GiB) copied, 4 s, 893 MB/s3909091328 bytes (3.9 GB, 3.6 GiB) copied, 5 s, 781 MB/s4265607168 bytes (4.3 GB, 4.0 GiB) copied, 6 s, 710 MB/s4638900224 bytes (4.6 GB, 4.3 GiB) copied, 7 s, 662 MB/s4989124608 bytes (5.0 GB, 4.6 GiB) copied, 8 s, 623 MB/s5322571776 bytes (5.3 GB, 5.0 GiB) copied, 9 s, 591 MB/s5616173056 bytes (5.6 GB, 5.2 GiB) copied, 10 s, 561 MB/s5865734144 bytes (5.9 GB, 5.5 GiB) copied, 11 s, 533 MB/s6098518016 bytes (6.1 GB, 5.7 GiB) copied, 12 s, 508 MB/s6325010432 bytes (6.3 GB, 5.9 GiB) copied, 13 s, 487 MB/s6542065664 bytes (6.5 GB, 6.1 GiB) copied, 14 s, 467 MB/s6745489408 bytes (6.7 GB, 6.3 GiB) copied, 15 s, 450 MB/s6941573120 bytes (6.9 GB, 6.5 GiB) copied, 16 s, 434 MB/s7125073920 bytes (7.1 GB, 6.6 GiB) copied, 17 s, 419 MB/s7299137536 bytes (7.3 GB, 6.8 GiB) copied, 18 s, 405 MB/s7459569664 bytes (7.5 GB, 6.9 GiB) copied, 19 s, 393 MB/s7616856064 bytes (7.6 GB, 7.1 GiB) copied, 20 s, 381 MB/s7766802432 bytes (7.8 GB, 7.2 GiB) copied, 21 s, 370 MB/s7907311616 bytes (7.9 GB, 7.4 GiB) copied, 22 s, 358 MB/s8047820800 bytes (8.0 GB, 7.5 GiB) copied, 23 s, 350 MB/s8192524288 bytes (8.2 GB, 7.6 GiB) copied, 24 s, 341 MB/s8382316544 bytes (8.4 GB, 7.8 GiB) copied, 25 s, 335 MB/s8614051840 bytes (8.6 GB, 8.0 GiB) copied, 26 s, 331 MB/s9032433664 bytes (9.0 GB, 8.4 GiB) copied, 27 s, 334 MB/s
-8727+0 records in
-8727+0 records out
-9150922752 bytes (9.2 GB, 8.5 GiB) copied, 27.2621 s, 336 MB/s
->> [1;32mPartitioning disk image[0m
-   [0;36mVerifying partition table:[0m
-Disk /home/popcat19/nixos-shimboot/shimboot_nixos.bin: 8.52 GiB, 9150922752 bytes, 17872896 sectors
-Units: sectors of 1 * 512 = 512 bytes
-Sector size (logical/physical): 512 bytes / 512 bytes
-I/O size (minimum/optimal): 512 bytes / 512 bytes
-Disklabel type: gpt
-Disk identifier: 759EBD50-671E-416B-AC4B-8CCB48A2E036
-
-Device                                             Start      End  Sectors  Size Type
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin1   2048     4095     2048    1M Linux filesystem
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin2   4096    69631    65536   32M ChromeOS kernel
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin3  69632   135167    65536   32M ChromeOS root fs
-/home/popcat19/nixos-shimboot/shimboot_nixos.bin4 135168 17870847 17735680  8.5G Linux filesystem
->> [1;32mCreating loop device for final image[0m
-   [0;36mAssigned final image loop device: /dev/loop11[0m
->> [1;32mFormatting partitions[0m
-mke2fs 1.47.2 (1-Jan-2025)
-
-Filesystem too small for a journal
-32+0 records in
-32+0 records out
-33554432 bytes (34 MB, 32 MiB) copied, 0.292958 s, 115 MB/s
-mke2fs 1.47.2 (1-Jan-2025)
-mke2fs 1.47.2 (1-Jan-2025)
->> [1;32mCopying bootloader...[0m
-   [0;36mUnmounting /tmp/shim_bootloader...[0m
->> [1;32mCopying NixOS rootfs... (this may take a while)[0m
-   [0;36mCopying rootfs from source image to partition...[0m
-   [0;36mRootfs copy complete[0m
->> [1;32mCreating systemd init symlink...[0m
-   [0;36mSearching for patched systemd binaries...[0m
-   [0;36mUsing manually specified systemd binary path: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mUsing patched systemd binary[0m
-   [0;36mFound systemd binary at: /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
-   [0;36mCreating symlink /init -> /nix/store/31v77wh2wsmn44sqayd4f34rxh94d459-systemd-257.6/lib/systemd/systemd[0m
->> [1;32mSystemd symlink created successfully using systemd 257.6[0m
->> [1;32mInjecting harvested kernel modules into new rootfs...[0m
-!! [1;31mHarvested kernel modules not found in temp directory. Skipping.[0m
->> [1;32mInjecting harvested firmware into new rootfs...[0m
-   [0;36mFirmware copied to /tmp/new_rootfs/lib/firmware/[0m
-   [0;36mManually creating traditional symlinks...[0m
->> [1;32mResetting machine-id for golden image...[0m
-   [0;36mEnsured /etc/machine-id is ready for first-boot generation.[0m
-   [0;36mFixing ownership of output file...[0m
->> [1;32mAll done! Your shimboot NixOS image is ready at: /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
-   [0;36mFinal image size: -rw-r--r-- 1 popcat19 users 8.6G Aug  4 12:22 /home/popcat19/nixos-shimboot/shimboot_nixos.bin[0m
->> [1;32m⚠ Built without recovery image - consider adding ./data/recovery.bin for better compatibility[0m
->> [1;32mBuild completed successfully![0m
->> [1;32mCleaning up...[0m
-   [0;36mUnmounting /tmp/new_rootfs...[0m
-   [0;36mUnmounting /tmp/nixos_source_mount...[0m
-   [0;36mDetaching loop device /dev/loop11...[0m
-   [0;36mDetaching loop device /dev/loop10...[0m
-   [0;36mRemoving temp directory /tmp/tmp.BiJjW0Imbu...[0m
-   [0;36mCleanup complete.[0m

@@ -38,13 +38,12 @@
     rawImageOutputs = import ./flake_modules/raw-image.nix {inherit self nixpkgs nixos-generators home-manager zen-browser;};
     systemConfigurationOutputs = import ./flake_modules/system-configuration.nix {inherit self nixpkgs home-manager zen-browser;};
     developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix {inherit self nixpkgs;};
-    
+
     # ChromeOS and patch_initramfs modules
     chromeosSourcesOutputs = import ./flake_modules/chromeos-sources.nix {inherit self nixpkgs;};
     kernelExtractionOutputs = import ./flake_modules/patch_initramfs/kernel-extraction.nix {inherit self nixpkgs;};
     initramfsExtractionOutputs = import ./flake_modules/patch_initramfs/initramfs-extraction.nix {inherit self nixpkgs;};
     initramfsPatchingOutputs = import ./flake_modules/patch_initramfs/initramfs-patching.nix {inherit self nixpkgs;};
-    
 
     # Merge packages from all modules
     packages = {

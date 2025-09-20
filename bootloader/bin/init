@@ -11,26 +11,26 @@
 set -x
 
 detect_tty() {
-  if [ -f "/bin/frecon-lite" ]; then
-    export TTY1="/dev/pts/0"
-    export TTY2="/dev/pts/1"
-  else
-    export TTY1="/dev/tty1"
-    export TTY2="/dev/tty2"
-  fi
+	if [ -f "/bin/frecon-lite" ]; then
+		export TTY1="/dev/pts/0"
+		export TTY2="/dev/pts/1"
+	else
+		export TTY1="/dev/tty1"
+		export TTY2="/dev/tty2"
+	fi
 }
 
 setup_environment() {
-  # Install additional utility programs.
-  /bin/busybox --install /bin || true
+	# Install additional utility programs.
+	/bin/busybox --install /bin || true
 }
 
 main() {
-  setup_environment
-  detect_tty
-  # In case an error is not handled by bootstrapping, stop here
-  # so that an operator can see installation stop.
-  exec bootstrap.sh < "$TTY1" >> "$TTY1" 2>&1 || sleep 1d
+	setup_environment
+	detect_tty
+	# In case an error is not handled by bootstrapping, stop here
+	# so that an operator can see installation stop.
+	exec bootstrap.sh <"$TTY1" >>"$TTY1" 2>&1 || sleep 1d
 }
 
 main "$@"
