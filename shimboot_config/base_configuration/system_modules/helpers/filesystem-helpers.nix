@@ -34,6 +34,14 @@
            disk_dev="$(lsblk --list --noheadings --paths --output PKNAME "$part_dev" | head -n1)"
            part_num="$(echo "''${part_dev#$disk_dev}" | tr -d 'p')"
 
+           # Check if already expanded
+           disk_size=$(blockdev --getsize64 "$disk_dev")
+           part_size=$(blockdev --getsize64 "$part_dev")
+           if [ "$part_size" -ge "$disk_size" ]; then
+             echo "Root partition already uses the full disk space. Nothing to do."
+             exit 0
+           fi
+
            echo "Automatically detected root filesystem:"
            fdisk -l "$disk_dev" 2>/dev/null | grep "''${disk_dev}:" -A 1
            echo
@@ -50,7 +58,7 @@
            echo "Expanding the partition and filesystem..."
            ${cloud-utils}/bin/growpart "$disk_dev" "$part_num" || true
            if [ "$luks" ]; then
-             /bootloader/bin/cryptsetup resize "$root_dev"
+             /bootloader/bin/cryptsetup resize "$root_dev" || true
            fi
            ${e2fsprogs}/bin/resize2fs "$root_dev" || true
 
