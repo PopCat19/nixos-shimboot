@@ -12,6 +12,9 @@
   bootloaderDir = ./../../bootloader;
   extractedKernel = self.packages.${system}.extracted-kernel;
 in {
+  # Patched ChromeOS initramfs - mixed GPL/proprietary
+  # This derivation overlays GPL-licensed bootloader scripts onto proprietary ChromeOS initramfs.
+  # The combined output contains both GPL and proprietary components, marked unfree.
   packages.${system}.initramfs-patching = pkgs.stdenv.mkDerivation {
     name = "initramfs-patching";
     src = extractedInitramfs;

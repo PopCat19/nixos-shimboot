@@ -32,6 +32,9 @@
     )
     dededeManifest.chunks;
 
+  # ChromeOS shim firmware - proprietary binary from Google
+  # This derivation downloads and repackages ChromeOS firmware blobs.
+  # The output remains under Google's proprietary license terms and is marked unfree.
   chromeosShim = pkgs.stdenv.mkDerivation {
     name = "chromeos-shim";
     version = "dedede";
@@ -63,6 +66,9 @@
     };
   };
 
+  # ChromeOS recovery firmware - proprietary binary from Google
+  # This derivation downloads and extracts ChromeOS recovery images.
+  # The output remains under Google's proprietary license terms and is marked unfree.
   chromeosRecovery = pkgs.stdenv.mkDerivation {
     name = "chromeos-recovery";
     version = "16295.54.0-dedede";

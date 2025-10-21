@@ -8,6 +8,9 @@
 
   chromeosShim = self.packages.${system}.chromeos-shim;
 in {
+  # Extracted ChromeOS kernel - derived from proprietary firmware
+  # This derivation extracts kernel blobs from ChromeOS shim firmware.
+  # The output contains proprietary code and remains under unfree license terms.
   packages.${system}.extracted-kernel = pkgs.stdenv.mkDerivation {
     name = "extracted-kernel";
     version = "1.1.0";

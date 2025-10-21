@@ -6,6 +6,9 @@
   pkgs = nixpkgs.legacyPackages.${system};
   extractedKernel = self.packages.${system}.extracted-kernel;
 in {
+  # Extracted ChromeOS initramfs - derived from proprietary firmware
+  # This derivation extracts initramfs from ChromeOS kernel blobs.
+  # The output contains proprietary components and remains under unfree license terms.
   packages.${system}.initramfs-extraction = pkgs.stdenv.mkDerivation {
     name = "initramfs-extraction";
     src = extractedKernel;
