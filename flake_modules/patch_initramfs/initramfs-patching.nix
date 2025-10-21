@@ -3,7 +3,16 @@
   nixpkgs,
 }: let
   system = "x86_64-linux";
-  pkgs = nixpkgs.legacyPackages.${system};
+  pkgs = import nixpkgs {
+    inherit system;
+    config = {
+      allowUnfreePredicate = pkg:
+        builtins.elem (nixpkgs.lib.getName pkg) [
+          "initramfs-extraction"
+          "initramfs-patching"
+        ];
+    };
+  };
 
   # Input: extracted initramfs from Step 2
   extractedInitramfs = self.packages.${system}.initramfs-extraction;

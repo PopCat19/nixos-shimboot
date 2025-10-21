@@ -3,7 +3,16 @@
   nixpkgs,
 }: let
   system = "x86_64-linux";
-  pkgs = nixpkgs.legacyPackages.${system};
+  pkgs = import nixpkgs {
+    inherit system;
+    config = {
+      allowUnfreePredicate = pkg:
+        builtins.elem (nixpkgs.lib.getName pkg) [
+          "extracted-kernel"
+          "initramfs-extraction"
+        ];
+    };
+  };
   extractedKernel = self.packages.${system}.extracted-kernel;
 in {
   # Extracted ChromeOS initramfs - derived from proprietary firmware

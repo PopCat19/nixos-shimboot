@@ -4,7 +4,16 @@
   ...
 }: let
   system = "x86_64-linux";
-  pkgs = nixpkgs.legacyPackages.${system};
+  pkgs = import nixpkgs {
+    inherit system;
+    config = {
+      allowUnfreePredicate = pkg:
+        builtins.elem (nixpkgs.lib.getName pkg) [
+          "chromeos-shim"
+          "extracted-kernel"
+        ];
+    };
+  };
 
   chromeosShim = self.packages.${system}.chromeos-shim;
 in {
