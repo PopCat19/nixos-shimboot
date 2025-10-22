@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Defaults
-PARALLEL_JOBS=4
+PARALLEL_JOBS=2
 OUT_PATH=""
 REGENERATE=false
 FIXUP=false
@@ -78,7 +78,7 @@ MANIFEST_URL="${BASE_URL}/${BOARD}.zip.manifest"
 
 RETRY_COUNT="${RETRY_COUNT:-5}"
 TIMEOUT_SECS="${TIMEOUT_SECS:-60}"
-SLEEP_BETWEEN="${SLEEP_BETWEEN:-0.2}"
+SLEEP_BETWEEN="${SLEEP_BETWEEN:-2}"
 
 # Fetch manifest JSON
 echo "[*] Fetching manifest for $BOARD..." >&2
