@@ -28,7 +28,7 @@
         pkgs.fetchurl {
           url = "${chunkBaseUrl}/${chunk.name}";
           sha256 = chunk.sha256;
-          curlOpts = ["--retry-delay" "10"];
+          curlOpts = "--retry-delay 10";
         }
     )
     dededeManifest.chunks;
