@@ -4,6 +4,7 @@
   nixos-generators,
   home-manager,
   zen-browser,
+  rose-pine-hyprcursor,
   ...
 }: let
   system = "x86_64-linux";
@@ -15,9 +16,14 @@ in {
     raw-rootfs = nixos-generators.nixosGenerate {
       inherit system;
       format = "raw";
-      specialArgs = {inherit zen-browser;};
+      specialArgs = {inherit zen-browser rose-pine-hyprcursor;};
 
       modules = [
+        # Apply overlays
+        ({config, ...}: {
+          nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
+        })
+      ] ++ [
         # Use the main configuration (which itself imports base)
         ../shimboot_config/main_configuration/configuration.nix
 
@@ -31,7 +37,7 @@ in {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
           home-manager.extraSpecialArgs = {
-            inherit zen-browser userConfig;
+            inherit zen-browser rose-pine-hyprcursor userConfig;
             inputs = self.inputs;
           };
           home-manager.sharedModules = [
@@ -68,7 +74,7 @@ in {
     raw-rootfs-minimal = nixos-generators.nixosGenerate {
       inherit system;
       format = "raw";
-      specialArgs = {inherit zen-browser;};
+      specialArgs = {inherit zen-browser rose-pine-hyprcursor;};
 
       modules = [
         # Base-only configuration (standalone Hyprland via greetd)

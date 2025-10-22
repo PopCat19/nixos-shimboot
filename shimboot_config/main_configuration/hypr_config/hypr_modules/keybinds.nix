@@ -20,7 +20,7 @@
       "Alt, F4, killactive"
       "$mainMod+Ctrl, Q, exec, hyprctl kill"
       "$mainMod, Delete, exit"
-      "$mainMod, L, exec, swaylock"
+      "$mainMod, L, exec, hyprlock"
 
       # Window Management
       "$mainMod, W, togglefloating"
@@ -43,11 +43,11 @@
       "$mainMod+Shift, V, exec, bash -lc 'cliphist list | head -n1 | cliphist decode | wl-copy && sleep 0.05 && wtype -M ctrl -k v'"
       "Ctrl+Alt, W, exec, systemctl --user restart hyprpanel.service"
 
-      # Screenshots - Clipboard screenshots (primary keybindings)
-      "$mainMod, P, exec, ~/.local/bin/screenshot region"
+      # Screenshots - Monitor screenshots (primary keybindings)
+      "$mainMod, P, exec, ~/.local/bin/screenshot monitor"
 
-      # Screenshots - Save to file screenshots (secondary keybindings)
-      "$mainMod+Shift, P, exec, ~/.local/bin/screenshot monitor"
+      # Screenshots - Region screenshots (secondary keybindings)
+      "$mainMod+Shift, P, exec, ~/.local/bin/screenshot region"
 
       # Media playback
       ",XF86AudioPlay, exec, playerctl play-pause"
