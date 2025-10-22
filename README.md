@@ -85,8 +85,9 @@ Flake status and roadmap (not a spec) for the current branch:
 - [ ] Apply proper recovery firmware patches on a separate partition to be used for ChromeOS ROOT_A/B; see upstream shimboot for reference
 - [ ] Refine main_configuration [primarily to fixup qt/gtk theme configurations, bwrap/steam, hyprpanel (dunst already running), and rewrite nixos_setup for better experience]
 - [ ] Implement and enforce systemd cachix store to avoid an eternal compilation on potato hardware
+- [ ] Create main_configuration template for those who wish to port their own NixOS/HM configurations :3
 - [ ] Refine and cleanup scripts and helpers
-- [ ] Refine and cleanup other configurations
+- [ ] Refine and cleanup base and main configurations
 - [ ] Attempt to implement NixOS generation selector within bootstrapper (if possible)
 - [ ] Build functional NixOS with LUKS2 support (never done this in my life ;-;)
 
