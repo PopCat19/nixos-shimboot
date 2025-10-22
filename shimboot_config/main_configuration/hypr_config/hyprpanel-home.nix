@@ -1,7 +1,7 @@
 # home-hyprpanel.nix
 # HyprPanel configuration with Rose Pine theme integration
 # Based on documentation: https://hyprpanel.com/
-{...}: {
+{userConfig, ...}: {
   # HyprPanel is available in nixpkgs and has a home-manager module
   # No need for separate flake input - just enable the program
   programs.hyprpanel = {
