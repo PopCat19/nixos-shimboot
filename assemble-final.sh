@@ -333,9 +333,14 @@ sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
 sudo mount "${LOOPDEV}p4" "$WORKDIR/mnt_rootfs"
 total_bytes=$(sudo du -sb "$WORKDIR/mnt_src_rootfs" | cut -f1)
 (cd "$WORKDIR/mnt_src_rootfs" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_rootfs" && sudo tar xf -)
+
+# Get username from userConfig
+USERNAME=$(nix eval --impure --accept-flake-config .#userConfig.username --json | jq -r .)
+log_info "Using username from userConfig: $USERNAME"
+
 # === Step 8.2: Clone nixos-config repository into rootfs ===
 log_step "8.2" "Clone nixos-config repository into rootfs"
-NIXOS_CONFIG_DEST="$WORKDIR/mnt_rootfs/home/nixos/nixos-config"
+NIXOS_CONFIG_DEST="$WORKDIR/mnt_rootfs/home/$USERNAME/nixos-config"
 
 if command -v git >/dev/null 2>&1 && [ -d .git ]; then
   # Get current git branch/commit info
@@ -361,7 +366,7 @@ if command -v git >/dev/null 2>&1 && [ -d .git ]; then
     sudo git -C "$NIXOS_CONFIG_DEST" checkout "$GIT_BRANCH" || log_warn "Failed to checkout branch $GIT_BRANCH"
   fi
 
-  # Set ownership to nixos user
+  # Set ownership to user
   sudo chown -R 1000:1000 "$NIXOS_CONFIG_DEST"
 
   # Create branch info file

@@ -3,7 +3,7 @@
 {
   hostname ? null,
   system ? "x86_64-linux",
-  username ? "nixos-shimboot",
+  username ? "nixos-user",
 }: rec {
   # Host configuration
   host = {
