@@ -50,8 +50,11 @@ if [ -z "$BOARD" ]; then
 fi
 
 if [ -z "$OUT_PATH" ]; then
-	OUT_PATH="${BOARD}-manifest.nix"
+	OUT_PATH="manifests/${BOARD}-manifest.nix"
 fi
+
+# Ensure manifests directory exists
+mkdir -p manifests
 
 # --fixup mode: sort and clean manifest
 if $FIXUP; then

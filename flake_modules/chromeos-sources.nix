@@ -1,6 +1,7 @@
 {
   self,
   nixpkgs,
+  board ? "dedede",
   ...
 }: let
   system = "x86_64-linux";
@@ -10,16 +11,16 @@
       allowUnfree = true;
       allowUnfreePredicate = pkg:
         builtins.elem (nixpkgs.lib.getName pkg) [
-          "chromeos-shim"
-          "chromeos-recovery"
+          "chromeos-shim-${board}"
+          "chromeos-recovery-${board}"
         ];
     };
   };
 
   # Import generated manifest from fetch-manifest.sh
-  dededeManifest = import ../dedede-manifest.nix;
+  boardManifest = import ../manifests/${board}-manifest.nix;
 
-  chunkBaseUrl = "https://cdn.cros.download/files/dedede";
+  chunkBaseUrl = "https://cdn.cros.download/files/${board}";
 
   # Fetch each chunk as a fixed-output derivation
   chunkDrvs =
@@ -31,34 +32,34 @@
           curlOpts = "--retry-delay 10";
         }
     )
-    dededeManifest.chunks;
+    boardManifest.chunks;
 
   # ChromeOS shim firmware - proprietary binary from Google
   # This derivation downloads and repackages ChromeOS firmware blobs.
   # The output remains under Google's proprietary license terms and is marked unfree.
   chromeosShim = pkgs.stdenv.mkDerivation {
-    name = "chromeos-shim";
-    version = "dedede";
+    name = "chromeos-shim-${board}";
+    version = board;
 
     # Fixed-output derivation: Nix knows the final zip hash
     outputHashMode = "flat";
     outputHashAlgo = "sha256";
-    outputHash = dededeManifest.hash;
+    outputHash = boardManifest.hash;
 
     nativeBuildInputs = [pkgs.unzip];
 
     buildCommand = ''
-      echo "Joining ${toString (builtins.length dededeManifest.chunks)} chunks..."
-      cat ${pkgs.lib.concatStringsSep " " chunkDrvs} > dedede.zip
+      echo "Joining ${toString (builtins.length boardManifest.chunks)} chunks for ${board}..."
+      cat ${pkgs.lib.concatStringsSep " " chunkDrvs} > ${board}.zip
 
       echo "Extracting shim.bin..."
-      unzip -p dedede.zip > $out
+      unzip -p ${board}.zip > $out
     '';
 
     meta = with pkgs.lib; {
-      description = "ChromeOS shim firmware for dedede board (fixed-output, manifest-based)";
+      description = "ChromeOS shim firmware for ${board} board";
       longDescription = ''
-        Downloads and extracts the ChromeOS shim firmware for the dedede board
+        Downloads and extracts the ChromeOS shim firmware for the ${board} board
         from the official ChromeOS CDN, using the manifest + chunk method.
       '';
       license = licenses.unfree;
@@ -71,12 +72,13 @@
   # This derivation downloads and extracts ChromeOS recovery images.
   # The output remains under Google's proprietary license terms and is marked unfree.
   chromeosRecovery = pkgs.stdenv.mkDerivation {
-    name = "chromeos-recovery";
-    version = "16295.54.0-dedede";
+    name = "chromeos-recovery-${board}";
+    version = "${board}";
 
     src = pkgs.fetchurl {
-      url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16295.54.0_dedede_recovery_stable-channel_DededeMPKeys-v54.bin.zip";
-      sha256 = "IbflWCE9x6Xvt67SfdGFEWTs4184soTKfjggGhV7kzA=";
+      # NOTE: Recovery URL must be board-specific; update per board or parameterize
+      url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16295.54.0_${board}_recovery_stable-channel_${board}MPKeys-v54.bin.zip";
+      sha256 = nixpkgs.lib.fakeSha256; # Replace with actual hash per board
     };
 
     nativeBuildInputs = [pkgs.unzip];
@@ -109,7 +111,7 @@
     '';
 
     meta = with pkgs.lib; {
-      description = "ChromeOS recovery firmware for dedede board";
+      description = "ChromeOS recovery firmware for ${board} board";
       license = licenses.unfree;
       platforms = platforms.linux;
       maintainers = ["shimboot developers"];
@@ -117,7 +119,7 @@
   };
 in {
   packages.${system} = {
-    chromeos-shim = chromeosShim;
-    chromeos-recovery = chromeosRecovery;
+    "chromeos-shim-${board}" = chromeosShim;
+    "chromeos-recovery-${board}" = chromeosRecovery;
   };
 }

@@ -1,0 +1,97 @@
+name: flake-update-manifests
+run-name: "📦 Refresh ChromeOS Manifests"
+
+on:
+  schedule:
+    - cron: '0 7 * * 1'   # Mondays at 07:00 UTC (just after flake update)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-manifests:
+    name: Refresh manifests for all supported boards
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      # 1️⃣ Checkout as usual
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 2️⃣ Minimal dependencies (no nix build)
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl unzip trickle git
+          echo "✅ Lightweight setup ready"
+
+      # 3️⃣ Board matrix from flake definition or hardcoded list
+      - name: Prepare board list
+        id: boards
+        run: |
+          # same set as flake.nix `supportedBoards`
+          boards=(
+            dedede octopus zork nissa hatch
+            corsola grunt jacuzzi hana snappy
+          )
+          printf '%s\n' "${boards[@]}" > boards.txt
+          echo "matrix=$(jq -R -s -c 'split("\n")|map(select(length>0))' boards.txt)" >> $GITHUB_OUTPUT
+          echo "Boards: ${boards[*]}"
+
+  generate:
+    needs: refresh-manifests
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        board: ${{ fromJson(needs.refresh-manifests.outputs.matrix) }}
+      max-parallel: 2
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install curl+jq
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq curl trickle unzip
+          echo "Ready for manifest fetch"
+
+      - name: Fetch manifest (${{ matrix.board }})
+        env:
+          BOARD: ${{ matrix.board }}
+        run: |
+          set -euxo pipefail
+          mkdir -p manifests
+          export CURL_CMD="trickle -d 12288 curl"  # ~12MB/s limit
+          bash scripts/fetch-manifest.sh "$BOARD" --jobs 2 --path "manifests/${BOARD}-manifest.nix"
+          echo "✅ Generated manifests/${BOARD}-manifest.nix"
+
+      - name: Commit updated manifest
+        run: |
+          if [ -z "$(git status --porcelain manifests/${{ matrix.board }}-manifest.nix || true)" ]; then
+            echo "No manifest change for ${{ matrix.board }}"
+            exit 0
+          fi
+          git config user.name "shimboot-bot"
+          git config user.email "shimboot-bot@users.noreply.github.com"
+          git add "manifests/${{ matrix.board }}-manifest.nix"
+          git commit -m "chore(manifest): refresh ${{ matrix.board }}"
+          git push
+          echo "🔼 Pushed manifest update for ${{ matrix.board }}"
+
+      - name: Upload manifest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: manifest-${{ matrix.board }}
+          path: manifests/${{ matrix.board }}-manifest.nix
+          retention-days: 14

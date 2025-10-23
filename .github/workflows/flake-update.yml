@@ -52,3 +52,29 @@ jobs:
           base: dev
           branch: flake-update-$(date +%Y%m%d)
           title: "chore: weekly flake update ($(date -u +'%Y-%m-%d'))"
+
+  refresh-manifests:
+    runs-on: ubuntu-latest
+    needs: update-flake
+    if: success()
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Manifest refresh
+        run: |
+          bash scripts/fetch-manifest.sh dedede --jobs 2 --path manifests/dedede-manifest.nix
+
+      - name: Commit manifest updates
+        run: |
+          git config user.name "shimboot-bot"
+          git config user.email "shimboot-bot@users.noreply.github.com"
+          git add manifests/
+          if git diff --cached --quiet; then
+            echo "No manifest updates."
+            exit 0
+          fi
+          git commit -m "chore: refresh manifests after flake update ($(date -u +%Y-%m-%d))"
+          git push
+          echo "✅ Manifest refresh committed"

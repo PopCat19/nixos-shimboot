@@ -39,6 +39,9 @@ export NIXPKGS_ALLOW_UNFREE="${NIXPKGS_ALLOW_UNFREE:-1}"
 SYSTEM="x86_64-linux"
 WORKDIR="$(pwd)/work"
 IMAGE="$WORKDIR/shimboot.img"
+
+# Board selection (default: dedede)
+BOARD="${BOARD:-dedede}"
 ROOTFS_NAME="${ROOTFS_NAME:-nixos}"
 
 # CLI parsing: --rootfs {full|minimal}, --inspect, non-interactive via env ROOTFS_FLAVOR
@@ -52,6 +55,10 @@ CLEANUP_KEEP=""
 
 while [ $# -gt 0 ]; do
 	case "${1:-}" in
+	--board)
+		BOARD="${2:-}"
+		shift 2
+		;;
 	--rootfs)
 		ROOTFS_FLAVOR="${2:-}"
 		shift 2
@@ -114,6 +121,7 @@ if [ "${ROOTFS_FLAVOR}" = "minimal" ]; then
 fi
 
 log_info "Rootfs flavor: ${ROOTFS_FLAVOR} (attr: .#${RAW_ROOTFS_ATTR})"
+log_info "Board: ${BOARD}"
 # Default drivers mode to 'vendor' unless overridden by --drivers or env
 DRIVERS_MODE="${DRIVERS_MODE:-vendor}"
 log_info "Drivers mode: ${DRIVERS_MODE} (vendor|inject|none)"
@@ -168,21 +176,21 @@ trap cleanup EXIT INT TERM
 
 # === Step 0: Build Nix outputs ===
 log_step "0/8" "Building Nix outputs"
-ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config .#extracted-kernel --print-out-paths)/p2.bin"
-PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config .#initramfs-patching --print-out-paths)/patched-initramfs"
-RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config .#${RAW_ROOTFS_ATTR} --print-out-paths)/nixos.img"
+ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config .#extracted-kernel-${BOARD} --print-out-paths)/p2.bin"
+PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config .#initramfs-patching-${BOARD} --print-out-paths)/patched-initramfs"
+RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config .#${RAW_ROOTFS_ATTR}-${BOARD} --print-out-paths)/nixos.img"
 log_info "Original kernel p2: $ORIGINAL_KERNEL"
 log_info "Patched initramfs dir: $PATCHED_INITRAMFS"
 log_info "Raw rootfs: $RAW_ROOTFS_IMG"
 
 # Build ChromeOS SHIM and determine RECOVERY per policy
-SHIM_BIN="$(nix build --impure --accept-flake-config .#chromeos-shim --print-out-paths)"
+SHIM_BIN="$(nix build --impure --accept-flake-config .#chromeos-shim-${BOARD} --print-out-paths)"
 RECOVERY_PATH=""
 if [ "${SKIP_RECOVERY:-0}" != "1" ]; then
 	if [ -n "${RECOVERY_BIN:-}" ]; then
 		RECOVERY_PATH="$RECOVERY_BIN"
 	else
-		RECOVERY_PATH="$(nix build --impure --accept-flake-config .#chromeos-recovery --print-out-paths)/recovery.bin"
+		RECOVERY_PATH="$(nix build --impure --accept-flake-config .#chromeos-recovery-${BOARD} --print-out-paths)/recovery.bin"
 	fi
 fi
 log_info "ChromeOS shim: $SHIM_BIN"
