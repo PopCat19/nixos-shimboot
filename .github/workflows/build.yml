@@ -15,10 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
-    strategy:
-      matrix:
-        target: [ raw-rootfs, raw-rootfs-minimal ]
-
     steps:
       # 1️⃣ Checkout repository
       - uses: actions/checkout@v4
@@ -57,17 +53,29 @@ jobs:
           docker system prune -af || true
           sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc || true
 
-      # 6️⃣ Build NixOS rootfs images (from matrix)
-      - name: Build ${{ matrix.target }}
+      # 6️⃣ Build raw-rootfs-minimal
+      - name: Build raw-rootfs-minimal
         run: |
-          nix build --impure --accept-flake-config .#${{ matrix.target }}
-          echo "✅ Build of ${{ matrix.target }} complete!"
+          nix build --impure --accept-flake-config .#raw-rootfs-minimal
+          echo "✅ Build of raw-rootfs-minimal complete!"
 
-      # 7️⃣ Push built artifacts to Cachix
-      - name: Push to Cachix
+      # 7️⃣ Push minimal to Cachix
+      - name: Push minimal to Cachix
         run: |
           cachix push shimboot-systemd-nixos ./result
-          echo "✅ Pushed ${{ matrix.target }} to Cachix"
+          echo "✅ Pushed raw-rootfs-minimal to Cachix"
+
+      # 8️⃣ Build raw-rootfs
+      - name: Build raw-rootfs
+        run: |
+          nix build --impure --accept-flake-config .#raw-rootfs
+          echo "✅ Build of raw-rootfs complete!"
+
+      # 9️⃣ Push full to Cachix
+      - name: Push full to Cachix
+        run: |
+          cachix push shimboot-systemd-nixos ./result
+          echo "✅ Pushed raw-rootfs to Cachix"
 
       # 8️⃣ Verify artifact result and store space again
       - name: Post-Build Disk Usage
