@@ -10,10 +10,22 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
 jobs:
-  build-images:
+  # ===========================================================
+  #  🐣  Build Minimal Image (raw-rootfs-minimal)
+  # ===========================================================
+  build-minimal:
+    name: Build minimal rootfs
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 90
 
     steps:
       # 1️⃣ Checkout repository
@@ -21,63 +33,99 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 2️⃣ Reclaim disk space for Nix (Nothing but Nix)
+      # 2️⃣ Aggressive cleanup before freeing with nothing-but-nix
+      - name: Aggressive pre-cleanup
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
+          docker system prune -af || true
+          sudo apt-get clean || true
+
+      # 3️⃣ Reclaim disk space for Nix
       - name: Free disk space for Nix builds
         uses: wimpysworld/nothing-but-nix@main
         with:
-          hatchet-protocol: rampage   # maximum space freeing for large builds
-          witness-carnage: true      # optional: see what it removes
+          hatchet-protocol: rampage
+          witness-carnage: true
 
-      # 3️⃣ Install Nix
-      - name: Install Nix
-        uses: cachix/install-nix-action@v27
+      # 4️⃣ Install Nix
+      - uses: cachix/install-nix-action@v27
         with:
           nix_version: 2.18.1
           extra_nix_config: |
             access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            sandbox = true
 
-      # 4️⃣ Setup Cachix (binary cache)
-      - name: Setup Cachix
-        uses: cachix/cachix-action@v14
+      # 5️⃣ Setup Cachix
+      - uses: cachix/cachix-action@v14
         with:
           name: shimboot-systemd-nixos
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
 
-      # 5️⃣ Show available disk before build (optional diagnostic)
-      - name: Check disk space
-        run: |
-          echo "💿 Disk usage before build:"
-          df -h /
-          df -h /nix || true
-          echo "🧹 Cleaning up Docker and other space..."
-          docker system prune -af || true
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc || true
-
-      # 6️⃣ Build raw-rootfs-minimal
+      # 6️⃣ Build minimal rootfs
       - name: Build raw-rootfs-minimal
         run: |
-          nix build --impure --accept-flake-config .#raw-rootfs-minimal
+          nix build --max-jobs 1 --impure --accept-flake-config .#raw-rootfs-minimal
           echo "✅ Build of raw-rootfs-minimal complete!"
 
-      # 7️⃣ Push minimal to Cachix
+      # 7️⃣ Push to Cachix
       - name: Push minimal to Cachix
         run: |
           cachix push shimboot-systemd-nixos ./result
           echo "✅ Pushed raw-rootfs-minimal to Cachix"
 
-      # 8️⃣ Build raw-rootfs
-      - name: Build raw-rootfs
+      # 8️⃣ Disk usage summary
+      - name: Post-Build Disk Usage
+        if: always()
+        run: df -h /nix / || true
+
+  # ===========================================================
+  #  🍞  Build Full Image (raw-rootfs)
+  # ===========================================================
+  build-full:
+    name: Build full rootfs
+    needs: build-minimal     # wait for minimal to finish first
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Aggressive pre-cleanup
         run: |
-          nix build --impure --accept-flake-config .#raw-rootfs
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache
+          docker system prune -af || true
+          sudo apt-get clean || true
+
+      - name: Free disk space for Nix builds
+        uses: wimpysworld/nothing-but-nix@main
+        with:
+          hatchet-protocol: rampage
+          witness-carnage: true
+
+      - uses: cachix/install-nix-action@v27
+        with:
+          nix_version: 2.18.1
+          extra_nix_config: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+            sandbox = true
+
+      - uses: cachix/cachix-action@v14
+        with:
+          name: shimboot-systemd-nixos
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+
+      - name: Build raw-rootfs (full)
+        run: |
+          nix build --max-jobs 1 --impure --accept-flake-config .#raw-rootfs
           echo "✅ Build of raw-rootfs complete!"
 
-      # 9️⃣ Push full to Cachix
       - name: Push full to Cachix
         run: |
           cachix push shimboot-systemd-nixos ./result
           echo "✅ Pushed raw-rootfs to Cachix"
 
-      # 8️⃣ Verify artifact result and store space again
       - name: Post-Build Disk Usage
         if: always()
-        run: df -h /nix
+        run: df -h /nix / || true
