@@ -63,7 +63,13 @@ jobs:
           nix build --impure --accept-flake-config .#${{ matrix.target }}
           echo "✅ Build of ${{ matrix.target }} complete!"
 
-      # 7️⃣ Verify artifact result and store space again
+      # 7️⃣ Push built artifacts to Cachix
+      - name: Push to Cachix
+        run: |
+          cachix push shimboot-systemd-nixos ./result
+          echo "✅ Pushed ${{ matrix.target }} to Cachix"
+
+      # 8️⃣ Verify artifact result and store space again
       - name: Post-Build Disk Usage
         if: always()
         run: df -h /nix
