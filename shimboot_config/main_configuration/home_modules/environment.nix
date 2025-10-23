@@ -21,6 +21,11 @@
     # Firefox/Zen Browser specific for Wayland input method
     MOZ_ENABLE_WAYLAND = "1";
     GTK4_IM_MODULE = "fcitx5";
+
+    # Force GTK and Qt theme variables to ensure Rose Pine is applied
+    GTK_THEME = "Rose-Pine-Main-BL";
+    QT_STYLE_OVERRIDE = "kvantum";
+    QT_QPA_PLATFORMTHEME = "kvantum";
   };
 
   # Add local bin to PATH

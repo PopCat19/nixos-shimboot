@@ -3,9 +3,21 @@
   nixpkgs,
 }: let
   system = "x86_64-linux";
-  pkgs = nixpkgs.legacyPackages.${system};
+  pkgs = import nixpkgs {
+    inherit system;
+    config = {
+      allowUnfreePredicate = pkg:
+        builtins.elem (nixpkgs.lib.getName pkg) [
+          "extracted-kernel"
+          "initramfs-extraction"
+        ];
+    };
+  };
   extractedKernel = self.packages.${system}.extracted-kernel;
 in {
+  # Extracted ChromeOS initramfs - derived from proprietary firmware
+  # This derivation extracts initramfs from ChromeOS kernel blobs.
+  # The output contains proprietary components and remains under unfree license terms.
   packages.${system}.initramfs-extraction = pkgs.stdenv.mkDerivation {
     name = "initramfs-extraction";
     src = extractedKernel;

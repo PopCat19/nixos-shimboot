@@ -1,33 +1,38 @@
-{...}: {
+{
+  lib,
+  ...
+}: {
   # System programs configuration
   # Fish and Starship are configured in home_modules for user-specific settings.
+  # This module provides system-wide Fish configuration including the greeting function.
 
   programs = {
     # Shell configuration
     fish = {
-      enable = true;
-      interactiveShellInit = ''
-        function fish_greeting --description 'Shimboot greeting'
-          # Print the greeter
-          echo "Welcome to NixOS Shimboot!"
-          echo "For documentation and to report bugs, please visit the project's Github page:"
-          echo " - https://github.com/popcat19/nixos-shimboot"
+      enable = lib.mkDefault true;
 
-          # Check if rootfs needs expansion
-          set -l percent_full (df -BM / | tail -n1 | awk '{print $5}' | tr -d '%')
-          set -l total_size (df -BM / | tail -n1 | awk '{print $2}' | tr -d 'M')
-
-          if test "$percent_full" -gt 80 -a "$total_size" -lt 7000
-            echo
-            echo "Warning: Your storage is nearly full and you have not yet expanded the root filesystem. Run 'sudo expand_rootfs' to fix this."
-          end
-
-          echo
-          if type -q setup_nixos
-            echo "Tip: run 'setup_nixos' to configure Wi-Fi, expand rootfs, and set up your flake."
-          end
-        end
+      # Load the custom greeting function from external file
+      interactiveShellInit = lib.mkDefault ''
+        # Load custom greeting function
+        ${let
+          content = builtins.readFile ./fish_functions/fish-greeting.fish;
+          lines = lib.splitString "\n" content;
+        in
+          lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines)}
       '';
+    };
+
+    # Starship with defaults that can be overridden
+    starship = {
+      enable = lib.mkDefault true;
+      settings = lib.mkDefault {
+        # Basic configuration that can be overridden by main configuration
+        format = "$directory$git_branch$git_status$character";
+        character = {
+          success_symbol = "[➜](bold green)";
+          error_symbol = "[➜](bold red)";
+        };
+      };
     };
   };
 }

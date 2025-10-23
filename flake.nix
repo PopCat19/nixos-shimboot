@@ -13,6 +13,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Rose Pine theme inputs
+    rose-pine-hyprcursor = {
+      url = "github:ndom91/rose-pine-hyprcursor";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Home Manager is typically required for Home modules
     home-manager = {
       url = "github:nix-community/home-manager";
@@ -29,34 +35,43 @@
     nixos-generators,
     home-manager,
     zen-browser,
+    rose-pine-hyprcursor,
     ...
   }: let
     system = "x86_64-linux";
 
-    # Import all module outputs
-    rawImageOutputs = import ./flake_modules/raw-image.nix {inherit self nixpkgs nixos-generators home-manager zen-browser;};
-    systemConfigurationOutputs = import ./flake_modules/system-configuration.nix {inherit self nixpkgs home-manager zen-browser;};
+    # Import user configuration
+    userConfig = import ./shimboot_config/user-config.nix {};
+    # Extract username for easier access
+    username = userConfig.user.username;
+
+    # Import module outputs
+    # Core system and development modules
+    rawImageOutputs = import ./flake_modules/raw-image.nix {inherit self nixpkgs nixos-generators home-manager zen-browser rose-pine-hyprcursor;};
+    systemConfigurationOutputs = import ./flake_modules/system-configuration.nix {inherit self nixpkgs home-manager zen-browser rose-pine-hyprcursor;};
     developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix {inherit self nixpkgs;};
+
+    # ChromeOS and patch_initramfs modules
+    chromeosSourcesOutputs = import ./flake_modules/chromeos-sources.nix {inherit self nixpkgs;};
     kernelExtractionOutputs = import ./flake_modules/patch_initramfs/kernel-extraction.nix {inherit self nixpkgs;};
     initramfsExtractionOutputs = import ./flake_modules/patch_initramfs/initramfs-extraction.nix {inherit self nixpkgs;};
     initramfsPatchingOutputs = import ./flake_modules/patch_initramfs/initramfs-patching.nix {inherit self nixpkgs;};
-    # finalImageOutputs = import ./flake_modules/patch_initramfs/final-image.nix { inherit self nixpkgs; };
-    chromeosSourcesOutputs = import ./flake_modules/chromeos-sources.nix {inherit self nixpkgs;};
-    # Patched systemd as a standalone package
-    systemdPatchedOutputs = import ./flake_modules/systemd-patched.nix {inherit self nixpkgs;};
 
     # Merge packages from all modules
     packages = {
       ${system} =
+        # Core image generation packages
         (rawImageOutputs.packages.${system} or {})
+        # ChromeOS source packages
+        // (chromeosSourcesOutputs.packages.${system} or {})
+        # Initramfs patching pipeline packages
         // (kernelExtractionOutputs.packages.${system} or {})
         // (initramfsExtractionOutputs.packages.${system} or {})
-        // (initramfsPatchingOutputs.packages.${system} or {})
-        //
-        # (finalImageOutputs.packages.${system} or {}) //
-        (chromeosSourcesOutputs.packages.${system} or {})
-        // (systemdPatchedOutputs.packages.${system} or {});
+        // (initramfsPatchingOutputs.packages.${system} or {});
     };
+
+    # Import overlays
+    overlays = import ./overlays/overlays.nix;
 
     # Set default package to raw-rootfs
     defaultPackage.${system} = packages.${system}.raw-rootfs;
@@ -73,9 +88,9 @@
 
     # Merge nixosModules from all modules
     nixosModules = {};
-  in {
-    # Export all merged outputs
-    formatter.${system} = nixpkgs.legacyPackages.${system}.alejandra;
-    inherit packages devShells nixosConfigurations nixosModules;
-  };
+   in {
+      # Export all merged outputs
+      formatter.${system} = nixpkgs.legacyPackages.${system}.alejandra;
+      inherit packages devShells nixosConfigurations nixosModules;
+    };
 }

@@ -85,8 +85,9 @@ Flake status and roadmap (not a spec) for the current branch:
 - [ ] Apply proper recovery firmware patches on a separate partition to be used for ChromeOS ROOT_A/B; see upstream shimboot for reference
 - [ ] Refine main_configuration [primarily to fixup qt/gtk theme configurations, bwrap/steam, hyprpanel (dunst already running), and rewrite nixos_setup for better experience]
 - [ ] Implement and enforce systemd cachix store to avoid an eternal compilation on potato hardware
+- [ ] Create main_configuration template for those who wish to port their own NixOS/HM configurations :3
 - [ ] Refine and cleanup scripts and helpers
-- [ ] Refine and cleanup other configurations
+- [ ] Refine and cleanup base and main configurations
 - [ ] Attempt to implement NixOS generation selector within bootstrapper (if possible)
 - [ ] Build functional NixOS with LUKS2 support (never done this in my life ;-;)
 
@@ -127,3 +128,41 @@ Miscellaneously, my current dev enviroment consists of:
 - [ading2210/chromeos-systemd](https://github.com/ading2210/chromeos-systemd) - systemd `mount_nofollow` patch source to resolve/workaround `Failed to mount API filesystems` error
 - [discussion thread](https://github.com/ading2210/shimboot/discussions/335) - useful feedbacks from my idea
 - [nixos-generators](https://github.com/nix-community/nixos-generators) - builds nixos image from a configuration for use in ROOTFS
+
+## License
+
+### Project Code: GPL-3.0-or-later
+
+All original code in this repository is licensed under **GPLv3** (see [LICENSE](LICENSE)).
+
+This includes:
+- Nix flake configurations (`flake.nix`, `flake_modules/`)
+- NixOS system modules (`shimboot_config/`)
+- Build and utility scripts (`scripts/`, `assemble-final.sh`, etc.)
+- Bootloader integration code (`bootloader/` - originally derived from upstream shimboot)
+
+### Proprietary Components: Unfree
+
+The following components are **NOT** covered by GPLv3 and remain proprietary:
+- ChromeOS RMA shims (© Google LLC)
+- ChromeOS recovery images (© Google LLC)  
+- Extracted kernel modules, firmware blobs, and drivers
+- Board-specific artifacts (e.g., `dedede-manifest.nix`)
+
+### Nix Derivation Handling
+Derivations that extract or process ChromeOS artifacts are marked with:
+```nix
+meta.license = lib.licenses.unfree;
+```
+
+And are allowed via:
+```nix
+config.allowUnfreePredicate = pkg:
+  builtins.elem (lib.getName pkg) [
+    "chromeos-shim"
+    "chromeos-recovery"
+    "extracted-kernel"
+    "initramfs-extraction"
+    "initramfs-patching"
+  ];
+```

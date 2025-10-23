@@ -33,42 +33,46 @@
 
   # KDE configuration files - keeping minimal config here, main theme config in theme.nix
 
-  # Qt environment variables for Kvantum
-  home.sessionVariables = {
-    QT_STYLE_OVERRIDE = "kvantum";
-    QT_QPA_PLATFORMTHEME = "kvantum";
-    QT_PLATFORM_PLUGIN = "kvantum";
-    QT_PLATFORMTHEME = "kvantum";
-    XDG_CURRENT_DESKTOP = "KDE";
-  };
+  # Qt environment variables for Kvantum - removed to avoid conflicts with theme.nix
+  # These are now handled in theme.nix and environment.nix
+  # home.sessionVariables = {
+  #   QT_STYLE_OVERRIDE = "kvantum";
+  #   QT_QPA_PLATFORMTHEME = "kvantum";
+  #   QT_PLATFORM_PLUGIN = "kvantum";
+  #   QT_PLATFORMTHEME = "kvantum";
+  #   XDG_CURRENT_DESKTOP = "KDE";
+  # };
 
   # Dolphin file manager bookmarks
   home.file.".local/share/user-places.xbel".text = ''
     <?xml version="1.0" encoding="UTF-8"?>
     <!DOCTYPE xbel PUBLIC "+//IDN pyxml.sourceforge.net//DTD XML Bookmark Exchange Language 1.0//EN//XML" "http://pyxml.sourceforge.net/topics/dtds/xbel-1.0.dtd">
     <xbel version="1.0">
-     <bookmark href="file://${userConfig.directories.home}">
+     <bookmark href="file:///home/${config.home.username}">
       <title>Home</title>
      </bookmark>
-     <bookmark href="file://${userConfig.directories.desktop}">
+     <bookmark href="file:///home/${config.home.username}/Desktop">
       <title>Desktop</title>
      </bookmark>
-     <bookmark href="file://${userConfig.directories.documents}">
+     <bookmark href="file:///home/${config.home.username}/Documents">
       <title>Documents</title>
      </bookmark>
-     <bookmark href="file://${userConfig.directories.downloads}">
+     <bookmark href="file:///home/${config.home.username}/Downloads">
       <title>Downloads</title>
      </bookmark>
-     <bookmark href="file://${userConfig.directories.pictures}">
+     <bookmark href="file:///home/${config.home.username}/Pictures">
       <title>Pictures</title>
      </bookmark>
-     <bookmark href="file://${userConfig.directories.music}">
+     <bookmark href="file:///home/${config.home.username}/Music">
       <title>Music</title>
      </bookmark>
-     <bookmark href="file://${userConfig.directories.videos}">
+     <bookmark href="file:///home/${config.home.username}/Videos">
       <title>Videos</title>
      </bookmark>
-     <bookmark href="file://${userConfig.directories.home}/nixos-config">
+     <bookmark href="file:///home/${config.home.username}/syncthing-shared">
+      <title>Syncthing Shared</title>
+     </bookmark>
+     <bookmark href="file:///home/${config.home.username}/nixos-config">
       <title>nixos-config</title>
      </bookmark>
      <bookmark href="trash:/">

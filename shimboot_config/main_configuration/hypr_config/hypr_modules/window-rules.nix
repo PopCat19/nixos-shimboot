@@ -92,6 +92,8 @@
       "float,class:^(io.missioncenter.MissionCenter)$"
       "float, class:Waydroid"
       "float,class:^(xdg-desktop-portal-gtk)$"
+      "float,class:^(org.keepassxc.KeePassXC)$,title:^(Password Generator)$"
+      "float,class:^(keepassxc)$,title:^(Password Generator)$"
     ];
 
     # Window rules v1 (legacy)

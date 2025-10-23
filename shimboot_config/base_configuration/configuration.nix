@@ -31,6 +31,9 @@ in {
   nix.settings.substituters = lib.mkAfter ["https://shimboot-systemd-nixos.cachix.org"];
   nix.settings.trusted-public-keys = lib.mkAfter ["shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA="];
 
+  # Allow all unfree packages
+  nixpkgs.config.allowUnfree = true;
+
   # Enable fish shell since users use it
   programs.fish.enable = true;
 

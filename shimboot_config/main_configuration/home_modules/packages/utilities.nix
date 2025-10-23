@@ -5,5 +5,6 @@
     pavucontrol
     playerctl
     localsend
+    keepassxc
   ];
 }

@@ -10,6 +10,7 @@
     ./environment.nix
     ./fish.nix
     ./packages.nix
+    ./services.nix
     ./starship.nix
     ./zen-browser.nix
 
@@ -18,6 +19,7 @@
     ./kde.nix
     ./kitty.nix
     ./micro.nix
+    ./privacy.nix
     ./qt-gtk-config.nix
     ./screenshot.nix
     ./theme.nix
