@@ -10,7 +10,7 @@ initramfs-patching-poc/extracted-kernel
 *.iso
 *.img
 debug*
-work*
+work/*
 vmlinuz
 .crush*
 .shimboot_branch

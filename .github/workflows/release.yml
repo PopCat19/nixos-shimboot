@@ -1,0 +1,27 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v27
+      
+      - name: Build images
+        run: |
+          nix build --impure --accept-flake-config .#raw-rootfs
+          nix build --impure --accept-flake-config .#raw-rootfs-minimal
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            result/nixos.img
+          generate_release_notes: true

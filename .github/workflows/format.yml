@@ -1,0 +1,14 @@
+name: format-check
+
+on:
+  pull_request:
+    branches: [ "main", "dev" ]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v27
+      - name: Check formatting
+        run: nix fmt -- --check .
