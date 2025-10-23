@@ -18,6 +18,7 @@
     ./kde.nix
     ./kitty.nix
     ./micro.nix
+    ./privacy.nix
     ./qt-gtk-config.nix
     ./screenshot.nix
     ./theme.nix
