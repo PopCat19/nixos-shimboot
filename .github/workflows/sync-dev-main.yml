@@ -1,0 +1,46 @@
+name: sync-dev-to-main
+
+on:
+  schedule:
+    - cron: '0 5 * * 1,4'   # Every Mon & Thu at 05:00 UTC
+  workflow_dispatch:
+
+jobs:
+  merge-dev-main:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch dev branch
+        run: git fetch origin dev:dev
+
+      - name: Attempt merge from dev
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git merge --no-edit origin/dev || export MERGE_CONFLICT=1
+          if [ "${MERGE_CONFLICT:-0}" = "1" ]; then
+            echo "⚠️ Merge conflict detected — creating pull request instead"
+          else
+            git push origin main
+            echo "✅ Successfully merged dev → main"
+          fi
+
+      - name: Create PR if conflict (fallback)
+        if: env.MERGE_CONFLICT == '1'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: main
+          branch: dev
+          title: "chore: dev → main sync (manual review needed)"
+          body: "Automatic merge detected a conflict. Please review and merge manually."
