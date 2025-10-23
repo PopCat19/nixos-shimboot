@@ -18,7 +18,7 @@ in {
       owner = "Fausto-Korpsvart";
       repo = "Rose-Pine-GTK-Theme";
       rev = "main";
-      sha256 = "sha256-4+/XxtruTKBjv+AEIxyb9XvQdNCVE0Q/ZvOvr3HeRcg=";
+      sha256 = "sha256-3V2s7s6fEFIKysAGdf35gmiEO7LJc+QCbOluykKi7Ck=";
     };
 
     nativeBuildInputs = [
