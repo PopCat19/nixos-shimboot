@@ -15,7 +15,6 @@
       set -Ux NIXOS_CONFIG_DIR $HOME/nixos-config
       set -Ux NIXOS_FLAKE_HOSTNAME ${userConfig.host.hostname}
       set -Ux EDITOR ${userConfig.defaultApps.editor.command}
-      set -g fish_greeting ""
 
       fish_add_path $HOME/bin
       fish_add_path $HOME/.npm-global/bin
@@ -45,6 +44,12 @@
 
       fix-fish-history = let
         content = builtins.readFile ../../base_configuration/system_modules/fish_functions/fix-fish-history.fish;
+        lines = lib.splitString "\n" content;
+      in
+        lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
+
+      fish_greeting = let
+        content = builtins.readFile ../../base_configuration/system_modules/fish_functions/fish-greeting.fish;
         lines = lib.splitString "\n" content;
       in
         lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
