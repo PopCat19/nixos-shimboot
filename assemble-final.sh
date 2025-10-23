@@ -333,6 +333,79 @@ sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
 sudo mount "${LOOPDEV}p4" "$WORKDIR/mnt_rootfs"
 total_bytes=$(sudo du -sb "$WORKDIR/mnt_src_rootfs" | cut -f1)
 (cd "$WORKDIR/mnt_src_rootfs" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_rootfs" && sudo tar xf -)
+# === Step 8.2: Clone nixos-config repository into rootfs ===
+log_step "8.2" "Clone nixos-config repository into rootfs"
+NIXOS_CONFIG_DEST="$WORKDIR/mnt_rootfs/home/nixos/nixos-config"
+
+if command -v git >/dev/null 2>&1 && [ -d .git ]; then
+  # Get current git branch/commit info
+  GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+  GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+  GIT_STATUS=$(git status --porcelain | wc -l 2>/dev/null || echo "0")
+  BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  GIT_REMOTE=$(git remote get-url origin 2>/dev/null || echo "unknown")
+
+  # Remove existing nixos-config if it exists
+  if [ -d "$NIXOS_CONFIG_DEST" ]; then
+    log_info "Removing existing nixos-config directory"
+    sudo rm -rf "$NIXOS_CONFIG_DEST"
+  fi
+
+  # Clone the repository
+  # Clone the repository
+  log_info "Cloning nixos-config repository..."
+  sudo git clone --no-local "$(pwd)" "$NIXOS_CONFIG_DEST"
+  log_info "Cloning nixos-config repository..."
+  # Switch to the same branch as the source repository
+  if [ "$GIT_BRANCH" != "unknown" ]; then
+    log_info "Switching to branch: $GIT_BRANCH"
+    sudo git -C "$NIXOS_CONFIG_DEST" checkout "$GIT_BRANCH" || log_warn "Failed to checkout branch $GIT_BRANCH"
+  fi
+  sudo git clone "$(pwd)" "$NIXOS_CONFIG_DEST"
+
+  # Set ownership to nixos user
+  sudo chown -R 1000:1000 "$NIXOS_CONFIG_DEST"
+
+  # Create branch info file
+  sudo tee "$NIXOS_CONFIG_DEST/.shimboot_branch" > /dev/null <<EOF
+# Shimboot build information
+BUILD_DATE=$BUILD_DATE
+GIT_BRANCH=$GIT_BRANCH
+GIT_COMMIT=$GIT_COMMIT
+GIT_CHANGES=$GIT_STATUS
+GIT_REMOTE=$GIT_REMOTE
+EOF
+
+  log_info "Cloned nixos-config: $GIT_BRANCH ($GIT_COMMIT) with $GIT_CHANGES changes"
+else
+  log_warn "Git not available or not a git repository, skipping nixos-config clone"
+fi
+# === Step 8.2: Add current git branch info to nixos-config ===
+log_step "8.2" "Add git branch info to nixos-config in rootfs"
+if [ -d "$WORKDIR/mnt_rootfs/home/nixos/nixos-config" ]; then
+  # Get current git branch/commit info
+  if command -v git >/dev/null 2>&1 && [ -d .git ]; then
+    GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+    GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    GIT_STATUS=$(git status --porcelain | wc -l 2>/dev/null || echo "0")
+    BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+    # Create branch info file
+    sudo tee "$WORKDIR/mnt_rootfs/home/nixos/nixos-config/.shimboot_branch" > /dev/null <<EOF
+# Shimboot build information
+BUILD_DATE=$BUILD_DATE
+GIT_BRANCH=$GIT_BRANCH
+GIT_COMMIT=$GIT_COMMIT
+GIT_CHANGES=$GIT_STATUS
+EOF
+
+    log_info "Added branch info: $GIT_BRANCH ($GIT_COMMIT) with $GIT_CHANGES changes"
+  else
+    log_warn "Git not available or not a git repository, skipping branch info"
+  fi
+else
+  log_warn "nixos-config directory not found in rootfs, skipping branch info"
+fi
 
 # Source rootfs unmounted; target rootfs remains mounted briefly before finalization
 sudo umount "$WORKDIR/mnt_src_rootfs"
