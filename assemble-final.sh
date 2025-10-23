@@ -134,7 +134,7 @@ cleanup() {
 	set +e
 
 	# Try to unmount known mount points (normal, then lazy if busy)
-	for mnt in "$WORKDIR/mnt_rootfs" "$WORKDIR/mnt_bootloader" "$WORKDIR/mnt_src_rootfs" "$WORKDIR/inspect_rootfs"; do
+	for mnt in "$WORKDIR/mnt_rootfs" "$WORKDIR/mnt_bootloader" "$WORKDIR/mnt_src_rootfs" "$WORKDIR/inspect_rootfs" "$WORKDIR/mnt_vendor"; do
 		if mountpoint -q "$mnt"; then
 			sudo umount "$mnt" || sudo umount -l "$mnt"
 		fi
@@ -265,11 +265,13 @@ else
 	VENDOR_PART_SIZE=$(((VENDOR_SRC_SIZE_MB * 12 / 10) + 32))
 fi
 
-# Compute end of rootfs and total size (MiB)
-ROOTFS_END_MB=$((54 + ROOTFS_PART_SIZE))
-TOTAL_SIZE_MB=$((1 + 32 + 20 + ROOTFS_PART_SIZE + VENDOR_PART_SIZE))
-log_info "Rootfs partition size: ${ROOTFS_PART_SIZE} MB"
+# Compute end of vendor and total size (MiB)
+# NEW LAYOUT: vendor comes before rootfs
+VENDOR_START_MB=54
+VENDOR_END_MB=$((VENDOR_START_MB + VENDOR_PART_SIZE))
+TOTAL_SIZE_MB=$((1 + 32 + 20 + VENDOR_PART_SIZE + ROOTFS_PART_SIZE))
 log_info "Vendor partition size: ${VENDOR_PART_SIZE} MB"
+log_info "Rootfs partition size: ${ROOTFS_PART_SIZE} MB (initial, expandable)"
 log_info "Total image size: ${TOTAL_SIZE_MB} MB"
 
 # === Step 3: Create empty image ===
@@ -277,7 +279,7 @@ log_step "3/8" "Create empty image"
 fallocate -l ${TOTAL_SIZE_MB}M "$IMAGE"
 
 # === Step 4: Partition image ===
-log_step "4/8" "Partition image (GPT, ChromeOS GUIDs + vendor)"
+log_step "4/8" "Partition image (GPT, ChromeOS GUIDs, vendor before rootfs)"
 parted --script "$IMAGE" \
 	mklabel gpt \
 	mkpart stateful ext4 1MiB 2MiB \
@@ -288,12 +290,12 @@ parted --script "$IMAGE" \
 	mkpart bootloader ext2 34MiB 54MiB \
 	name 3 BOOT \
 	type 3 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC \
-	mkpart rootfs ext4 54MiB ${ROOTFS_END_MB}MiB \
-	name 4 "shimboot_rootfs:${ROOTFS_NAME}" \
-	type 4 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC \
-	mkpart vendor ext4 ${ROOTFS_END_MB}MiB 100% \
-	name 5 "shimboot_rootfs:vendor" \
-	type 5 0FC63DAF-8483-4772-8E79-3D69D8477DE4
+	mkpart vendor ext4 ${VENDOR_START_MB}MiB ${VENDOR_END_MB}MiB \
+	name 4 "shimboot_rootfs:vendor" \
+	type 4 0FC63DAF-8483-4772-8E79-3D69D8477DE4 \
+	mkpart rootfs ext4 ${VENDOR_END_MB}MiB 100% \
+	name 5 "shimboot_rootfs:${ROOTFS_NAME}" \
+	type 5 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC
 
 log_info "Partition table:"
 sudo partx -o NR,START,END,SIZE,TYPE,NAME,UUID -g --show "$IMAGE"
@@ -314,10 +316,11 @@ MKFS_EXT4_FLAGS="-O ^orphan_file,^metadata_csum_seed"
 sudo mkfs.ext4 -q "$MKFS_EXT4_FLAGS" "${LOOPDEV}p1"
 sudo dd if="$ORIGINAL_KERNEL" of="${LOOPDEV}p2" bs=1M conv=fsync status=progress
 sudo mkfs.ext2 -q "${LOOPDEV}p3"
+# Vendor partition (drivers/firmware donor) - now p4
+sudo mkfs.ext4 -q -L "shimboot_vendor" "$MKFS_EXT4_FLAGS" "${LOOPDEV}p4"
 # IMPORTANT: Label rootfs as $ROOTFS_NAME so NixOS can resolve fileSystems."/".device = /dev/disk/by-label/${ROOTFS_NAME}
-sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "$MKFS_EXT4_FLAGS" "${LOOPDEV}p4"
-# Vendor partition (drivers/firmware donor)
-sudo mkfs.ext4 -q -L "shimboot_vendor" "$MKFS_EXT4_FLAGS" "${LOOPDEV}p5"
+# Rootfs is now p5
+sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "$MKFS_EXT4_FLAGS" "${LOOPDEV}p5"
 
 # === Step 7: Populate bootloader partition ===
 log_step "7/8" "Populate bootloader partition"
@@ -327,10 +330,10 @@ total_bytes=$(sudo du -sb "$PATCHED_INITRAMFS" | cut -f1)
 sudo umount "$WORKDIR/mnt_bootloader"
 
 # === Step 8: Populate rootfs partition ===
-log_step "8/8" "Populate rootfs partition"
+log_step "8/8" "Populate rootfs partition (now p5)"
 LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
 sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
-sudo mount "${LOOPDEV}p4" "$WORKDIR/mnt_rootfs"
+sudo mount "${LOOPDEV}p5" "$WORKDIR/mnt_rootfs"  # Changed from p4 to p5
 total_bytes=$(sudo du -sb "$WORKDIR/mnt_src_rootfs" | cut -f1)
 (cd "$WORKDIR/mnt_src_rootfs" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_rootfs" && sudo tar xf -)
 
@@ -394,12 +397,12 @@ LOOPROOT=""
 
 case "$DRIVERS_MODE" in
 vendor | CROSDRV)
-	log_step "8.1" "Populate vendor partition with harvested drivers (/lib/modules, /lib/firmware)"
-	if [ ! -b "${LOOPDEV}p5" ]; then
-		log_error "Vendor partition p5 not found on ${LOOPDEV}"
+	log_step "8.1" "Populate vendor partition (p4) with harvested drivers (/lib/modules, /lib/firmware)"
+	if [ ! -b "${LOOPDEV}p4" ]; then
+		log_error "Vendor partition p4 not found on ${LOOPDEV}"
 	else
 		sudo mkdir -p "$WORKDIR/mnt_vendor"
-		sudo mount "${LOOPDEV}p5" "$WORKDIR/mnt_vendor"
+		sudo mount "${LOOPDEV}p4" "$WORKDIR/mnt_vendor"
 		sudo mkdir -p "$WORKDIR/mnt_vendor/lib/modules" "$WORKDIR/mnt_vendor/lib/firmware"
 
 		if [ -d "$HARVEST_OUT/lib/modules" ]; then
@@ -421,12 +424,12 @@ vendor | CROSDRV)
 	fi
 	;;
 both)
-	log_step "8.1" "Populate vendor partition with harvested drivers, then inject into rootfs"
-	if [ ! -b "${LOOPDEV}p5" ]; then
-		log_error "Vendor partition p5 not found on ${LOOPDEV}"
+	log_step "8.1" "Populate vendor partition (p4) with harvested drivers, then inject into rootfs (p5)"
+	if [ ! -b "${LOOPDEV}p4" ]; then
+		log_error "Vendor partition p4 not found on ${LOOPDEV}"
 	else
 		sudo mkdir -p "$WORKDIR/mnt_vendor"
-		sudo mount "${LOOPDEV}p5" "$WORKDIR/mnt_vendor"
+		sudo mount "${LOOPDEV}p4" "$WORKDIR/mnt_vendor"
 		sudo mkdir -p "$WORKDIR/mnt_vendor/lib/modules" "$WORKDIR/mnt_vendor/lib/firmware"
 
 		if [ -d "$HARVEST_OUT/lib/modules" ]; then
@@ -447,7 +450,7 @@ both)
 		sudo umount "$WORKDIR/mnt_vendor"
 	fi
 
-	log_step "8.1b" "Inject drivers into rootfs (/lib/modules, /lib/firmware, modprobe.d)"
+	log_step "8.1b" "Inject drivers into rootfs (p5) (/lib/modules, /lib/firmware, modprobe.d)"
 	if [ -d "$HARVEST_OUT/lib/modules" ]; then
 		sudo rm -rf "$WORKDIR/mnt_rootfs/lib/modules"
 		sudo mkdir -p "$WORKDIR/mnt_rootfs/lib"
@@ -468,7 +471,7 @@ both)
 	fi
 	;;
 inject)
-	log_step "8.1" "Inject drivers into rootfs (/lib/modules, /lib/firmware, modprobe.d)"
+	log_step "8.1" "Inject drivers into rootfs (p5) (/lib/modules, /lib/firmware, modprobe.d)"
 	if [ -d "$HARVEST_OUT/lib/modules" ]; then
 		sudo rm -rf "$WORKDIR/mnt_rootfs/lib/modules"
 		sudo mkdir -p "$WORKDIR/mnt_rootfs/lib"
@@ -493,9 +496,9 @@ none)
 	;;
 *)
 	log_warn "Unknown DRIVERS_MODE='${DRIVERS_MODE}', defaulting to vendor populate"
-	if [ -b "${LOOPDEV}p5" ]; then
+	if [ -b "${LOOPDEV}p4" ]; then
 		sudo mkdir -p "$WORKDIR/mnt_vendor"
-		sudo mount "${LOOPDEV}p5" "$WORKDIR/mnt_vendor"
+		sudo mount "${LOOPDEV}p4" "$WORKDIR/mnt_vendor"
 		sudo mkdir -p "$WORKDIR/mnt_vendor/lib/modules" "$WORKDIR/mnt_vendor/lib/firmware"
 		if [ -d "$HARVEST_OUT/lib/modules" ]; then
 			sudo cp -a "$HARVEST_OUT/lib/modules/." "$WORKDIR/mnt_vendor/lib/modules/"
@@ -506,7 +509,7 @@ none)
 		sudo sync
 		sudo umount "$WORKDIR/mnt_vendor"
 	else
-		log_error "Vendor partition p5 not found on ${LOOPDEV}"
+		log_error "Vendor partition p4 not found on ${LOOPDEV}"
 	fi
 	;;
 esac
@@ -541,7 +544,7 @@ if [ "$INSPECT_AFTER" = "--inspect" ]; then
 	sudo partx -o NR,START,END,SIZE,TYPE,NAME,UUID -g --show "$IMAGE"
 	LOOPDEV=$(sudo losetup --show -fP "$IMAGE")
 	mkdir -p "$WORKDIR/inspect_rootfs"
-	sudo mount "${LOOPDEV}p4" "$WORKDIR/inspect_rootfs"
+	sudo mount "${LOOPDEV}p5" "$WORKDIR/inspect_rootfs"  # Changed from p4 to p5
 	sudo ls -l "$WORKDIR/inspect_rootfs"
 	if [ -f "$WORKDIR/inspect_rootfs/sbin/init" ]; then
 		log_info "Init found at /sbin/init → $(file -b "$WORKDIR/inspect_rootfs/sbin/init")"
