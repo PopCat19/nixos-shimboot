@@ -15,6 +15,7 @@ in {
     ./hypr_modules/keybinds.nix
     ./hypr_modules/window-rules.nix
     ./hypr_modules/hyprlock.nix
+    ./hypr_modules/fuzzel.nix
   ];
 
   wayland.windowManager.hyprland = {

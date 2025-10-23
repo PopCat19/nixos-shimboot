@@ -23,7 +23,7 @@
     highlightHigh = "524f67";
   };
 
-  # Theme Variants: main (default), moon (darker)
+  # Theme Variants: main (default)
   variants = {
     main = {
       gtkThemeName = "Rose-Pine-Main-BL";
@@ -32,17 +32,6 @@
       kvantumTheme = "rose-pine-rose";
       # Use base colors for main
       colors = rosePineColors;
-    };
-    moon = {
-      gtkThemeName = "Rose-Pine-Moon-BL";
-      iconTheme = "Rose-Pine-Moon";
-      cursorTheme = "rose-pine-hyprcursor";
-      kvantumTheme = "rose-pine-moon";
-      # Override for moon (darker variants if needed; extend as required)
-      colors = rosePineColors // {
-        base = "232136";  # Example darker base; adjust from source
-        surface = "2a273f";
-      };
     };
   };
 
@@ -63,7 +52,7 @@
   # Packages (common)
   commonPackages = with pkgs; [
     inputs.rose-pine-hyprcursor.packages.${system}.default
-    (if builtins.hasAttr "rose-pine-gtk-theme-full" pkgs then rose-pine-gtk-theme-full else rose-pine-gtk-theme)
+    rose-pine-gtk-theme-full
     kdePackages.qtstyleplugin-kvantum
     papirus-icon-theme
     nwg-look
