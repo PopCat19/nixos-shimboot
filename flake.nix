@@ -40,6 +40,11 @@
   }: let
     system = "x86_64-linux";
 
+    # Import user configuration
+    userConfig = import ./shimboot_config/user-config.nix {};
+    # Extract username for easier access
+    username = userConfig.user.username;
+
     # Import module outputs
     # Core system and development modules
     rawImageOutputs = import ./flake_modules/raw-image.nix {inherit self nixpkgs nixos-generators home-manager zen-browser rose-pine-hyprcursor;};
@@ -83,9 +88,9 @@
 
     # Merge nixosModules from all modules
     nixosModules = {};
-  in {
-    # Export all merged outputs
-    formatter.${system} = nixpkgs.legacyPackages.${system}.alejandra;
-    inherit packages devShells nixosConfigurations nixosModules;
-  };
+   in {
+      # Export all merged outputs
+      formatter.${system} = nixpkgs.legacyPackages.${system}.alejandra;
+      inherit packages devShells nixosConfigurations nixosModules;
+    };
 }
