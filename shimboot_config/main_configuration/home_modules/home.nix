@@ -10,6 +10,7 @@
     ./environment.nix
     ./fish.nix
     ./packages.nix
+    ./services.nix
     ./starship.nix
     ./zen-browser.nix
 
