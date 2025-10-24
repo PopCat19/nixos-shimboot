@@ -64,7 +64,7 @@ jobs:
 
       - name: Manifest refresh
         run: |
-          bash scripts/fetch-manifest.sh dedede --jobs 2 --path manifests/dedede-manifest.nix
+          bash fetch-manifest.sh dedede --jobs 2 --path manifests/dedede-manifest.nix
 
       - name: Commit manifest updates
         run: |

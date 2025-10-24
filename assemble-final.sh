@@ -205,9 +205,9 @@ HARVEST_OUT="$WORKDIR/harvested"
 mkdir -p "$HARVEST_OUT"
 log_step "0.5/8" "Harvest ChromeOS drivers"
 if [ -n "$RECOVERY_PATH" ]; then
-	bash scripts/harvest-drivers.sh --shim "$SHIM_BIN" --recovery "$RECOVERY_PATH" --out "$HARVEST_OUT"
+	bash tools/harvest-drivers.sh --shim "$SHIM_BIN" --recovery "$RECOVERY_PATH" --out "$HARVEST_OUT"
 else
-	bash scripts/harvest-drivers.sh --shim "$SHIM_BIN" --out "$HARVEST_OUT"
+	bash tools/harvest-drivers.sh --shim "$SHIM_BIN" --out "$HARVEST_OUT"
 fi
 
 # === Step 0.6: Augment firmware with upstream ChromiumOS linux-firmware ===
@@ -534,7 +534,7 @@ log_info "✅ Final image created at: $IMAGE"
 if [ "${CLEANUP_ROOTFS:-0}" -eq 1 ]; then
 	log_step "Cleanup" "Pruning older shimboot rootfs generations"
 	# Build arguments for cleanup script
-	CLEANUP_CMD=(sudo bash scripts/cleanup-shimboot-rootfs.sh --results-dir "$(pwd)")
+	CLEANUP_CMD=(sudo bash tools/cleanup-shimboot-rootfs.sh --results-dir "$(pwd)")
 	if [ -n "${CLEANUP_KEEP:-}" ]; then
 		CLEANUP_CMD+=("--keep" "$CLEANUP_KEEP")
 	fi

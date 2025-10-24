@@ -73,7 +73,7 @@ jobs:
           set -euxo pipefail
           mkdir -p manifests
           export CURL_CMD="trickle -d 12288 curl"  # ~12MB/s limit
-          bash scripts/fetch-manifest.sh "$BOARD" --jobs 2 --path "manifests/${BOARD}-manifest.nix"
+          bash fetch-manifest.sh "$BOARD" --jobs 2 --path "manifests/${BOARD}-manifest.nix"
           echo "✅ Generated manifests/${BOARD}-manifest.nix"
 
       - name: Commit updated manifest
