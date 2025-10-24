@@ -22,11 +22,9 @@
 
   systemd = {
     package = pkgs.systemd.overrideAttrs (old: {
-      # Overrides systemd package attributes
       patches =
         (old.patches or [])
         ++ [
-          # Patch for mountpoint-util.c to use direct mount() call instead of mount_nofollow()
           (pkgs.writeText "mountpoint-util.patch" ''
             diff --git a/src/basic/mountpoint-util.c b/src/basic/mountpoint-util.c
             index e8471d5..9fd2d1f 100644
