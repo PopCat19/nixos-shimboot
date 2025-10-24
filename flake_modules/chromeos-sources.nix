@@ -73,10 +73,6 @@
   # The output remains under Google's proprietary license terms and is marked unfree.
   chromeosRecovery = let
     recoveryUrls = {
-      corsola = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_15329.59.0_corsola_recovery_stable-channel_mp-v5.bin.zip";
-        sha256 = "sha256-DRpz6s4TwDwmekYZsknqkbcilVivaqhfa/KTU9cl75s=";
-      };
       dedede = {
         url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_13597.105.0_dedede_recovery_stable-channel_mp-v3.bin.zip";
         sha256 = "sha256-4YNU6qHF/LF/znVJ1pOJpI+NJYB/B/TGGMaHM5uyJhQ=";
@@ -85,17 +81,9 @@
         url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_11151.113.0_grunt_recovery_stable-channel_mp-v5.bin.zip";
         sha256 = "sha256-aIYRcj8+Lx5PLz9PWfYp4xnzy9f5TNYnRp9S5DdrlW4=";
       };
-      hana = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_9202.64.0_hana_recovery_stable-channel_mp.bin.zip";
-        sha256 = "sha256-1OGlaAlqitMSL3IFJ9fafXrRjMgNwcFirqFLxSbNbr4=";
-      };
       hatch = {
         url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_12739.94.0_hatch_recovery_stable-channel_mp-v4.bin.zip";
         sha256 = "sha256-H34UUn4iwo2wuOAxE4LjbkynUmE8BKHYkUKPagIji6Q=";
-      };
-      jacuzzi = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_13020.82.0_jacuzzi_recovery_stable-channel_mp-v2.bin.zip";
-        sha256 = "sha256-IHX1cQqroOVjlxy1T5wS+IHRTkBWModfY9hauV/D+Uo=";
       };
       nissa = {
         url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_15236.80.0_nissa_recovery_stable-channel_mp-v2.bin.zip";

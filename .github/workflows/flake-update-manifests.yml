@@ -46,7 +46,7 @@ jobs:
         run: |
           boards=(
             dedede octopus zork nissa hatch
-            corsola grunt jacuzzi hana snappy
+            grunt snappy
           )
           printf '%s\n' "${boards[@]}" > boards.txt
           echo "matrix=$(jq -R -s -c 'split("\n")|map(select(length>0))' boards.txt)" >> $GITHUB_OUTPUT

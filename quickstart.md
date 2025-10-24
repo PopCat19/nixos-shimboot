@@ -8,7 +8,7 @@ NixOS Shimboot allows you to boot a full NixOS system on enterprise-enrolled Chr
 
 ## Prerequisites
 
-- A compatible Chromebook (supported boards: corsola, dedede, grunt, hana, hatch, jacuzzi, nissa, octopus, snappy, zork)
+- A compatible Chromebook (supported boards: dedede, grunt, hatch, nissa, octopus, snappy, zork)
 - ChromeOS RMA shim image for your specific board
 - USB drive (at least 32GB recommended)
 - NixOS system for building (or any Linux with Nix installed)
@@ -35,7 +35,7 @@ Use the `assemble-final.sh` script (will require sudo/root for mount loops) to b
 ./assemble-final.sh --board dedede --rootfs minimal
 
 # For other boards, replace 'dedede' with your board name:
-# corsola, grunt, hana, hatch, jacuzzi, nissa, octopus, snappy, zork
+# grunt, hatch, nissa, octopus, snappy, zork
 ```
 
 **Options:**
@@ -89,7 +89,7 @@ The assembled image is ready to flash and already contains everything needed for
 
 ### Build Issues
 - If you get impure errors, try: `nix build --impure`
-- Ensure you're using the correct board name (case-sensitive): corsola, dedede, grunt, hana, hatch, jacuzzi, nissa, octopus, snappy, zork
+- Ensure you're using the correct board name (case-sensitive): dedede, grunt, hatch, nissa, octopus, snappy, zork
 - For ChromeOS artifacts, ensure you have the correct board manifest
 
 ### Boot Issues
