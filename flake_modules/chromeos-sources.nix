@@ -18,7 +18,7 @@
   };
 
   # Import generated manifest from fetch-manifest.sh
-  boardManifest = import ../${board}-manifest.nix;
+  boardManifest = import ../manifests/${board}-manifest.nix;
 
   chunkBaseUrl = "https://cdn.cros.download/files/${board}";
 
