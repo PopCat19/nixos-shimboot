@@ -1,14 +1,16 @@
 #!/usr/bin/env fish
 
-# Screenshot wrapper using hyprshot with hyprshade integration
-# Usage: screenshot [monitor|region|window]
+# Screenshot Script Module
 #
-# Behavior:
-# - Uses hyprshot with --freeze for clean capture
-# - Always saves to XDG_SCREENSHOTS_DIR (defaults to ~/Pictures/Screenshots)
-# - Copies PNG to clipboard when wl-copy/xclip are available
-# - Filename: appname_yyyymmdd-N.png (N increments per day/app)
-# - Temporarily disables hyprshade during capture (restores after)
+# Purpose: Fish script for taking screenshots with hyprshot and hyprshade integration
+# Dependencies: hyprshot, hyprshade, jq, wl-copy/xclip
+# Related: screenshot.nix
+#
+# This script:
+# - Provides screenshot functionality with hyprshade workaround
+# - Supports monitor, region, and window capture modes
+# - Saves to XDG_SCREENSHOTS_DIR with incremental naming
+# - Copies to clipboard and shows notifications
 
 function _slugify_app_name --description 'Normalize string to filesystem-safe slug'
     set -l s $argv
@@ -42,7 +44,6 @@ function get_app_name --description 'Detect active window class via hyprctl'
 end
 
 function next_filename --description 'Generate next incremental filename'
-    # args: <dir> <app>
     set -l dir $argv[1]
     set -l app $argv[2]
     set -l date (date +%Y%m%d)
@@ -79,11 +80,9 @@ function copy_to_clipboard --description 'Copy PNG to clipboard if tools availab
         xclip -selection clipboard -t image/png -i "$path"
         return
     end
-    # No clipboard utility available; skip silently
 end
 
 function take_screenshot --description 'Perform capture using hyprshot'
-    # args: <hyprshot-mode> <dir> <filename>
     set -l mode $argv[1]
     set -l dir $argv[2]
     set -l filename $argv[3]
@@ -113,7 +112,6 @@ function take_screenshot --description 'Perform capture using hyprshot'
     end
 end
 
-# Parameters and defaults
 set -l MODE (set -q argv[1]; and echo $argv[1]; or echo "monitor")
 set -l DEFAULT_DIR "$HOME/Pictures/Screenshots"
 set -l XDG_SCREENSHOTS_DIR (set -q XDG_SCREENSHOTS_DIR; and echo $XDG_SCREENSHOTS_DIR; or echo $DEFAULT_DIR)

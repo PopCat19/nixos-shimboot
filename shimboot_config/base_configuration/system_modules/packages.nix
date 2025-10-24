@@ -5,10 +5,10 @@
 # Related: fish.nix, services.nix
 #
 # This module installs:
-# - Core utilities (git, wget, curl)
-# - System monitoring tools (btop, fastfetch, hwinfo)
-# - Terminal and editor (kitty, micro)
-# - Development tools (python, gh, unzip)
+# - Core utilities
+# - System monitoring tools
+# - Terminal and editor
+# - Development tools
 
 {
   config,

@@ -1,3 +1,14 @@
+# Hyprland Configuration Module
+#
+# Purpose: Configure Hyprland window manager and related settings
+# Dependencies: hypr_modules, wallpaper.nix
+# Related: hypr_packages.nix, display.nix
+#
+# This module:
+# - Imports all Hyprland configuration modules
+# - Sets up configuration files and shaders
+# - Configures monitors, wallpaper, and user preferences
+
 {
   config,
   lib,

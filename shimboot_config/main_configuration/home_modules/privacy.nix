@@ -1,4 +1,14 @@
-# Privacy and security tools configuration
+# Privacy and Security Module
+#
+# Purpose: Configure privacy tools and password management
+# Dependencies: userConfig, KeePassXC packages
+# Related: None
+#
+# This module:
+# - Installs KeePassXC password manager
+# - Creates wrapper script for synced database
+# - Ensures passwords directory exists
+
 {
   pkgs,
   config,
@@ -9,7 +19,6 @@
   passwordsDir = "${userConfig.directories.home}/Passwords";
   keepassDb = "${passwordsDir}/keepass.kdbx";
 
-  # Wrapper to open KeePassXC with the synced DB if it exists, else normal launch
   kpxcWrapper = pkgs.writeShellScriptBin "kpxc" ''
     set -e
     DB="${keepassDb}"
@@ -20,13 +29,11 @@
     fi
   '';
 in {
-  # Packages
   home.packages = with pkgs; [
     keepassxc
     kpxcWrapper
   ];
 
-  # Ensure passwords directory exists (Syncthing also ensures this; harmless if duplicate)
   home.activation.createPasswordsDir = lib.hm.dag.entryAfter ["writeBoundary"] ''
     mkdir -p ${passwordsDir}
   '';

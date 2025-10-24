@@ -1,3 +1,14 @@
+# Kitty Terminal Module
+#
+# Purpose: Configure Kitty terminal emulator with Rose Pine theme
+# Dependencies: None
+# Related: theme.nix
+#
+# This module:
+# - Enables Kitty with Fish shell integration
+# - Configures Rose Pine color scheme
+# - Sets up terminal behavior and appearance
+
 {pkgs, ...}: {
   programs.kitty = {
     enable = true;

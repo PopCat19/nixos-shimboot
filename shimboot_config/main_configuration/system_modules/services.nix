@@ -1,11 +1,17 @@
+# System Services Module
+#
+# Purpose: Configure system-wide services
+# Dependencies: None
+# Related: None
+#
+# This module:
+# - Enables Flatpak and adds Flathub repository
+
 {pkgs, ...}: {
-  # System services
   services = {
-    # Storage / Packaging
     flatpak.enable = true;
   };
 
-  # Add Flathub repository automatically
   systemd.services.flatpak-repo = {
     wantedBy = ["multi-user.target"];
     path = [pkgs.flatpak];

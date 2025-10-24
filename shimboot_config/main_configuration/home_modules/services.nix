@@ -1,25 +1,25 @@
+# Services Module
+#
+# Purpose: Configure user-level services for media, storage, and utilities
+# Dependencies: None
+# Related: None
+#
+# This module:
+# - Enables media player control services
+# - Configures storage management and clipboard tools
+# - Sets up audio effects processing
+
 {system, ...}: let
-  # Architecture detection
   isX86_64 = system == "x86_64-linux";
-  # Architecture-specific acceleration settings
-  # moved to ../../home_modules/generative.nix
 in {
-  # **SYSTEM SERVICES**
-  # Enables user-level services.
   services = {
-    # Media Control services.
-    playerctld.enable = true; # D-Bus interface for media players.
-    mpris-proxy.enable = true; # MPRIS proxy for media players.
+    playerctld.enable = true;
+    mpris-proxy.enable = true;
 
-    # Storage Management.
-    udiskie.enable = true; # Automount removable media.
+    udiskie.enable = true;
 
-    # Audio Effects.
-    easyeffects.enable = true; # Audio effects for PipeWire.
+    easyeffects.enable = true;
 
-    # Clipboard Management.
-    cliphist.enable = true; # Clipboard history manager.
-
-    # AI/ML Services moved to ../../home_modules/generative.nix
+    cliphist.enable = true;
   };
 }

@@ -1,3 +1,14 @@
+# Theme Library Module
+#
+# Purpose: Provide Rose Pine theme configuration and utilities
+# Dependencies: rose-pine packages, inputs
+# Related: theme.nix
+#
+# This module:
+# - Defines Rose Pine color palette and theme variants
+# - Provides font and package configurations
+# - Exports utility functions for theme setup
+
 {
   lib,
   pkgs,
@@ -5,7 +16,6 @@
   inputs,
 }: let
   system = "x86_64-linux";
-  # Core Rose Pine Palette (hex without 0x prefix for easy use)
   rosePineColors = {
     base = "191724";
     surface = "1f1d2e";
@@ -24,22 +34,18 @@
     highlightHigh = "524f67";
   };
 
-  # Theme Variants: main (default)
   variants = {
     main = {
       gtkThemeName = "Rose-Pine-Main-BL";
       iconTheme = "Rose-Pine";
       cursorTheme = "rose-pine-hyprcursor";
       kvantumTheme = "rose-pine-rose";
-      # Use base colors for main
       colors = rosePineColors;
     };
   };
 
-  # Default variant
   defaultVariant = variants.main;
 
-  # Fonts
   fonts = {
     main = "Rounded Mplus 1c Medium";
     mono = "JetBrainsMono Nerd Font";
@@ -50,7 +56,6 @@
     };
   };
 
-  # Packages (common)
   commonPackages = with pkgs; [
     inputs.rose-pine-hyprcursor.packages.${system}.default
     rose-pine-gtk-theme-full
@@ -61,7 +66,6 @@
     qt6ct
     polkit_gnome
     gsettings-desktop-schemas
-    # Fonts
     google-fonts
     nerd-fonts.jetbrains-mono
     nerd-fonts.caskaydia-cove
@@ -72,21 +76,18 @@
     font-awesome
   ];
 
-  # Generate GTK CSS from fonts
   mkGtkCss = fontMain: ''
     * {
       font-family: "${fontMain}";
     }
   '';
 
-  # Session Variables from variant
   mkSessionVariables = variant: sizes: {
     QT_STYLE_OVERRIDE = "kvantum";
     QT_QPA_PLATFORM = "wayland;xcb";
     GTK_THEME = variant.gtkThemeName;
     GDK_BACKEND = "wayland,x11,*";
     XCURSOR_THEME = variant.cursorTheme;
-    # XCURSOR_SIZE set separately in theme.nix
     QT_QUICK_CONTROLS_STYLE = "Kvantum";
     QT_QUICK_CONTROLS_MATERIAL_THEME = "Dark";
   };

@@ -1,12 +1,18 @@
-# Animation Configuration for Hyprland
-# =====================================
+# Hyprland Animations Module
+#
+# Purpose: Configure window animations and transitions in Hyprland
+# Dependencies: None
+# Related: general.nix
+#
+# This module:
+# - Defines bezier curves for smooth animations
+# - Configures window, layer, and workspace animations
+
 {
   wayland.windowManager.hyprland.settings = {
-    # Animation configuration
     animations = {
       enabled = true;
 
-      # Bezier curves
       bezier = [
         "easeOutQuint,0.23,1,0.32,1"
         "easeInOutCubic,0.65,0.05,0.36,1"
@@ -15,7 +21,6 @@
         "quick,0.15,0,0.1,1"
       ];
 
-      # Animation definitions
       animation = [
         "global,1,10,default"
         "border,1,5.39,easeOutQuint"

@@ -1,24 +1,19 @@
-# home-hyprpanel.nix
-# HyprPanel configuration with Rose Pine theme integration
-# Based on documentation: https://hyprpanel.com/
-{userConfig, ...}: {
-  # HyprPanel is available in nixpkgs and has a home-manager module
-  # No need for separate flake input - just enable the program
-  programs.hyprpanel = {
-    # Enable the module.
-    # Default: false
-    enable = true;
+# HyprPanel Home Configuration Module
+#
+# Purpose: Configure HyprPanel with host-specific bar layouts
+# Dependencies: userConfig
+# Related: hyprpanel-common.nix, hyprland.nix
+#
+# This module:
+# - Defines bar layouts for different monitors
+# - Configures dashboard shortcuts using userConfig
+# - Provides home-specific HyprPanel settings
 
-    # Automatically restart HyprPanel with systemd.
-    # Useful when updating your config so that you
-    # don't need to manually restart it.
-    # Default: false
+{userConfig, ...}: {
+  programs.hyprpanel = {
+    enable = true;
     systemd.enable = true;
 
-    # Configure and theme almost all options from the GUI.
-    # Using new flat settings format (not nested objects)
-    # See 'https://hyprpanel.com/configuration/settings.html'.
-    # Default: <same as gui>
     settings = {
       # Layout configuration - Configure bar layouts for monitors
       "bar.layouts" = {

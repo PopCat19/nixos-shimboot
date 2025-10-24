@@ -1,15 +1,21 @@
-# Window Rules for Hyprland
-# ==========================
+# Hyprland Window Rules Module
+#
+# Purpose: Define window behavior rules for specific applications in Hyprland
+# Dependencies: None
+# Related: general.nix
+#
+# This module:
+# - Sets opacity levels for various applications
+# - Defines floating windows for dialogs and utilities
+# - Configures window sizes and positioning
+
 {
   wayland.windowManager.hyprland.settings = {
-    # Window rules v2
     windowrulev2 = [
-      # General rules
       "suppressevent maximize, class:.*"
       "nofocus,class:^$,title:^$,xwayland:1,floating:1,fullscreen:0,pinned:0"
       "minsize 1024 600,class:^(org.pulseaudio.pavucontrol)$"
 
-      # Opacity rules - matching kitty's opacity and blur
       "opacity 0.85 0.85,class:^(code-oss)$"
       "opacity 0.85 0.85,class:^([Cc]ode)$"
       "opacity 0.85 0.85,class:^(code-url-handler)$"
@@ -57,7 +63,6 @@
       "opacity 0.85 0.85,class:^(io.github.flattool.Warehouse)$"
       "opacity 0.88 0.76,class:^(steam_app_1920960)$,title:^(MainWindow)$,xwayland:1"
 
-      # Floating rules
       "float,class:^(org.kde.dolphin)$,title:^(Progress Dialog — Dolphin)$"
       "float,class:^(org.kde.dolphin)$,title:^(Copying — Dolphin)$"
       "float,title:^(About Mozilla Firefox)$"
@@ -96,7 +101,6 @@
       "float,class:^(keepassxc)$,title:^(Password Generator)$"
     ];
 
-    # Window rules v1 (legacy)
     windowrule = [
       "float,title:^(Open)$"
       "float,title:^(Choose Files)$"

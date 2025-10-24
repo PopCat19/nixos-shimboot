@@ -1,25 +1,19 @@
-# hyprpanel-common.nix
-# HyprPanel common configuration with Rose Pine theme integration
-# This contains all shared settings except bar.layouts which are host-specific
-# Based on documentation: https://hyprpanel.com/
-{...}: {
-  # HyprPanel is available in nixpkgs and has a home-manager module
-  # No need for separate flake input - just enable the program
-  programs.hyprpanel = {
-    # Enable the module.
-    # Default: false
-    enable = true;
+# HyprPanel Common Configuration Module
+#
+# Purpose: Configure shared HyprPanel settings with Rose Pine theme
+# Dependencies: None
+# Related: hyprpanel-home.nix, hyprland.nix
+#
+# This module:
+# - Enables HyprPanel with systemd integration
+# - Configures bar, menus, notifications, and theme
+# - Excludes host-specific bar layouts
 
-    # Automatically restart HyprPanel with systemd.
-    # Useful when updating your config so that you
-    # don't need to manually restart it.
-    # Default: false
+{...}: {
+  programs.hyprpanel = {
+    enable = true;
     systemd.enable = true;
 
-    # Configure and theme almost all options from the GUI.
-    # Using new flat settings format (not nested objects)
-    # See 'https://hyprpanel.com/configuration/settings.html'.
-    # Default: <same as gui>
     settings = {
       # General settings
       "tear" = false;
