@@ -1,5 +1,15 @@
-# Global user configuration file
-# Contains all user-configurable variables for nixos-shimboot
+# User Configuration Module
+#
+# Purpose: Global user configuration for nixos-shimboot
+# Dependencies: None (pure configuration)
+# Related: base_configuration/configuration.nix, flake.nix
+#
+# This module defines:
+# - Host and system configuration
+# - User credentials and groups
+# - Default application preferences
+# - System directory structure
+
 {
   hostname ? null,
   system ? "x86_64-linux",

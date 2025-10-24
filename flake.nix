@@ -1,3 +1,15 @@
+# Flake Configuration
+#
+# Purpose: Main flake.nix defining inputs and outputs for nixos-shimboot
+# Dependencies: nixpkgs, home-manager, zen-browser, rose-pine-hyprcursor
+# Related: shimboot_config/, flake_modules/
+#
+# This flake provides:
+# - Raw image generation for ChromeOS boards
+# - System configurations with home-manager integration
+# - Development environment and tools
+# - ChromeOS kernel/initramfs extraction and patching
+
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -7,26 +19,21 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Added to support shimboot Zen Browser home module import
     zen-browser = {
       url = "github:0xc000022070/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Rose Pine theme inputs
     rose-pine-hyprcursor = {
       url = "github:ndom91/rose-pine-hyprcursor";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Home Manager is typically required for Home modules
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
-
-  description = "NixOS configuration for raw image generation";
 
   # Combine all outputs from modules
   outputs = {
