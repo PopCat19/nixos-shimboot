@@ -78,7 +78,7 @@
     src = pkgs.fetchurl {
       # NOTE: Recovery URL must be board-specific; update per board or parameterize
       url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16295.54.0_${board}_recovery_stable-channel_${board}MPKeys-v54.bin.zip";
-      sha256 = nixpkgs.lib.fakeSha256; # Replace with actual hash per board
+      sha256 = "sha256-IbflWCE9x6Xvt67SfdGFEWTs4184soTKfjggGhV7kzA="; # dedede recovery hash
     };
 
     nativeBuildInputs = [pkgs.unzip];
