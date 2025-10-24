@@ -1,3 +1,15 @@
+# Fish Functions Configuration Module
+#
+# Purpose: Configure Fish shell with custom functions and abbreviations
+# Dependencies: fish, starship, eza
+# Related: fish.nix, packages.nix
+#
+# This module:
+# - Sets up environment variables for NixOS configuration
+# - Loads custom Fish functions from external files
+# - Defines shell abbreviations for common commands
+# - Configures Starship prompt initialization
+
 {
   lib,
   pkgs,
@@ -44,14 +56,12 @@
     };
 
     shellAbbrs = {
-      # Navigation shortcuts
       ".." = "cd ..";
       "..." = "cd ../..";
       ".3" = "cd ../../..";
       ".4" = "cd ../../../..";
       ".5" = "cd ../../../../..";
 
-      # File Operations using eza
       mkdir = "mkdir -p";
       l = "eza -lh --icons=auto";
       ls = "eza -1 --icons=auto";
@@ -59,7 +69,6 @@
       ld = "eza -lhD --icons=auto";
       lt = "eza --tree --icons=auto";
 
-      # NixOS Configuration Management
       nconf = "$EDITOR $NIXOS_CONFIG_DIR/configuration.nix";
       hconf = "$EDITOR $NIXOS_CONFIG_DIR/home.nix";
       flconf = "$EDITOR $NIXOS_CONFIG_DIR/flake.nix";
@@ -67,19 +76,14 @@
       ngit = "begin; cd $NIXOS_CONFIG_DIR; git $argv; cd -; end";
       cdh = "cd $NIXOS_CONFIG_DIR";
 
-      # NixOS Build and Switch operations
       nrb = "nixos-rebuild-basic";
-      # Package Management with nix search
       pkgs = "nix search nixpkgs";
       nsp = "nix-shell -p";
 
-      # Git shortcuts
       gac = "git add . && git commit -m $argv";
       greset = "git reset --hard && git clean -fd";
-      # SillyTavern launcher
       sillytavern = "begin; cd ~/SillyTavern-Launcher/SillyTavern; git pull origin staging 2>/dev/null; or true; ./start.sh; cd -; end";
 
-      # Fish history management
       fixhist = "fix-fish-history";
     };
   };

@@ -1,3 +1,15 @@
+# Display Configuration Module
+#
+# Purpose: Configure display server and window manager for ChromeOS devices
+# Dependencies: hyprland, lightdm, xdg-desktop-portal
+# Related: hardware.nix, services.nix
+#
+# This module:
+# - Enables Hyprland as the default window manager
+# - Configures LightDM display manager without autologin
+# - Sets up XDG portals for Wayland compatibility
+# - Enables brightness control and display tools
+
 {
   config,
   pkgs,
@@ -5,20 +17,17 @@
   userConfig,
   ...
 }: {
-  # X server basics (not strictly required for Hyprland, but harmless)
   services.xserver = {
     enable = lib.mkDefault true;
     xkb.layout = lib.mkDefault "us";
     desktopManager.runXdgAutostartIfNone = lib.mkDefault true;
   };
 
-  # Hyprland via UWSM
   programs.hyprland = {
     enable = lib.mkDefault true;
     xwayland.enable = lib.mkDefault true;
   };
 
-  # LightDM for minimal/base: no autologin; provide Hyprland session
   services.xserver.displayManager.lightdm = {
     enable = lib.mkDefault true;
     greeters.gtk.enable = lib.mkDefault true;
@@ -35,14 +44,11 @@
   ];
 
   services.displayManager.defaultSession = lib.mkDefault "hyprland";
-  # Do not enable autologin here; main configuration will enforce no-autologin explicitly.
 
-  # Wayland-friendly defaults for Electron/Chromium apps
   environment.sessionVariables = {
     NIXOS_OZONE_WL = lib.mkDefault "1";
   };
 
-  # Portals for screenshare, file pickers, etc.
   xdg = {
     mime.enable = lib.mkDefault true;
     portal = {
@@ -57,10 +63,9 @@
 
   programs.dconf.enable = lib.mkDefault true;
 
-  # Ensure basic tools are available
   environment.systemPackages = with pkgs; [
     brightnessctl
-    lightdm # Display manager
-    lightdm-gtk-greeter # LightDM greeter
+    lightdm
+    lightdm-gtk-greeter
   ];
 }

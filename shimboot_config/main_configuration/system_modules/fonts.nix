@@ -1,17 +1,24 @@
+# Fonts Module
+#
+# Purpose: Configure system fonts and font rendering
+# Dependencies: None
+# Related: theme.nix
+#
+# This module:
+# - Installs Noto fonts, Google fonts, and JetBrains Mono
+# - Configures fontconfig with default font families
+
 {pkgs, ...}: {
-  # Fonts configuration
   fonts.packages = with pkgs; [
-    # Core fonts
     noto-fonts
     noto-fonts-cjk-sans
     noto-fonts-cjk-serif
     noto-fonts-emoji
     noto-fonts-extra
 
-    # Fonts used by applications
-    google-fonts # Contains M+ Outline Fonts (Rounded Mplus 1c)
-    jetbrains-mono # Monospace font for terminals and coding
-    nerd-fonts.jetbrains-mono # JetBrains Mono with nerd font symbols
+    google-fonts
+    jetbrains-mono
+    nerd-fonts.jetbrains-mono
   ];
 
   fonts.fontconfig = {

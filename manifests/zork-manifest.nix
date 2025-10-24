@@ -1,0 +1,690 @@
+{
+  name = "zork.zip";
+  hash = "sha256-G+dOxqWJ26vRKz0nt6Nvs2+H9XvB1Wzkwfjk/7Vsr6o=";
+  chunks = [
+    {
+      name = "zork.zip.0000";
+      sha256 = "sha256-Kq3sRkRsg4AvFqYG9Ll2QI6x3nZ1R1T5kLF0L+H7G9U=";
+    }
+    {
+      name = "zork.zip.0001";
+      sha256 = "sha256-oGbYwEzKdqs78gRsRiYWhHeqtxeB0/43r5CVavz70KA=";
+    }
+    {
+      name = "zork.zip.0002";
+      sha256 = "sha256-q8oCaUgmYVvyBiBufq1cHRRxdVjKvnEWxzWBGHnx8tw=";
+    }
+    {
+      name = "zork.zip.0003";
+      sha256 = "sha256-BBv7izzAOIQFkSWrQ5enkzRSY0mkGbrBQN9/2tQW0TU=";
+    }
+    {
+      name = "zork.zip.0004";
+      sha256 = "sha256-3de4zCXe1ujaK3Hr45uEOXDKmGsywYBvNGe4c7cuIPs=";
+    }
+    {
+      name = "zork.zip.0005";
+      sha256 = "sha256-VjBgv0CGYED8qtMgWk1cjm69Qd3+rAywbREsYS4aDXg=";
+    }
+    {
+      name = "zork.zip.0006";
+      sha256 = "sha256-sDCxQbniTmnFD5fejq8T5Mz1tv1hENcm9TMIDJKgo1M=";
+    }
+    {
+      name = "zork.zip.0007";
+      sha256 = "sha256-1NngJhH7rKkFhXeeLDpoJHPzGbg21GBgnQAS2hAP1lg=";
+    }
+    {
+      name = "zork.zip.0008";
+      sha256 = "sha256-BNdqA2GSJWMkjLeuCNtqXY+tUFb8MSPXXGt48qKEAYo=";
+    }
+    {
+      name = "zork.zip.0009";
+      sha256 = "sha256-QHYOZx4EzEaYwSYXF3b6IuxRMKrsflZm2iIeVSoWgr8=";
+    }
+    {
+      name = "zork.zip.0010";
+      sha256 = "sha256-+6c9qWBubg0GmzNquDl7auVzi2vuTj8dnB4/FArJ4pY=";
+    }
+    {
+      name = "zork.zip.0011";
+      sha256 = "sha256-WOYxPxhxSjihpRlosCQMeYWA4yxrpXF/PGy0rKH1uZc=";
+    }
+    {
+      name = "zork.zip.0012";
+      sha256 = "sha256-DbEg7BplhUQwfY0gQr72hcdDW35BR4JAp5zmxG6t4qI=";
+    }
+    {
+      name = "zork.zip.0013";
+      sha256 = "sha256-wUPMTI7S04NQShf1rHaquMb+GHyr6dNmXcLrQ9NHn44=";
+    }
+    {
+      name = "zork.zip.0014";
+      sha256 = "sha256-i3z7ziWcswnXJvmIxl+dWiJ86mZJQDpFrD4R3n1yhGE=";
+    }
+    {
+      name = "zork.zip.0015";
+      sha256 = "sha256-giyt86bfmi1WjUbi2YObShDIIQwMbhrrf6MAmm+36iM=";
+    }
+    {
+      name = "zork.zip.0016";
+      sha256 = "sha256-YNPIicsUIyVu7iKN9Kt9Egn9qygfXb/Lb6AxCAlO7XA=";
+    }
+    {
+      name = "zork.zip.0017";
+      sha256 = "sha256-hiaWDC0rCoCI+G9ePmEK7scfsIDVmCohiBjlL7N4De8=";
+    }
+    {
+      name = "zork.zip.0018";
+      sha256 = "sha256-dEkP0TVNKFgQ65F1CB8gMNcfVReuoqryTo/zFKsJd0A=";
+    }
+    {
+      name = "zork.zip.0019";
+      sha256 = "sha256-LJhnAdznRoWUnjxQSq3BvePZdW5X+PZkzZ2STbcxGZo=";
+    }
+    {
+      name = "zork.zip.0020";
+      sha256 = "sha256-/X9pQ4xEs3bAuHbhtyCStnVpX0P3lnYBVrymiO2BFtg=";
+    }
+    {
+      name = "zork.zip.0021";
+      sha256 = "sha256-sVl5MZ8QouiZpMgUcWF2jvbJ8kGWOjwIKFsoZe5g/C4=";
+    }
+    {
+      name = "zork.zip.0022";
+      sha256 = "sha256-5NdvAUfkHWjxUTz4BKFV6H0k8M7/0b1yA5ByI5XM2aQ=";
+    }
+    {
+      name = "zork.zip.0023";
+      sha256 = "sha256-AHQ5YtEIlvAcRTl9SfEdujydlz1zR1UCayNJwyaFn8I=";
+    }
+    {
+      name = "zork.zip.0024";
+      sha256 = "sha256-dDXpw+0yPQsgObbJVVPi0IJC+rjToZcukuhRQ1Ebp3k=";
+    }
+    {
+      name = "zork.zip.0025";
+      sha256 = "sha256-YDrBYAKuIZ00fvirwqH50ofaIvIt9os4sirTz1Cj8KU=";
+    }
+    {
+      name = "zork.zip.0026";
+      sha256 = "sha256-OjUgrWjC8D7bWKcBROXLyqW4cPO3voMiWRDLJmvsZHc=";
+    }
+    {
+      name = "zork.zip.0027";
+      sha256 = "sha256-GbeFaVtWB1F46r8/seWu28CE4QXtlfZUnsP3oTBotdo=";
+    }
+    {
+      name = "zork.zip.0028";
+      sha256 = "sha256-r9J8jI94FJxMng//bys6nzplQzMzk7X2iZ0U0DRfCUQ=";
+    }
+    {
+      name = "zork.zip.0029";
+      sha256 = "sha256-WtzEVvY4Il7SCjrusFqqoQGbZlwLh6wGP/nKmeYBozY=";
+    }
+    {
+      name = "zork.zip.0030";
+      sha256 = "sha256-UNtXgOlmaFNfnBSKRrs4F9mKyvAtSBWfnz9vm6CU3pU=";
+    }
+    {
+      name = "zork.zip.0031";
+      sha256 = "sha256-EuIOIUoVHz+iN+tLp/4yrlCjJGIrfmvX2IYBkgAOBok=";
+    }
+    {
+      name = "zork.zip.0032";
+      sha256 = "sha256-RF3egu428gW9cdhdjgFcR2uK4x2LAfYZkdjgU7y2VwE=";
+    }
+    {
+      name = "zork.zip.0033";
+      sha256 = "sha256-+QaDAMxrKR3a5bCknUVmxWMWLixIyv8pgZbRC36q3Dw=";
+    }
+    {
+      name = "zork.zip.0034";
+      sha256 = "sha256-4P5THoQptFAGB9mLPHIcHiq4sEGJUVln4JhSuvbL5yk=";
+    }
+    {
+      name = "zork.zip.0035";
+      sha256 = "sha256-qpyjlbFrZn/gyXH9cNdDp2/y/SHmg5dxzoPIapo9aMg=";
+    }
+    {
+      name = "zork.zip.0036";
+      sha256 = "sha256-eoVjhJ7Q64iyvfiMO1tdHfbo7IZxD88ThRX/Vmu3wKw=";
+    }
+    {
+      name = "zork.zip.0037";
+      sha256 = "sha256-amt1AAqP1/cIZy9vaIqeDreP+Zwq1FUHdS7P2IclQMQ=";
+    }
+    {
+      name = "zork.zip.0038";
+      sha256 = "sha256-FTn+nupc2YW+NM3OHRnolDEJ1AenYwNSmFY6qUxznvU=";
+    }
+    {
+      name = "zork.zip.0039";
+      sha256 = "sha256-/e1ieqIk8nVurz4ZYcBZBFbvyllY+VyyF5L89KHGDKs=";
+    }
+    {
+      name = "zork.zip.0040";
+      sha256 = "sha256-teyRu4/HGPNGIKpiepveUpgaGDhxDX4R2c6kRkKBP6Y=";
+    }
+    {
+      name = "zork.zip.0041";
+      sha256 = "sha256-a7x9v9Jd3zIo3XLS2AZWj+GzfQrnHbnx9yBLmxM5haU=";
+    }
+    {
+      name = "zork.zip.0042";
+      sha256 = "sha256-DviliPBYocy56ADqdtF8RwM8GAs68ezd3i+Vinqp3Lk=";
+    }
+    {
+      name = "zork.zip.0043";
+      sha256 = "sha256-V0f8bcc9a3sNTlyL7gf+ZePr9oyQl6St8FV5CNZcyB8=";
+    }
+    {
+      name = "zork.zip.0044";
+      sha256 = "sha256-HdbpjXnzrmwQncojYR/EsItROHkb8K283wtZIaiuB8Y=";
+    }
+    {
+      name = "zork.zip.0045";
+      sha256 = "sha256-x13rOkRZqdn2fxQLybxCeGO+DJ+hA9isPYLbIvkw964=";
+    }
+    {
+      name = "zork.zip.0046";
+      sha256 = "sha256-FiXrAgX7LEyMH6pnY+sHMtecg8jS5JwET+f1GQVbsaQ=";
+    }
+    {
+      name = "zork.zip.0047";
+      sha256 = "sha256-gS8lgIVcQy4hMVkrum2xdyzU25NxFo7tdeHnCelbtCA=";
+    }
+    {
+      name = "zork.zip.0048";
+      sha256 = "sha256-dDyYw7IwuQbIwmc8XlBQN13vmke/tLZ76hhh7z9krrA=";
+    }
+    {
+      name = "zork.zip.0049";
+      sha256 = "sha256-iP2mko4jymfUS++bQauglrdCeGP9OZhjc5ikATg343g=";
+    }
+    {
+      name = "zork.zip.0050";
+      sha256 = "sha256-QygGRn/qLwwpkYIHfqqPU6M2ch6jRqzSsIGYKnd1tiM=";
+    }
+    {
+      name = "zork.zip.0051";
+      sha256 = "sha256-UdjEKLV5nKgmyUHtrZ5rzg9Bl6IgnK+SbCbqiYPyqxM=";
+    }
+    {
+      name = "zork.zip.0052";
+      sha256 = "sha256-oQkeq+TlByPzlIceisvl13vCrWOUfwIPdIDJq+wE/k4=";
+    }
+    {
+      name = "zork.zip.0053";
+      sha256 = "sha256-uC/GEX4oyV3CfkTRnX/JMWsCBew1DPRGhjG7jPqzLHQ=";
+    }
+    {
+      name = "zork.zip.0054";
+      sha256 = "sha256-2/bVAyZlADLvzFCTPTmcqeNeT7u6gK3onotTwUclBAw=";
+    }
+    {
+      name = "zork.zip.0055";
+      sha256 = "sha256-srKI20SBVDnbNwAlK32W3V76aECn0DUn+qJR3SRlmeE=";
+    }
+    {
+      name = "zork.zip.0056";
+      sha256 = "sha256-P40AA1cG9gZKxp220ZWNRBZlsvOhD0Gsys8weSEjyBQ=";
+    }
+    {
+      name = "zork.zip.0057";
+      sha256 = "sha256-jvJDytRVcUfzzIcp+OA+s4xsBjCA+NXAvJlky3+o+UE=";
+    }
+    {
+      name = "zork.zip.0058";
+      sha256 = "sha256-6/73ksVLMyJ9sxtW/FXQbmhKA0F4gz/ZS/WkpRPKYB0=";
+    }
+    {
+      name = "zork.zip.0059";
+      sha256 = "sha256-vKMqCAMdbuto/eXwaBjJHLUJsIblVQ6ZuFofEyqPy5k=";
+    }
+    {
+      name = "zork.zip.0060";
+      sha256 = "sha256-VTbq9wvXnd4K3E2ndrB6XRgXuAdZCBnx/695iEluCBw=";
+    }
+    {
+      name = "zork.zip.0061";
+      sha256 = "sha256-Kpcgvwa6dc3qBwbsh6dcuzZzrizk6ThbZ3ihFL+wg+c=";
+    }
+    {
+      name = "zork.zip.0062";
+      sha256 = "sha256-/rpM+1P93QwT/0MNp96oDHO3BT4hK4d25mWeAIuh17U=";
+    }
+    {
+      name = "zork.zip.0063";
+      sha256 = "sha256-q2/DejtB0HhWtb+1Fi0qyA4EbfD6OMVon8mSUrAmmwY=";
+    }
+    {
+      name = "zork.zip.0064";
+      sha256 = "sha256-Ai7RcwhzAuABgqGH8I/YsYf8Rb8PZfVb1OlLQwmHQx8=";
+    }
+    {
+      name = "zork.zip.0065";
+      sha256 = "sha256-KtMUV9vGmIiEGoCq5bHLT+2qGLQQI3KlBoK+lMjgFIs=";
+    }
+    {
+      name = "zork.zip.0066";
+      sha256 = "sha256-E0HP3ik4236TRErLAc7/b8JFh/Wu7PGORQCMqxItq/A=";
+    }
+    {
+      name = "zork.zip.0067";
+      sha256 = "sha256-b8UZtToeXHbLwuqLuINRE318iAOi3qQLrCmeHdUZeWs=";
+    }
+    {
+      name = "zork.zip.0068";
+      sha256 = "sha256-Vj5JS/INdhmm9beamUa3UX+Tde7pLNbIFNCwWF0OQiw=";
+    }
+    {
+      name = "zork.zip.0069";
+      sha256 = "sha256-BiGdO76phGImGbnVS7dhK7FzFshBILHvWStRbzyisHI=";
+    }
+    {
+      name = "zork.zip.0070";
+      sha256 = "sha256-51K5Fq/qFKsyVNgIBiWd3972Y3c42Y5lwfg6OcVU1jY=";
+    }
+    {
+      name = "zork.zip.0071";
+      sha256 = "sha256-rwx10n9RPxdEcRLzEWnnJXNjTYCoFf7VUErfc1JqmCA=";
+    }
+    {
+      name = "zork.zip.0072";
+      sha256 = "sha256-GP6Pr9zrumJvLfkjbb/ZMuTMs/R/3bfMZ2CeRmCP9eA=";
+    }
+    {
+      name = "zork.zip.0073";
+      sha256 = "sha256-rTTfiO20t16HSxvGBXl1X33vJedrE8pbzn940UjfB6g=";
+    }
+    {
+      name = "zork.zip.0074";
+      sha256 = "sha256-dB3bWUyVP6Y4aCJys9+h0GLK50bvRJGmtZDr3jlEhJw=";
+    }
+    {
+      name = "zork.zip.0075";
+      sha256 = "sha256-nK1pgRW67C9yxDKBy42y/g0lPtAYhcygxtNIJpRRUCM=";
+    }
+    {
+      name = "zork.zip.0076";
+      sha256 = "sha256-8KWyGseDYui9fOcOshtbuAfrfW+MWnY89aQF0LzvpnQ=";
+    }
+    {
+      name = "zork.zip.0077";
+      sha256 = "sha256-iawcQy+BXB4+nrac41BW/2m7ykX1amivpfNQKZbdfIA=";
+    }
+    {
+      name = "zork.zip.0078";
+      sha256 = "sha256-p4Nhcxj4vxSYW4XhVbV3RaBoWwTLg7XTIRnhWsqsu/Y=";
+    }
+    {
+      name = "zork.zip.0079";
+      sha256 = "sha256-GtG6WrnEiwD30jLAjygTNN4VZ/nGoMwrRYT/945PUm4=";
+    }
+    {
+      name = "zork.zip.0080";
+      sha256 = "sha256-R5GJalMSdSIVTj2uK2kk9jc8nmThdy1yN5OWjddaK20=";
+    }
+    {
+      name = "zork.zip.0081";
+      sha256 = "sha256-UWEZQ/a8+svixoz5eHYAJFFUKDwdnJtr1Zx5wedakGo=";
+    }
+    {
+      name = "zork.zip.0082";
+      sha256 = "sha256-qjSyBDJAoOsA3SzLoRa24vTPEo3816ZDT0m51BSveao=";
+    }
+    {
+      name = "zork.zip.0083";
+      sha256 = "sha256-LzOWsArkeLEUNOsyTqPCDOfvhUrYJ8EGIijHJLDfGJo=";
+    }
+    {
+      name = "zork.zip.0084";
+      sha256 = "sha256-epm0guRTvqKlF6K094SYH0qHa04eOfF1cPXjQwE0jlk=";
+    }
+    {
+      name = "zork.zip.0085";
+      sha256 = "sha256-aqvC5PID9O9Rx0TuvJqyD7VPdk9lw5p75YqlY+bSvxw=";
+    }
+    {
+      name = "zork.zip.0086";
+      sha256 = "sha256-a9hAAuGeklNaTharYJHDZiKrVaJ0XJ4Aa6/W0zlC3T8=";
+    }
+    {
+      name = "zork.zip.0087";
+      sha256 = "sha256-Xy5lf8dp0EixEvL3QRi99TwZkv3qUK46OGTxNG2ORQk=";
+    }
+    {
+      name = "zork.zip.0088";
+      sha256 = "sha256-W6Pz3yNWGlZEqUBP/GlQ4jC4JVy1pQwHABpTjU0kNr8=";
+    }
+    {
+      name = "zork.zip.0089";
+      sha256 = "sha256-ZpUWT7hpqxyxQvfoKlRtUT8dS2SiDaNzm1mLhFRDVnY=";
+    }
+    {
+      name = "zork.zip.0090";
+      sha256 = "sha256-ThqiUmxYmh75u6SvVFDgOSOqJWY/i+tTjfrMbrXIjOg=";
+    }
+    {
+      name = "zork.zip.0091";
+      sha256 = "sha256-XNePJYgEsFyJRMeyJ1h0hxUp0L/CCqY8h+mFu1KFPz4=";
+    }
+    {
+      name = "zork.zip.0092";
+      sha256 = "sha256-/nBF54x/ElKEEMAJVDxK/jsyR6KgUHea1bep49sTPJw=";
+    }
+    {
+      name = "zork.zip.0093";
+      sha256 = "sha256-yxZjEUD9a7Y5y0uFI1INawKWjp0Es44mzP8DyY/ner0=";
+    }
+    {
+      name = "zork.zip.0094";
+      sha256 = "sha256-JlVKsmObSm+DTIsEcfhMhsKhtsPT0nS09Hejcqo7Qnw=";
+    }
+    {
+      name = "zork.zip.0095";
+      sha256 = "sha256-bydkBzoeJ4gbbdKuQqClqEa285BMfGHeevbERwiBM0o=";
+    }
+    {
+      name = "zork.zip.0096";
+      sha256 = "sha256-X9XFP+bB5aIdJnCZ85JeMNWe5x1+Fk56Ei3u6UfKu/E=";
+    }
+    {
+      name = "zork.zip.0097";
+      sha256 = "sha256-dmJj9ny2ZwjU4JlarVYNgBEj4Bsh7os0F2TxkRlbUl4=";
+    }
+    {
+      name = "zork.zip.0098";
+      sha256 = "sha256-klDPJOs50KNZTluTAEzaoSnh5rUVTWXAzatN4kN0N9Q=";
+    }
+    {
+      name = "zork.zip.0099";
+      sha256 = "sha256-PVsiSci+NesOveJs5Njlp4kb6EyJjyySWOO9hzjEl94=";
+    }
+    {
+      name = "zork.zip.0100";
+      sha256 = "sha256-HKsKweN3AkDIOkAnHAJNhHa+b9dSKwTo1rJ+1VP3Mxw=";
+    }
+    {
+      name = "zork.zip.0101";
+      sha256 = "sha256-IfH743XLjmDLeeZU7DhUZcqtI5jeGumhEcVaRZ2YcXM=";
+    }
+    {
+      name = "zork.zip.0102";
+      sha256 = "sha256-ETgdntJq12h66MiySVLRLIPHuPeGgJX5V1zmFOJjcGo=";
+    }
+    {
+      name = "zork.zip.0103";
+      sha256 = "sha256-SFtBSH2NPSUl4OQwwylmAiDUvo/L00QtMHNOie5QdZ0=";
+    }
+    {
+      name = "zork.zip.0104";
+      sha256 = "sha256-acpRwIox77pV6tvrOog8ZC7qNBe2X58Wy5oI1FR+CzU=";
+    }
+    {
+      name = "zork.zip.0105";
+      sha256 = "sha256-qQlkrLdg1QmrFxUV3x5w/Z/3ylBQwpx/e8k61iIFjso=";
+    }
+    {
+      name = "zork.zip.0106";
+      sha256 = "sha256-uXbIGr9eDlJ0M4h6x86ooExoidxt78tyvK1Z47Ih4X0=";
+    }
+    {
+      name = "zork.zip.0107";
+      sha256 = "sha256-Dfg5qGweiry1wP1DPly9z6rvO+bQmlve9Wkg4OpQXHw=";
+    }
+    {
+      name = "zork.zip.0108";
+      sha256 = "sha256-Cb9rL9i5JZMtFAk73YBSIs0YKyjBipK0PYtqZztPx8A=";
+    }
+    {
+      name = "zork.zip.0109";
+      sha256 = "sha256-ky6HnGEE0AeMQXKVr9pJlVKosCtHNTcz6J5lSvjYhoY=";
+    }
+    {
+      name = "zork.zip.0110";
+      sha256 = "sha256-PUoJzGyqH/G8VnXgkxvkw2zGQNJ0xQkPV5vTNAxDdvU=";
+    }
+    {
+      name = "zork.zip.0111";
+      sha256 = "sha256-2R08fZ1vEn/Ggy1NsxIu3pEUOJg8+m/RbFmDAYQb7Pw=";
+    }
+    {
+      name = "zork.zip.0112";
+      sha256 = "sha256-0xe0wxZUVChtR6QHyy9cZlRL8vsQ5rTmErlRld4CTZ0=";
+    }
+    {
+      name = "zork.zip.0113";
+      sha256 = "sha256-ISkh/jMdj0N4fFd2x85zMe0xNhb8NTA68mC12Iq4JKk=";
+    }
+    {
+      name = "zork.zip.0114";
+      sha256 = "sha256-drO2mZ5h9n80fSZFpjX7b2EnMZpHzvv9lSxaRBEiKs4=";
+    }
+    {
+      name = "zork.zip.0115";
+      sha256 = "sha256-3MbARbP8+TJJJZxtHX6cK1fA7kwUo2/bu6dcejrC6Bk=";
+    }
+    {
+      name = "zork.zip.0116";
+      sha256 = "sha256-RTvx799tmFKR/1v9Y+1jmQml/fPTxBnA95r5S666nBk=";
+    }
+    {
+      name = "zork.zip.0117";
+      sha256 = "sha256-sqiwdvfNqbaFuhYSKE36EdcVOLrX9//3ufhMt1P9tC8=";
+    }
+    {
+      name = "zork.zip.0118";
+      sha256 = "sha256-sOY9DEN8ppsbLd6HW4M1LsGd0U76EQdeTfBSTIYllrE=";
+    }
+    {
+      name = "zork.zip.0119";
+      sha256 = "sha256-rS8igVvPy+mdbgmEQ69aiEvQyjnasJyFj6451lXjLJE=";
+    }
+    {
+      name = "zork.zip.0120";
+      sha256 = "sha256-mmA0y/YEoDsmHCI2LkIpeg7X4xM1269HJphxZsG25dE=";
+    }
+    {
+      name = "zork.zip.0121";
+      sha256 = "sha256-XQz7r7Lp85bVMmMF0QgDZEvLTwBRUP1VO2eOhG7IRTs=";
+    }
+    {
+      name = "zork.zip.0122";
+      sha256 = "sha256-lggUJPj6vr2aWiMfVEBhjXPxOae1FGRBZopOK1rn0uw=";
+    }
+    {
+      name = "zork.zip.0123";
+      sha256 = "sha256-d0gZKHWPp0lj97ymWHSgB92M7umGMGDGL3Vvsv+vA1I=";
+    }
+    {
+      name = "zork.zip.0124";
+      sha256 = "sha256-D0Z5Bt3F4C5EeWZkMLsKgLc1cIGI5dy2bY8+F1teZzY=";
+    }
+    {
+      name = "zork.zip.0125";
+      sha256 = "sha256-jxzoXP3Re4l8rqhyZ8AGeY1dxlOei1efI3B588PelQ0=";
+    }
+    {
+      name = "zork.zip.0126";
+      sha256 = "sha256-CY6vm48vKwqtrLOUazdDZdBG09vhpGsYxsRoogYcW8w=";
+    }
+    {
+      name = "zork.zip.0127";
+      sha256 = "sha256-icpqjbsvh+aHmmu1yNiHerNDmAi8z3cbwaSme/PUdEQ=";
+    }
+    {
+      name = "zork.zip.0128";
+      sha256 = "sha256-4Dvmz9YKuc5//9NjvpSu+OvIAi2kfqg4L2pbDt4FABA=";
+    }
+    {
+      name = "zork.zip.0129";
+      sha256 = "sha256-LaWd22mXDWIC/Cw6spd4t078H10kj/sKBrudrQybheU=";
+    }
+    {
+      name = "zork.zip.0130";
+      sha256 = "sha256-2dlvUD1qzFdeKrFMvhIthvLza2HKcVxZpd98d2nBpQ0=";
+    }
+    {
+      name = "zork.zip.0131";
+      sha256 = "sha256-pfdb5BwSzpOxxF9ytcmSVMyApSJaS0TCYjyvdQQyHEE=";
+    }
+    {
+      name = "zork.zip.0132";
+      sha256 = "sha256-lXv1VaMIKvpgZz6wjxuL4wEo2Bwkr8zAiQDr5zunCWE=";
+    }
+    {
+      name = "zork.zip.0133";
+      sha256 = "sha256-nOeYm+5ZO8XqQVguq4Nw5E02USeMoQ4LFkmUwQEL4/A=";
+    }
+    {
+      name = "zork.zip.0134";
+      sha256 = "sha256-GFHQ+l3peuAIqRpAj7m1yOpgTvFonfgq3/rcr30xHJM=";
+    }
+    {
+      name = "zork.zip.0135";
+      sha256 = "sha256-03eOTgHdZaSaY5IUR5xAJa5Kg5/6pBjsJPYiNomcNos=";
+    }
+    {
+      name = "zork.zip.0136";
+      sha256 = "sha256-/wTv9JYZp8ejPvAJ50at1N28PzNKvwFq1yuF/lDyNwE=";
+    }
+    {
+      name = "zork.zip.0137";
+      sha256 = "sha256-syGB+k28pmfg6oFx62i2WfS8slOJDuP+9ZXuFunH4L8=";
+    }
+    {
+      name = "zork.zip.0138";
+      sha256 = "sha256-btuWq53EzG6GWKREwbJuvPzopRSqGZzrPr525z9eA+I=";
+    }
+    {
+      name = "zork.zip.0139";
+      sha256 = "sha256-TX0yWxOXbRxpPy20/e2D0FYotcPikQU9aHyjyGXSblo=";
+    }
+    {
+      name = "zork.zip.0140";
+      sha256 = "sha256-rF7Fn0AcgI1U8Ie4WLsvxz/zdwExlecXxShPANby+2k=";
+    }
+    {
+      name = "zork.zip.0141";
+      sha256 = "sha256-XfQNybo5VymQvIN/2g45m+fx1ABCXf3JttlCE8mzYUw=";
+    }
+    {
+      name = "zork.zip.0142";
+      sha256 = "sha256-fOUwkfwHlQ3rRVftZnNueEEe0xT8I2+uPJfnytCgYzM=";
+    }
+    {
+      name = "zork.zip.0143";
+      sha256 = "sha256-bW5GFy6Mso2LxpGlPdMtExh6G2mE+qgneGHnrZcNZq0=";
+    }
+    {
+      name = "zork.zip.0144";
+      sha256 = "sha256-jJXy0PaXkFAQVH9MmEUfumsSjAccmrV+0lEI3SBZkYA=";
+    }
+    {
+      name = "zork.zip.0145";
+      sha256 = "sha256-0wgsex5I8KjC3Ri3Gms6XHarqg0aLd4gpnQM37DSBqs=";
+    }
+    {
+      name = "zork.zip.0146";
+      sha256 = "sha256-BUjMSpt7izps45lGVcQIr8Ux1S2FgR2Me3b4ECYwRlk=";
+    }
+    {
+      name = "zork.zip.0147";
+      sha256 = "sha256-45nNSurXoHdbyH65RlUYJZVBrXagBTKbY13dtb2UBpE=";
+    }
+    {
+      name = "zork.zip.0148";
+      sha256 = "sha256-jiCOKMmv4aACCwLb8ouOCedtjT/+vuvBHDCyAbAdLwE=";
+    }
+    {
+      name = "zork.zip.0149";
+      sha256 = "sha256-GXsLE4rca9IcLa2S5OaLBSv5N2p/7JRV1FySoCD4TR4=";
+    }
+    {
+      name = "zork.zip.0150";
+      sha256 = "sha256-IOS9JGyDk0Y8jxTg9kyQkkU2Z3sIV2izh8V6kUPxTLo=";
+    }
+    {
+      name = "zork.zip.0151";
+      sha256 = "sha256-GTId7ov+xLbvm/lmCVrlUKREshm56X2QsZ+k+EnPSOE=";
+    }
+    {
+      name = "zork.zip.0152";
+      sha256 = "sha256-dq8Dp9mhRap4wSHHeY43YXv4xu7nRoIc7Q66ci2gOok=";
+    }
+    {
+      name = "zork.zip.0153";
+      sha256 = "sha256-P8lUGlw83sDQuMXVSoccVmkjFD0HDBUafITi63pzP4U=";
+    }
+    {
+      name = "zork.zip.0154";
+      sha256 = "sha256-wmlpHly5UDBLcPAJ1AI5KPd3M97Io17CAf0hQKG3vac=";
+    }
+    {
+      name = "zork.zip.0155";
+      sha256 = "sha256-DC5X9Z9iGJdnEV9ofQkvxqb2PFGf1eG/WXdwIN49kk4=";
+    }
+    {
+      name = "zork.zip.0156";
+      sha256 = "sha256-dTYTFyiHbfcCp6P4r+aOFXa8qBU9osln8FoYGYEA1tM=";
+    }
+    {
+      name = "zork.zip.0157";
+      sha256 = "sha256-kA6WByq7lPgZWSt571wOW3TCqM3w/UZpjWHuZWiBecM=";
+    }
+    {
+      name = "zork.zip.0158";
+      sha256 = "sha256-7l3XNsnvZApxFpZXP91l4Kb0v6kuW30J8RNiGYnuwr8=";
+    }
+    {
+      name = "zork.zip.0159";
+      sha256 = "sha256-ZdxAzhZsVw3kOGMwkTKdOeeOgC7Xn0ot2A5MDoi1yAo=";
+    }
+    {
+      name = "zork.zip.0160";
+      sha256 = "sha256-Q60s8vZe+0GmU8iHCp1ixiLyBR3pfBVVlAUq6j/ezUk=";
+    }
+    {
+      name = "zork.zip.0161";
+      sha256 = "sha256-1Gu3bC6mloHeBGsxjFITn9rGruY9Tk/D5X+K0hI0SMk=";
+    }
+    {
+      name = "zork.zip.0162";
+      sha256 = "sha256-I0kYRrNFVZXT0etZDty7S2q+U5SSB32c8VREtDaZQOM=";
+    }
+    {
+      name = "zork.zip.0163";
+      sha256 = "sha256-wK51kDuJA801x1+YikXVlD0D+oj9OKFelOF+I+2QX7g=";
+    }
+    {
+      name = "zork.zip.0164";
+      sha256 = "sha256-5gPuM6LfVXsB9jM89AHTw4sypBtLhQMFEArhHFevKOU=";
+    }
+    {
+      name = "zork.zip.0165";
+      sha256 = "sha256-FCHIYw7mb5ots0qm/7y4mkpa/wdXjgWO9XK95/xd3Zw=";
+    }
+    {
+      name = "zork.zip.0166";
+      sha256 = "sha256-YFUl8pvfzXnqA66Hb6Hsdj4hRldYmphsE+gNmkaNEvA=";
+    }
+    {
+      name = "zork.zip.0167";
+      sha256 = "sha256-Xc/5Vlw2ixLTUeDKgKgGt2BDwwVGzhoJJ0v7HT5y5Gg=";
+    }
+    {
+      name = "zork.zip.0168";
+      sha256 = "sha256-igWaVhXJEWmFiJ22Z6D5C8+x6RJTmeGPioYHlFTb4E8=";
+    }
+    {
+      name = "zork.zip.0169";
+      sha256 = "sha256-8+kpP5hS3NQblEnSjp8rPWl/TRUgSEwPXNHkXRy3w5o=";
+    }
+    {
+      name = "zork.zip.0170";
+      sha256 = "sha256-P4+cOj+9euutTyOVN1U+5hsThDnvcHUy3qX5Sxoc2vw=";
+    }
+  ];
+}

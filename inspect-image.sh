@@ -1,4 +1,17 @@
 #!/usr/bin/env bash
+
+# Inspect Image Script
+#
+# Purpose: Inspect shimboot image structure and verify rootfs contents
+# Dependencies: sudo, losetup, mount, umount, lsblk, gdisk, blkid, file
+# Related: assemble-final.sh, write-shimboot-image.sh
+#
+# This script mounts the shimboot image read-only and displays partition table,
+# filesystem details, and verifies the presence of init system.
+#
+# Usage:
+#   sudo ./inspect-image.sh work/shimboot.img
+
 set -euo pipefail
 
 IMAGE="${1:-work/shimboot.img}"

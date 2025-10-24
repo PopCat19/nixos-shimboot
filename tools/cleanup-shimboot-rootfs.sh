@@ -1,35 +1,22 @@
 #!/usr/bin/env bash
-# cleanup-shimboot-rootfs.sh
+
+# Cleanup Shimboot Rootfs Script
 #
-# Safely prune old shimboot rootfs generations without touching other outputs.
-# Strategy:
-#   - Discover rootfs store paths via (in order of preference):
-#       1) A dedicated profile (-p/--profile), if provided
-#       2) GC roots directory (-g/--gcroots), if provided
-#       3) Repo "result*" symlinks in a specified directory (-r/--results-dir, default: current repo)
-#   - Identify candidates that look like "rootfs" (default pattern: "*-nixos-disk-image")
-#   - Keep the newest N (default 1), delete older ones via `nix-store --delete` only
-#   - Optionally remove stale "result*" symlinks that reference deleted store paths
+# Purpose: Safely prune old shimboot rootfs generations without touching other outputs
+# Dependencies: nix, sudo, losetup, mount, umount, cp, find, xargs
+# Related: fetch-recovery.sh, harvest-drivers.sh
 #
-# This avoids global GC and therefore avoids rebuilding other outputs.
+# This script discovers rootfs store paths via profiles, GC roots, or repo symlinks,
+# identifies candidates matching the pattern, keeps the newest N, and deletes older ones.
+# It avoids global GC to prevent rebuilding other outputs.
 #
 # Requirements:
-#   - Nix installed
-#   - Sufficient permissions to unlink symlinks and delete store paths (usually needs sudo)
+# - Nix installed
+# - Sufficient permissions (usually sudo)
 #
 # Usage examples:
-#   Dry-run, keep last 1 (default), scanning repo symlinks:
-#     sudo ./scripts/cleanup-shimboot-rootfs.sh
-#
-#   Delete for real:
-#     sudo ./scripts/cleanup-shimboot-rootfs.sh --no-dry-run
-#
-#   Use a profile and keep last 5:
-#     sudo ./scripts/cleanup-shimboot-rootfs.sh --profile /nix/var/nix/profiles/shimboot --keep 5 --no-dry-run
-#
-#   Scan a GC roots directory and repo symlinks, keep last 4, remove stale symlinks:
-#     sudo ./scripts/cleanup-shimboot-rootfs.sh --gcroots /nix/var/nix/gcroots/shimboot --remove-stale-symlinks --keep 4 --no-dry-run
-#
+#   sudo ./tools/cleanup-shimboot-rootfs.sh --no-dry-run
+
 set -euo pipefail
 
 KEEP=1

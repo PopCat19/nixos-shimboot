@@ -1,3 +1,12 @@
+# Filesystem Helpers Module
+#
+# Purpose: Provide utility scripts for filesystem management
+# Dependencies: cloud-utils, cryptsetup, e2fsprogs
+# Related: filesystems.nix, helpers.nix
+#
+# This module provides:
+# - expand_rootfs: Script to expand root partition to full disk capacity
+
 {
   config,
   pkgs,
@@ -5,11 +14,8 @@
   userConfig,
   ...
 }: {
-  # Helper shell scripts packaged as binaries
   environment.systemPackages = with pkgs; [
     (writeShellScriptBin "expand_rootfs" ''
-      # Script to expand the root filesystem
-      # NixOS equivalent of shimboot's expand_rootfs script
       set -e
       if [ "$DEBUG" ]; then
         set -x
@@ -33,19 +39,17 @@
       fi
 
       disk_dev="$(lsblk --list --noheadings --paths --output PKNAME "$part_dev" | head -n1)"
-      
-      # Extract partition number (handles both /dev/sdX and /dev/nvmeXnYpZ formats)
+
       part_num="$(lsblk --list --noheadings --output MAJ:MIN "$part_dev" | awk '{print $2}')"
       if [[ "$part_dev" =~ [0-9]+$ ]]; then
         part_num="''${part_dev##*[^0-9]}"
       fi
 
-      # Check if already expanded (allow 1% tolerance)
       disk_size=$(blockdev --getsize64 "$disk_dev")
       part_end=$(( $(blockdev --getsize64 "$part_dev") + $(blockdev --getss "$part_dev") * $(blockdev --getstart "$part_dev") ))
       size_diff=$(( disk_size - part_end ))
-      threshold=$(( disk_size / 100 ))  # 1% threshold
-      
+      threshold=$(( disk_size / 100 ))
+
       if [ "$size_diff" -lt "$threshold" ]; then
         echo "Root partition already uses the full disk space. Nothing to do."
         exit 0

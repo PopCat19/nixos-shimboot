@@ -1,20 +1,30 @@
+# Boot Configuration Module
+#
+# Purpose: Configure bootloader and kernel settings for shimboot
+# Dependencies: systemd-boot, kernel modules
+# Related: hardware.nix, filesystem.nix
+#
+# This module:
+# - Disables standard bootloaders in favor of shimboot init script
+# - Configures kernel modules for ChromeOS hardware compatibility
+# - Sets up initramfs with necessary modules
+
 {
   config,
   pkgs,
   lib,
   ...
 }: {
-  # Bootloader Configuration
   boot = {
     loader = {
-      grub.enable = false; # Disables GRUB bootloader
-      systemd-boot.enable = false; # Disables systemd-boot bootloader
-      initScript.enable = true; # Enables the init script
+      grub.enable = false;
+      systemd-boot.enable = false;
+      initScript.enable = true;
     };
     initrd = {
       availableKernelModules = [];
-      kernelModules = []; # Modules to be included in the kernel
+      kernelModules = [];
     };
-    kernelParams = []; # Kernel parameters
+    kernelParams = [];
   };
 }

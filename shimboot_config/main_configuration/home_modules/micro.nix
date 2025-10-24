@@ -1,9 +1,19 @@
+# Micro Text Editor Module
+#
+# Purpose: Configure Micro text editor with Rose Pine theme
+# Dependencies: micro_config/rose-pine.micro
+# Related: None
+#
+# This module:
+# - Enables Micro with custom settings
+# - Installs Rose Pine color scheme
+# - Configures editor behavior and appearance
+
 {
   pkgs,
   config,
   ...
 }: {
-  # Micro text editor configuration
   programs.micro = {
     enable = true;
     settings = {
@@ -27,7 +37,6 @@
     };
   };
 
-  # Micro editor colorscheme
   home.file.".config/micro/colorschemes/rose-pine.micro" = {
     source = ../micro_config/rose-pine.micro;
   };

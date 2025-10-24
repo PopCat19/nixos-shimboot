@@ -1,3 +1,14 @@
+# Hardware Configuration Module
+#
+# Purpose: Configure hardware settings for ChromeOS devices
+# Dependencies: linux-firmware, mesa
+# Related: boot.nix, display.nix
+#
+# This module:
+# - Enables redistributable firmware for ChromeOS compatibility
+# - Configures graphics drivers with 32-bit support
+# - Enables Bluetooth with power-on-boot
+
 {
   config,
   pkgs,
@@ -5,12 +16,11 @@
   userConfig,
   ...
 }: {
-  # Hardware Configuration
   hardware = {
-    enableRedistributableFirmware = true; # Enable non-free firmware
+    enableRedistributableFirmware = true;
     graphics = {
       enable = true;
-      enable32Bit = userConfig.arch.isX86_64; # Only enable 32-bit graphics on x86_64
+      enable32Bit = true;
     };
     bluetooth = {
       enable = true;

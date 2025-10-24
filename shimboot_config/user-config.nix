@@ -1,5 +1,15 @@
-# Global user configuration file
-# Contains all user-configurable variables for nixos-shimboot
+# User Configuration Module
+#
+# Purpose: Global user configuration for nixos-shimboot
+# Dependencies: None (pure configuration)
+# Related: base_configuration/configuration.nix, flake.nix
+#
+# This module defines:
+# - Host and system configuration
+# - User credentials and groups
+# - Default application preferences
+# - System directory structure
+
 {
   hostname ? null,
   system ? "x86_64-linux",
@@ -14,53 +24,24 @@
       else hostname;
   };
 
-  # Architecture detection helpers
-  arch = let
-    current = system;
-  in rec {
-    inherit current;
-
-    # Architecture detection
-    isX86_64 = current == "x86_64-linux";
-
-    # Hardware capabilities
-    supportsROCm = isX86_64;
-    supportsVirtualization = isX86_64;
-    supportsGaming = isX86_64;
-
-    # Package preferences
-    preferredVideoPlayer = "mpv";
-    preferredTerminal = "kitty";
-
-    # Helper functions
-    onlyX86_64 = packages:
-      if isX86_64
-      then packages
-      else [];
-  };
+  # Package preferences
+  preferredVideoPlayer = "mpv";
+  preferredTerminal = "kitty";
 
   # User credentials
   user = {
     inherit username;
-    fullName = "PopCat19";
-    email = "atsuo11111@gmail.com";
     shell = "fish";
 
-    extraGroups =
-      [
-        "wheel"
-        "video"
-        "audio"
-        "networkmanager"
-        "i2c"
-        "input"
-        "libvirtd"
-      ]
-      ++ (
-        if host.hostname == "${username}-surface0"
-        then ["surface-control"]
-        else []
-      );
+    extraGroups = [
+      "wheel"
+      "video"
+      "audio"
+      "networkmanager"
+      "i2c"
+      "input"
+      "libvirtd"
+    ];
   };
 
   # Default applications
@@ -126,18 +107,5 @@
     videos = "${home}/Videos";
     music = "${home}/Music";
     desktop = "${home}/Desktop";
-  };
-
-  # Network configuration moved to system_modules/networking.nix
-  # Host-specific overrides may still set `network` in userConfig if needed.
-
-  # UI components and panels
-  panel = {
-    weather = {
-      enabled = true;
-      location = "Suffolk";
-      key = "dde14cc79e324028be572340252405";
-      unit = "metric";
-    };
   };
 }

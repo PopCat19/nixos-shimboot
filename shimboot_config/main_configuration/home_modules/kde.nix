@@ -1,49 +1,41 @@
+# KDE Applications Module
+#
+# Purpose: Configure KDE applications and file management tools
+# Dependencies: KDE packages, userConfig
+# Related: theme.nix, qt-gtk-config.nix
+#
+# This module:
+# - Installs KDE applications (Dolphin, Gwenview, Okular)
+# - Configures file manager bookmarks and service menus
+# - Sets up thumbnail support and theming
+
 {
   pkgs,
   config,
   userConfig,
   ...
 }: {
-  # KDE applications and utilities (no desktop environment)
   home.packages = with pkgs; [
-    # Dolphin and KDE file management packages
     kdePackages.dolphin
-    kdePackages.ark # Archive manager
-    kdePackages.gwenview # Image viewer
-    kdePackages.okular # Document viewer
+    kdePackages.ark
+    kdePackages.gwenview
+    kdePackages.okular
 
-    # KDE file system integration and thumbnails
     kdePackages.kdegraphics-thumbnailers
     kdePackages.kimageformats
     kdePackages.kio-extras
 
-    # Additional thumbnail support
-    ffmpegthumbnailer # Video thumbnails
-    poppler_utils # PDF thumbnails
-    libgsf # OLE/MSO thumbnails
-    webp-pixbuf-loader # WebP image support
+    ffmpegthumbnailer
+    poppler_utils
+    libgsf
+    webp-pixbuf-loader
 
-    # Qt theming
     qt6Packages.qtstyleplugin-kvantum
     libsForQt5.qtstyleplugin-kvantum
 
-    # Papirus icons
     papirus-icon-theme
   ];
 
-  # KDE configuration files - keeping minimal config here, main theme config in theme.nix
-
-  # Qt environment variables for Kvantum - removed to avoid conflicts with theme.nix
-  # These are now handled in theme.nix and environment.nix
-  # home.sessionVariables = {
-  #   QT_STYLE_OVERRIDE = "kvantum";
-  #   QT_QPA_PLATFORMTHEME = "kvantum";
-  #   QT_PLATFORM_PLUGIN = "kvantum";
-  #   QT_PLATFORMTHEME = "kvantum";
-  #   XDG_CURRENT_DESKTOP = "KDE";
-  # };
-
-  # Dolphin file manager bookmarks
   home.file.".local/share/user-places.xbel".text = ''
     <?xml version="1.0" encoding="UTF-8"?>
     <!DOCTYPE xbel PUBLIC "+//IDN pyxml.sourceforge.net//DTD XML Bookmark Exchange Language 1.0//EN//XML" "http://pyxml.sourceforge.net/topics/dtds/xbel-1.0.dtd">
@@ -81,20 +73,14 @@
     </xbel>
   '';
 
-  # Dolphin configuration - removed to allow Dolphin to manage its own config file
-  # This prevents the "configuration file not writable" error
-
-  # Simple thumbnail cache clearing script
   home.file.".local/bin/update-thumbnails".text = ''
     #!/usr/bin/env bash
-    # Clear Dolphin thumbnail cache
     rm -rf ~/.cache/thumbnails/*
     echo "Thumbnail cache cleared"
   '';
 
   home.file.".local/bin/update-thumbnails".executable = true;
 
-  # Dolphin service menu for opening terminal in current directory
   home.file.".local/share/kio/servicemenus/open-terminal-here.desktop".text = ''
     [Desktop Entry]
     Type=Service

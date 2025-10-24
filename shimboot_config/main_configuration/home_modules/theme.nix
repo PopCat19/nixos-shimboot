@@ -1,29 +1,45 @@
-{ lib
-, pkgs
-, config
-, inputs
-, userConfig
-, ...
+# Theme Module
+#
+# Purpose: Configure Rose Pine theme across GTK, Qt, and desktop environments
+# Dependencies: lib/theme.nix, rose-pine packages
+# Related: environment.nix, qt-gtk-config.nix
+#
+# This module:
+# - Sets up Rose Pine color scheme for GTK and Qt applications
+# - Configures cursor, icon, and window themes
+# - Manages Kvantum theme engine settings
+
+{
+  lib,
+  pkgs,
+  config,
+  inputs,
+  userConfig,
+  ...
 }: let
-  inherit (import ./lib/theme.nix { inherit lib pkgs config inputs; }) defaultVariant fonts commonPackages mkSessionVariables;
+  inherit (import ./lib/theme.nix {inherit lib pkgs config inputs;}) defaultVariant fonts commonPackages mkSessionVariables;
 
-  # Selected variant (easy to switch here)
-  selectedVariant = defaultVariant;  # Change to variants.moon for darker theme
+  selectedVariant = defaultVariant;
 
-  iconTheme = "Papirus-Dark";  # Centralized if needed
+  iconTheme = "Papirus-Dark";
+
   cursorSize = 24;
 
   cursorPackage = inputs.rose-pine-hyprcursor.packages.${pkgs.system}.default;
   kvantumPkg = pkgs.kdePackages.qtstyleplugin-kvantum;
   rosePineKvantum = pkgs.rose-pine-kvantum;
   rosePineGtk =
-    if builtins.hasAttr "rose-pine-gtk-theme-full" pkgs then pkgs.rose-pine-gtk-theme-full
-    else if builtins.hasAttr "rose-pine-gtk-theme" pkgs then pkgs.rose-pine-gtk-theme
+    if builtins.hasAttr "rose-pine-gtk-theme-full" pkgs
+    then pkgs.rose-pine-gtk-theme-full
+    else if builtins.hasAttr "rose-pine-gtk-theme" pkgs
+    then pkgs.rose-pine-gtk-theme
     else null;
 in {
-  home.sessionVariables = mkSessionVariables selectedVariant fonts.sizes // {
-    XCURSOR_SIZE = builtins.toString cursorSize;
-  };
+  home.sessionVariables =
+    mkSessionVariables selectedVariant fonts.sizes
+    // {
+      XCURSOR_SIZE = builtins.toString cursorSize;
+    };
 
   gtk = {
     enable = true;
@@ -36,7 +52,7 @@ in {
       {
         name = selectedVariant.gtkThemeName;
       }
-      // lib.optionalAttrs (rosePineGtk != null) { package = rosePineGtk; };
+      // lib.optionalAttrs (rosePineGtk != null) {package = rosePineGtk;};
     iconTheme = {
       name = iconTheme;
       package = pkgs.papirus-icon-theme;
@@ -61,9 +77,6 @@ in {
     };
   };
 
-  # Ensure Kvantum can find Rosé Pine themes from our package
-  # Kvantum searches ~/.config/Kvantum and XDG data dirs (share/Kvantum)
-  # These symlinks guarantee availability regardless of XDG_DATA_DIRS.
   xdg.configFile."Kvantum/rose-pine-rose".source = "${rosePineKvantum}/share/Kvantum/rose-pine-rose";
   xdg.configFile."Kvantum/rose-pine-moon".source = "${rosePineKvantum}/share/Kvantum/rose-pine-moon";
 
@@ -86,8 +99,6 @@ in {
     };
   };
 
-  # Ensure Qt5 apps also use Kvantum style and Papirus icons
-  # KDE reads ~/.config/kdeglobals for the icon theme.
   home.file.".config/qt5ct/qt5ct.conf" = {
     text = ''
       [Appearance]
@@ -113,16 +124,14 @@ in {
     '';
   };
 
-  # Ensure KDE Frameworks apps (Dolphin, Gwenview, Okular, etc.) use Papirus icons
-  # KDE reads ~/.config/kdeglobals for the icon theme.
   home.file.".config/kdeglobals".text = ''
     [Icons]
     Theme=${iconTheme}
   '';
 
-  # Use centralized package list from lib/theme.nix and add module-specific extras
-  # Avoid duplicating cursorPackage (already included in commonPackages)
-  home.packages = with pkgs; commonPackages ++ [
-    rose-pine-kvantum
-  ];
+  home.packages = with pkgs;
+    commonPackages
+    ++ [
+      rose-pine-kvantum
+    ];
 }

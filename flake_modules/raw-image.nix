@@ -18,56 +18,58 @@ in {
       format = "raw";
       specialArgs = {inherit zen-browser rose-pine-hyprcursor;};
 
-      modules = [
-        # Apply overlays
-        ({config, ...}: {
-          nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
-        })
-      ] ++ [
-        # Use the main configuration (which itself imports base)
-        ../shimboot_config/main_configuration/configuration.nix
+      modules =
+        [
+          # Apply overlays
+          ({config, ...}: {
+            nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
+          })
+        ]
+        ++ [
+          # Use the main configuration (which itself imports base)
+          ../shimboot_config/main_configuration/configuration.nix
 
-        # Integrate Home Manager for user-level configuration like the full system build
-        home-manager.nixosModules.home-manager
-        ({
-          config,
-          pkgs,
-          ...
-        }: {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.extraSpecialArgs = {
-            inherit zen-browser rose-pine-hyprcursor userConfig;
-            inputs = self.inputs;
-          };
-          home-manager.sharedModules = [
-            ({config, ...}: {
-              _module.args.userConfig = userConfig;
-            })
-          ];
-          home-manager.users.${userConfig.user.username} = import ../shimboot_config/main_configuration/home_modules/home.nix;
-        })
+          # Integrate Home Manager for user-level configuration like the full system build
+          home-manager.nixosModules.home-manager
+          ({
+            config,
+            pkgs,
+            ...
+          }: {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.extraSpecialArgs = {
+              inherit zen-browser rose-pine-hyprcursor userConfig;
+              inputs = self.inputs;
+            };
+            home-manager.sharedModules = [
+              ({config, ...}: {
+                _module.args.userConfig = userConfig;
+              })
+            ];
+            home-manager.users.${userConfig.user.username} = import ../shimboot_config/main_configuration/home_modules/home.nix;
+          })
 
-        # Raw image specific configuration
-        ({
-          config,
-          pkgs,
-          ...
-        }: {
-          # Enable serial console logging
-          boot.kernelParams = ["console=ttyS0,115200"];
+          # Raw image specific configuration
+          ({
+            config,
+            pkgs,
+            ...
+          }: {
+            # Enable serial console logging
+            boot.kernelParams = ["console=ttyS0,115200"];
 
-          # Enable Nix flakes
-          nix.settings.experimental-features = ["nix-command" "flakes"];
+            # Enable Nix flakes
+            nix.settings.experimental-features = ["nix-command" "flakes"];
 
-          # Enable automatic garbage collection
-          nix.gc = {
-            automatic = true;
-            dates = "weekly";
-            options = "--delete-older-than 30d";
-          };
-        })
-      ];
+            # Enable automatic garbage collection
+            nix.gc = {
+              automatic = true;
+              dates = "weekly";
+              options = "--delete-older-than 30d";
+            };
+          })
+        ];
     };
 
     # Minimal/base-only raw image (no Home Manager, base configuration only)

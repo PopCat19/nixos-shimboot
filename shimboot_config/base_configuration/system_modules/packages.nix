@@ -1,3 +1,15 @@
+# System Packages Configuration Module
+#
+# Purpose: Install essential system-wide packages
+# Dependencies: Various system utilities
+# Related: fish.nix, services.nix
+#
+# This module installs:
+# - Core utilities
+# - System monitoring tools
+# - Terminal and editor
+# - Development tools
+
 {
   config,
   pkgs,
@@ -5,29 +17,21 @@
   userConfig,
   ...
 }: {
-  # Package Configuration
-  environment.systemPackages = with pkgs;
-    [
-      # System-wide packages
-      # Use default applications from user config
-      micro
-      git
-      btop
-      kitty # Terminal emulator
-      fastfetch
-      hwinfo
-      wget
-      curl
-      xdg-utils
-      shared-mime-info
-      fuse
-      starship
-      python313Packages.pip
-      gh
-      unzip
-    ]
-    ++ userConfig.arch.onlyX86_64 [
-      # Architecture-specific packages
-      # Add any x86_64 specific packages here if needed
-    ];
+  environment.systemPackages = with pkgs; [
+    micro
+    git
+    btop
+    kitty
+    fastfetch
+    hwinfo
+    wget
+    curl
+    xdg-utils
+    shared-mime-info
+    fuse
+    starship
+    python313Packages.pip
+    gh
+    unzip
+  ];
 }

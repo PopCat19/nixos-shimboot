@@ -1,3 +1,14 @@
+# Users Configuration Module
+#
+# Purpose: Configure system users for shimboot
+# Dependencies: fish
+# Related: security.nix, services.nix
+#
+# This module:
+# - Enables mutable users for easy setup
+# - Creates root and user accounts with Fish shell
+# - Sets initial passwords for bring-up convenience
+
 {
   config,
   pkgs,
@@ -5,8 +16,6 @@
   userConfig,
   ...
 }: {
-  # Keep user DB declarative; set plain password during activation (bring-up friendly).
-  # For production, replace with hashedPassword/hashedPasswordFile.
   users.mutableUsers = lib.mkDefault true;
 
   users.users = {

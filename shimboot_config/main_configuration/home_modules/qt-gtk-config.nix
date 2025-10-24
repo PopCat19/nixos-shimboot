@@ -1,3 +1,14 @@
+# Qt/GTK Configuration Module
+#
+# Purpose: Configure MIME applications, desktop integration, and file manager settings
+# Dependencies: userConfig
+# Related: theme.nix, kde.nix
+#
+# This module:
+# - Sets up XDG MIME type associations
+# - Configures GTK bookmarks and desktop files
+# - Sets up Nemo file manager with terminal integration
+
 {
   pkgs,
   config,
@@ -5,21 +16,17 @@
   userConfig,
   ...
 }: {
-  # XDG MIME Applications Configuration
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {
-      # Web browsers
       "x-scheme-handler/http" = [userConfig.defaultApps.browser.desktop];
       "x-scheme-handler/https" = [userConfig.defaultApps.browser.desktop];
       "text/html" = [userConfig.defaultApps.browser.desktop];
       "application/xhtml+xml" = [userConfig.defaultApps.browser.desktop];
 
-      # Terminal
       "application/x-terminal-emulator" = [userConfig.defaultApps.terminal.desktop];
       "x-scheme-handler/terminal" = [userConfig.defaultApps.terminal.desktop];
 
-      # Text files
       "text/plain" = [userConfig.defaultApps.editor.desktop];
       "text/x-readme" = [userConfig.defaultApps.editor.desktop];
       "text/x-log" = [userConfig.defaultApps.editor.desktop];
@@ -28,36 +35,30 @@
       "text/x-shellscript" = [userConfig.defaultApps.editor.desktop];
       "text/x-script" = [userConfig.defaultApps.editor.desktop];
 
-      # Images
       "image/jpeg" = [userConfig.defaultApps.imageViewer.desktop];
       "image/png" = [userConfig.defaultApps.imageViewer.desktop];
       "image/gif" = [userConfig.defaultApps.imageViewer.desktop];
       "image/webp" = [userConfig.defaultApps.imageViewer.desktop];
       "image/svg+xml" = [userConfig.defaultApps.imageViewer.desktop];
 
-      # Videos
       "video/mp4" = [userConfig.defaultApps.videoPlayer.desktop];
       "video/mkv" = [userConfig.defaultApps.videoPlayer.desktop];
       "video/avi" = [userConfig.defaultApps.videoPlayer.desktop];
       "video/webm" = [userConfig.defaultApps.videoPlayer.desktop];
       "video/x-matroska" = [userConfig.defaultApps.videoPlayer.desktop];
 
-      # Audio
       "audio/mpeg" = [userConfig.defaultApps.videoPlayer.desktop];
       "audio/ogg" = [userConfig.defaultApps.videoPlayer.desktop];
       "audio/wav" = [userConfig.defaultApps.videoPlayer.desktop];
       "audio/flac" = [userConfig.defaultApps.videoPlayer.desktop];
 
-      # Archives
       "application/zip" = [userConfig.defaultApps.archiveManager.desktop];
       "application/x-tar" = [userConfig.defaultApps.archiveManager.desktop];
       "application/x-compressed-tar" = [userConfig.defaultApps.archiveManager.desktop];
       "application/x-7z-compressed" = [userConfig.defaultApps.archiveManager.desktop];
 
-      # File manager
       "inode/directory" = [userConfig.defaultApps.fileManager.desktop];
 
-      # PDF
       "application/pdf" = [userConfig.defaultApps.pdfViewer.desktop];
     };
     associations.added = {
@@ -66,7 +67,6 @@
     };
   };
 
-  # Additional GTK theme files for better consistency
   home.file.".config/gtk-3.0/bookmarks".text = ''
     file://${userConfig.directories.documents} Documents
     file://${userConfig.directories.downloads} Downloads
@@ -78,7 +78,6 @@
     trash:/// Trash
   '';
 
-  # Additional desktop files for better integration
   home.file.".local/share/applications/${userConfig.defaultApps.terminal.package}.desktop".text = ''
     [Desktop Entry]
     Version=1.0
@@ -110,7 +109,6 @@
     Terminal=true
   '';
 
-  # Nemo file manager configuration with Rose Pine theme and kitty terminal
   home.file.".config/nemo/nemo.conf".text = ''
     [preferences]
     default-folder-viewer=list-view
@@ -163,7 +161,6 @@
     default-zoom-level=standard
   '';
 
-  # Nemo actions for better context menu integration
   home.file.".local/share/nemo/actions/open-in-kitty.nemo_action".text = ''
     [Nemo Action]
     Name=Open in Terminal

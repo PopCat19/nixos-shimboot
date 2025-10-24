@@ -1,6 +1,7 @@
 {
   self,
   nixpkgs,
+  board ? "dedede",
   ...
 }: let
   system = "x86_64-linux";
@@ -9,19 +10,19 @@
     config = {
       allowUnfreePredicate = pkg:
         builtins.elem (nixpkgs.lib.getName pkg) [
-          "chromeos-shim"
-          "extracted-kernel"
+          "chromeos-shim-${board}"
+          "extracted-kernel-${board}"
         ];
     };
   };
 
-  chromeosShim = self.packages.${system}.chromeos-shim;
+  chromeosShim = self.packages.${system}."chromeos-shim-${board}";
 in {
   # Extracted ChromeOS kernel - derived from proprietary firmware
   # This derivation extracts kernel blobs from ChromeOS shim firmware.
   # The output contains proprietary code and remains under unfree license terms.
-  packages.${system}.extracted-kernel = pkgs.stdenv.mkDerivation {
-    name = "extracted-kernel";
+  packages.${system}."extracted-kernel-${board}" = pkgs.stdenv.mkDerivation {
+    name = "extracted-kernel-${board}";
     version = "1.1.0";
 
     src = chromeosShim;

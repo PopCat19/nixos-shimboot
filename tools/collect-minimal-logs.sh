@@ -1,20 +1,18 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
-# Collect diagnostics from a NixOS minimal rootfs (LightDM/Xorg/PAM/journal).
+# Collect Minimal Logs Script
 #
-# Capabilities:
-# - Uses sudo to enumerate block devices with lsblk
-# - Lets you pick a partition (e.g., /dev/sdc4), mounts it read-only
-# - Or accepts:
-#     scripts/collect-minimal-logs.sh /dev/sdXN
-#     scripts/collect-minimal-logs.sh /mount/point
+# Purpose: Collect diagnostics from NixOS minimal rootfs for debugging LightDM/Xorg/PAM/journal issues
+# Dependencies: sudo, lsblk, mount, umount, journalctl, grep, tail
+# Related: test-board-builds.sh, harvest-drivers.sh
 #
-# Output: prints a concise bundle to stdout.
+# This script enumerates block devices, mounts partitions read-only, and collects
+# logs from LightDM, Xorg, PAM, and systemd journal for troubleshooting.
 #
-# Notes:
-# - Will prompt for sudo when mounting and reading the journal.
-# - Mount point: /mnt/inspect_rootfs (created automatically)
+# Usage:
+#   sudo ./tools/collect-minimal-logs.sh /dev/sdc4
+
+set -euo pipefail
 
 MNT_ARG="${1:-}"
 

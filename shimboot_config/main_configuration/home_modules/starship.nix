@@ -1,3 +1,14 @@
+# Starship Prompt Module
+#
+# Purpose: Configure Starship shell prompt with Rose Pine theme
+# Dependencies: None
+# Related: fish.nix
+#
+# This module:
+# - Enables Starship prompt with custom Rose Pine color palette
+# - Configures prompt format and module styling
+# - Sets up language-specific version displays
+
 {pkgs, ...}: {
   programs.starship = {
     enable = true;

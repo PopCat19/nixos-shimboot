@@ -1,4 +1,17 @@
 #!/usr/bin/env bash
+
+# Assemble Final Script
+#
+# Purpose: Build and assemble final shimboot image with Nix outputs, drivers, and partitioning
+# Dependencies: nix, sudo, parted, mkfs.ext4, dd, pv, losetup, mount, umount, cgpt
+# Related: write-shimboot-image.sh, harvest-drivers.sh
+#
+# This script orchestrates the complete shimboot image creation process,
+# building Nix packages, harvesting drivers, and creating the final disk image.
+#
+# Usage:
+#   ./assemble-final.sh --board dedede --rootfs full
+
 set -euo pipefail
 
 # Elevate to root so nix-daemon treats this client as trusted; required for substituters/trusted-public-keys
@@ -39,6 +52,9 @@ export NIXPKGS_ALLOW_UNFREE="${NIXPKGS_ALLOW_UNFREE:-1}"
 SYSTEM="x86_64-linux"
 WORKDIR="$(pwd)/work"
 IMAGE="$WORKDIR/shimboot.img"
+
+# Board selection (default: dedede)
+BOARD="${BOARD:-dedede}"
 ROOTFS_NAME="${ROOTFS_NAME:-nixos}"
 
 # CLI parsing: --rootfs {full|minimal}, --inspect, non-interactive via env ROOTFS_FLAVOR
@@ -52,6 +68,10 @@ CLEANUP_KEEP=""
 
 while [ $# -gt 0 ]; do
 	case "${1:-}" in
+	--board)
+		BOARD="${2:-}"
+		shift 2
+		;;
 	--rootfs)
 		ROOTFS_FLAVOR="${2:-}"
 		shift 2
@@ -114,6 +134,7 @@ if [ "${ROOTFS_FLAVOR}" = "minimal" ]; then
 fi
 
 log_info "Rootfs flavor: ${ROOTFS_FLAVOR} (attr: .#${RAW_ROOTFS_ATTR})"
+log_info "Board: ${BOARD}"
 # Default drivers mode to 'vendor' unless overridden by --drivers or env
 DRIVERS_MODE="${DRIVERS_MODE:-vendor}"
 log_info "Drivers mode: ${DRIVERS_MODE} (vendor|inject|none)"
@@ -168,21 +189,21 @@ trap cleanup EXIT INT TERM
 
 # === Step 0: Build Nix outputs ===
 log_step "0/8" "Building Nix outputs"
-ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config .#extracted-kernel --print-out-paths)/p2.bin"
-PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config .#initramfs-patching --print-out-paths)/patched-initramfs"
+ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config .#extracted-kernel-${BOARD} --print-out-paths)/p2.bin"
+PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config .#initramfs-patching-${BOARD} --print-out-paths)/patched-initramfs"
 RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config .#${RAW_ROOTFS_ATTR} --print-out-paths)/nixos.img"
 log_info "Original kernel p2: $ORIGINAL_KERNEL"
 log_info "Patched initramfs dir: $PATCHED_INITRAMFS"
 log_info "Raw rootfs: $RAW_ROOTFS_IMG"
 
 # Build ChromeOS SHIM and determine RECOVERY per policy
-SHIM_BIN="$(nix build --impure --accept-flake-config .#chromeos-shim --print-out-paths)"
+SHIM_BIN="$(nix build --impure --accept-flake-config .#chromeos-shim-${BOARD} --print-out-paths)"
 RECOVERY_PATH=""
 if [ "${SKIP_RECOVERY:-0}" != "1" ]; then
 	if [ -n "${RECOVERY_BIN:-}" ]; then
 		RECOVERY_PATH="$RECOVERY_BIN"
 	else
-		RECOVERY_PATH="$(nix build --impure --accept-flake-config .#chromeos-recovery --print-out-paths)/recovery.bin"
+		RECOVERY_PATH="$(nix build --impure --accept-flake-config .#chromeos-recovery-${BOARD} --print-out-paths)/recovery.bin"
 	fi
 fi
 log_info "ChromeOS shim: $SHIM_BIN"
@@ -197,9 +218,9 @@ HARVEST_OUT="$WORKDIR/harvested"
 mkdir -p "$HARVEST_OUT"
 log_step "0.5/8" "Harvest ChromeOS drivers"
 if [ -n "$RECOVERY_PATH" ]; then
-	bash scripts/harvest-drivers.sh --shim "$SHIM_BIN" --recovery "$RECOVERY_PATH" --out "$HARVEST_OUT"
+	bash tools/harvest-drivers.sh --shim "$SHIM_BIN" --recovery "$RECOVERY_PATH" --out "$HARVEST_OUT"
 else
-	bash scripts/harvest-drivers.sh --shim "$SHIM_BIN" --out "$HARVEST_OUT"
+	bash tools/harvest-drivers.sh --shim "$SHIM_BIN" --out "$HARVEST_OUT"
 fi
 
 # === Step 0.6: Augment firmware with upstream ChromiumOS linux-firmware ===
@@ -526,7 +547,7 @@ log_info "✅ Final image created at: $IMAGE"
 if [ "${CLEANUP_ROOTFS:-0}" -eq 1 ]; then
 	log_step "Cleanup" "Pruning older shimboot rootfs generations"
 	# Build arguments for cleanup script
-	CLEANUP_CMD=(sudo bash scripts/cleanup-shimboot-rootfs.sh --results-dir "$(pwd)")
+	CLEANUP_CMD=(sudo bash tools/cleanup-shimboot-rootfs.sh --results-dir "$(pwd)")
 	if [ -n "${CLEANUP_KEEP:-}" ]; then
 		CLEANUP_CMD+=("--keep" "$CLEANUP_KEEP")
 	fi

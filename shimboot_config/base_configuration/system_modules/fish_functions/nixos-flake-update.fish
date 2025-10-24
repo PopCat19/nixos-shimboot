@@ -1,3 +1,15 @@
+# NixOS Flake Update Function
+#
+# Purpose: Update NixOS flake inputs with backup and change detection
+# Dependencies: nix, jq, diff (optional)
+# Related: fish-functions.nix, fish.nix
+#
+# This function:
+# - Creates backup of flake.lock before update
+# - Performs nix flake update
+# - Shows diff of changes made
+# - Provides next steps for applying updates
+
 function nixos-flake-update
     set -l original_dir (pwd)
     cd $NIXOS_CONFIG_DIR

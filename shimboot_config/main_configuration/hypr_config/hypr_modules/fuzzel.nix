@@ -1,42 +1,52 @@
+# Fuzzel Launcher Module
+#
+# Purpose: Configure Fuzzel application launcher with Rose Pine theme
+# Dependencies: userConfig
+# Related: keybinds.nix
+#
+# This module:
+# - Enables Fuzzel with overlay display mode
+# - Configures Rose Pine color scheme
+# - Sets up keyboard shortcuts and appearance
+
 {
   pkgs,
   userConfig,
   ...
 }: {
-  # Fuzzel Launcher Configuration - Enhanced with Rose Pine theme and QoL features.
   programs.fuzzel = {
     enable = true;
     settings = {
       main = {
-        layer = "overlay"; # Display as an overlay.
+        layer = "overlay";
         placeholder = "Search applications...";
-        width = 50; # Width in characters.
-        lines = 12; # Number of lines to display.
-        horizontal-pad = 20; # Horizontal padding.
-        vertical-pad = 12; # Vertical padding.
-        inner-pad = 8; # Padding between border and content.
-        image-size-ratio = 0.8; # Size ratio for application icons.
-        show-actions = true; # Show application actions.
-        terminal = userConfig.defaultApps.terminal.command; # Terminal for launching terminal applications.
-        filter-desktop = true; # Filter desktop files.
-        icon-theme = "Papirus-Dark"; # Icon theme to use.
-        icons-enabled = true; # Enable application icons.
-        password-character = "*"; # Character for password fields.
-        list-executables-in-path = false; # Don't list PATH executables.
+        width = 50;
+        lines = 12;
+        horizontal-pad = 20;
+        vertical-pad = 12;
+        inner-pad = 8;
+        image-size-ratio = 0.8;
+        show-actions = true;
+        terminal = userConfig.defaultApps.terminal.command;
+        filter-desktop = true;
+        icon-theme = "Papirus-Dark";
+        icons-enabled = true;
+        password-character = "*";
+        list-executables-in-path = false;
       };
       colors = {
-        background = "191724f0"; # Rose Pine base with higher opacity.
-        text = "e0def4ff"; # Rose Pine text.
-        match = "eb6f92ff"; # Rose Pine love (red) for matches.
-        selection = "403d52ff"; # Rose Pine highlight medium for selection.
-        selection-text = "e0def4ff"; # Rose Pine text for selected.
-        selection-match = "f6c177ff"; # Rose Pine gold for selected matches.
-        border = "ebbcbaff"; # Rose Pine rose for border.
-        placeholder = "908caaff"; # Rose Pine subtle for placeholder.
+        background = "191724f0";
+        text = "e0def4ff";
+        match = "eb6f92ff";
+        selection = "403d52ff";
+        selection-text = "e0def4ff";
+        selection-match = "f6c177ff";
+        border = "ebbcbaff";
+        placeholder = "908caaff";
       };
       border = {
-        radius = 12; # Rounded corners.
-        width = 2; # Border width.
+        radius = 12;
+        width = 2;
       };
       key-bindings = {
         cancel = "Escape Control+c Control+g";

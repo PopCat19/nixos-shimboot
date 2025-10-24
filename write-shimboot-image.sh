@@ -1,49 +1,18 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
-# write-shimboot-image.sh
-# Safe, interactive dd helper for imaging a disk with shimboot.
+# Write Shimboot Image Script
 #
-# Default image:
-#   /home/popcat19/nixos-shimboot/work/shimboot.img
+# Purpose: Safely write shimboot image to target disk with interactive device selection and validation
+# Dependencies: sudo, dd, lsblk, findmnt, udisksctl, parted, cgpt, numfmt
+# Related: assemble-final.sh, inspect-image.sh
 #
-# Modes:
-#   - Uses dd with status=progress for imaging.
+# This script provides a safe, interactive interface for writing shimboot images to disks,
+# with automatic system disk detection, UDisks integration, and comprehensive validation.
 #
-# Partitions listing:
-#   - Displays:
-#       * Global overview before selection
-#       * Target-only overview after selection
-#       * Target-only overview after auto-unmount (immediately before write)
-#
-# Candidate filtering:
-#   - Hides current system disks (root, home, boot/efi, swap) from safe candidates.
-#   - Highlights system disks in the "all disks" view.
-#
-# UDisks integration:
-#   - If udisksd is running and udisks-managed mounts are present, shows them in a
-#     dedicated section. Actual unmounting happens automatically AFTER final confirmation.
-#
-# Cleanup:
-#   - Robust EXIT trap to ensure we leave no temp artifacts on non-zero exit.
-#
-# Options:
-#   -i, --input PATH         Input image path (default: /home/popcat19/nixos-shimboot/work/shimboot.img)
-#   -o, --output DEVICE      Output block device (e.g., /dev/sdX or /dev/mmcblkX)
-#   --yes                    Skip countdown confirmation (DANGEROUS; still prints warning)
-#   --countdown N            Confirmation countdown seconds (default: 10)
-#   --dry-run                Show what would happen without writing
-#   --list                   List candidate devices (safe) and exit
-#   --list-all               List all disks (including mounted ones) and exit
-#   --auto-unmount           Attempt to unmount target device automatically (default)
-#   --no-auto-unmount        Do not try to unmount; abort if mounted
-#   --force-part             Allow writing to a partition (TYPE=part). Use with extreme caution!
-#   --ignore LIST            Comma-separated device names or /dev paths to hide and block (e.g., "sda,/dev/sdc")
-#   --ignore-file PATH       File with one entry per line (device name or /dev path); lines starting with # are ignored
-#   -h, --help               Show help
-#
-# Colors:
-#   - Uses ANSI colors when stdout is a TTY and NO_COLOR is not set.
+# Usage:
+#   sudo ./write-shimboot-image.sh -o /dev/sdX
+
+set -euo pipefail
 
 # ---------- Defaults ----------
 DEFAULT_IMAGE="/home/popcat19/nixos-shimboot/work/shimboot.img"

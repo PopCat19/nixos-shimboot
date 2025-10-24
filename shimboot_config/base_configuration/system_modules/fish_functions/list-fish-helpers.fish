@@ -1,3 +1,14 @@
+# List Fish Helpers Function
+#
+# Purpose: Display available Fish functions and abbreviations
+# Dependencies: grep, sort
+# Related: fish-functions.nix, fish.nix
+#
+# This function:
+# - Lists all custom Fish functions
+# - Shows available shell abbreviations
+# - Provides usage tips
+
 function list-fish-helpers
     echo "🐟 Available Fish Functions:"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

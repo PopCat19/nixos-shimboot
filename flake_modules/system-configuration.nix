@@ -73,22 +73,26 @@ in {
       # Minimal/base-only target (host-qualified)
       "${hn}-minimal" = nixpkgs.lib.nixosSystem {
         inherit system;
-        modules = [
-          ({config, ...}: {
-            nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
-          })
-        ] ++ baseModules;
+        modules =
+          [
+            ({config, ...}: {
+              nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
+            })
+          ]
+          ++ baseModules;
         specialArgs = {inherit self zen-browser rose-pine-hyprcursor;};
       };
 
       # Full target (host-qualified, preferred)
       "${hn}" = nixpkgs.lib.nixosSystem {
         inherit system;
-        modules = [
-          ({config, ...}: {
-            nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
-          })
-        ] ++ mainModules;
+        modules =
+          [
+            ({config, ...}: {
+              nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
+            })
+          ]
+          ++ mainModules;
         specialArgs = {inherit self zen-browser rose-pine-hyprcursor;};
       };
     };
@@ -96,11 +100,13 @@ in {
     compatRaw = lib.optionalAttrs (hn != "raw-efi-system") {
       raw-efi-system = nixpkgs.lib.nixosSystem {
         inherit system;
-        modules = [
-          ({config, ...}: {
-            nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
-          })
-        ] ++ baseModules;
+        modules =
+          [
+            ({config, ...}: {
+              nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
+            })
+          ]
+          ++ baseModules;
         specialArgs = {inherit self zen-browser rose-pine-hyprcursor;};
       };
     };
@@ -108,11 +114,13 @@ in {
     compatShimboot = lib.optionalAttrs (hn != "nixos-shimboot") {
       nixos-shimboot = nixpkgs.lib.nixosSystem {
         inherit system;
-        modules = [
-          ({config, ...}: {
-            nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
-          })
-        ] ++ mainModules;
+        modules =
+          [
+            ({config, ...}: {
+              nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
+            })
+          ]
+          ++ mainModules;
         specialArgs = {inherit self zen-browser rose-pine-hyprcursor;};
       };
     };

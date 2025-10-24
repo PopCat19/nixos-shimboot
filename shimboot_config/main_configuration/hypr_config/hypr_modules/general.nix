@@ -1,3 +1,14 @@
+# Hyprland General Settings Module
+#
+# Purpose: Configure general Hyprland settings and appearance
+# Dependencies: colors.nix
+# Related: animations.nix, window-rules.nix
+#
+# This module:
+# - Sets monitor configuration and gaps
+# - Configures window borders and decoration
+# - Defines layout and rendering settings
+
 {
   wayland.windowManager.hyprland.settings = {
     monitor = ",preferred,auto,auto";

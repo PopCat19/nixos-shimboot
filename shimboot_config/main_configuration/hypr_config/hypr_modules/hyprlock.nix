@@ -1,7 +1,16 @@
-# Hyprlock minimal Rosé Pine theme
+# Hyprlock Configuration Module
+#
+# Purpose: Configure Hyprlock screen locker with Rose Pine theme
+# Dependencies: None
+# Related: keybinds.nix
+#
+# This module:
+# - Sets up Hyprlock with Rose Pine color scheme
+# - Configures clock, date, and password input
+# - Defines lock screen appearance and behavior
+
 {
   home.file.".config/hypr/hyprlock.conf".text = ''
-    # Rosé Pine palette
     $base = 0xff191724
     $surface = 0xff1f1d2e
     $overlay = 0xff26233a
@@ -14,7 +23,6 @@
     $pine = 0xff31748f
     $foam = 0xff9ccfd8
     $iris = 0xffc4a7e7
-    # Highlights (match hyprland colors module)
     $highlightLow = 0xff21202e
     $highlightMed = 0xff403d52
     $highlightHigh = 0xff524f67
@@ -28,12 +36,8 @@
     background {
       color = $base
       blur_passes = 3
-      # To use an image background instead of solid color, uncomment and set a path:
-      # path = /nix/store/.../kasane_teto_utau_drawn_by_yananami_numata220.jpg
-      # tip: keep color set as a fallback; blur applies over the image if supported
     }
 
-    # Clock (HH:MM)
     label {
       text = cmd[update:1000] date +"%H:%M"
       color = $text
@@ -44,7 +48,6 @@
       valign = center
     }
 
-    # Date (weekday, month day)
     label {
       text = cmd[update:1000] date +"%A, %B %d"
       color = $muted
@@ -55,7 +58,6 @@
       valign = center
     }
 
-    # Password field (centered)
     input-field {
       monitor =
       size = 300, 44
@@ -78,7 +80,6 @@
       dots_size = 0.2
       dots_spacing = 0.25
     }
-    # Hint
     label {
       text = "Type password to unlock"
       color = $subtle
