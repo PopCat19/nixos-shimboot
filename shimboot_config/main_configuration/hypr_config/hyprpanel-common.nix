@@ -65,10 +65,7 @@
       # Clock and weather
       "menus.clock.time.military" = true;
       "menus.clock.time.hideSeconds" = true;
-      "menus.clock.weather.enabled" = true;
-      "menus.clock.weather.location" = "Suffolk";
-      "menus.clock.weather.key" = "dde14cc79e324028be572340252405";
-      "menus.clock.weather.unit" = "metric";
+      "menus.clock.weather.enabled" = false;
 
       # Menu transitions
       "menus.transition" = "crossfade";

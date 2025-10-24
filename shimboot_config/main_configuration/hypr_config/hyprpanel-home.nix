@@ -73,10 +73,7 @@
       # Clock and weather
       "menus.clock.time.military" = true;
       "menus.clock.time.hideSeconds" = true;
-      "menus.clock.weather.enabled" = userConfig.panel.weather.enabled;
-      "menus.clock.weather.location" = userConfig.panel.weather.location;
-      "menus.clock.weather.key" = userConfig.panel.weather.key;
-      "menus.clock.weather.unit" = userConfig.panel.weather.unit;
+      "menus.clock.weather.enabled" = false;
 
       # Menu transitions
       "menus.transition" = "crossfade";
