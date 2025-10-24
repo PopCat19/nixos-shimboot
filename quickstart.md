@@ -79,7 +79,8 @@ The assembled image is ready to flash and already contains everything needed for
 
 ## First Boot
 
-- Default user: `shimboot` (password: `shimboot`)
+- Root user: `root` (password: `nixos-shimboot`)
+- Default user: `nixos-user` (password: `nixos-shimboot`)
 - Desktop: Hyprland with basic configuration
 - Network: Should work out of the box
 - Firefox: Available via `nix-shell -p firefox`
