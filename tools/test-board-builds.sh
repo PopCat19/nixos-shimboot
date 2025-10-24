@@ -1,9 +1,18 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
-# test-board-builds.sh
-# Test flake builds for each board to ensure recovery works
-# This script builds the raw-rootfs package for each supported board
+# Test Board Builds Script
+#
+# Purpose: Test Nix flake builds for all supported ChromeOS boards to verify recovery functionality
+# Dependencies: nix, jq
+# Related: flake.nix, manifests/*.nix
+#
+# This script tests building chromeos-shim packages for each supported board,
+# ensuring recovery images can be built successfully.
+#
+# Usage:
+#   ./tools/test-board-builds.sh
+
+set -euo pipefail
 
 # Colors for output
 RED='\033[0;31m'

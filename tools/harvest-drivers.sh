@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
-# harvest-drivers.sh
-# Harvest ChromeOS kernel modules, firmware, and modprobe configs from SHIM and optional RECOVERY.
-# - Mounts partition 3 (ROOT-A) read-only from each image via losetup -P
-# - Copies:
-#   - SHIM p3: lib/modules, lib/firmware
-#   - RECOVERY p3 (optional): merges lib/firmware, collects /lib/modprobe.d and /etc/modprobe.d into OUT/modprobe.d
-# - Ensures cleanup of mounts and loop devices on exit.
+# Harvest Drivers Script
+#
+# Purpose: Extract ChromeOS kernel modules, firmware, and modprobe configs from SHIM and RECOVERY images
+# Dependencies: losetup, mount, umount, cp, find, xargs, sudo
+# Related: fetch-recovery.sh, fetch-manifest.sh
+#
+# This script mounts ChromeOS images read-only, extracts kernel modules and firmware,
+# and merges modprobe configurations for use in NixOS shimboot.
+#
+# Usage:
+#   sudo ./tools/harvest-drivers.sh --shim shim.bin --recovery recovery.bin --out drivers/
+
+set -euo pipefail
 
 ANSI_CLEAR='\033[0m'
 ANSI_BOLD='\033[1m'
