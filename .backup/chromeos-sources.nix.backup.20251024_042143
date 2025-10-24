@@ -74,44 +74,44 @@
   chromeosRecovery = let
     recoveryUrls = {
       corsola = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_15329.59.0_corsola_recovery_stable-channel_mp-v5.bin.zip";
-        sha256 = "sha256-DRpz6s4TwDwmekYZsknqkbcilVivaqhfa/KTU9cl75s=";
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16404.45.0_corsola_recovery_stable-channel_CorsolaMPKeys-v22.bin.zip";
+        sha256 = "sha256-7344c35826d14cebea56e684ac0ca98741a2c452";
       };
       dedede = {
         url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_13597.105.0_dedede_recovery_stable-channel_mp-v3.bin.zip";
         sha256 = "sha256-4YNU6qHF/LF/znVJ1pOJpI+NJYB/B/TGGMaHM5uyJhQ=";
       };
       grunt = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_11151.113.0_grunt_recovery_stable-channel_mp-v5.bin.zip";
-        sha256 = "sha256-aIYRcj8+Lx5PLz9PWfYp4xnzy9f5TNYnRp9S5DdrlW4=";
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16404.45.0_grunt_recovery_stable-channel_GruntMPKeys-v12.bin.zip";
+        sha256 = "sha256-78e88a6c9b67c4c4be7a33b0918dc5277442a084";
       };
       hana = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_9202.64.0_hana_recovery_stable-channel_mp.bin.zip";
-        sha256 = "sha256-1OGlaAlqitMSL3IFJ9fafXrRjMgNwcFirqFLxSbNbr4=";
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16267.66.0_hana_recovery_stable-channel_HanaMPKeys-v13.bin.zip";
+        sha256 = "sha256-9dae67849552e8b2c8222b2a773e523928230199";
       };
       hatch = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_12739.94.0_hatch_recovery_stable-channel_mp-v4.bin.zip";
-        sha256 = "sha256-H34UUn4iwo2wuOAxE4LjbkynUmE8BKHYkUKPagIji6Q=";
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16404.45.0_hatch_recovery_stable-channel_HatchMPKeys-v12.bin.zip";
+        sha256 = "sha256-be162c8704b0bb32afabf2c92358c73e3a3ed71c";
       };
       jacuzzi = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_13020.82.0_jacuzzi_recovery_stable-channel_mp-v2.bin.zip";
-        sha256 = "sha256-IHX1cQqroOVjlxy1T5wS+IHRTkBWModfY9hauV/D+Uo=";
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16404.45.0_jacuzzi_recovery_stable-channel_JacuzziMPKeys-v19.bin.zip";
+        sha256 = "sha256-746ef07d2d4be0e35f07a27af40aa43ac1e896aa";
       };
       nissa = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_15236.80.0_nissa_recovery_stable-channel_mp-v2.bin.zip";
-        sha256 = "sha256-dfNnmYrjIIpDVcp4Dh6OLoRmami4N4+XCPsqXjbITog=";
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16404.45.0_nissa_recovery_stable-channel_NissaMPKeys-v58.bin.zip";
+        sha256 = "sha256-c2d180a1f1beb3983a5e74e680d5e638df6caf69";
       };
       octopus = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_11316.165.0_octopus_recovery_stable-channel_mp-v5.bin.zip";
-        sha256 = "sha256-wZS7P8Ad2xYTPb8RtT4YiH9SXGCclped/nls+Y+XCRQ=";
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16404.45.0_octopus_recovery_stable-channel_OctopusMPKeys-v37.bin.zip";
+        sha256 = "sha256-c931070504942efde8168048bb828e90d68229da";
       };
       snappy = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_9334.72.0_snappy_recovery_stable-channel_mp.bin.zip";
-        sha256 = "sha256-Bh7YW9xl0KDIW9nNXR1m+xUgZumQJ421B5QgpJkoGEo=";
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_15886.44.0_snappy_recovery_stable-channel_mp-v4.bin.zip";
+        sha256 = "sha256-2624f494b5ce53a5ad198650ace242173364da58";
       };
       zork = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_13505.73.0_zork_recovery_stable-channel_mp-v4.bin.zip";
-        sha256 = "sha256-WGhEKw68CGEhPcXVTRUSrYguUBPUnKnPH28338PHmDM=";
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16404.45.0_zork_recovery_stable-channel_ZorkMPKeys-v13.bin.zip";
+        sha256 = "sha256-55ba123e9dc1e03169db4e9767ef7be1850518f4";
       };
     };
     recoveryData = recoveryUrls.${board} or (throw "Unsupported board: ${board}");

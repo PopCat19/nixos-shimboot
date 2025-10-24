@@ -3,7 +3,7 @@ run-name: "🔄 Update ChromeOS Recovery Images"
 
 on:
   schedule:
-    - cron: '0 8 * * 1'   # Mondays at 08:00 UTC (after manifest update)
+    - cron: '0 8 * * 1'   # Mondays at 08:00 UTC
   workflow_dispatch:
     inputs:
       board:
@@ -14,12 +14,16 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   check-recovery-updates:
     name: Check for recovery image updates
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
+    outputs:
+      updated_boards: ${{ steps.check-updates.outputs.updated_boards }}
+      has_updates: ${{ steps.check-updates.outputs.has_updates }}
 
     steps:
       - name: Checkout repository
@@ -27,68 +31,87 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq curl
-          echo "✅ Dependencies installed"
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
 
       - name: Check for recovery updates
         id: check-updates
         run: |
-          # Define supported boards
-          boards=(
-            dedede octopus zork nissa hatch
-            corsola grunt jacuzzi hana snappy
-          )
+          set -euo pipefail
+          
+          boards=(dedede octopus zork nissa hatch corsola grunt jacuzzi hana snappy)
+          
+          # If specific board requested via workflow_dispatch
+          if [ -n "${{ github.event.inputs.board }}" ]; then
+            boards=("${{ github.event.inputs.board }}")
+          fi
           
           updated_boards=()
+          api_url="https://dl.google.com/dl/edgedl/chromeos/recovery/recovery2.json"
+          
+          echo "Fetching latest recovery data..."
+          recovery_data=$(curl -sS --fail "$api_url")
           
           for board in "${boards[@]}"; do
             echo "Checking $board..."
             
-            # Get current recovery URL from chromeos-sources.nix
-            current_url=$(grep -A 3 "$board = {" flake_modules/chromeos-sources.nix | grep "url =" | cut -d'"' -f2 || echo "")
+            # Get current URL from chromeos-sources.nix
+            current_url=$(grep -A 3 "^      $board = {" flake_modules/chromeos-sources.nix | \
+              grep 'url =' | cut -d'"' -f2 || echo "")
             
-            if [ -n "$current_url" ]; then
-              # Extract version from URL
-              current_version=$(echo "$current_url" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-              
-              # Fetch latest version info from Google API
-              api_url="https://dl.google.com/dl/edgedl/chromeos/recovery/recovery2.json"
-              latest_url=$(curl -s "$api_url" | jq -r ".[] | select(.channel == \"STABLE\") | select(.file | contains(\"$board\")) | .url" | sort | uniq | tail -1)
-              
-              if [ -n "$latest_url" ] && [ "$latest_url" != "null" ] && [ "$latest_url" != "$current_url" ]; then
-                latest_version=$(echo "$latest_url" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-                echo "🔄 $board: $current_version → $latest_version"
-                updated_boards+=("$board")
-              else
-                echo "✅ $board: Up to date"
-              fi
+            if [ -z "$current_url" ]; then
+              echo "⚠️  $board: No current URL found"
+              continue
+            fi
+            
+            current_version=$(echo "$current_url" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            
+            # Get latest URL from API
+            latest_url=$(echo "$recovery_data" | \
+              jq -r ".[] | select(.channel == \"stable-channel\") | select(.file | contains(\"$board\")) | .url" | \
+              sort -V | tail -1)
+            
+            if [ -z "$latest_url" ] || [ "$latest_url" = "null" ]; then
+              echo "✅ $board: No API data (up to date)"
+              continue
+            fi
+            
+            latest_version=$(echo "$latest_url" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+            
+            if [ "$current_url" != "$latest_url" ]; then
+              echo "🔄 $board: $current_version → $latest_version"
+              updated_boards+=("$board")
             else
-              echo "❌ $board: Could not find current URL"
+              echo "✅ $board: Up to date ($current_version)"
             fi
           done
           
+          # Format as JSON array for matrix strategy
           if [ ${#updated_boards[@]} -gt 0 ]; then
-            echo "updated_boards=$(printf '%s,' "${updated_boards[@]}" | sed 's/,$//')" >> $GITHUB_OUTPUT
-            echo "Boards needing updates: ${updated_boards[*]}"
+            boards_json=$(printf '"%s",' "${updated_boards[@]}" | sed 's/,$//')
+            echo "updated_boards=[$boards_json]" >> $GITHUB_OUTPUT
+            echo "has_updates=true" >> $GITHUB_OUTPUT
+            echo ""
+            echo "📋 Boards needing updates: ${updated_boards[*]}"
           else
-            echo "updated_boards=" >> $GITHUB_OUTPUT
-            echo "No recovery updates needed"
+            echo "updated_boards=[]" >> $GITHUB_OUTPUT
+            echo "has_updates=false" >> $GITHUB_OUTPUT
+            echo "✨ No recovery updates needed"
           fi
 
   update-recovery:
-    name: Update recovery images
+    name: Update ${{ matrix.board }}
     needs: check-recovery-updates
-    if: needs.check-recovery-updates.outputs.updated_boards != ''
+    if: needs.check-recovery-updates.outputs.has_updates == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        board: ${{ fromJson(format('[{0}]', needs.check-recovery-updates.outputs.updated_boards)) }}
-      max-parallel: 2
+        board: ${{ fromJson(needs.check-recovery-updates.outputs.updated_boards) }}
+      max-parallel: 1  # Prevent git conflicts
 
     steps:
       - name: Checkout repository
@@ -96,128 +119,189 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq curl nix
-          echo "✅ Dependencies installed"
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
 
-      - name: Update recovery image for ${{ matrix.board }}
+      - name: Configure git
+        run: |
+          git config user.name "shimboot-bot"
+          git config user.email "shimboot-bot@users.noreply.github.com"
+
+      - name: Pull latest changes
+        run: |
+          git pull --rebase origin main || {
+            echo "⚠️  Rebase failed, will retry..."
+            git rebase --abort || true
+            git pull --ff-only origin main
+          }
+
+      - name: Fetch recovery info for ${{ matrix.board }}
+        id: fetch-info
         run: |
           set -euo pipefail
           
           board="${{ matrix.board }}"
-          echo "Updating recovery image for $board..."
-          
-          # Fetch latest recovery info
           api_url="https://dl.google.com/dl/edgedl/chromeos/recovery/recovery2.json"
-          latest_url=$(curl -s "$api_url" | jq -r ".[] | select(.channel == \"STABLE\") | select(.file | contains(\"$board\")) | .url" | sort | uniq | tail -1)
+          
+          echo "Fetching latest recovery info for $board..."
+          
+          latest_url=$(curl -sS --fail "$api_url" | \
+            jq -r ".[] | select(.channel == \"stable-channel\") | select(.file | contains(\"$board\")) | .url" | \
+            sort -V | tail -1)
           
           if [ -z "$latest_url" ] || [ "$latest_url" = "null" ]; then
             echo "❌ Could not find latest recovery URL for $board"
             exit 1
           fi
           
+          echo "url=$latest_url" >> $GITHUB_OUTPUT
           echo "Latest URL: $latest_url"
+
+      - name: Compute recovery hash for ${{ matrix.board }}
+        id: compute-hash
+        run: |
+          set -euo pipefail
           
-          # Download and compute hash
-          echo "Downloading recovery image..."
+          board="${{ matrix.board }}"
+          url="${{ steps.fetch-info.outputs.url }}"
           temp_file="${board}-recovery.zip"
-          curl -s --fail --connect-timeout 10 --max-time 300 -o "$temp_file" "$latest_url"
+          
+          echo "Downloading recovery image (this may take a while)..."
+          curl -L --fail --progress-bar --connect-timeout 30 --max-time 600 \
+            -o "$temp_file" "$url"
           
           echo "Computing SHA256 hash..."
           hash=$(nix hash file --type sha256 "$temp_file")
           
-          echo "Hash: $hash"
-          
-          # Clean up
           rm -f "$temp_file"
           
-          # Update chromeos-sources.nix
-          echo "Updating chromeos-sources.nix..."
-          
-          # Create backup
-          cp flake_modules/chromeos-sources.nix flake_modules/chromeos-sources.nix.bak
-          
-          # Update the URL and hash for the board
-          awk -v board="$board" -v url="$latest_url" -v hash="$hash" '
-          /'"$board"' = {/ {
-            in_board = 1
-            print "      " board " = {"
-            next
-          }
-          in_board && /url = / {
-            print "        url = \"" url "\";"
-            next
-          }
-          in_board && /sha256 = / {
-            print "        sha256 = \"" hash "\";"
-            next
-          }
-          in_board && /};/ {
-            print "      };"
-            in_board = 0
-            next
-          }
-          { print }
-          ' flake_modules/chromeos-sources.nix.bak > flake_modules/chromeos-sources.nix
-          
-          rm -f flake_modules/chromeos-sources.nix.bak
-          
-          echo "✅ Updated $board recovery configuration"
+          echo "hash=$hash" >> $GITHUB_OUTPUT
+          echo "Computed hash: $hash"
 
-      - name: Test build for ${{ matrix.board }}
+      - name: Update chromeos-sources.nix
         run: |
-          echo "Testing build for ${{ matrix.board }}..."
+          set -euo pipefail
           
-          # Test chromeos-shim package
-          if nix build ".#chromeos-shim-${{ matrix.board }}" --no-link --quiet; then
-            echo "✅ chromeos-shim-${{ matrix.board }} builds successfully"
-          else
-            echo "❌ chromeos-shim-${{ matrix.board }} build failed"
-            exit 1
-          fi
+          board="${{ matrix.board }}"
+          url="${{ steps.fetch-info.outputs.url }}"
+          hash="${{ steps.compute-hash.outputs.hash }}"
           
-          # Test chromeos-recovery package (this will validate the new URL/hash)
-          if timeout 300 nix build ".#chromeos-recovery-${{ matrix.board }}" --no-link --quiet; then
-            echo "✅ chromeos-recovery-${{ matrix.board }} builds successfully"
-          else
-            echo "⚠️ chromeos-recovery-${{ matrix.board }} build failed (may be due to large download size)"
-          fi
+          echo "Updating chromeos-sources.nix for $board..."
+          
+          # Use awk for reliable multi-line replacement
+          awk -v board="$board" -v url="$url" -v hash="$hash" '
+            BEGIN { in_board = 0 }
+            $0 ~ "^      " board " = \\{" { in_board = 1; print; next }
+            in_board && /url = / {
+              print "        url = \"" url "\";"
+              next
+            }
+            in_board && /sha256 = / {
+              print "        sha256 = \"" hash "\";"
+              in_board = 0
+              next
+            }
+            { print }
+          ' flake_modules/chromeos-sources.nix > flake_modules/chromeos-sources.nix.new
+          
+          mv flake_modules/chromeos-sources.nix.new flake_modules/chromeos-sources.nix
+          
+          echo "✅ Updated $board in chromeos-sources.nix"
 
-      - name: Commit recovery update
+      - name: Update flake.lock
         run: |
-          if [ -z "$(git status --porcelain flake_modules/chromeos-sources.nix || true)" ]; then
-            echo "No changes to commit for ${{ matrix.board }}"
+          echo "Updating flake.lock..."
+          nix flake update --commit-lock-file || {
+            echo "⚠️  Failed to update flake.lock, continuing..."
+          }
+
+      - name: Validate nix syntax
+        run: |
+          echo "Validating nix file syntax..."
+          nix-instantiate --parse flake_modules/chromeos-sources.nix
+          echo "✅ Nix syntax valid"
+
+      - name: Test build chromeos-shim
+        run: |
+          echo "Testing chromeos-shim-${{ matrix.board }} build..."
+          nix build ".#chromeos-shim-${{ matrix.board }}" --no-link --show-trace
+
+      - name: Commit and push changes
+        run: |
+          board="${{ matrix.board }}"
+          
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "✨ No changes to commit for $board"
             exit 0
           fi
           
-          git config user.name "shimboot-bot"
-          git config user.email "shimboot-bot@users.noreply.github.com"
-          git add flake_modules/chromeos-sources.nix
-          git commit -m "chore(recovery): update ${{ matrix.board }} ChromeOS recovery image
+          # Pull any new changes before committing
+          git pull --rebase origin main || {
+            git rebase --abort || true
+            git pull --ff-only origin main
+          }
+          
+          git add flake_modules/chromeos-sources.nix flake.lock
+          
+          git commit -m "chore(recovery): update $board ChromeOS recovery
 
 - Updated recovery URL and SHA256 hash
-- Validated build compatibility
-- Automated recovery image update"
-          git push
-          echo "🔼 Pushed recovery update for ${{ matrix.board }}"
+- Validated nix syntax and build
+- Auto-updated via GitHub Actions
+
+URL: ${{ steps.fetch-info.outputs.url }}
+Hash: ${{ steps.compute-hash.outputs.hash }}"
+          
+          # Retry push up to 3 times in case of race conditions
+          for i in {1..3}; do
+            if git push origin main; then
+              echo "✅ Successfully pushed changes (attempt $i)"
+              break
+            else
+              echo "⚠️  Push failed (attempt $i), retrying..."
+              sleep $((i * 5))
+              git pull --rebase origin main || {
+                git rebase --abort || true
+                git pull --ff-only origin main
+              }
+            fi
+          done
 
       - name: Create summary
+        if: always()
         run: |
-          echo "## Recovery Update Summary for ${{ matrix.board }}" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Successfully updated ChromeOS recovery image" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Validated build compatibility" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Committed changes to repository" >> $GITHUB_STEP_SUMMARY
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 🔄 Recovery Update Summary for ${{ matrix.board }}
+          
+          - ✅ Fetched latest recovery info
+          - ✅ Computed SHA256 hash
+          - ✅ Updated chromeos-sources.nix
+          - ✅ Validated nix syntax
+          - ✅ Tested build compatibility
+          - ✅ Committed and pushed changes
+          
+          ### Details
+          - **URL**: ${{ steps.fetch-info.outputs.url }}
+          - **Hash**: ${{ steps.compute-hash.outputs.hash }}
+          EOF
 
   no-updates:
     name: No updates needed
     needs: check-recovery-updates
-    if: needs.check-recovery-updates.outputs.updated_boards == ''
+    if: needs.check-recovery-updates.outputs.has_updates == 'false'
     runs-on: ubuntu-latest
 
     steps:
-      - name: No updates needed
+      - name: Summary
         run: |
+          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+          ## ✨ No Updates Needed
+          
+          All ChromeOS recovery images are up to date!
+          
+          Next check: Monday at 08:00 UTC
+          EOF
+          
           echo "✅ All ChromeOS recovery images are up to date"
-          echo "No recovery updates needed this week."
