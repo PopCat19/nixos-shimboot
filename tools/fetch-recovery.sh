@@ -16,12 +16,21 @@ if [ -z "$BOARD" ]; then
 fi
 
 # ChromeOS recovery image URL format
-# Based on: https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16295.54.0_${board}_recovery_stable-channel_${board}MPKeys-v54.bin.zip
-VERSION="16295.54.0"
-CHANNEL="stable-channel"
-MPVERSION="v54"
+# Use the official recovery2.json API to get the latest stable-channel URL for each board
+# Fallback to hardcoded URL if API fails
 
-URL="https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_${VERSION}_${BOARD}_recovery_${CHANNEL}_${BOARD}MPKeys-${MPVERSION}.bin.zip"
+# Try to get URL from API first
+API_URL="https://dl.google.com/dl/edgedl/chromeos/recovery/recovery2.json"
+URL=$(curl -s "$API_URL" | jq -r ".[] | select(.channel == \"STABLE\") | select(.file | contains(\"$BOARD\")) | .url" | sort | uniq | tail -1)
+
+if [ -z "$URL" ] || [ "$URL" = "null" ]; then
+  echo "[!] Failed to get URL from API, using fallback..." >&2
+  # Fallback to hardcoded URL format (may be outdated)
+  VERSION="16295.54.0"
+  CHANNEL="stable-channel"
+  MPVERSION="v54"
+  URL="https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_${VERSION}_${BOARD}_recovery_${CHANNEL}_${BOARD}MPKeys-${MPVERSION}.bin.zip"
+fi
 
 echo "[*] Fetching recovery image for $BOARD..." >&2
 echo "    URL: $URL" >&2

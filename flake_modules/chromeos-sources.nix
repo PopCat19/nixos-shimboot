@@ -71,14 +71,57 @@
   # ChromeOS recovery firmware - proprietary binary from Google
   # This derivation downloads and extracts ChromeOS recovery images.
   # The output remains under Google's proprietary license terms and is marked unfree.
-  chromeosRecovery = pkgs.stdenv.mkDerivation {
+  chromeosRecovery = let
+    recoveryUrls = {
+      corsola = {
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16404.45.0_corsola_recovery_stable-channel_CorsolaMPKeys-v22.bin.zip";
+        sha256 = "sha256-7344c35826d14cebea56e684ac0ca98741a2c452";
+      };
+      dedede = {
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16404.45.0_dedede_recovery_stable-channel_DededeMPKeys-v57.bin.zip";
+        sha256 = "sha256-eb5bbccd4da6310e6d01440d338525212d5145b7";
+      };
+      grunt = {
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16404.45.0_grunt_recovery_stable-channel_GruntMPKeys-v12.bin.zip";
+        sha256 = "sha256-78e88a6c9b67c4c4be7a33b0918dc5277442a084";
+      };
+      hana = {
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16267.66.0_hana_recovery_stable-channel_HanaMPKeys-v13.bin.zip";
+        sha256 = "sha256-9dae67849552e8b2c8222b2a773e523928230199";
+      };
+      hatch = {
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16404.45.0_hatch_recovery_stable-channel_HatchMPKeys-v12.bin.zip";
+        sha256 = "sha256-be162c8704b0bb32afabf2c92358c73e3a3ed71c";
+      };
+      jacuzzi = {
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16404.45.0_jacuzzi_recovery_stable-channel_JacuzziMPKeys-v19.bin.zip";
+        sha256 = "sha256-746ef07d2d4be0e35f07a27af40aa43ac1e896aa";
+      };
+      nissa = {
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16404.45.0_nissa_recovery_stable-channel_NissaMPKeys-v58.bin.zip";
+        sha256 = "sha256-c2d180a1f1beb3983a5e74e680d5e638df6caf69";
+      };
+      octopus = {
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16404.45.0_octopus_recovery_stable-channel_OctopusMPKeys-v37.bin.zip";
+        sha256 = "sha256-c931070504942efde8168048bb828e90d68229da";
+      };
+      snappy = {
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_15886.44.0_snappy_recovery_stable-channel_mp-v4.bin.zip";
+        sha256 = "sha256-2624f494b5ce53a5ad198650ace242173364da58";
+      };
+      zork = {
+        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16404.45.0_zork_recovery_stable-channel_ZorkMPKeys-v13.bin.zip";
+        sha256 = "sha256-55ba123e9dc1e03169db4e9767ef7be1850518f4";
+      };
+    };
+    recoveryData = recoveryUrls.${board} or (throw "Unsupported board: ${board}");
+  in
+  pkgs.stdenv.mkDerivation {
     name = "chromeos-recovery-${board}";
     version = "${board}";
 
     src = pkgs.fetchurl {
-      # NOTE: Recovery URL must be board-specific; update per board or parameterize
-      url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16295.54.0_${board}_recovery_stable-channel_${board}MPKeys-v54.bin.zip";
-      sha256 = "sha256-IbflWCE9x6Xvt67SfdGFEWTs4184soTKfjggGhV7kzA="; # dedede recovery hash
+      inherit (recoveryData) url sha256;
     };
 
     nativeBuildInputs = [pkgs.unzip];
