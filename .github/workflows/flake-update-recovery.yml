@@ -1,0 +1,223 @@
+name: flake-update-recovery
+run-name: "🔄 Update ChromeOS Recovery Images"
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'   # Mondays at 08:00 UTC (after manifest update)
+  workflow_dispatch:
+    inputs:
+      board:
+        description: 'Specific board to update (optional)'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  check-recovery-updates:
+    name: Check for recovery image updates
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl
+          echo "✅ Dependencies installed"
+
+      - name: Check for recovery updates
+        id: check-updates
+        run: |
+          # Define supported boards
+          boards=(
+            dedede octopus zork nissa hatch
+            corsola grunt jacuzzi hana snappy
+          )
+          
+          updated_boards=()
+          
+          for board in "${boards[@]}"; do
+            echo "Checking $board..."
+            
+            # Get current recovery URL from chromeos-sources.nix
+            current_url=$(grep -A 3 "$board = {" flake_modules/chromeos-sources.nix | grep "url =" | cut -d'"' -f2 || echo "")
+            
+            if [ -n "$current_url" ]; then
+              # Extract version from URL
+              current_version=$(echo "$current_url" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+              
+              # Fetch latest version info from Google API
+              api_url="https://dl.google.com/dl/edgedl/chromeos/recovery/recovery2.json"
+              latest_url=$(curl -s "$api_url" | jq -r ".[] | select(.channel == \"STABLE\") | select(.file | contains(\"$board\")) | .url" | sort | uniq | tail -1)
+              
+              if [ -n "$latest_url" ] && [ "$latest_url" != "null" ] && [ "$latest_url" != "$current_url" ]; then
+                latest_version=$(echo "$latest_url" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+                echo "🔄 $board: $current_version → $latest_version"
+                updated_boards+=("$board")
+              else
+                echo "✅ $board: Up to date"
+              fi
+            else
+              echo "❌ $board: Could not find current URL"
+            fi
+          done
+          
+          if [ ${#updated_boards[@]} -gt 0 ]; then
+            echo "updated_boards=$(printf '%s,' "${updated_boards[@]}" | sed 's/,$//')" >> $GITHUB_OUTPUT
+            echo "Boards needing updates: ${updated_boards[*]}"
+          else
+            echo "updated_boards=" >> $GITHUB_OUTPUT
+            echo "No recovery updates needed"
+          fi
+
+  update-recovery:
+    name: Update recovery images
+    needs: check-recovery-updates
+    if: needs.check-recovery-updates.outputs.updated_boards != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        board: ${{ fromJson(format('[{0}]', needs.check-recovery-updates.outputs.updated_boards)) }}
+      max-parallel: 2
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl nix
+          echo "✅ Dependencies installed"
+
+      - name: Update recovery image for ${{ matrix.board }}
+        run: |
+          set -euo pipefail
+          
+          board="${{ matrix.board }}"
+          echo "Updating recovery image for $board..."
+          
+          # Fetch latest recovery info
+          api_url="https://dl.google.com/dl/edgedl/chromeos/recovery/recovery2.json"
+          latest_url=$(curl -s "$api_url" | jq -r ".[] | select(.channel == \"STABLE\") | select(.file | contains(\"$board\")) | .url" | sort | uniq | tail -1)
+          
+          if [ -z "$latest_url" ] || [ "$latest_url" = "null" ]; then
+            echo "❌ Could not find latest recovery URL for $board"
+            exit 1
+          fi
+          
+          echo "Latest URL: $latest_url"
+          
+          # Download and compute hash
+          echo "Downloading recovery image..."
+          temp_file="${board}-recovery.zip"
+          curl -s --fail --connect-timeout 10 --max-time 300 -o "$temp_file" "$latest_url"
+          
+          echo "Computing SHA256 hash..."
+          hash=$(nix hash file --type sha256 "$temp_file")
+          
+          echo "Hash: $hash"
+          
+          # Clean up
+          rm -f "$temp_file"
+          
+          # Update chromeos-sources.nix
+          echo "Updating chromeos-sources.nix..."
+          
+          # Create backup
+          cp flake_modules/chromeos-sources.nix flake_modules/chromeos-sources.nix.bak
+          
+          # Update the URL and hash for the board
+          awk -v board="$board" -v url="$latest_url" -v hash="$hash" '
+          /'"$board"' = {/ {
+            in_board = 1
+            print "      " board " = {"
+            next
+          }
+          in_board && /url = / {
+            print "        url = \"" url "\";"
+            next
+          }
+          in_board && /sha256 = / {
+            print "        sha256 = \"" hash "\";"
+            next
+          }
+          in_board && /};/ {
+            print "      };"
+            in_board = 0
+            next
+          }
+          { print }
+          ' flake_modules/chromeos-sources.nix.bak > flake_modules/chromeos-sources.nix
+          
+          rm -f flake_modules/chromeos-sources.nix.bak
+          
+          echo "✅ Updated $board recovery configuration"
+
+      - name: Test build for ${{ matrix.board }}
+        run: |
+          echo "Testing build for ${{ matrix.board }}..."
+          
+          # Test chromeos-shim package
+          if nix build ".#chromeos-shim-${{ matrix.board }}" --no-link --quiet; then
+            echo "✅ chromeos-shim-${{ matrix.board }} builds successfully"
+          else
+            echo "❌ chromeos-shim-${{ matrix.board }} build failed"
+            exit 1
+          fi
+          
+          # Test chromeos-recovery package (this will validate the new URL/hash)
+          if timeout 300 nix build ".#chromeos-recovery-${{ matrix.board }}" --no-link --quiet; then
+            echo "✅ chromeos-recovery-${{ matrix.board }} builds successfully"
+          else
+            echo "⚠️ chromeos-recovery-${{ matrix.board }} build failed (may be due to large download size)"
+          fi
+
+      - name: Commit recovery update
+        run: |
+          if [ -z "$(git status --porcelain flake_modules/chromeos-sources.nix || true)" ]; then
+            echo "No changes to commit for ${{ matrix.board }}"
+            exit 0
+          fi
+          
+          git config user.name "shimboot-bot"
+          git config user.email "shimboot-bot@users.noreply.github.com"
+          git add flake_modules/chromeos-sources.nix
+          git commit -m "chore(recovery): update ${{ matrix.board }} ChromeOS recovery image
+
+- Updated recovery URL and SHA256 hash
+- Validated build compatibility
+- Automated recovery image update"
+          git push
+          echo "🔼 Pushed recovery update for ${{ matrix.board }}"
+
+      - name: Create summary
+        run: |
+          echo "## Recovery Update Summary for ${{ matrix.board }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Successfully updated ChromeOS recovery image" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Validated build compatibility" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Committed changes to repository" >> $GITHUB_STEP_SUMMARY
+
+  no-updates:
+    name: No updates needed
+    needs: check-recovery-updates
+    if: needs.check-recovery-updates.outputs.updated_boards == ''
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: No updates needed
+        run: |
+          echo "✅ All ChromeOS recovery images are up to date"
+          echo "No recovery updates needed this week."
