@@ -68,7 +68,7 @@ That being said, if it's not possible right now, that's fine and kinda expected.
 Flake status and roadmap (not a spec) for the current branch:
 - [x] Builds without flake errors
 - [x] Builds current NixOS configuration via [`nixos-generators`](https://github.com/nix-community/nixos-generators)
-- [x] Patches RMA shim's `initramfs` with shimboot bootloader and partitions into p2 (currently will require `--impure` for now)
+- [x] Patches RMA shim's `initramfs` with shimboot bootloader and partitions into p2
 - [x] Partitions in ChromeOS format
 - [x] Builds bootable shim bootloader
 - [x] Builds bootable NixOS
@@ -78,13 +78,18 @@ Flake status and roadmap (not a spec) for the current branch:
 - [x] Builds functional NixOS with running hyprland
 - [x] Have functional networking
 - [x] `nix-shell -p firefox` works (note limited space without `expand_rootfs`)
-- [x] Builds functional NixOS with `nixos-rebuild` support (requires appending `--options disable sandbox` on kernels below 5.6 due to missing kernel namespaces)
+- [x] Builds functional NixOS with `nixos-rebuild` support (requires appending `--options disable sandbox` on shim kernels below 5.6 due to missing kernel namespaces)
 - [x] Setup minimal base_configuration
 - [x] Setup initial main_configuration for hyprland and home-manager
-- [ ] Implement multi-board compatibility in flake and build derivations with `dedede` or any valid board defined in `BOARD=` as fallback for shimboot builds
-- [ ] Apply proper recovery firmware patches on a separate partition to be used for ChromeOS ROOT_A/B; see upstream shimboot for reference
-- [ ] Refine main_configuration [primarily to fixup qt/gtk theme configurations, bwrap/steam, hyprpanel (dunst already running), and rewrite nixos_setup for better experience]
-- [ ] Implement and enforce systemd cachix store to avoid an eternal compilation on potato hardware
+- [x] Implement multi-board compatibility in flake and build derivations (untested)
+- [ ] Configure local cloned repo to have origin remote to sync from during assembly
+- [ ] Configure base_configuration to be minimal whilst keeping lightdm and hyprland to achive lower image size
+- [ ] Configure base_configuration to have zswap
+- [ ] Resolve firewall issues at boot
+- [ ] SDDM greeter support
+- [ ] Apply proper recovery firmware patches on a vendor p4 partition to support ChromeOS ROOT_A/B boot; see upstream shimboot for reference
+- [ ] Refine main_configuration [primarily to fixup qt/gtk theme configurations, bwrap/steam, and rewrite nixos_setup for better experience]
+- [ ] Utilize systemd cachix store on local `nixos-rebuild` to avoid an eternal compilation on potato hardware
 - [ ] Create main_configuration template for those who wish to port their own NixOS/HM configurations :3
 - [ ] Refine and cleanup scripts and helpers
 - [ ] Refine and cleanup base and main configurations
