@@ -56,7 +56,7 @@ The script will:
 
 **⚠️ WARNING: This will overwrite the target device. Double-check your device selection!**
 
-First, list available devices to identify your USB drive:
+List available devices to identify your USB drive:
 
 ```bash
 sudo ./write-shimboot-image.sh --list
@@ -70,7 +70,7 @@ sudo ./write-shimboot-image.sh -i "$(pwd)/work/shimboot.img" --output /dev/sdX
 
 The assembled image is ready to flash and already contains everything needed for your board.
 
-### 5. Boot Your Chromebook
+### 4. Boot Your Chromebook
 
 1. Insert the prepared USB drive into your Chromebook
 2. Enter recovery mode (usually Esc + Refresh + Power, or check your specific model's key combination)
@@ -89,6 +89,7 @@ The assembled image is ready to flash and already contains everything needed for
 
 ### Build Issues
 - If you get impure errors, try: `nix build --impure`
+<<<<<<< HEAD
 - Ensure you're using the correct board name (case-sensitive): corsola, dedede, grunt, hana, hatch, jacuzzi, nissa, octopus, snappy, zork
 - For ChromeOS artifacts, ensure you have the correct board manifest
 
@@ -103,6 +104,18 @@ The assembled image is ready to flash and already contains everything needed for
 - The default minimal/base image is ~8-12GB (subject to change); ensure your USB drive has enough space
 - Use `nix-shell` for temporary packages to save space
 - Consider the minimal image for devices with limited storage (you can also create your own custom main_configuration port if you'd prefer c:)
+=======
+- For ChromeOS artifacts, ensure you have the correct board manifest
+
+### Boot Issues
+- Check that your Chromebook board is supported
+- Verify the shim image matches your device
+- Try the minimal image if the full image fails
+
+### Space Issues
+- The default image is ~8GB; ensure your USB drive has enough space
+- Use `nix-shell` for additional packages to save space
+>>>>>>> 5f26218 (docs: add quickstart guide for NixOS Shimboot)
 
 ## Next Steps
 
@@ -113,6 +126,7 @@ The assembled image is ready to flash and already contains everything needed for
 
 ## Known Limitations
 
+<<<<<<< HEAD
 - Currently only tested on HP Chromebook 11 G9 EE ("dedede" board) as of writing
 - Multi-board support infrastructure exists but requires testing on other models
 - No suspend support (ChromeOS kernel limitation)
@@ -121,3 +135,12 @@ The assembled image is ready to flash and already contains everything needed for
 - May require manual kernel namespace workarounds for `nixos-rebuild` (e.g. appending `--options disable sandbox` on shim kernels <5.6)
 
 For more documentation, see [README.md](README.md).
+=======
+- Currently only tested on "dedede" Chromebooks
+- No suspend support (ChromeOS kernel limitation)
+- Limited audio support
+- Requires `--impure` for some builds
+- May require manual kernel namespace workarounds for `nixos-rebuild`
+
+For full documentation, see [README.md](README.md).
+>>>>>>> 5f26218 (docs: add quickstart guide for NixOS Shimboot)
