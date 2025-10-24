@@ -4,7 +4,7 @@
   pkgs,
   ...
 }: let
-  wallpaper = import ./wallpaper.nix { inherit lib pkgs; };
+  wallpaper = import ./wallpaper.nix {inherit lib pkgs;};
 in {
   imports = [
     ./hypr_modules/colors.nix

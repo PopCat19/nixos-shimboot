@@ -1,29 +1,34 @@
-{ lib
-, pkgs
-, config
-, inputs
-, userConfig
-, ...
+{
+  lib,
+  pkgs,
+  config,
+  inputs,
+  userConfig,
+  ...
 }: let
-  inherit (import ./lib/theme.nix { inherit lib pkgs config inputs; }) defaultVariant fonts commonPackages mkSessionVariables;
+  inherit (import ./lib/theme.nix {inherit lib pkgs config inputs;}) defaultVariant fonts commonPackages mkSessionVariables;
 
   # Selected variant (easy to switch here)
-  selectedVariant = defaultVariant;  # Change to variants.moon for darker theme
+  selectedVariant = defaultVariant; # Change to variants.moon for darker theme
 
-  iconTheme = "Papirus-Dark";  # Centralized if needed
+  iconTheme = "Papirus-Dark"; # Centralized if needed
   cursorSize = 24;
 
   cursorPackage = inputs.rose-pine-hyprcursor.packages.${pkgs.system}.default;
   kvantumPkg = pkgs.kdePackages.qtstyleplugin-kvantum;
   rosePineKvantum = pkgs.rose-pine-kvantum;
   rosePineGtk =
-    if builtins.hasAttr "rose-pine-gtk-theme-full" pkgs then pkgs.rose-pine-gtk-theme-full
-    else if builtins.hasAttr "rose-pine-gtk-theme" pkgs then pkgs.rose-pine-gtk-theme
+    if builtins.hasAttr "rose-pine-gtk-theme-full" pkgs
+    then pkgs.rose-pine-gtk-theme-full
+    else if builtins.hasAttr "rose-pine-gtk-theme" pkgs
+    then pkgs.rose-pine-gtk-theme
     else null;
 in {
-  home.sessionVariables = mkSessionVariables selectedVariant fonts.sizes // {
-    XCURSOR_SIZE = builtins.toString cursorSize;
-  };
+  home.sessionVariables =
+    mkSessionVariables selectedVariant fonts.sizes
+    // {
+      XCURSOR_SIZE = builtins.toString cursorSize;
+    };
 
   gtk = {
     enable = true;
@@ -36,7 +41,7 @@ in {
       {
         name = selectedVariant.gtkThemeName;
       }
-      // lib.optionalAttrs (rosePineGtk != null) { package = rosePineGtk; };
+      // lib.optionalAttrs (rosePineGtk != null) {package = rosePineGtk;};
     iconTheme = {
       name = iconTheme;
       package = pkgs.papirus-icon-theme;
@@ -122,7 +127,9 @@ in {
 
   # Use centralized package list from lib/theme.nix and add module-specific extras
   # Avoid duplicating cursorPackage (already included in commonPackages)
-  home.packages = with pkgs; commonPackages ++ [
-    rose-pine-kvantum
-  ];
+  home.packages = with pkgs;
+    commonPackages
+    ++ [
+      rose-pine-kvantum
+    ];
 }

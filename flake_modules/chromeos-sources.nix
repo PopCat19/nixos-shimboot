@@ -116,50 +116,50 @@
     };
     recoveryData = recoveryUrls.${board} or (throw "Unsupported board: ${board}");
   in
-  pkgs.stdenv.mkDerivation {
-    name = "chromeos-recovery-${board}";
-    version = "${board}";
+    pkgs.stdenv.mkDerivation {
+      name = "chromeos-recovery-${board}";
+      version = "${board}";
 
-    src = pkgs.fetchurl {
-      inherit (recoveryData) url sha256;
-    };
+      src = pkgs.fetchurl {
+        inherit (recoveryData) url sha256;
+      };
 
-    nativeBuildInputs = [pkgs.unzip];
+      nativeBuildInputs = [pkgs.unzip];
 
-    unpackPhase = ''
-      runHook preUnpack
-      echo "Unpacking ChromeOS recovery image..."
-      unzip $src
-      runHook postUnpack
-    '';
+      unpackPhase = ''
+        runHook preUnpack
+        echo "Unpacking ChromeOS recovery image..."
+        unzip $src
+        runHook postUnpack
+      '';
 
-    installPhase = ''
-      runHook preInstall
-      mkdir -p $out
-      echo "Searching for recovery binary..."
-      for file in $(find . -type f); do
-        file_size=$(stat -c%s "$file")
-        if [ $file_size -gt 1000000 ]; then
-          echo "Installing $file as recovery.bin"
-          cp "$file" $out/recovery.bin
-          break
+      installPhase = ''
+        runHook preInstall
+        mkdir -p $out
+        echo "Searching for recovery binary..."
+        for file in $(find . -type f); do
+          file_size=$(stat -c%s "$file")
+          if [ $file_size -gt 1000000 ]; then
+            echo "Installing $file as recovery.bin"
+            cp "$file" $out/recovery.bin
+            break
+          fi
+        done
+        if [ ! -f "$out/recovery.bin" ]; then
+          echo "ERROR: Could not find recovery binary"
+          exit 1
         fi
-      done
-      if [ ! -f "$out/recovery.bin" ]; then
-        echo "ERROR: Could not find recovery binary"
-        exit 1
-      fi
-      echo "Installed recovery.bin ($(stat -c%s $out/recovery.bin) bytes)"
-      runHook postInstall
-    '';
+        echo "Installed recovery.bin ($(stat -c%s $out/recovery.bin) bytes)"
+        runHook postInstall
+      '';
 
-    meta = with pkgs.lib; {
-      description = "ChromeOS recovery firmware for ${board} board";
-      license = licenses.unfree;
-      platforms = platforms.linux;
-      maintainers = ["shimboot developers"];
+      meta = with pkgs.lib; {
+        description = "ChromeOS recovery firmware for ${board} board";
+        license = licenses.unfree;
+        platforms = platforms.linux;
+        maintainers = ["shimboot developers"];
+      };
     };
-  };
 in {
   packages.${system} = {
     "chromeos-shim-${board}" = chromeosShim;

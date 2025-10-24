@@ -1,7 +1,4 @@
-{
-  lib,
-  ...
-}: {
+{lib, ...}: {
   # System programs configuration
   # Fish and Starship are configured in home_modules for user-specific settings.
   # This module provides system-wide Fish configuration including the greeting function.

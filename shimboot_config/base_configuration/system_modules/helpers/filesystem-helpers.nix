@@ -33,7 +33,7 @@
       fi
 
       disk_dev="$(lsblk --list --noheadings --paths --output PKNAME "$part_dev" | head -n1)"
-      
+
       # Extract partition number (handles both /dev/sdX and /dev/nvmeXnYpZ formats)
       part_num="$(lsblk --list --noheadings --output MAJ:MIN "$part_dev" | awk '{print $2}')"
       if [[ "$part_dev" =~ [0-9]+$ ]]; then
@@ -45,7 +45,7 @@
       part_end=$(( $(blockdev --getsize64 "$part_dev") + $(blockdev --getss "$part_dev") * $(blockdev --getstart "$part_dev") ))
       size_diff=$(( disk_size - part_end ))
       threshold=$(( disk_size / 100 ))  # 1% threshold
-      
+
       if [ "$size_diff" -lt "$threshold" ]; then
         echo "Root partition already uses the full disk space. Nothing to do."
         exit 0

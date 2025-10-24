@@ -61,64 +61,64 @@ in {
     '';
 
     installPhase = ''
-      runHook preInstall
+            runHook preInstall
 
-      mkdir -p $out/share/themes
-      mkdir -p $out/share/icons
+            mkdir -p $out/share/themes
+            mkdir -p $out/share/icons
 
-      THEME_NAME="Rose-Pine-Main-BL"
-      mkdir -p "$out/share/themes/$THEME_NAME"
+            THEME_NAME="Rose-Pine-Main-BL"
+            mkdir -p "$out/share/themes/$THEME_NAME"
 
-      cp -r themes/src/main/* "$out/share/themes/$THEME_NAME/"
-      cp -r themes/src/assets "$out/share/themes/$THEME_NAME/"
+            cp -r themes/src/main/* "$out/share/themes/$THEME_NAME/"
+            cp -r themes/src/assets "$out/share/themes/$THEME_NAME/"
 
-      if [ -f "$out/share/themes/$THEME_NAME/gtk-3.0/gtk-Dark.css" ]; then
-        mv "$out/share/themes/$THEME_NAME/gtk-3.0/gtk-Dark.css" "$out/share/themes/$THEME_NAME/gtk-3.0/gtk.css"
-      fi
-      if [ -f "$out/share/themes/$THEME_NAME/gtk-4.0/gtk-Dark.css" ]; then
-        mv "$out/share/themes/$THEME_NAME/gtk-4.0/gtk-Dark.css" "$out/share/themes/$THEME_NAME/gtk-4.0/gtk.css"
-      fi
+            if [ -f "$out/share/themes/$THEME_NAME/gtk-3.0/gtk-Dark.css" ]; then
+              mv "$out/share/themes/$THEME_NAME/gtk-3.0/gtk-Dark.css" "$out/share/themes/$THEME_NAME/gtk-3.0/gtk.css"
+            fi
+            if [ -f "$out/share/themes/$THEME_NAME/gtk-4.0/gtk-Dark.css" ]; then
+              mv "$out/share/themes/$THEME_NAME/gtk-4.0/gtk-Dark.css" "$out/share/themes/$THEME_NAME/gtk-4.0/gtk.css"
+            fi
 
-      MOON_THEME_NAME="Rose-Pine-Moon-BL"
-      cp -r "$out/share/themes/$THEME_NAME" "$out/share/themes/$MOON_THEME_NAME"
+            MOON_THEME_NAME="Rose-Pine-Moon-BL"
+            cp -r "$out/share/themes/$THEME_NAME" "$out/share/themes/$MOON_THEME_NAME"
 
-      cp -r icons/Rose-Pine "$out/share/icons/"
-      cp -r icons/Rose-Pine-Moon "$out/share/icons/"
+            cp -r icons/Rose-Pine "$out/share/icons/"
+            cp -r icons/Rose-Pine-Moon "$out/share/icons/"
 
-      cat > "$out/share/themes/$THEME_NAME/index.theme" << 'EOF'
-[Desktop Entry]
-Type=X-GNOME-Metatheme
-Name=Rose Pine Main BL
-Comment=Rose Pine dark theme with borderless windows
-Encoding=UTF-8
+            cat > "$out/share/themes/$THEME_NAME/index.theme" << 'EOF'
+      [Desktop Entry]
+      Type=X-GNOME-Metatheme
+      Name=Rose Pine Main BL
+      Comment=Rose Pine dark theme with borderless windows
+      Encoding=UTF-8
 
-[X-GNOME-Metatheme]
-GtkTheme=Rose-Pine-Main-BL
-MetacityTheme=Rose-Pine-Main-BL
-IconTheme=Rose-Pine
-CursorTheme=rose-pine-hyprcursor
-ButtonLayout=appmenu:minimize,maximize,close
-EOF
+      [X-GNOME-Metatheme]
+      GtkTheme=Rose-Pine-Main-BL
+      MetacityTheme=Rose-Pine-Main-BL
+      IconTheme=Rose-Pine
+      CursorTheme=rose-pine-hyprcursor
+      ButtonLayout=appmenu:minimize,maximize,close
+      EOF
 
-      cat > "$out/share/themes/$MOON_THEME_NAME/index.theme" << 'EOF'
-[Desktop Entry]
-Type=X-GNOME-Metatheme
-Name=Rose Pine Moon BL
-Comment=Rose Pine moon theme with borderless windows
-Encoding=UTF-8
+            cat > "$out/share/themes/$MOON_THEME_NAME/index.theme" << 'EOF'
+      [Desktop Entry]
+      Type=X-GNOME-Metatheme
+      Name=Rose Pine Moon BL
+      Comment=Rose Pine moon theme with borderless windows
+      Encoding=UTF-8
 
-[X-GNOME-Metatheme]
-GtkTheme=Rose-Pine-Moon-BL
-MetacityTheme=Rose-Pine-Moon-BL
-IconTheme=Rose-Pine-Moon
-CursorTheme=rose-pine-hyprcursor
-ButtonLayout=appmenu:minimize,maximize,close
-EOF
+      [X-GNOME-Metatheme]
+      GtkTheme=Rose-Pine-Moon-BL
+      MetacityTheme=Rose-Pine-Moon-BL
+      IconTheme=Rose-Pine-Moon
+      CursorTheme=rose-pine-hyprcursor
+      ButtonLayout=appmenu:minimize,maximize,close
+      EOF
 
-      find $out/share -type f -exec chmod 644 {} \;
-      find $out/share -type d -exec chmod 755 {} \;
+            find $out/share -type f -exec chmod 644 {} \;
+            find $out/share -type d -exec chmod 755 {} \;
 
-      runHook postInstall
+            runHook postInstall
     '';
 
     meta = with lib; {
