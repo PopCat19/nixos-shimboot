@@ -1,5 +1,15 @@
+# NixOS Rebuild Basic Function
+#
+# Purpose: Perform basic NixOS system rebuild with kernel compatibility checks
+# Dependencies: nix, sudo
+# Related: fish-functions.nix, fish.nix
+#
+# This function:
+# - Validates NIXOS_CONFIG_DIR environment variable
+# - Checks kernel version for sandbox compatibility
+# - Performs nixos-rebuild switch with appropriate options
+
 function nixos-rebuild-basic
-    # Validate NIXOS_CONFIG_DIR
     if not set -q NIXOS_CONFIG_DIR
         echo "❌ Error: NIXOS_CONFIG_DIR environment variable is not set."
         echo "   Please set it to your NixOS configuration directory (e.g., export NIXOS_CONFIG_DIR=/etc/nixos)"
@@ -14,11 +24,9 @@ function nixos-rebuild-basic
     set -l original_dir (pwd)
     cd $NIXOS_CONFIG_DIR
 
-    # Determine kernel version and whether to disable sandbox (namespaces require >= 5.6)
     set -l kver (uname -r)
     set -l disable_sandbox 0
 
-    # Simplified kernel version check
     if string match -qr '^([0-9]+)\.([0-9]+)' $kver
         set -l major (string split . $kver)[1]
         set -l minor (string split . $kver)[2]

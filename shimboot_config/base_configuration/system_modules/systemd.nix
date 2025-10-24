@@ -1,3 +1,14 @@
+# Systemd Configuration Module
+#
+# Purpose: Configure systemd services and patches for shimboot
+# Dependencies: systemd
+# Related: boot.nix, services.nix
+#
+# This module:
+# - Provides systemd tools system-wide
+# - Applies patches to systemd for ChromeOS compatibility
+# - Configures services for display management and login
+
 {
   config,
   pkgs,
@@ -5,41 +16,37 @@
   self,
   ...
 }: {
-  # Ensure systemd tools are available system-wide (e.g., systemctl)
   environment.systemPackages = with pkgs; [
     systemd
   ];
 
-  # Systemd Configuration
   systemd = {
     package = pkgs.systemd.overrideAttrs (old: {
-      # Overrides systemd package attributes
       patches =
         (old.patches or [])
         ++ [
-          # Patch for mountpoint-util.c to use direct mount() call instead of mount_nofollow()
           (pkgs.writeText "mountpoint-util.patch" ''
             diff --git a/src/basic/mountpoint-util.c b/src/basic/mountpoint-util.c
             index e8471d5..9fd2d1f 100644
             --- a/src/basic/mountpoint-util.c
             +++ b/src/basic/mountpoint-util.c
             @@ -661,25 +661,7 @@ int mount_nofollow(
-                             const char *filesystemtype,
-                             unsigned long mountflags,
-                             const void *data) {
+                              const char *filesystemtype,
+                              unsigned long mountflags,
+                              const void *data) {
             -
             -        _cleanup_close_ int fd = -EBADF;
             -
             -        assert(target);
             -
             -        /* In almost all cases we want to manipulate the mount table without following symlinks, hence
-            -         * mount_nofollow() is usually the way to go. The only exceptions are environments where /proc/ is
-            -         * not available yet, since we need /proc/self/fd/ for this logic to work. i.e. during the early
-            -         * initialization of namespacing/container stuff where /proc is not yet mounted (and maybe even the
-            -         * fs to mount) we can only use traditional mount() directly.
-            -         *
-            -         * Note that this disables following only for the final component of the target, i.e symlinks within
-            -         * the path of the target are honoured, as are symlinks in the source path everywhere. */
+            -        * mount_nofollow() is usually the way to go. The only exceptions are environments where /proc/ is
+            -        * not available yet, since we need /proc/self/fd/ for this logic to work. i.e. during the early
+            -        * initialization of namespacing/container stuff where /proc is not yet mounted (and maybe even the
+            -        * fs to mount) we can only use traditional mount() directly.
+            -        *
+            -        * Note that this disables following only for the final component of the target, i.e symlinks within
+            -        * the path of the target are honoured, as are symlinks in the source path everywhere. */
             -
             -        fd = open(target, O_PATH|O_CLOEXEC|O_NOFOLLOW);
             -        if (fd < 0)
@@ -54,7 +61,6 @@
         ];
     });
     services.kill-frecon = {
-      # Service to kill frecon
       description = "Kill frecon to allow X11 to start";
       wantedBy = ["graphical.target"];
       before = ["display-manager.service"];
@@ -69,11 +75,9 @@
     };
   };
 
-  # Services Configuration
-  services.accounts-daemon.enable = true; # Enable AccountsService for PolicyKit
+  services.accounts-daemon.enable = true;
 
   services.logind = {
-    # Logind service configuration
     settings = {
       Login = {
         HandleLidSwitch = "ignore";

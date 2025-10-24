@@ -1,19 +1,25 @@
+# Filesystem Configuration Module
+#
+# Purpose: Configure filesystems for single-partition ChromeOS setup
+# Dependencies: systemd, util-linux
+# Related: boot.nix, hardware.nix
+#
+# This module:
+# - Forces root filesystem to use /dev/disk/by-label/nixos
+# - Removes separate /boot partition (not needed in shimboot)
+# - Configures tmpfs for /tmp with size limits
+
 {
   config,
   pkgs,
   lib,
   ...
 }: {
-  # Filesystem Configuration for single partition rootfs
   fileSystems."/" = lib.mkForce {
     device = "/dev/disk/by-label/nixos";
     fsType = "ext4";
   };
 
-  # Remove /boot filesystem as it's not needed for single partition setup
-  # The kernel and initramfs will be loaded directly from the root partition
-
-  # Configure tmpfs for /tmp with reasonable limits
   systemd.mounts = [
     {
       what = "tmpfs";

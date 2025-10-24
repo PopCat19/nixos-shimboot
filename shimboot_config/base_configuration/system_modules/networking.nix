@@ -1,3 +1,15 @@
+# Networking Configuration Module
+#
+# Purpose: Configure network services for ChromeOS compatibility
+# Dependencies: networkmanager, wpa_supplicant
+# Related: hardware.nix, services.nix
+#
+# This module:
+# - Enables NetworkManager with wpa_supplicant backend
+# - Configures firewall with SSH access
+# - Loads WiFi kernel modules for ChromeOS devices
+# - Handles rfkill unblocking for WLAN
+
 {
   config,
   pkgs,
@@ -5,33 +17,29 @@
   userConfig,
   ...
 }: {
-  # Networking Configuration
   networking = {
-    dhcpcd.enable = false; # Disable dhcpcd in favor of NetworkManager
+    dhcpcd.enable = false;
     firewall = {
       enable = true;
-      # network overrides deprecated — use canonical defaults here
       trustedInterfaces = ["lo"];
       allowedTCPPorts = [
-        22 # SSH
+        22
       ];
       allowedUDPPorts = [
       ];
       checkReversePath = false;
     };
-    hostName = userConfig.host.hostname; # Use hostname from user configuration
+    hostName = userConfig.host.hostname;
     networkmanager = {
-      enable = true; # Enable NetworkManager
-      wifi.backend = "wpa_supplicant"; # Use wpa_supplicant for WiFi (more compatible with ChromeOS)
-      wifi.powersave = false; # Disable WiFi power saving to prevent connectivity issues
+      enable = true;
+      wifi.backend = "wpa_supplicant";
+      wifi.powersave = false;
     };
-    wireless.enable = false; # Disable NixOS wireless when using NetworkManager
+    wireless.enable = false;
   };
 
-  # Load WiFi modules at boot (matching upstream shimboot configuration)
   boot.kernelModules = ["iwlmvm" "ccm" "8021q" "tun"];
 
-  # Handle potential rfkill issues on ChromeOS devices
   system.activationScripts.rfkillUnblockWlan = {
     text = ''
       ${pkgs.util-linux}/bin/rfkill unblock wlan

@@ -1,3 +1,13 @@
+# Setup Helpers Module
+#
+# Purpose: Provide setup and configuration utility scripts
+# Dependencies: jq, networkmanager, git
+# Related: helpers.nix, networking.nix
+#
+# This module provides:
+# - setup_nixos_config: Configure /etc/nixos for nixos-rebuild
+# - setup_nixos: Interactive post-install setup script
+
 {
   config,
   pkgs,
@@ -5,7 +15,6 @@
   userConfig,
   ...
 }: let
-  # Extract username at Nix evaluation time
   username = userConfig.user.username;
 in {
   environment.systemPackages = with pkgs; [
