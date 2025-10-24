@@ -5,7 +5,7 @@ data/*
 *.bin
 *.zip*
 *.bak*
-llm-notes/*
+# llm-notes/*  # Uncomment to ignore LLM notes
 initramfs-patching-poc/extracted-kernel
 *.iso
 *.img
