@@ -10,7 +10,7 @@ NixOS Shimboot allows you to boot a full NixOS system on enterprise-enrolled Chr
 
 - A compatible Chromebook (supported boards: corsola, dedede, grunt, hana, hatch, jacuzzi, nissa, octopus, snappy, zork)
 - ChromeOS RMA shim image for your specific board
-- USB drive (at least 16GB recommended)
+- USB drive (at least 32GB recommended)
 - NixOS system for building (or any Linux with Nix installed)
 - Root access for flashing
 
@@ -25,14 +25,14 @@ cd nixos-shimboot
 
 ### 2. Build the Complete Shimboot Image
 
-Use the `assemble-final.sh` script to build a complete shimboot image that combines the NixOS rootfs with the ChromeOS shim. Replace `BOARD` with your Chromebook's board name:
+Use the `assemble-final.sh` script (will require sudo/root for mount loops) to build a complete shimboot image that combines the NixOS rootfs with the ChromeOS shim. Replace `BOARD` with your Chromebook's board name:
 
 ```bash
 # For dedede board (e.g., HP Chromebook 11 G9 EE) - full image (recommended)
-sudo ./assemble-final.sh --board dedede --rootfs full
+./assemble-final.sh --board dedede --rootfs full
 
-# For minimal image (base configuration only)
-sudo ./assemble-final.sh --board dedede --rootfs minimal
+# For minimal image (base configuration only; useful for testing critical configurations)
+./assemble-final.sh --board dedede --rootfs minimal
 
 # For other boards, replace 'dedede' with your board name:
 # corsola, grunt, hana, hatch, jacuzzi, nissa, octopus, snappy, zork
@@ -77,13 +77,13 @@ The assembled image is ready to flash and already contains everything needed for
 3. Select the "shimboot" option from the recovery menu
 4. The system should boot into NixOS with the LightDM greeter
 
-## First Boot
+## First Boot (for minimal/base configuration)
 
-- Root user: `root` (password: `nixos-shimboot`)
-- Default user: `nixos-user` (password: `nixos-shimboot`)
-- Desktop: Hyprland with basic configuration
-- Network: Should work out of the box
-- Firefox: Available via `nix-shell -p firefox`
+- Root user: `root` (initial password: `nixos-shimboot`)
+- Default user: `nixos-user` (initial password: `nixos-shimboot`)
+- Desktop: Hyprland (default config; non-uwsm)
+- Network: WiFi radio should work out of the box (if assembled with recovery image and the vendor partition is used)
+    - Configure with `nmtui` or execute `setup_nixos` helper.
 
 ## Troubleshooting
 
@@ -99,9 +99,10 @@ The assembled image is ready to flash and already contains everything needed for
 - Check that recovery mode key combination is correct for your model
 
 ### Space Issues
-- The default image is ~8GB; ensure your USB drive has enough space
-- Use `nix-shell` for additional packages to save space
-- Consider the minimal image for devices with limited storage
+- Ensure `sudo expand_rootfs` succeeded in allocating rootfs to full USB space
+- The default minimal/base image is ~8-12GB (subject to change); ensure your USB drive has enough space
+- Use `nix-shell` for temporary packages to save space
+- Consider the minimal image for devices with limited storage (you can also create your own custom main_configuration port if you'd prefer c:)
 
 ## Next Steps
 
@@ -116,7 +117,7 @@ The assembled image is ready to flash and already contains everything needed for
 - Multi-board support infrastructure exists but requires testing on other models
 - No suspend support (ChromeOS kernel limitation)
 - Limited audio support
-- Requires `--impure` for some builds
-- May require manual kernel namespace workarounds for `nixos-rebuild`
+- May require `--impure` for some builds
+- May require manual kernel namespace workarounds for `nixos-rebuild` (e.g. appending `--options disable sandbox` on shim kernels <5.6)
 
-For full documentation, see [README.md](README.md).
+For more documentation, see [README.md](README.md).
