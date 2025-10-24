@@ -1,3 +1,14 @@
+# Release Build Workflow
+#
+# Purpose: Build and release NixOS images on version tags
+# Triggers: Push to version tags (v*)
+# Dependencies: cachix/install-nix-action, softprops/action-gh-release
+#
+# This workflow:
+# - Builds raw-rootfs and raw-rootfs-minimal images
+# - Creates GitHub release with built images
+# - Generates automatic release notes
+
 name: release
 
 on:
@@ -13,12 +24,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v27
-      
+
       - name: Build images
         run: |
           nix build --impure --accept-flake-config .#raw-rootfs
           nix build --impure --accept-flake-config .#raw-rootfs-minimal
-      
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:

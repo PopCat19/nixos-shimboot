@@ -1,3 +1,15 @@
+# Flake Update Workflow
+#
+# Purpose: Automatically update Nix flake inputs and manifests weekly
+# Triggers: Scheduled Mondays, manual dispatch
+# Dependencies: cachix/install-nix-action, peter-evans/create-pull-request
+#
+# This workflow:
+# - Updates flake.lock with latest inputs
+# - Creates PR for flake updates
+# - Refreshes ChromeOS manifests after flake update
+# - Automates maintenance tasks
+
 name: flake-update
 
 on:

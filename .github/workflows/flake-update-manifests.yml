@@ -1,9 +1,21 @@
+# ChromeOS Manifest Refresh Workflow
+#
+# Purpose: Automatically refresh ChromeOS board manifests weekly
+# Triggers: Scheduled Mondays, manual dispatch
+# Dependencies: jq, curl, trickle, fetch-manifest.sh
+#
+# This workflow:
+# - Updates ChromeOS manifests for all supported boards
+# - Runs in parallel matrix for efficiency
+# - Commits changes automatically with bot account
+# - Uploads artifacts for verification
+
 name: flake-update-manifests
 run-name: "📦 Refresh ChromeOS Manifests"
 
 on:
   schedule:
-    - cron: '0 7 * * 1'   # Mondays at 07:00 UTC (just after flake update)
+    - cron: '0 7 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -16,7 +28,6 @@ jobs:
     timeout-minutes: 120
 
     steps:
-      # 1️⃣ Checkout as usual
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -24,18 +35,15 @@ jobs:
           persist-credentials: false
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # 2️⃣ Minimal dependencies (no nix build)
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y jq curl unzip trickle git
           echo "✅ Lightweight setup ready"
 
-      # 3️⃣ Board matrix from flake definition or hardcoded list
       - name: Prepare board list
         id: boards
         run: |
-          # same set as flake.nix `supportedBoards`
           boards=(
             dedede octopus zork nissa hatch
             corsola grunt jacuzzi hana snappy
@@ -72,7 +80,7 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p manifests
-          export CURL_CMD="trickle -d 12288 curl"  # ~12MB/s limit
+          export CURL_CMD="trickle -d 12288 curl"
           bash fetch-manifest.sh "$BOARD" --jobs 2 --path "manifests/${BOARD}-manifest.nix"
           echo "✅ Generated manifests/${BOARD}-manifest.nix"
 

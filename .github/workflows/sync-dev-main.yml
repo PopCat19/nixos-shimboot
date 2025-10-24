@@ -1,8 +1,19 @@
+# Dev to Main Sync Workflow
+#
+# Purpose: Automatically sync dev branch to main branch
+# Triggers: Scheduled Mon/Thu, manual dispatch
+# Dependencies: peter-evans/create-pull-request
+#
+# This workflow:
+# - Attempts automatic merge of dev → main
+# - Creates PR if merge conflicts occur
+# - Maintains branch synchronization
+
 name: sync-dev-to-main
 
 on:
   schedule:
-    - cron: '0 5 * * 1,4'   # Every Mon & Thu at 05:00 UTC
+    - cron: '0 5 * * 1,4'
   workflow_dispatch:
 
 jobs:

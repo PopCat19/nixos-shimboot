@@ -1,3 +1,14 @@
+# Code Formatting Check Workflow
+#
+# Purpose: Validates code formatting on pull requests
+# Triggers: Pull requests to main/dev branches
+# Dependencies: cachix/install-nix-action, alejandra (via nix fmt)
+#
+# This workflow:
+# - Checks that code follows project's formatting standards
+# - Uses alejandra formatter via nix fmt
+# - Prevents merge of improperly formatted code
+
 name: format-check
 
 on:
