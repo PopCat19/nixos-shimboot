@@ -8,7 +8,6 @@
 # - Enables Kitty with Fish shell integration
 # - Configures Rose Pine color scheme
 # - Sets up terminal behavior and appearance
-
 {pkgs, ...}: {
   programs.kitty = {
     enable = true;

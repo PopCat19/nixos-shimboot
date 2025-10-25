@@ -8,7 +8,6 @@
 # - Forces root filesystem to use /dev/disk/by-label/nixos
 # - Removes separate /boot partition (not needed in shimboot)
 # - Configures tmpfs for /tmp with size limits
-
 {
   config,
   pkgs,

@@ -8,7 +8,6 @@
 # - Scans wallpaper directory for image files
 # - Generates hyprpaper.conf with preload and wallpaper settings
 # - Forces inclusion of wallpaper directory in Nix store
-
 {
   lib,
   pkgs,

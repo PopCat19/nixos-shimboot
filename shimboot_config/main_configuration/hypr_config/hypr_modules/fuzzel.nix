@@ -8,7 +8,6 @@
 # - Enables Fuzzel with overlay display mode
 # - Configures Rose Pine color scheme
 # - Sets up keyboard shortcuts and appearance
-
 {
   pkgs,
   userConfig,

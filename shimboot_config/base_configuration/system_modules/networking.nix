@@ -9,7 +9,6 @@
 # - Configures firewall with SSH access
 # - Loads WiFi kernel modules for ChromeOS devices
 # - Handles rfkill unblocking for WLAN
-
 {
   config,
   pkgs,
@@ -18,22 +17,15 @@
   ...
 }: {
   networking = {
-    dhcpcd.enable = false;
+    dhcpcd.enable = lib.mkForce false;
     firewall = {
-      enable = true;
-      trustedInterfaces = ["lo"];
-      allowedTCPPorts = [
-        22
-      ];
-      allowedUDPPorts = [
-      ];
-      checkReversePath = false;
+      enable = false;
     };
     hostName = userConfig.host.hostname;
     networkmanager = {
       enable = true;
-      wifi.backend = "wpa_supplicant";
-      wifi.powersave = false;
+      wifi.backend = lib.mkDefault "wpa_supplicant";
+      wifi.powersave = lib.mkDefault false;
     };
     wireless.enable = false;
   };

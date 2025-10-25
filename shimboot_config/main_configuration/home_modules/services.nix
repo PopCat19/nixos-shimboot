@@ -8,7 +8,6 @@
 # - Enables media player control services
 # - Configures storage management and clipboard tools
 # - Sets up audio effects processing
-
 {system, ...}: let
   isX86_64 = system == "x86_64-linux";
 in {

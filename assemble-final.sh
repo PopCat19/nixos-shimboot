@@ -413,6 +413,7 @@ sudo umount "$WORKDIR/mnt_src_rootfs"
 sudo losetup -d "$LOOPROOT"
 LOOPROOT=""
 
+
 # === Step 8.1: Inject harvested drivers into rootfs (optional) ===
 # DRIVERS_MODE set earlier (default 'vendor'); valid: vendor|inject|none
 

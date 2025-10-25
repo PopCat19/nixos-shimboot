@@ -8,7 +8,6 @@
 # - Installs KeePassXC password manager
 # - Creates wrapper script for synced database
 # - Ensures passwords directory exists
-
 {
   pkgs,
   config,

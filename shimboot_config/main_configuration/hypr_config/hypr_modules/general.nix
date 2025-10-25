@@ -8,7 +8,6 @@
 # - Sets monitor configuration and gaps
 # - Configures window borders and decoration
 # - Defines layout and rendering settings
-
 {
   wayland.windowManager.hyprland.settings = {
     monitor = ",preferred,auto,auto";

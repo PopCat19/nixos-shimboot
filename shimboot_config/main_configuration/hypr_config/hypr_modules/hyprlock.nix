@@ -8,7 +8,6 @@
 # - Sets up Hyprlock with Rose Pine color scheme
 # - Configures clock, date, and password input
 # - Defines lock screen appearance and behavior
-
 {
   home.file.".config/hypr/hyprlock.conf".text = ''
     $base = 0xff191724

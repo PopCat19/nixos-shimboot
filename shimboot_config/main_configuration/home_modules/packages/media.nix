@@ -6,7 +6,6 @@
 #
 # This module:
 # - Installs media applications
-
 {pkgs, ...}: {
   home.packages = with pkgs; [
     mpv

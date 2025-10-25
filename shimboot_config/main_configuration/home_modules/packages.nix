@@ -7,7 +7,6 @@
 # This module:
 # - Imports package category modules
 # - Provides centralized package management
-
 {...}: {
   imports = [
     ./packages/communication.nix

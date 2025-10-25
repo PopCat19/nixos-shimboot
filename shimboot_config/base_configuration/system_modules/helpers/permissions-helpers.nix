@@ -6,7 +6,6 @@
 #
 # This module provides:
 # - fix_bwrap: Script to fix bubblewrap permissions for Steam compatibility
-
 {
   config,
   pkgs,

@@ -9,7 +9,6 @@
 # - Configures Nix settings and binary caches
 # - Enables Fish shell and unfree packages
 # - Sets system state version
-
 {
   config,
   pkgs,
@@ -30,6 +29,7 @@ in {
     ./system_modules/hardware.nix
     ./system_modules/power-management.nix
     ./system_modules/display.nix
+    ./system_modules/fonts.nix
     ./system_modules/users.nix
     ./system_modules/audio.nix
     ./system_modules/fish.nix
@@ -43,8 +43,6 @@ in {
   nix.settings.trusted-public-keys = lib.mkAfter ["shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA="];
 
   nixpkgs.config.allowUnfree = true;
-
-  programs.fish.enable = true;
 
   system.stateVersion = "24.11";
 }

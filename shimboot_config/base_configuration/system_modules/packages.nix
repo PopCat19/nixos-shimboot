@@ -9,7 +9,6 @@
 # - System monitoring tools
 # - Terminal and editor
 # - Development tools
-
 {
   config,
   pkgs,
@@ -23,14 +22,10 @@
     btop
     kitty
     fastfetch
-    hwinfo
-    wget
     curl
     xdg-utils
-    shared-mime-info
     fuse
     starship
-    python313Packages.pip
     gh
     unzip
   ];

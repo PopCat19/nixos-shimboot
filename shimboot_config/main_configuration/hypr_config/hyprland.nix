@@ -8,7 +8,6 @@
 # - Imports all Hyprland configuration modules
 # - Sets up configuration files and shaders
 # - Configures monitors, wallpaper, and user preferences
-
 {
   config,
   lib,

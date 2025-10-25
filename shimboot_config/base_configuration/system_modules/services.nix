@@ -9,8 +9,11 @@
 # - Enables libinput for input device handling
 # - Sets up udev rules for brightness control
 # - Enables storage and D-Bus services
-
-{pkgs, ...}: {
+{
+  pkgs,
+  lib,
+  ...
+}: {
   services.journald.extraConfig = ''
     MaxRetentionSec=3day
     SystemMaxUse=500M
@@ -33,7 +36,4 @@
     udisks2.enable = true;
     dbus.enable = true;
   };
-
-  security.polkit.enable = true;
-  security.rtkit.enable = true;
 }

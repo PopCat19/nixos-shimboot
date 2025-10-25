@@ -6,7 +6,6 @@
 #
 # This module provides:
 # - expand_rootfs: Script to expand root partition to full disk capacity
-
 {
   config,
   pkgs,

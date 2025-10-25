@@ -8,7 +8,6 @@
 # - Enables Fish as the default shell
 # - Loads custom greeting function from external file
 # - Configures Starship prompt with basic defaults
-
 {lib, ...}: {
   programs = {
     fish = {

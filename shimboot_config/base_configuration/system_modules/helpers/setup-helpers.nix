@@ -7,7 +7,6 @@
 # This module provides:
 # - setup_nixos_config: Configure /etc/nixos for nixos-rebuild
 # - setup_nixos: Interactive post-install setup script
-
 {
   config,
   pkgs,

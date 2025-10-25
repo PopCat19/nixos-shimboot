@@ -9,7 +9,6 @@
 # - User credentials and groups
 # - Default application preferences
 # - System directory structure
-
 {
   hostname ? null,
   system ? "x86_64-linux",
@@ -24,14 +23,11 @@
       else hostname;
   };
 
-  # Package preferences
-  preferredVideoPlayer = "mpv";
-  preferredTerminal = "kitty";
-
   # User credentials
   user = {
     inherit username;
-    shell = "fish";
+    initialPassword = "nixos-shimboot";
+    shellPackage = "fish";
 
     extraGroups = [
       "wheel"
@@ -95,6 +91,10 @@
       command = "fuzzel";
     };
   };
+
+  # Localization settings
+  timezone = "America/New_York";
+  locale = "en_US.UTF-8";
 
   # System directories
   directories = let

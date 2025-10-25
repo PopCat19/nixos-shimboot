@@ -8,7 +8,6 @@
 # - Enables redistributable firmware for ChromeOS compatibility
 # - Configures graphics drivers with 32-bit support
 # - Enables Bluetooth with power-on-boot
-
 {
   config,
   pkgs,
@@ -20,11 +19,11 @@
     enableRedistributableFirmware = true;
     graphics = {
       enable = true;
-      enable32Bit = true;
+      enable32Bit = lib.mkDefault false;
     };
     bluetooth = {
-      enable = true;
-      powerOnBoot = true;
+      enable = lib.mkDefault true;
+      powerOnBoot = lib.mkDefault true;
     };
   };
 }

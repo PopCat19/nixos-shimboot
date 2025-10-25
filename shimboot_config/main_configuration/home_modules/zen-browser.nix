@@ -9,7 +9,6 @@
 # - Installs essential extensions (uBlock Origin, Dark Reader, etc.)
 # - Configures dark theme and compact mode
 # - Enables PWA support
-
 {
   pkgs,
   config,

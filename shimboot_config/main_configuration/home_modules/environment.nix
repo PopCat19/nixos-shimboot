@@ -8,7 +8,6 @@
 # - Sets environment variables for input methods, themes, and applications
 # - Configures Wayland support and GTK/Qt theming
 # - Adds local bin to PATH
-
 {
   lib,
   userConfig,

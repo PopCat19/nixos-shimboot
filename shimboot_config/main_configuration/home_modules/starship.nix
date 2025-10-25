@@ -8,7 +8,6 @@
 # - Enables Starship prompt with custom Rose Pine color palette
 # - Configures prompt format and module styling
 # - Sets up language-specific version displays
-
 {pkgs, ...}: {
   programs.starship = {
     enable = true;

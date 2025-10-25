@@ -8,7 +8,6 @@
 # - Disables standard bootloaders in favor of shimboot init script
 # - Configures kernel modules for ChromeOS hardware compatibility
 # - Sets up initramfs with necessary modules
-
 {
   config,
   pkgs,
@@ -17,9 +16,9 @@
 }: {
   boot = {
     loader = {
-      grub.enable = false;
-      systemd-boot.enable = false;
-      initScript.enable = true;
+      grub.enable = lib.mkForce false;
+      systemd-boot.enable = lib.mkForce false;
+      initScript.enable = lib.mkForce true;
     };
     initrd = {
       availableKernelModules = [];

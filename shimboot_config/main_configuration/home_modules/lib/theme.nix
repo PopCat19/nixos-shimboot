@@ -8,7 +8,6 @@
 # - Defines Rose Pine color palette and theme variants
 # - Provides font and package configurations
 # - Exports utility functions for theme setup
-
 {
   lib,
   pkgs,

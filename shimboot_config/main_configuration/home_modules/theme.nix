@@ -8,7 +8,6 @@
 # - Sets up Rose Pine color scheme for GTK and Qt applications
 # - Configures cursor, icon, and window themes
 # - Manages Kvantum theme engine settings
-
 {
   lib,
   pkgs,

@@ -6,7 +6,6 @@
 #
 # This module:
 # - Installs utility applications
-
 {pkgs, ...}: {
   home.packages = with pkgs; [
     eza

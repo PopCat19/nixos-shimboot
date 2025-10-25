@@ -8,7 +8,6 @@
 # - Installs screenshot tools (hyprshot, gwenview, libnotify, jq)
 # - Creates Screenshots directory
 # - Installs screenshot wrapper script with hyprshade integration
-
 {
   config,
   pkgs,

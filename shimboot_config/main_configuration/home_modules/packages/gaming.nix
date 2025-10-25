@@ -6,7 +6,6 @@
 #
 # This module:
 # - Installs gaming applications
-
 {pkgs, ...}: {
   home.packages = with pkgs; [
     lutris

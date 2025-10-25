@@ -8,7 +8,6 @@
 # - Configures cursor theme and size for Hyprland
 # - Sets desktop session identifiers
 # - Configures Qt for Wayland
-
 {
   wayland.windowManager.hyprland.settings = {
     env = [

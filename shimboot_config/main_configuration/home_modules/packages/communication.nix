@@ -6,7 +6,6 @@
 #
 # This module:
 # - Installs communication applications
-
 {pkgs, ...}: {
   home.packages = with pkgs; [
     vesktop

@@ -8,7 +8,6 @@
 # - Enables HyprPanel with systemd integration
 # - Configures bar, menus, notifications, and theme
 # - Excludes host-specific bar layouts
-
 {...}: {
   programs.hyprpanel = {
     enable = true;

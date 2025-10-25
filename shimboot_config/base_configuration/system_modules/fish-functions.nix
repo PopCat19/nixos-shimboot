@@ -9,7 +9,6 @@
 # - Loads custom Fish functions from external files
 # - Defines shell abbreviations for common commands
 # - Configures Starship prompt initialization
-
 {
   lib,
   pkgs,
