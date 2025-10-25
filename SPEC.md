@@ -241,9 +241,8 @@ base_configuration/
    ├─ zram.nix                      - Swap compression
    └─ helpers/
       ├─ filesystem-helpers.nix     - expand_rootfs
-      ├─ permissions-helpers.nix    - fix_bwrap
+      ├─ permissions-helpers.nix    - permission utilities
       ├─ setup-helpers.nix          - setup_nixos wizard
-      └─ squashfs-helpers.nix       - compress-nix-store, uncompress-nix-store
 
 main_configuration/
 ├─ configuration.nix                - Imports base + adds user modules
@@ -380,7 +379,7 @@ ChromeOS Kernel
 Disk Space
 ├─ Base image: ~6-8GB (expandable with expand_rootfs)
 ├─ Full image: ~16-20GB (expandable with expand_rootfs)
-└─ nix-shell requires space (consider squashfs compression)
+└─ nix-shell requires space
 
 Performance
 ├─ USB 2.0 bottleneck on older drives
