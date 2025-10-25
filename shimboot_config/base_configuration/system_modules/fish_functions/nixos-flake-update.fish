@@ -17,6 +17,28 @@ function nixos-flake-update
     echo "🔄 Updating NixOS flake inputs..."
     echo ""
 
+    # Check kernel version for sandbox compatibility
+    set -l kver (uname -r)
+    set -l disable_sandbox 0
+    set -l nix_update_args ""
+
+    if string match -qr '^([0-9]+)\.([0-9]+)' $kver
+        set -l major (string split . $kver)[1]
+        set -l minor (string split . $kver)[2]
+        if test $major -lt 5 -o \( $major -eq 5 -a $minor -lt 6 \)
+            set disable_sandbox 1
+        end
+    else
+        echo "⚠️  Warning: Could not parse kernel version $kver. Assuming sandbox is supported."
+    end
+
+    if test $disable_sandbox -eq 1
+        echo "⚠️  Kernel $kver detected (< 5.6). Disabling nix sandbox for flake update."
+        set nix_update_args "--option sandbox false"
+    else
+        echo "🔐 Kernel $kver detected (>= 5.6). Using default sandboxed build."
+    end
+
     # Create backup of current flake.lock
     if test -f flake.lock
         cp flake.lock flake.lock.bak
@@ -33,7 +55,7 @@ function nixos-flake-update
 
     # Perform flake update
     echo "📦 Running nix flake update..."
-    if nix flake update
+    if nix flake update $nix_update_args
         echo "✅ Flake update completed successfully"
         echo ""
 
@@ -76,8 +98,8 @@ function nixos-flake-update
 
                 echo ""
                 echo "💡 Next steps:"
-                echo "   • Test your configuration: nixos-rebuild dry-run --flake ."
-                echo "   • Apply changes: nixos-commit-rebuild-push 'flake update'"
+                echo "   • Test your configuration: nrb dry-run"
+                echo "   • Apply changes: nrb switch"
                 echo "   • Restore backup if needed: mv flake.lock.bak flake.lock"
             end
         else
