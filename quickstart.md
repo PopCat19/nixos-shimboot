@@ -121,4 +121,4 @@ The assembled image is ready to flash and already contains everything needed for
 - May require `--impure` for some builds
 - May require manual kernel namespace workarounds for `nixos-rebuild` (e.g. appending `--options disable sandbox` on shim kernels <5.6)
 
-For more documentation, see [README.md](README.md).
+For more documentation, see [README.md](README.md) and [SPEC.md](SPEC.md).

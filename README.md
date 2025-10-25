@@ -97,10 +97,9 @@ Flake status and roadmap (not a spec) for the current branch:
 - [ ] Build functional NixOS with LUKS2 support (never done this in my life ;-;)
 
 Current obstacles:
-- ChromeOS ROOT_A/B boot: vendor p4 fails to copy (or bind-mount?) donor modules and firmware to tmp, causing ChromeOS init to fail. Need to understand how upstream shimboot handled this.
+- ChromeOS ROOT_A/B boot: vendor p4 fails to copy donor modules and firmware to tmpfs, causing ChromeOS init to fail. Need to understand how upstream shimboot handled this.
 - SDDM greeter support: previous attempts resulted in a blank backlit screen after kill-frecon. Need to evaluate logs and understand how SDDM can be supported declaratively.
 - bwrap/steam: NixOS doesn't follow FHS. Need to understand how and if this can be implemented declaratively, or with helper scripts.
-- firewall issues at boot: firewall service fails to start during boot. Need to evaluate logs and understand if firewall can be supported declaratively.
 
 ## Binary cache for patched systemd
 
