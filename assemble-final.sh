@@ -61,6 +61,9 @@ ROOTFS_NAME="${ROOTFS_NAME:-nixos}"
 ROOTFS_FLAVOR="${ROOTFS_FLAVOR:-}"
 INSPECT_AFTER=""
 
+# Firmware options
+FIRMWARE_UPSTREAM="${FIRMWARE_UPSTREAM:-1}"
+
 # Cleanup options
 CLEANUP_ROOTFS=0
 CLEANUP_NO_DRY_RUN=0
@@ -79,6 +82,14 @@ while [ $# -gt 0 ]; do
 	--drivers)
 		DRIVERS_MODE="${2:-vendor}"
 		shift 2
+		;;
+	--firmware-upstream)
+		FIRMWARE_UPSTREAM="${2:-1}"
+		shift 2
+		;;
+	--no-firmware-upstream)
+		FIRMWARE_UPSTREAM="0"
+		shift
 		;;
 	--inspect)
 		INSPECT_AFTER="--inspect"
@@ -138,6 +149,7 @@ log_info "Board: ${BOARD}"
 # Default drivers mode to 'vendor' unless overridden by --drivers or env
 DRIVERS_MODE="${DRIVERS_MODE:-vendor}"
 log_info "Drivers mode: ${DRIVERS_MODE} (vendor|inject|none)"
+log_info "Upstream firmware: ${FIRMWARE_UPSTREAM} (0=disabled, 1=enabled)"
 
 # === Cleanup workspace ===
 if [ -d "$WORKDIR" ]; then
@@ -226,14 +238,19 @@ fi
 # === Step 0.6: Augment firmware with upstream ChromiumOS linux-firmware ===
 if [ "${FIRMWARE_UPSTREAM:-1}" != "0" ]; then
 	log_step "0.6/8" "Augment firmware with upstream linux-firmware"
+	log_info "Cloning upstream linux-firmware repository..."
 	UPSTREAM_FW_DIR="$WORKDIR/linux-firmware.upstream"
 	if [ ! -d "$UPSTREAM_FW_DIR" ]; then
 		# Shallow clone to reduce time/size
 		git clone --depth=1 https://chromium.googlesource.com/chromiumos/third_party/linux-firmware "$UPSTREAM_FW_DIR" || true
 	fi
+	log_info "Merging upstream firmware with harvested firmware..."
 	mkdir -p "$HARVEST_OUT/lib/firmware"
 	# Merge, preserving attributes; ignore errors on collisions
 	sudo cp -a "$UPSTREAM_FW_DIR/." "$HARVEST_OUT/lib/firmware/" 2>/dev/null || true
+	log_info "Upstream firmware augmentation complete"
+else
+	log_info "Upstream firmware disabled, using only harvested firmware"
 fi
 
 # Decompress module .ko.gz and precompute depmod metadata
