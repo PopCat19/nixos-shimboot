@@ -1,14 +1,15 @@
 # Display Configuration Module
 #
 # Purpose: Configure display server and window manager for ChromeOS devices
-# Dependencies: hyprland, greetd, xdg-desktop-portal
+# Dependencies: hyprland, lightdm, xdg-desktop-portal
 # Related: hardware.nix, services.nix
 #
 # This module:
 # - Enables Hyprland as the default window manager
-# - Configures greetd display manager with tuigreet for manual login
+# - Configures LightDM display manager without autologin
 # - Sets up XDG portals for Wayland compatibility
 # - Enables brightness control and display tools
+
 {
   config,
   pkgs,
@@ -19,6 +20,7 @@
   services.xserver = {
     enable = lib.mkDefault true;
     xkb.layout = lib.mkDefault "us";
+    desktopManager.runXdgAutostartIfNone = lib.mkDefault true;
   };
 
   programs.hyprland = {
@@ -26,16 +28,22 @@
     xwayland.enable = lib.mkDefault true;
   };
 
-  # Replace LightDM with greetd + tuigreet
-  services.greetd = {
+  services.xserver.displayManager.lightdm = {
     enable = lib.mkDefault true;
-    settings = {
-      default_session = {
-        command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd Hyprland";
-        user = "greeter";
-      };
-    };
+    greeters.gtk.enable = lib.mkDefault true;
   };
+
+  services.xserver.displayManager.session = [
+    {
+      manage = "window";
+      name = "hyprland";
+      start = ''
+        ${pkgs.hyprland}/bin/Hyprland
+      '';
+    }
+  ];
+
+  services.displayManager.defaultSession = lib.mkDefault "hyprland";
 
   environment.sessionVariables = {
     NIXOS_OZONE_WL = lib.mkDefault "1";
@@ -48,6 +56,7 @@
       xdgOpenUsePortal = lib.mkDefault true;
       extraPortals = [
         pkgs.xdg-desktop-portal-hyprland
+        pkgs.xdg-desktop-portal-gtk
       ];
     };
   };
@@ -56,5 +65,7 @@
 
   environment.systemPackages = with pkgs; [
     brightnessctl
+    lightdm
+    lightdm-gtk-greeter
   ];
 }
