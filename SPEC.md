@@ -238,6 +238,13 @@ base_configuration/
    ├─ display.nix                   - LightDM + Hyprland
    ├─ packages.nix                  - Minimal system packages
    ├─ fish.nix                      - Fish shell + Starship
+   ├─ fish-functions.nix            - Fish shell functions and abbreviations
+   │  └─ fish_functions/
+   │     ├─ fix-fish-history.fish    - History repair utility
+   │     ├─ fish-greeting.fish       - Welcome message
+   │     ├─ list-fish-helpers.fish   - Function/abbreviation listing
+   │     ├─ nixos-flake-update.fish  - Flake update with backup
+   │     └─ nixos-rebuild-basic.fish - System rebuild with kernel checks
    ├─ zram.nix                      - Swap compression
    └─ helpers/
       ├─ filesystem-helpers.nix     - expand_rootfs

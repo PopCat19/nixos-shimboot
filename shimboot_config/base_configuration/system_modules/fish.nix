@@ -13,13 +13,9 @@
     fish = {
       enable = lib.mkDefault true;
 
-      interactiveShellInit = lib.mkDefault ''
-        ${let
-          content = builtins.readFile ./fish_functions/fish-greeting.fish;
-          lines = lib.splitString "\n" content;
-        in
-          lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines)}
-      '';
+     interactiveShellInit = lib.mkDefault ''
+       # Fish greeting is now handled by fish-functions.nix
+     '';
     };
 
     starship = {
