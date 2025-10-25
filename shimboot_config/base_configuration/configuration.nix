@@ -34,6 +34,7 @@ in {
     ./system_modules/audio.nix
     ./system_modules/fish.nix
     ./system_modules/services.nix
+    ./system_modules/zram.nix
   ];
 
   _module.args.userConfig = userConfig;
