@@ -57,10 +57,9 @@ IMAGE="$WORKDIR/shimboot.img"
 BOARD="${BOARD:-dedede}"
 ROOTFS_NAME="${ROOTFS_NAME:-nixos}"
 
-# CLI parsing: --rootfs {full|minimal}, --inspect, --compress-store, non-interactive via env ROOTFS_FLAVOR
+# CLI parsing: --rootfs {full|minimal}, --inspect, non-interactive via env ROOTFS_FLAVOR
 ROOTFS_FLAVOR="${ROOTFS_FLAVOR:-}"
 INSPECT_AFTER=""
-COMPRESS_STORE=0
 
 # Cleanup options
 CLEANUP_ROOTFS=0
@@ -83,10 +82,6 @@ while [ $# -gt 0 ]; do
 		;;
 	--inspect)
 		INSPECT_AFTER="--inspect"
-		shift
-		;;
-	--compress-store)
-		COMPRESS_STORE=1
 		shift
 		;;
 	--cleanup-rootfs)
@@ -540,12 +535,6 @@ none)
 	fi
 	;;
 esac
-
-# === Step 8.2: Compress /nix/store (optional) ===
-log_step "8.2" "Compress /nix/store (optional)"
-if [ "${COMPRESS_STORE:-0}" = "1" ]; then
-bash tools/compress-nix-store.sh "$WORKDIR/mnt_rootfs"
-fi
 
 # Unmount rootfs
 sudo umount "$WORKDIR/mnt_rootfs"
