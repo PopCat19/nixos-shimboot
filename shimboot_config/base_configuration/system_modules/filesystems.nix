@@ -27,4 +27,12 @@
       options = "defaults,size=2G";
     }
   ];
+
+  # Optional squashfs mount for compressed /nix/store
+  fileSystems."/nix/store" = lib.mkIf (builtins.pathExists "/nix/.ro-store/store.squashfs") {
+    device = "/nix/.ro-store/store.squashfs";
+    fsType = "squashfs";
+    options = [ "ro" "loop" ];
+    neededForBoot = true;
+  };
 }
