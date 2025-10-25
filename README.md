@@ -83,9 +83,9 @@ Flake status and roadmap (not a spec) for the current branch:
 - [x] Setup initial main_configuration for hyprland and home-manager
 - [x] Implement multi-board compatibility in flake and build derivations (untested)
 - [x] Configure base_configuration to have zram
+- [x] Resolve firewall issues at boot
 - [ ] Configure local cloned repo to have origin remote to sync from during assembly
 - [ ] Configure base_configuration to be minimal whilst keeping lightdm and hyprland to achive lower image size
-- [ ] Resolve firewall issues at boot
 - [ ] SDDM greeter support
 - [ ] Apply proper recovery firmware patches on a vendor p4 partition to support ChromeOS ROOT_A/B boot; see upstream shimboot for reference
 - [ ] Refine main_configuration [primarily to fixup qt/gtk theme configurations, bwrap/steam, and rewrite nixos_setup for better experience]
