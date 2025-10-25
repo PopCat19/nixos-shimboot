@@ -451,10 +451,30 @@ Import in:
 
 ### Creating Custom Configurations
 ```
-1. Fork main_configuration/ structure
-2. Modify user-config.nix for your preferences
-3. Build with: nix build .#raw-rootfs
-4. Flash to USB with: tools/write-shimboot-image.sh
+1. Repository is cloned by assemble-final.sh to /home/{user}/nixos-config
+2. Modify configuration in the cloned repository
+3. Rebuild with: cd ~/nixos-config && sudo nixos-rebuild switch --flake .#$(hostname)
+4. Use setup_nixos for interactive post-install configuration
+```
+
+### Setup Script Options
+```
+setup_nixos [OPTIONS]
+
+Options:
+├─ --skip-wifi      Skip Wi-Fi configuration
+├─ --skip-expand    Skip root filesystem expansion
+├─ --skip-config    Skip nixos-rebuild configuration
+├─ --skip-rebuild   Skip system rebuild
+├─ --auto           Run in automatic mode with sensible defaults
+├─ --debug          Enable debug output
+└─ --help, -h       Show help message
+
+Examples:
+├─ setup_nixos                    # Interactive mode with all steps
+├─ setup_nixos --auto             # Automatic mode
+├─ setup_nixos --skip-wifi        # Skip Wi-Fi setup
+└─ setup_nixos --debug            # Enable debug logging
 ```
 
 ### Multi-Rootfs Setup (Manual)
