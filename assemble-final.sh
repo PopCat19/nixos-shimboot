@@ -256,6 +256,17 @@ fi
 log_step "1/8" "Copy raw rootfs image"
 cp "$RAW_ROOTFS_IMG" "$WORKDIR/rootfs.img"
 
+# === Step 1.5: Optimize Nix store in raw rootfs ===
+log_step "1.5" "Optimize Nix store in raw rootfs"
+LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
+sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
+log_info "Running nix-store --optimise on raw rootfs (may take a while)..."
+sudo nix-store --store "$WORKDIR/mnt_src_rootfs" --optimise || true
+log_info "Store optimization complete"
+sudo umount "$WORKDIR/mnt_src_rootfs"
+sudo losetup -d "$LOOPROOT"
+LOOPROOT=""
+
 # === Step 2: Calculate rootfs size ===
 log_step "2/8" "Calculate rootfs size"
 LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
