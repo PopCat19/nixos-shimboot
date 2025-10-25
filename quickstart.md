@@ -8,7 +8,7 @@ NixOS Shimboot allows you to boot a full NixOS system on enterprise-enrolled Chr
 
 ## Prerequisites
 
-- A compatible Chromebook (supported boards: dedede, grunt, hatch, nissa, octopus, snappy, zork)
+- A compatible Chromebook (supported boards: dedede, octopus, zork, nissa, hatch, grunt, snappy)
 - ChromeOS RMA shim image for your specific board
 - USB drive (at least 32GB recommended)
 - NixOS system for building (or any Linux with Nix installed)
@@ -29,10 +29,10 @@ Use the `assemble-final.sh` script (will require sudo/root for mount loops) to b
 
 ```bash
 # For dedede board (e.g., HP Chromebook 11 G9 EE) - full image (recommended)
-./assemble-final.sh --board dedede --rootfs full
+sudo ./assemble-final.sh --board dedede --rootfs full
 
 # For minimal image (base configuration only; useful for testing critical configurations)
-./assemble-final.sh --board dedede --rootfs minimal
+sudo ./assemble-final.sh --board dedede --rootfs minimal
 
 # For other boards, replace 'dedede' with your board name:
 # grunt, hatch, nissa, octopus, snappy, zork
@@ -40,7 +40,7 @@ Use the `assemble-final.sh` script (will require sudo/root for mount loops) to b
 
 **Options:**
 - `--rootfs full`: Full image with Home Manager, LightDM, and Hyprland desktop (recommended)
-- `--rootfs minimal`: Minimal image with base configuration and greetd/Hyprland
+- `--rootfs minimal`: Minimal image with base configuration and LightDM/Hyprland
 - `--drivers vendor`: Store ChromeOS drivers on separate vendor partition (default)
 - `--drivers inject`: Inject drivers directly into the rootfs
 - `--drivers none`: Skip driver harvesting
@@ -81,9 +81,10 @@ The assembled image is ready to flash and already contains everything needed for
 
 - Root user: `root` (initial password: `nixos-shimboot`)
 - Default user: `nixos-user` (initial password: `nixos-shimboot`)
-- Desktop: Hyprland (default config; non-uwsm)
-- Network: WiFi radio should work out of the box (if assembled with recovery image and the vendor partition is used)
-    - Configure with `nmtui` or execute `setup_nixos` helper.
+- Desktop: LightDM + Hyprland (default config)
+- Network: NetworkManager with wpa_supplicant backend
+    - WiFi should work out of the box if vendor drivers are available
+    - Configure with `nmtui` or execute `setup_nixos` helper
 
 ## Troubleshooting
 
@@ -95,12 +96,12 @@ The assembled image is ready to flash and already contains everything needed for
 ### Boot Issues
 - Verify your Chromebook board is in the supported list above
 - Confirm the shim image matches your exact device model
-- Try the minimal image if the full image fails: `nix build .#raw-rootfs-minimal-BOARD`
+- Try the minimal image if the full image fails: `sudo ./assemble-final.sh --board BOARD --rootfs minimal`
 - Check that recovery mode key combination is correct for your model
 
 ### Space Issues
 - Ensure `sudo expand_rootfs` succeeded in allocating rootfs to full USB space
-- The default minimal/base image is ~8-12GB (subject to change); ensure your USB drive has enough space
+- The default minimal/base image is ~6-8GB (expandable); ensure your USB drive has enough space
 - Use `nix-shell` for temporary packages to save space
 - Consider the minimal image for devices with limited storage (you can also create your own custom main_configuration port if you'd prefer c:)
 
@@ -113,7 +114,7 @@ The assembled image is ready to flash and already contains everything needed for
 
 ## Known Limitations
 
-- Currently only tested on HP Chromebook 11 G9 EE ("dedede" board) as of writing
+- Currently only tested on HP Chromebook 11 G9 EE ("dedede" board)
 - Multi-board support infrastructure exists but requires testing on other models
 - No suspend support (ChromeOS kernel limitation)
 - Limited audio support
