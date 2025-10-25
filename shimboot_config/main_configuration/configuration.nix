@@ -8,7 +8,6 @@
 # - Imports base configuration as foundation
 # - Adds user-specific system modules
 # - Provides extension point for additional modules
-
 {
   config,
   pkgs,

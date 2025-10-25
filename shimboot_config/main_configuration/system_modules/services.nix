@@ -6,7 +6,6 @@
 #
 # This module:
 # - Enables Flatpak and adds Flathub repository
-
 {pkgs, ...}: {
   services = {
     flatpak.enable = true;

@@ -6,16 +6,12 @@
 #
 # This module enables:
 # - PipeWire for modern audio routing
-# - ALSA utilities for legacy compatibility
-# - PulseAudio compatibility layer
-
-{...}: {
+{
+  lib,
+  config,
+  ...
+}: {
   services.pipewire = {
-    enable = true;
-    alsa = {
-      enable = true;
-      support32Bit = true;
-    };
-    pulse.enable = true;
+    enable = lib.mkDefault true;
   };
 }

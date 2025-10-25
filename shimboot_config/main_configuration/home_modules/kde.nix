@@ -8,7 +8,6 @@
 # - Installs KDE applications (Dolphin, Gwenview, Okular)
 # - Configures file manager bookmarks and service menus
 # - Sets up thumbnail support and theming
-
 {
   pkgs,
   config,

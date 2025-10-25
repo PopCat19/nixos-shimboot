@@ -82,10 +82,10 @@ Flake status and roadmap (not a spec) for the current branch:
 - [x] Setup minimal base_configuration
 - [x] Setup initial main_configuration for hyprland and home-manager
 - [x] Implement multi-board compatibility in flake and build derivations (untested)
+- [x] Configure base_configuration to have zram
+- [x] Resolve firewall issues at boot
 - [ ] Configure local cloned repo to have origin remote to sync from during assembly
 - [ ] Configure base_configuration to be minimal whilst keeping lightdm and hyprland to achive lower image size
-- [ ] Configure base_configuration to have zram
-- [ ] Resolve firewall issues at boot
 - [ ] SDDM greeter support
 - [ ] Apply proper recovery firmware patches on a vendor p4 partition to support ChromeOS ROOT_A/B boot; see upstream shimboot for reference
 - [ ] Refine main_configuration [primarily to fixup qt/gtk theme configurations, bwrap/steam, and rewrite nixos_setup for better experience]
@@ -98,7 +98,6 @@ Flake status and roadmap (not a spec) for the current branch:
 
 Current obstacles:
 - ChromeOS ROOT_A/B boot: vendor p4 fails to copy (or bind-mount?) donor modules and firmware to tmp, causing ChromeOS init to fail. Need to understand how upstream shimboot handled this.
-- zram support: previous attempts initially made systemd/init crash during boot. Need to evaluate logs and understand if zram can be implemented declaratively.
 - SDDM greeter support: previous attempts resulted in a blank backlit screen after kill-frecon. Need to evaluate logs and understand how SDDM can be supported declaratively.
 - bwrap/steam: NixOS doesn't follow FHS. Need to understand how and if this can be implemented declaratively, or with helper scripts.
 - firewall issues at boot: firewall service fails to start during boot. Need to evaluate logs and understand if firewall can be supported declaratively.

@@ -8,7 +8,6 @@
 # - Sets opacity levels for various applications
 # - Defines floating windows for dialogs and utilities
 # - Configures window sizes and positioning
-
 {
   wayland.windowManager.hyprland.settings = {
     windowrulev2 = [

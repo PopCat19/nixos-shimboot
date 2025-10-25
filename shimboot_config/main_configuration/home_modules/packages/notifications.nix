@@ -6,7 +6,6 @@
 #
 # This module:
 # - Installs notification utilities
-
 {pkgs, ...}: {
   home.packages = with pkgs; [
     libnotify

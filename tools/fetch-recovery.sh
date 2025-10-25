@@ -18,7 +18,7 @@ readonly GOOGLE_RECOVERY_API="https://dl.google.com/dl/edgedl/chromeos/recovery/
 # Supported boards from flake.nix
 readonly SUPPORTED_BOARDS=(
 	"dedede" "octopus" "zork" "nissa" "hatch"
-	"corsola" "grunt" "jacuzzi" "hana" "snappy"
+	"grunt" "snappy"
 )
 
 # Global variables

@@ -8,7 +8,6 @@
 # - Provides systemd tools system-wide
 # - Applies patches to systemd for ChromeOS compatibility
 # - Configures services for display management and login
-
 {
   config,
   pkgs,

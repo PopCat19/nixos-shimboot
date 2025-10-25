@@ -1,14 +1,13 @@
 # Users Configuration Module
 #
 # Purpose: Configure system users for shimboot
-# Dependencies: fish
-# Related: security.nix, services.nix
+# Dependencies: fish, user-config.nix
+# Related: security.nix, services.nix, user-config.nix
 #
 # This module:
 # - Enables mutable users for easy setup
-# - Creates root and user accounts with Fish shell
+# - Creates root and user accounts using settings from user-config.nix
 # - Sets initial passwords for bring-up convenience
-
 {
   config,
   pkgs,
@@ -20,14 +19,14 @@
 
   users.users = {
     root = {
-      shell = pkgs.fish;
-      initialPassword = "nixos-shimboot";
+      shell = pkgs.${userConfig.user.shellPackage};
+      initialPassword = lib.mkDefault userConfig.user.initialPassword;
     };
     "${userConfig.user.username}" = {
       isNormalUser = true;
-      shell = pkgs.fish;
+      shell = pkgs.${userConfig.user.shellPackage};
       extraGroups = userConfig.user.extraGroups;
-      initialPassword = "nixos-shimboot";
+      initialPassword = lib.mkDefault userConfig.user.initialPassword;
     };
   };
 }

@@ -67,5 +67,6 @@
     brightnessctl
     lightdm
     lightdm-gtk-greeter
+    kitty  # Terminal emulator for Hyprland
   ];
 }

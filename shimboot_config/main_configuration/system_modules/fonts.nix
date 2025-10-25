@@ -7,7 +7,6 @@
 # This module:
 # - Installs Noto fonts, Google fonts, and JetBrains Mono
 # - Configures fontconfig with default font families
-
 {pkgs, ...}: {
   fonts.packages = with pkgs; [
     noto-fonts

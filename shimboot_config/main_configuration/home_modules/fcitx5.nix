@@ -8,7 +8,6 @@
 # - Enables Fcitx5 with Japanese input support
 # - Configures Rose Pine theme
 # - Sets up Wayland input method integration
-
 {pkgs, ...}: {
   i18n.inputMethod = {
     type = "fcitx5";

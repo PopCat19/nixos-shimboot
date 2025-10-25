@@ -8,7 +8,6 @@
 # - Enables Micro with custom settings
 # - Installs Rose Pine color scheme
 # - Configures editor behavior and appearance
-
 {
   pkgs,
   config,

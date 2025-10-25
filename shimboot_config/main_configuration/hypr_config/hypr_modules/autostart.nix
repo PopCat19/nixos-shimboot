@@ -9,7 +9,6 @@
 # - Launches polkit authentication agent
 # - Sets up D-Bus environment
 # - Starts hardware-specific services and HyprPanel
-
 {
   wayland.windowManager.hyprland.settings = {
     "exec-once" = [

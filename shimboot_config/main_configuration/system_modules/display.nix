@@ -8,7 +8,6 @@
 # - Enables Hyprland with XWayland support
 # - Configures LightDM display manager
 # - Sets up Wayland environment variables
-
 {
   config,
   pkgs,

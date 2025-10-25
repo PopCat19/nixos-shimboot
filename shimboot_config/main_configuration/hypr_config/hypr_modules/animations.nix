@@ -7,7 +7,6 @@
 # This module:
 # - Defines bezier curves for smooth animations
 # - Configures window, layer, and workspace animations
-
 {
   wayland.windowManager.hyprland.settings = {
     animations = {

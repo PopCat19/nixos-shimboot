@@ -8,7 +8,6 @@
 # - Sets up XDG MIME type associations
 # - Configures GTK bookmarks and desktop files
 # - Sets up Nemo file manager with terminal integration
-
 {
   pkgs,
   config,

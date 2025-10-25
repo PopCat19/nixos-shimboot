@@ -7,7 +7,6 @@
 # This module:
 # - Defines color variables for borders, backgrounds, and highlights
 # - Uses Rose Pine color palette
-
 {
   wayland.windowManager.hyprland.settings = {
     "$base" = "0xff191724";

@@ -495,72 +495,56 @@ boot_chromeos() {
 	debug_dir "$donor_mount/lib/modules"
 	debug_dir "$donor_mount/lib/firmware"
 
-	# Safely handle missing directories on donor (e.g., vendor may be empty)
-	mkdir -p "$donor_files"
-	echo "preparing donor drivers from $donor_mount"
-	if [ -d "$donor_mount/lib/modules" ] || [ -d "$donor_mount/lib/firmware" ]; then
-		mkdir -p "$donor_files/lib/modules" "$donor_files/lib/firmware"
-
-		# Always copy donor modules when present (no version gating)
-		if [ -d "$donor_mount/lib/modules" ]; then
-			echo "copying modules to tmpfs (may take a while)"
-			debug_dir "$donor_mount/lib/modules"
-			mkdir -p "$donor_files/lib/modules"
-			if ! copy_progress "$donor_mount/lib/modules" "$donor_files/lib/modules" 2>/dev/null; then
-				cp -a "$donor_mount/lib/modules/." "$donor_files/lib/modules/" 2>/dev/null || true
-			fi
-			sync
-			echo "donor: modules staged"
-			debug_dir "$donor_files/lib/modules"
-		else
-			echo "no modules directory in donor; skipping modules copy"
+	# ========================================
+	# CRITICAL FIX: Copy to tmpfs FIRST
+	# ========================================
+	echo "copying modules and firmware to tmpfs (this may take a while)"
+	mkdir -p "$donor_files/lib/modules" "$donor_files/lib/firmware"
+	
+	# Copy modules if they exist
+	if [ -d "$donor_mount/lib/modules" ] && ls -1 "$donor_mount/lib/modules" 2>/dev/null | grep -q .; then
+		echo "copying modules to tmpfs (may take a while)"
+		debug_dir "$donor_mount/lib/modules"
+		if ! copy_progress "$donor_mount/lib/modules" "$donor_files/lib/modules" 2>/dev/null; then
+			cp -a "$donor_mount/lib/modules/." "$donor_files/lib/modules/" 2>/dev/null || true
 		fi
-
-		if [ -d "$donor_mount/lib/firmware" ]; then
-			echo "copying firmware to tmpfs (may take a while)"
-			debug_dir "$donor_mount/lib/firmware"
-			mkdir -p "$donor_files/lib/firmware"
-			if ! copy_progress "$donor_mount/lib/firmware" "$donor_files/lib/firmware" 2>/dev/null; then
-				cp -a "$donor_mount/lib/firmware/." "$donor_files/lib/firmware/" 2>/dev/null || true
-			fi
-			sync
-			echo "donor: firmware staged"
-			debug_dir "$donor_files/lib/firmware"
-		else
-			echo "no firmware directory in donor; skipping firmware copy"
-		fi
-
-		# For vendor donor, copy into /newroot; otherwise bind if non-empty
-		donor_is_vendor=""
-		# Detect by filesystem label first (robust even if path differs)
-		if blkid -o value -s LABEL "$donor" 2>/dev/null | grep -qx "shimboot_vendor"; then
-			donor_is_vendor="1"
-		else
-			# Fallback: compare against discovered vendor device path
-			vp="$(blkid -L shimboot_vendor 2>/dev/null || find_vendor_partition 2>/dev/null || true)"
-			if [ -n "$vp" ] && [ "$donor" = "$vp" ]; then
-				donor_is_vendor="1"
-			fi
-		fi
-
-		# Use bind mounts for both vendor and regular donors to avoid writing to read-only ChromeOS roots
-		# Bind only if non-empty to avoid masking system paths with empty dirs
-		if [ -d "$donor_files/lib/modules" ] && ls -1 "$donor_files/lib/modules" 2>/dev/null | grep -q .; then
-			echo "binding donor modules to /newroot/lib/modules"
-			mkdir -p /newroot/lib/modules
-			mount -o bind "$donor_files/lib/modules" /newroot/lib/modules
-		fi
-		if [ -d "$donor_files/lib/firmware" ] && ls -1 "$donor_files/lib/firmware" 2>/dev/null | grep -q .; then
-			echo "binding donor firmware to /newroot/lib/firmware"
-			mkdir -p /newroot/lib/firmware
-			mount -o bind "$donor_files/lib/firmware" /newroot/lib/firmware
-		fi
+		sync
+		echo "donor: modules staged to tmpfs"
+		debug_dir "$donor_files/lib/modules"
 	else
-		echo "donor has no lib/modules or lib/firmware; skipping driver bind"
+		echo "note: no modules found in donor"
 	fi
-
+	
+	# Copy firmware if it exists
+	if [ -d "$donor_mount/lib/firmware" ] && ls -1 "$donor_mount/lib/firmware" 2>/dev/null | grep -q .; then
+		echo "copying firmware to tmpfs (may take a while)"
+		debug_dir "$donor_mount/lib/firmware"
+		if ! copy_progress "$donor_mount/lib/firmware" "$donor_files/lib/firmware" 2>/dev/null; then
+			cp -a "$donor_mount/lib/firmware/." "$donor_files/lib/firmware/" 2>/dev/null || true
+		fi
+		sync
+		echo "donor: firmware staged to tmpfs"
+		debug_dir "$donor_files/lib/firmware"
+	else
+		echo "note: no firmware found in donor"
+	fi
+	
+	# Now bind from tmpfs (not from donor device)
+	if [ -d "$donor_files/lib/modules" ] && ls -1 "$donor_files/lib/modules" 2>/dev/null | grep -q .; then
+		echo "binding tmpfs modules to /newroot/lib/modules"
+		mkdir -p /newroot/lib/modules
+		mount -o bind "$donor_files/lib/modules" /newroot/lib/modules
+	fi
+	if [ -d "$donor_files/lib/firmware" ] && ls -1 "$donor_files/lib/firmware" 2>/dev/null | grep -q .; then
+		echo "binding tmpfs firmware to /newroot/lib/firmware"
+		mkdir -p /newroot/lib/firmware
+		mount -o bind "$donor_files/lib/firmware" /newroot/lib/firmware
+	fi
+	
+	# Can safely unmount donor now
 	umount $donor_mount
 	rm -rf $donor_mount
+	# ========================================
 
 	if [ -e "/newroot/etc/init/tpm-probe.conf" ]; then
 		echo "applying chrome os flex patches"
@@ -601,7 +585,6 @@ boot_chromeos() {
 	pivot_root /newroot /newroot/tmp/bootloader
 
 	echo "starting init"
-	/sbin/modprobe zram
 	exec_init
 }
 

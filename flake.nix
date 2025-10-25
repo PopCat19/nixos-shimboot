@@ -9,7 +9,6 @@
 # - System configurations with home-manager integration
 # - Development environment and tools
 # - ChromeOS kernel/initramfs extraction and patching
-
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -54,10 +53,7 @@
       "zork"
       "nissa"
       "hatch"
-      "corsola"
       "grunt"
-      "jacuzzi"
-      "hana"
       "snappy"
     ];
 

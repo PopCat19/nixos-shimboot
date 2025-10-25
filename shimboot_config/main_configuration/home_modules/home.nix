@@ -8,7 +8,6 @@
 # - Imports all Home Manager modules
 # - Configures desktop environment
 # - Sets Home Manager state version
-
 {...}: {
   imports = [
     ../hypr_config/hyprland.nix

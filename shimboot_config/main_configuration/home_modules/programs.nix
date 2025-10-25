@@ -7,7 +7,6 @@
 # This module:
 # - Enables Fish shell and Git
 # - Provides placeholder for gaming programs (system-level)
-
 {pkgs, ...}: {
   programs.fish.enable = true;
 

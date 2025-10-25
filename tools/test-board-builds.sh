@@ -45,10 +45,7 @@ SUPPORTED_BOARDS=(
     "zork"
     "nissa"
     "hatch"
-    "corsola"
     "grunt"
-    "jacuzzi"
-    "hana"
     "snappy"
 )
 

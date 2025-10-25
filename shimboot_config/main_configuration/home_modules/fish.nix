@@ -9,7 +9,6 @@
 # - Imports helper functions from base configuration
 # - Configures shell abbreviations and key bindings
 # - Enables Starship prompt
-
 {
   lib,
   pkgs,

@@ -8,7 +8,6 @@
 # - Enables system power management
 # - Configures thermal management for Intel CPUs
 # - Enables battery monitoring and power saving
-
 {
   config,
   pkgs,
@@ -16,7 +15,7 @@
   ...
 }: {
   powerManagement.enable = true;
-  services.thermald.enable = true;
-  services.upower.enable = true;
-  services.tlp.enable = true;
+  services.thermald.enable = lib.mkDefault true;
+  services.upower.enable = lib.mkDefault true;
+  services.tlp.enable = lib.mkDefault true;
 }
