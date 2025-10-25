@@ -27,6 +27,4 @@
       options = "defaults,size=2G";
     }
   ];
-  
-  # DO NOT mount squashfs here - it's optional post-install
 }
