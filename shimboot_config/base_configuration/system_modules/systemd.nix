@@ -1,14 +1,14 @@
 # Systemd Configuration Module
 #
 # Purpose: Configure systemd services and patches for shimboot
-# Dependencies: systemd, kbd
+# Dependencies: systemd, kbd, util-linux
 # Related: boot.nix, services.nix, tty.nix
 #
 # This module:
 # - Provides systemd tools system-wide
 # - Applies patches to systemd for ChromeOS compatibility
-# - Configures services for display management and login
-# - Sets up kill-frecon service with proper timing
+# - Configures kill-frecon service with proper console preparation
+# - Sets up logind with TTY/VT configuration
 {
   config,
   pkgs,
@@ -18,13 +18,14 @@
 }: {
   environment.systemPackages = with pkgs; [
     systemd
-    kbd  # For chvt command used in kill-frecon service
+    kbd
+    util-linux
   ];
 
   systemd = {
     package = pkgs.systemd.overrideAttrs (old: {
       patches =
-        (old.patches or [])
+        (old.patches or[])
         ++ [
           (pkgs.writeText "mountpoint-util.patch" ''
             diff --git a/src/basic/mountpoint-util.c b/src/basic/mountpoint-util.c
@@ -63,28 +64,56 @@
     });
     
     services.kill-frecon = {
-      description = "Kill frecon to allow X11 to start";
-      wantedBy = ["graphical.target"];
+      description = "Kill frecon and prepare console for getty";
+      wantedBy = ["multi-user.target"];  # Start earlier
       
-      # Run after getty.target to allow TTYs to spawn first
-      after = ["getty.target"];
-      before = ["display-manager.service"];
+      # CRITICAL: Must run BEFORE getty.target
+      before = ["getty.target" "graphical.target" "display-manager.service"];
+      after = ["local-fs.target"];
       
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
+        StandardOutput = "journal+console";
+        StandardError = "journal+console";
         ExecStart = pkgs.writeShellScript "kill-frecon" ''
-          # Only unmount console if display manager is about to start
+          set -x
+          echo "[kill-frecon] Starting console cleanup"
+          
+          # Kill frecon-lite forcefully
+          if ${pkgs.procps}/bin/pgrep frecon-lite >/dev/null 2>&1; then
+            echo "[kill-frecon] Killing frecon-lite"
+            ${pkgs.procps}/bin/pkill -9 frecon-lite 2>/dev/null || true
+            sleep 1
+          fi
+          
+          # Unmount any existing console mounts
+          echo "[kill-frecon] Unmounting /dev/console"
           ${pkgs.util-linux}/bin/umount -l /dev/console 2>/dev/null || true
           
-          # Kill frecon-lite but give getty services time to spawn first
-          sleep 2
-          ${pkgs.procps}/bin/pkill frecon-lite 2>/dev/null || true
-          
-          # Ensure VT1 is available for display manager
-          if ! ${pkgs.kbd}/bin/chvt 1 2>/dev/null; then
-            echo "Warning: chvt failed - VT switching may not be supported" >&2
+          # Ensure /dev/console exists as a proper character device
+          if [ ! -c /dev/console ]; then
+            echo "[kill-frecon] Creating /dev/console device node"
+            mknod -m 600 /dev/console c 5 1 2>/dev/null || true
           fi
+          
+          # Bind console to tty0 (kernel's current console)
+          # This makes /dev/console usable for both display manager and getty
+          echo "[kill-frecon] Binding /dev/console to /dev/tty0"
+          mount --bind /dev/tty0 /dev/console 2>/dev/null || true
+          
+          # Reset console state
+          echo "[kill-frecon] Resetting console state"
+          ${pkgs.kbd}/bin/setfont 2>/dev/null || true
+          
+          # Make VT1 active (for display manager)
+          echo "[kill-frecon] Switching to VT1"
+          ${pkgs.kbd}/bin/chvt 1 2>/dev/null || echo "[kill-frecon] chvt failed (might not be supported)"
+          
+          # Give system time to stabilize
+          sleep 1
+          
+          echo "[kill-frecon] Console prepared for getty services"
         '';
       };
     };
@@ -102,8 +131,9 @@
         HandleHibernateKey = "ignore";
         
         # TTY/VT configuration
-        NAutoVTs = lib.mkDefault 6;
-        ReserveVT = lib.mkDefault 7;
+        # Reserve VT1-2 for display manager and user session
+        NAutoVTs = 6;
+        ReserveVT = 7;
       };
     };
   };
