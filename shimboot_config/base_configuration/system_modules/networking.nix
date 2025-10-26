@@ -30,7 +30,7 @@
     wireless.enable = false;
   };
 
-  boot.kernelModules = ["iwlmvm" "ccm" "8021q" "tun"];
+  boot.kernelModules = ["iwlmvm" "ccm"];
 
   system.activationScripts.rfkillUnblockWlan = {
     text = ''
