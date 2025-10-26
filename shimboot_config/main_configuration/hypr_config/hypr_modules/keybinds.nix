@@ -9,7 +9,7 @@
 # - Sets up application launchers
 # - Configures media controls and utilities
 # - Defines workspace switching and mouse bindings
-{userConfig, ...}: {
+{config, userConfig, ...}: {
   wayland.windowManager.hyprland.settings = {
     "$mainMod" = "SUPER";
 
@@ -43,9 +43,9 @@
       "$mainMod+Shift, V, exec, bash -lc 'cliphist list | head -n1 | cliphist decode | wl-copy && sleep 0.05 && wtype -M ctrl -k v'"
       "Ctrl+Alt, W, exec, systemctl --user restart hyprpanel.service"
 
-      "$mainMod, P, exec, ~/.local/bin/screenshot monitor"
+      "$mainMod, P, exec, ${config.home.homeDirectory}/.local/bin/screenshot monitor"
 
-      "$mainMod+Shift, P, exec, ~/.local/bin/screenshot region"
+      "$mainMod+Shift, P, exec, ${config.home.homeDirectory}/.local/bin/screenshot region"
 
       ",XF86AudioPlay, exec, playerctl play-pause"
       ",XF86AudioPause, exec, playerctl play-pause"

@@ -16,6 +16,7 @@
     noto-fonts-extra
 
     google-fonts
+    mplus-outline-fonts.githubRelease
     jetbrains-mono
     nerd-fonts.jetbrains-mono
   ];
