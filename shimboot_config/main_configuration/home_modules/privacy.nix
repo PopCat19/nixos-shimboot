@@ -17,21 +17,14 @@
 }: let
   passwordsDir = "${userConfig.directories.home}/Passwords";
   keepassDb = "${passwordsDir}/keepass.kdbx";
-
-  kpxcWrapper = pkgs.writeShellScriptBin "kpxc" ''
-    set -e
-    DB="${keepassDb}"
-    if [ -f "$DB" ]; then
-      exec ${pkgs.keepassxc}/bin/keepassxc "$DB" "$@"
-    else
-      exec ${pkgs.keepassxc}/bin/keepassxc "$@"
-    fi
-  '';
 in {
   home.packages = with pkgs; [
     keepassxc
-    kpxcWrapper
   ];
+
+  programs.fish.shellAbbrs = {
+    kpxc = "keepassxc ${keepassDb}";
+  };
 
   home.activation.createPasswordsDir = lib.hm.dag.entryAfter ["writeBoundary"] ''
     mkdir -p ${passwordsDir}

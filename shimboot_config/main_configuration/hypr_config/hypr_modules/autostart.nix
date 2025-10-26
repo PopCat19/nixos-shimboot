@@ -21,7 +21,8 @@
 
       "openrgb -p orang-full"
 
-      "hyprpanel"
+      # HyprPanel is started via systemd service (see hyprpanel-home.nix)
+      # This provides automatic restart on failure
     ];
   };
 }
