@@ -35,6 +35,8 @@ in {
     ./system_modules/fish.nix
     ./system_modules/services.nix
     ./system_modules/zram.nix
+    ./system_modules/tty.nix
+    ./system_modules/ssh.nix
   ];
 
   _module.args.userConfig = userConfig;

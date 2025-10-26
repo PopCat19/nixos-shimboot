@@ -1,13 +1,14 @@
 # Systemd Configuration Module
 #
 # Purpose: Configure systemd services and patches for shimboot
-# Dependencies: systemd
-# Related: boot.nix, services.nix
+# Dependencies: systemd, kbd
+# Related: boot.nix, services.nix, tty.nix
 #
 # This module:
 # - Provides systemd tools system-wide
 # - Applies patches to systemd for ChromeOS compatibility
 # - Configures services for display management and login
+# - Sets up kill-frecon service with proper timing
 {
   config,
   pkgs,
@@ -17,6 +18,7 @@
 }: {
   environment.systemPackages = with pkgs; [
     systemd
+    kbd  # For chvt command used in kill-frecon service
   ];
 
   systemd = {
@@ -59,16 +61,30 @@
           '')
         ];
     });
+    
     services.kill-frecon = {
       description = "Kill frecon to allow X11 to start";
       wantedBy = ["graphical.target"];
+      
+      # Run after getty.target to allow TTYs to spawn first
+      after = ["getty.target"];
       before = ["display-manager.service"];
+      
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
         ExecStart = pkgs.writeShellScript "kill-frecon" ''
+          # Only unmount console if display manager is about to start
           ${pkgs.util-linux}/bin/umount -l /dev/console 2>/dev/null || true
+          
+          # Kill frecon-lite but give getty services time to spawn first
+          sleep 2
           ${pkgs.procps}/bin/pkill frecon-lite 2>/dev/null || true
+          
+          # Ensure VT1 is available for display manager
+          if ! ${pkgs.kbd}/bin/chvt 1 2>/dev/null; then
+            echo "Warning: chvt failed - VT switching may not be supported" >&2
+          fi
         '';
       };
     };
@@ -79,10 +95,15 @@
   services.logind = {
     settings = {
       Login = {
+        # Power management
         HandleLidSwitch = "ignore";
         HandlePowerKey = "ignore";
         HandleSuspendKey = "ignore";
         HandleHibernateKey = "ignore";
+        
+        # TTY/VT configuration
+        NAutoVTs = lib.mkDefault 6;
+        ReserveVT = lib.mkDefault 7;
       };
     };
   };
