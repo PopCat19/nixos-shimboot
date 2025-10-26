@@ -34,7 +34,7 @@ in {
             # Generate hardware config if missing
             if [ ! -f /etc/nixos/hardware-configuration.nix ]; then
               echo "[setup_nixos_config] Generating hardware-configuration.nix..."
-              nixos-generate-config --root / --show-hardware-config > /etc/nixos/hardware-configuration.nix
+              nixos-generate-config --show-hardware-config > /etc/nixos/hardware-configuration.nix
             fi
 
             # Check if user's config exists (should be cloned by assemble-final.sh)
