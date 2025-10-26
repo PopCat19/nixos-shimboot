@@ -47,7 +47,8 @@
         ];
       };
       xkb.layout = "us";
-      videoDrivers = ["intel"];
+      # Let X11 auto-detect the video driver
+      # Hyprland doesn't use xserver.videoDrivers anyway
     };
     displayManager = {
       defaultSession = "hyprland";
