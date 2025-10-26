@@ -411,6 +411,8 @@ if command -v git >/dev/null 2>&1 && [ -d .git ]; then
   # Clone the repository
   log_info "Cloning nixos-config repository..."
   sudo git clone --no-local "$(pwd)" "$NIXOS_CONFIG_DEST"
+  # Set the remote to the actual GitHub URL instead of the local path
+  sudo git -C "$NIXOS_CONFIG_DEST" remote set-url origin "https://github.com/PopCat19/nixos-shimboot.git"
 
   # Switch to the same branch as the source repository
   if [ "$GIT_BRANCH" != "unknown" ]; then
