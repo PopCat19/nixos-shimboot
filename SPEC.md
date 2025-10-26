@@ -174,9 +174,24 @@ flake.nix
 │           └─ modprobe.d/
 │
 └─ assemble-final.sh (imperative)
-   ├─ Inputs: raw-rootfs.img, patched-initramfs/, harvested/
-   ├─ Creates: shimboot.img (partitioned disk image)
-   └─ Integrates: vendor drivers (vendor/inject/both/none)
+   ├─ 1/15: Build Nix outputs
+   ├─ 2/15: Harvest ChromeOS drivers
+   ├─ 3/15: Augment firmware with upstream linux-firmware
+   ├─ 4/15: Prune unused firmware files
+   ├─ 5/15: Copy raw rootfs image
+   ├─ 6/15: Optimize Nix store
+   ├─ 7/15: Calculate partition sizes
+   ├─ 8/15: Create empty image
+   ├─ 9/15: Partition image (GPT)
+   ├─ 10/15: Setup loop device
+   ├─ 11/15: Format partitions
+   ├─ 12/15: Populate bootloader partition
+   ├─ 13/15: Populate rootfs partition
+   ├─ 14/15: Clone nixos-config repository
+   ├─ 15/15: Inject harvested drivers
+   │  ├─ Inputs: raw-rootfs.img, patched-initramfs/, harvested/
+   │  ├─ Creates: shimboot.img (partitioned disk image)
+   │  └─ Integrates: vendor drivers (vendor/inject/both/none)
 ```
 
 ### Pure vs Impure Operations
@@ -190,7 +205,8 @@ Impure (requires root):
 ├─ Creating loop devices
 ├─ Mounting filesystems
 ├─ Writing to block devices
-└─ Running depmod (during harvest)
+├─ Running depmod (during harvest)
+└─ Pruning firmware files (requires lspci, du)
 ```
 
 ---
@@ -495,6 +511,37 @@ Example partition layout:
 └─ p7: shimboot_rootfs:nixos-minimal
 ```
 
+### Firmware Pruning Configuration
+```
+Location: tools/harvest-drivers.sh → prune_unused_firmware()
+
+Purpose: Reduce firmware size by removing unused files
+Timing: After upstream firmware augmentation (step 4/15)
+
+Detection logic:
+├─ lspci -k | grep -i "network" → WiFi chipset detection
+├─ intel → iwlwifi pattern
+├─ realtek → rtw pattern
+└─ atheros → ath pattern
+
+Keep patterns (configurable):
+├─ intel/*           # Intel GPU/WiFi
+├─ iwlwifi-*         # Intel WiFi
+├─ rtw88/*           # Realtek WiFi
+├─ rtw89/*           # Realtek WiFi newer
+├─ brcm/*            # Broadcom
+├─ regulatory.db*    # WiFi regulatory
+└─ *.ucode           # CPU microcode
+
+Customization:
+└─ Edit keep_patterns array in prune_unused_firmware()
+   └─ Add patterns for specific hardware needs
+
+Disable pruning:
+└─ Comment out step 4/15 in assemble-final.sh
+   └─ Or set FIRMWARE_UPSTREAM=0 to skip augmentation entirely
+```
+
 ---
 
 ## 9. Maintenance Guide
@@ -576,6 +623,12 @@ Build full image:
 Build minimal image:
 └─ sudo ./assemble-final.sh --board dedede --rootfs minimal
 
+Build with custom drivers mode:
+└─ sudo ./assemble-final.sh --board dedede --rootfs full --drivers vendor
+
+Build without upstream firmware:
+└─ sudo ./assemble-final.sh --board dedede --rootfs full --no-firmware-upstream
+
 Flash to USB:
 └─ sudo ./tools/write-shimboot-image.sh -i work/shimboot.img --output /dev/sdX
 
@@ -587,6 +640,9 @@ Setup wizard on device:
 
 Rebuild system on device:
 └─ sudo nixos-rebuild switch --flake ~/nixos-config#$(hostname) --option sandbox false
+
+Harvest drivers only:
+└─ sudo ./tools/harvest-drivers.sh --shim shim.bin --recovery recovery.bin --out drivers/
 ```
 
 ### File Paths
@@ -600,11 +656,15 @@ Build system:
 ├─ flake.nix                                 - Main flake
 ├─ flake_modules/                            - Nix derivations
 ├─ tools/                                    - Build scripts
+│  ├─ harvest-drivers.sh                     - Driver harvesting with firmware pruning
+│  ├─ write-shimboot-image.sh                - USB image writing
+│  └─ fetch-manifest.sh                      - ChromeOS manifest fetching
 └─ bootloader/                               - Shimboot bootloader
 
 Build artifacts:
 ├─ work/shimboot.img                         - Final disk image
-├─ work/harvested/                           - ChromeOS drivers
+├─ work/harvested/                           - ChromeOS drivers (pruned firmware)
+├─ work/linux-firmware.upstream/             - Upstream firmware clone
 └─ manifests/${board}-manifest.nix           - Download chunks
 ```
 
