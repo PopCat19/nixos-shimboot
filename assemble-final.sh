@@ -199,8 +199,8 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# === Step 0: Build Nix outputs ===
-log_step "0/8" "Building Nix outputs"
+# === Step 1: Build Nix outputs ===
+log_step "1/15" "Building Nix outputs"
 ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config .#extracted-kernel-${BOARD} --print-out-paths)/p2.bin"
 PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config .#initramfs-patching-${BOARD} --print-out-paths)/patched-initramfs"
 RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config .#${RAW_ROOTFS_ATTR} --print-out-paths)/nixos.img"
@@ -225,19 +225,19 @@ else
 	log_info "Recovery image: skipped (SKIP_RECOVERY=1 or not provided)"
 fi
 
-# === Step 0.5: Harvest ChromeOS drivers (modules/firmware/modprobe.d)
+# === Step 2: Harvest ChromeOS drivers (modules/firmware/modprobe.d) ===
 HARVEST_OUT="$WORKDIR/harvested"
 mkdir -p "$HARVEST_OUT"
-log_step "0.5/8" "Harvest ChromeOS drivers"
+log_step "2/15" "Harvest ChromeOS drivers"
 if [ -n "$RECOVERY_PATH" ]; then
 	bash tools/harvest-drivers.sh --shim "$SHIM_BIN" --recovery "$RECOVERY_PATH" --out "$HARVEST_OUT"
 else
 	bash tools/harvest-drivers.sh --shim "$SHIM_BIN" --out "$HARVEST_OUT"
 fi
 
-# === Step 0.6: Augment firmware with upstream ChromiumOS linux-firmware ===
+# === Step 3: Augment firmware with upstream ChromiumOS linux-firmware ===
 if [ "${FIRMWARE_UPSTREAM:-1}" != "0" ]; then
-	log_step "0.6/8" "Augment firmware with upstream linux-firmware"
+	log_step "3/15" "Augment firmware with upstream linux-firmware"
 	log_info "Cloning upstream linux-firmware repository..."
 	UPSTREAM_FW_DIR="$WORKDIR/linux-firmware.upstream"
 	if [ ! -d "$UPSTREAM_FW_DIR" ]; then
@@ -249,6 +249,14 @@ if [ "${FIRMWARE_UPSTREAM:-1}" != "0" ]; then
 	# Merge, preserving attributes; ignore errors on collisions
 	sudo cp -a "$UPSTREAM_FW_DIR/." "$HARVEST_OUT/lib/firmware/" 2>/dev/null || true
 	log_info "Upstream firmware augmentation complete"
+	
+	# Prune unused firmware files after upstream augmentation
+	if [ -d "$HARVEST_OUT/lib/firmware" ]; then
+		log_step "4/15" "Prune unused firmware files"
+		# Source the pruning function from harvest-drivers.sh
+		source tools/harvest-drivers.sh
+		prune_unused_firmware "$HARVEST_OUT/lib/firmware"
+	fi
 else
 	log_info "Upstream firmware disabled, using only harvested firmware"
 fi
@@ -269,12 +277,12 @@ else
 	log_warn "No harvested modules found under $HARVEST_OUT/lib/modules"
 fi
 
-# === Step 1: Copy raw rootfs image ===
-log_step "1/8" "Copy raw rootfs image"
+# === Step 5: Copy raw rootfs image ===
+log_step "5/15" "Copy raw rootfs image"
 cp "$RAW_ROOTFS_IMG" "$WORKDIR/rootfs.img"
 
-# === Step 1.5: Optimize Nix store in raw rootfs ===
-log_step "1.5" "Optimize Nix store in raw rootfs"
+# === Step 6: Optimize Nix store in raw rootfs ===
+log_step "6/15" "Optimize Nix store in raw rootfs"
 LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
 sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
 log_info "Running nix-store --optimise on raw rootfs (may take a while)..."
@@ -284,8 +292,8 @@ sudo umount "$WORKDIR/mnt_src_rootfs"
 sudo losetup -d "$LOOPROOT"
 LOOPROOT=""
 
-# === Step 2: Calculate rootfs size ===
-log_step "2/8" "Calculate rootfs size"
+# === Step 7: Calculate rootfs size ===
+log_step "7/15" "Calculate rootfs size"
 LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
 sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
 ROOTFS_SIZE_MB=$(sudo du -sm "$WORKDIR/mnt_src_rootfs" | cut -f1)
@@ -323,12 +331,12 @@ log_info "Vendor partition size: ${VENDOR_PART_SIZE} MB"
 log_info "Rootfs partition size: ${ROOTFS_PART_SIZE} MB (initial, expandable)"
 log_info "Total image size: ${TOTAL_SIZE_MB} MB"
 
-# === Step 3: Create empty image ===
-log_step "3/8" "Create empty image"
+# === Step 8: Create empty image ===
+log_step "8/15" "Create empty image"
 fallocate -l ${TOTAL_SIZE_MB}M "$IMAGE"
 
-# === Step 4: Partition image ===
-log_step "4/8" "Partition image (GPT, ChromeOS GUIDs, vendor before rootfs)"
+# === Step 9: Partition image ===
+log_step "9/15" "Partition image (GPT, ChromeOS GUIDs, vendor before rootfs)"
 parted --script "$IMAGE" \
 	mklabel gpt \
 	mkpart stateful ext4 1MiB 2MiB \
@@ -349,8 +357,8 @@ parted --script "$IMAGE" \
 log_info "Partition table:"
 sudo partx -o NR,START,END,SIZE,TYPE,NAME,UUID -g --show "$IMAGE"
 
-# === Step 5: Setup loop device ===
-log_step "5/8" "Setup loop device"
+# === Step 10: Setup loop device ===
+log_step "10/15" "Setup loop device"
 LOOPDEV=$(sudo losetup --show -fP "$IMAGE")
 log_info "Loop device: $LOOPDEV"
 
@@ -358,8 +366,8 @@ log_info "Loop device: $LOOPDEV"
 log_info "Setting ChromeOS boot flags on KERNEL partition..."
 sudo cgpt add -i 2 -S 1 -T 5 -P 10 "$LOOPDEV"
 
-# === Step 6: Format partitions ===
-log_step "6/8" "Format partitions"
+# === Step 11: Format partitions ===
+log_step "11/15" "Format partitions"
 # Use conservative ext4 features for ChromeOS kernel compatibility (avoid EINVAL on mount)
 MKFS_EXT4_FLAGS="-O ^orphan_file,^metadata_csum_seed"
 sudo mkfs.ext4 -q "$MKFS_EXT4_FLAGS" "${LOOPDEV}p1"
@@ -371,15 +379,15 @@ sudo mkfs.ext4 -q -L "shimboot_vendor" "$MKFS_EXT4_FLAGS" "${LOOPDEV}p4"
 # Rootfs is now p5
 sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "$MKFS_EXT4_FLAGS" "${LOOPDEV}p5"
 
-# === Step 7: Populate bootloader partition ===
-log_step "7/8" "Populate bootloader partition"
+# === Step 12: Populate bootloader partition ===
+log_step "12/15" "Populate bootloader partition"
 sudo mount "${LOOPDEV}p3" "$WORKDIR/mnt_bootloader"
 total_bytes=$(sudo du -sb "$PATCHED_INITRAMFS" | cut -f1)
 (cd "$PATCHED_INITRAMFS" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_bootloader" && sudo tar xf -)
 sudo umount "$WORKDIR/mnt_bootloader"
 
-# === Step 8: Populate rootfs partition ===
-log_step "8/8" "Populate rootfs partition (now p5)"
+# === Step 13: Populate rootfs partition ===
+log_step "13/15" "Populate rootfs partition (now p5)"
 LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
 sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
 sudo mount "${LOOPDEV}p5" "$WORKDIR/mnt_rootfs"  # Changed from p4 to p5
@@ -390,8 +398,8 @@ total_bytes=$(sudo du -sb "$WORKDIR/mnt_src_rootfs" | cut -f1)
 USERNAME=$(nix eval --impure --expr '(import ./shimboot_config/user-config.nix {}).user.username' --json | jq -r .)
 log_info "Using username from userConfig: $USERNAME"
 
-# === Step 8.2: Clone nixos-config repository into rootfs ===
-log_step "8.2" "Clone nixos-config repository into rootfs"
+# === Step 14: Clone nixos-config repository into rootfs ===
+log_step "14/15" "Clone nixos-config repository into rootfs"
 NIXOS_CONFIG_DEST="$WORKDIR/mnt_rootfs/home/$USERNAME/nixos-config"
 
 if command -v git >/dev/null 2>&1 && [ -d .git ]; then
@@ -459,12 +467,12 @@ sudo losetup -d "$LOOPROOT"
 LOOPROOT=""
 
 
-# === Step 8.1: Inject harvested drivers into rootfs (optional) ===
+# === Step 15: Inject harvested drivers into rootfs (optional) ===
 # DRIVERS_MODE set earlier (default 'vendor'); valid: vendor|inject|none
 
 case "$DRIVERS_MODE" in
 vendor | CROSDRV)
-	log_step "8.1" "Populate vendor partition (p4) with harvested drivers (/lib/modules, /lib/firmware)"
+	log_step "15/15" "Populate vendor partition (p4) with harvested drivers (/lib/modules, /lib/firmware)"
 	if [ ! -b "${LOOPDEV}p4" ]; then
 		log_error "Vendor partition p4 not found on ${LOOPDEV}"
 	else
@@ -491,7 +499,7 @@ vendor | CROSDRV)
 	fi
 	;;
 both)
-	log_step "8.1" "Populate vendor partition (p4) with harvested drivers, then inject into rootfs (p5)"
+log_step "15/15" "Populate vendor partition (p4) with harvested drivers, then inject into rootfs (p5)"
 	if [ ! -b "${LOOPDEV}p4" ]; then
 		log_error "Vendor partition p4 not found on ${LOOPDEV}"
 	else
@@ -517,7 +525,7 @@ both)
 		sudo umount "$WORKDIR/mnt_vendor"
 	fi
 
-	log_step "8.1b" "Inject drivers into rootfs (p5) (/lib/modules, /lib/firmware, modprobe.d)"
+	log_step "15b/15" "Inject drivers into rootfs (p5) (/lib/modules, /lib/firmware, modprobe.d)"
 	if [ -d "$HARVEST_OUT/lib/modules" ]; then
 		sudo rm -rf "$WORKDIR/mnt_rootfs/lib/modules"
 		sudo mkdir -p "$WORKDIR/mnt_rootfs/lib"
@@ -538,7 +546,7 @@ both)
 	fi
 	;;
 inject)
-	log_step "8.1" "Inject drivers into rootfs (p5) (/lib/modules, /lib/firmware, modprobe.d)"
+log_step "15/15" "Inject drivers into rootfs (p5) (/lib/modules, /lib/firmware, modprobe.d)"
 	if [ -d "$HARVEST_OUT/lib/modules" ]; then
 		sudo rm -rf "$WORKDIR/mnt_rootfs/lib/modules"
 		sudo mkdir -p "$WORKDIR/mnt_rootfs/lib"
