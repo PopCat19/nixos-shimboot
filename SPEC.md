@@ -396,7 +396,6 @@ Performance
 
 ### Kernel Limitations
 - Kernels < 5.6: Missing user namespaces; requires `--option sandbox false` for nix operations
-- BusyBox in initramfs: Limited `blockdev` commands; may require `expand_rootfs` workarounds
 
 ### Incompatible Configurations
 ```
