@@ -124,9 +124,11 @@ if [ -z "${ROOTFS_FLAVOR:-}" ]; then
 		echo "[assemble-final] Select rootfs flavor to build:"
 		echo "  1) full     (preferred) → uses main configuration (Home Manager, LightDM)"
 		echo "  2) minimal  (base-only) → standalone base with Hyprland via greetd"
-		read -rp "Enter choice [1/2, default=1]: " choice
+		echo "  3) console  (console-only) → frecon-lite + tmux, no display manager"
+		read -rp "Enter choice [1/2/3, default=1]: " choice
 		case "${choice:-1}" in
 		2) ROOTFS_FLAVOR="minimal" ;;
+		3) ROOTFS_FLAVOR="console" ;;
 		*) ROOTFS_FLAVOR="full" ;;
 		esac
 	else
@@ -134,14 +136,16 @@ if [ -z "${ROOTFS_FLAVOR:-}" ]; then
 	fi
 fi
 
-if [ "${ROOTFS_FLAVOR}" != "full" ] && [ "${ROOTFS_FLAVOR}" != "minimal" ]; then
-	log_error "Invalid --rootfs value: '${ROOTFS_FLAVOR}'. Use 'full' or 'minimal'."
+if [ "${ROOTFS_FLAVOR}" != "full" ] && [ "${ROOTFS_FLAVOR}" != "minimal" ] && [ "${ROOTFS_FLAVOR}" != "console" ]; then
+	log_error "Invalid --rootfs value: '${ROOTFS_FLAVOR}'. Use 'full', 'minimal', or 'console'."
 	exit 1
 fi
 
 RAW_ROOTFS_ATTR="raw-rootfs"
 if [ "${ROOTFS_FLAVOR}" = "minimal" ]; then
 	RAW_ROOTFS_ATTR="raw-rootfs-minimal"
+elif [ "${ROOTFS_FLAVOR}" = "console" ]; then
+	RAW_ROOTFS_ATTR="raw-rootfs-console"
 fi
 
 log_info "Rootfs flavor: ${ROOTFS_FLAVOR} (attr: .#${RAW_ROOTFS_ATTR})"

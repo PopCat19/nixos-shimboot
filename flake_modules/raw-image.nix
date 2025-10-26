@@ -103,5 +103,45 @@ in {
         })
       ];
     };
+
+    # Console-only raw image (no X/Wayland, frecon-lite + tmux)
+    raw-rootfs-console = nixos-generators.nixosGenerate {
+      inherit system;
+      format = "raw";
+      specialArgs = {inherit zen-browser rose-pine-hyprcursor;};
+
+      modules = [
+        # Apply overlays
+        ({config, ...}: {
+          nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
+        })
+        
+        # Base configuration
+        ../shimboot_config/base_configuration/configuration.nix
+        
+        # Console-specific overrides
+        ../shimboot_config/console_configuration/configuration.nix
+
+        # Raw image specific configuration
+        ({
+          config,
+          pkgs,
+          ...
+        }: {
+          # Enable serial console logging
+          boot.kernelParams = ["console=ttyS0,115200" "console=tty1"];
+
+          # Enable Nix flakes
+          nix.settings.experimental-features = ["nix-command" "flakes"];
+
+          # Enable automatic garbage collection
+          nix.gc = {
+            automatic = true;
+            dates = "weekly";
+            options = "--delete-older-than 30d";
+          };
+        })
+      ];
+    };
   };
 }
