@@ -88,6 +88,26 @@ The assembled image is ready to flash and already contains everything needed for
 
 ## Troubleshooting
 
+### "Git fetch failed" during setup_nixos
+The git remote may be pointing to the build machine's path. Fix with:
+```bash
+cd ~/nixos-config
+git remote set-url origin https://github.com/PopCat19/nixos-shimboot.git
+git fetch origin
+```
+
+### "blockdev: Unknown command" during expand_rootfs
+Run the script with DEBUG=1 to see what's failing:
+```bash
+sudo DEBUG=1 expand_rootfs
+```
+
+If it still fails, manually expand:
+```bash
+sudo growpart /dev/sdX N  # Replace X and N with your disk/partition
+sudo resize2fs /dev/sdXN
+```
+
 ### Build Issues
 - If you get impure errors, try: `nix build --impure`
 - Ensure you're using the correct board name (case-sensitive): dedede, grunt, hatch, nissa, octopus, snappy, zork

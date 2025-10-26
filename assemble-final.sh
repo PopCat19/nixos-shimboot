@@ -433,6 +433,21 @@ GIT_CHANGES=$GIT_STATUS
 GIT_REMOTE=$GIT_REMOTE
 EOF
 
+  # Create detailed build metadata file
+  sudo tee "$NIXOS_CONFIG_DEST/.shimboot_build_info" > /dev/null <<EOF
+# Shimboot build metadata
+BUILD_HOST=$(hostname)
+BUILD_USER=$(whoami)
+BUILD_DATE=$BUILD_DATE
+BOARD=$BOARD
+ROOTFS_FLAVOR=$ROOTFS_FLAVOR
+DRIVERS_MODE=$DRIVERS_MODE
+GIT_BRANCH=$GIT_BRANCH
+GIT_COMMIT=$GIT_COMMIT
+GIT_CHANGES=$GIT_STATUS
+GIT_REMOTE=$GIT_REMOTE
+EOF
+
   log_info "Cloned nixos-config: $GIT_BRANCH ($GIT_COMMIT) with $GIT_STATUS changes"
 else
   log_warn "Git not available or not a git repository, skipping nixos-config clone"
