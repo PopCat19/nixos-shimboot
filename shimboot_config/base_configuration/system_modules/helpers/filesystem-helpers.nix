@@ -1,7 +1,7 @@
 # Filesystem Helpers Module
 #
 # Purpose: Provide utility scripts for filesystem management
-# Dependencies: cloud-utils, cryptsetup, e2fsprogs
+# Dependencies: cloud-utils, cryptsetup, e2fsprogs, jq
 # Related: filesystems.nix, helpers.nix
 #
 # This module provides:
@@ -45,7 +45,9 @@
       fi
 
       disk_size=$(blockdev --getsize64 "$disk_dev")
-      part_end=$(( $(blockdev --getsize64 "$part_dev") + $(blockdev --getss "$part_dev") * $(blockdev --getstart "$part_dev") ))
+      # Use sfdisk to get partition start sector since BusyBox blockdev doesn't support --getstart
+      part_start=$(sfdisk -J "$disk_dev" | ${pkgs.jq}/bin/jq -r ".partitiontable.partitions[] | select(.node == \"$part_dev\") | .start")
+      part_end=$(( $(blockdev --getsize64 "$part_dev") + $(blockdev --getss "$part_dev") * part_start ))
       size_diff=$(( disk_size - part_end ))
       threshold=$(( disk_size / 100 ))
 
