@@ -1,12 +1,13 @@
 # Console Configuration Module
 #
-# Purpose: Configure console-only NixOS with frecon-lite + tmux
-# Dependencies: tmux, fish, htop, networkmanager
+# Purpose: Configure console-only NixOS with multi-console fallback strategy
+# Dependencies: tmux, fish, htop, networkmanager, openssh
 # Related: base_configuration/configuration.nix
 #
 # This module:
 # - Disables all graphical services and display managers
-# - Configures getty on PTY0 for frecon-lite console
+# - Configures multiple console access methods (tty2, serial, SSH, pts/0)
+# - Keeps frecon-lite running for framebuffer access
 # - Sets up tmux with pre-configured sessions
 # - Provides console-specific helper scripts and MOTD
 
@@ -25,22 +26,77 @@
   # DISABLE kill-frecon (we want to keep frecon-lite running)
   systemd.services.kill-frecon.enable = lib.mkForce false;
 
-  # Enable getty on PTY0 (where frecon-lite provides console)
-  systemd.services."getty@pts0" = {
+  # Ensure /dev/pts is mounted early
+  boot.specialFileSystems."/dev/pts" = {
+    fsType = "devpts";
+    options = [ "mode=0620" "gid=5" "ptmxmode=0666" ];
+  };
+
+  # Strategy 1: Serial console (always works if hardware available)
+  systemd.services."serial-getty@ttyS0" = {
+    enable = lib.mkDefault true;
+    wantedBy = [ "getty.target" ];
+  };
+
+  # Strategy 2: tty2 (reliable fallback, always exists)
+  systemd.services."getty@tty2" = {
     enable = true;
-    wantedBy = [ "multi-user.target" ];
+    wantedBy = [ "getty.target" ];
     after = [ "systemd-user-sessions.service" ];
 
     serviceConfig = {
       StandardInput = "tty";
       StandardOutput = "tty";
       StandardError = "journal";
+      TTYPath = "/dev/tty2";
+      TTYReset = "yes";
+      TTYVHangup = "yes";
+      TTYVTDisallocate = "yes";
+      Restart = "always";
+      RestartSec = "2";
+    };
+  };
+
+  # Strategy 3: tty3-6 (additional fallback consoles)
+  systemd.services."getty@tty3".enable = lib.mkDefault true;
+  systemd.services."getty@tty4".enable = lib.mkDefault true;
+  systemd.services."getty@tty5".enable = lib.mkDefault true;
+  systemd.services."getty@tty6".enable = lib.mkDefault true;
+
+  # Strategy 4: SSH (most reliable if network works)
+  services.openssh = {
+    enable = true;
+    settings = {
+      PermitRootLogin = lib.mkForce "yes";  # For emergency access
+      PasswordAuthentication = true;
+    };
+    openFirewall = true;
+  };
+
+  # Strategy 5: PTY console (if frecon-lite cooperates)
+  systemd.services."console-getty-pty" = {
+    description = "Console Getty on frecon-lite PTY";
+
+    # Only start if /dev/pts/0 exists
+    unitConfig = {
+      ConditionPathExists = "/dev/pts/0";
+    };
+
+    after = [ "systemd-user-sessions.service" "dev-pts.mount" ];
+    wants = [ "systemd-user-sessions.service" ];
+    wantedBy = [ "getty.target" ];
+
+    serviceConfig = {
+      Type = "idle";
+      ExecStart = "${pkgs.util-linux}/bin/agetty --noclear --keep-baud pts/0 115200,38400,9600 linux";
+      Restart = "always";
+      RestartSec = "5";
+      StandardInput = "tty";
+      StandardOutput = "tty";
+      StandardError = "journal";
       TTYPath = "/dev/pts/0";
       TTYReset = "yes";
-      Restart = "always";
-      RestartSec = "2s";
-
-      # Don't try to lock console (frecon-lite already has it)
+      TTYVHangup = "no";
       UtmpIdentifier = "pts0";
     };
   };
@@ -82,11 +138,12 @@
     '';
   };
 
-  # Auto-start tmux on login
+  # Auto-start tmux on login for pts/0 and tty2
   programs.fish.loginShellInit = lib.mkAfter ''
-    # Only auto-start tmux if we're in PTY0 and not already in tmux
+    # Only auto-start tmux if we're in a console TTY and not already in tmux
     if status is-login
-      if test "$TTY" = "/dev/pts/0"
+      set current_tty (tty)
+      if string match -q "/dev/pts/0" "$current_tty"; or string match -q "/dev/tty2" "$current_tty"
         if not set -q TMUX
           echo "Starting console tmux session..."
           exec tmux new-session -A -s console
@@ -99,21 +156,17 @@
   environment.systemPackages = with pkgs; [
     tmux
     htop
-    bottom  # Modern htop alternative
-    ncdu    # Disk usage analyzer
-    ranger  # File manager
     vim
-    neovim
     git
     wget
     curl
-    ripgrep
-    fd
-    bat
-    eza
 
     # Network management
     networkmanager
+
+    # Console utilities
+    kbd
+    util-linux
 
     # Helpful scripts
     (writeShellScriptBin "console-help" ''
@@ -121,7 +174,13 @@
       === NixOS Shimboot Console Mode ===
 
       You're running in console-only mode (no display manager).
-      This session uses frecon-lite + tmux for terminal multiplexing.
+
+      AVAILABLE CONSOLES:
+        • tty2         - Primary console (should be active)
+        • tty3-6       - Additional consoles
+        • ttyS0        - Serial console (if hardware connected)
+        • pts/0        - frecon-lite PTY (if available)
+        • SSH          - Remote access (if network configured)
 
       TMUX SHORTCUTS (no prefix needed):
         Ctrl+Left/Right  - Switch between windows
@@ -134,12 +193,10 @@
         3. System logs (journalctl -f)
         4. Network config (nmtui)
 
-      CREATE NEW WINDOW:
+      TMUX COMMANDS (with Ctrl+B prefix):
         Ctrl+B c        - Create new window
         Ctrl+B ,        - Rename window
         Ctrl+B &        - Close window
-
-      SPLIT PANES:
         Ctrl+B %        - Split vertically
         Ctrl+B "        - Split horizontally
         Ctrl+B x        - Close pane
@@ -150,6 +207,11 @@
 
       SSH ACCESS:
         ssh-info        - Show SSH connection info
+        ip addr         - Show IP addresses
+
+      DEBUGGING:
+        console-status  - System and console status
+        tty-status      - TTY/getty service status
 
       SWITCH TO GRAPHICAL MODE:
         Flash the 'full' or 'minimal' rootfs instead.
@@ -163,19 +225,37 @@
     (writeShellScriptBin "console-status" ''
       echo "=== Console Mode Status ==="
       echo ""
-      echo "TTY: $(tty)"
+      echo "Current TTY: $(tty)"
       echo "TERM: $TERM"
       echo "TMUX: ''${TMUX:-Not in tmux}"
       echo ""
+
       echo "frecon-lite process:"
-      pgrep -a frecon-lite || echo "  Not running (unexpected!)"
+      pgrep -a frecon-lite || echo "  Not running (expected in console mode)"
       echo ""
+
+      echo "Active getty services:"
+      systemctl list-units 'getty@*' 'serial-getty@*' --no-legend --no-pager | \
+        awk '{printf "  %-30s %s\n", $1, $3}' || echo "  No getty services found"
+      echo ""
+
+      echo "Console devices:"
+      ls -l /dev/pts/0 2>/dev/null || echo "  /dev/pts/0: not available"
+      ls -l /dev/tty[2-6] 2>/dev/null | head -5
+      echo ""
+
       echo "Network status:"
-      nmcli -t -f DEVICE,STATE,CONNECTION device status
+      nmcli -t -f DEVICE,STATE,CONNECTION device status 2>/dev/null || echo "  NetworkManager not available"
       echo ""
+
+      echo "IP addresses:"
+      ip -4 -brief addr show | grep -v "127.0.0.1" || echo "  No IPv4 addresses"
+      echo ""
+
       echo "Memory usage:"
       free -h
       echo ""
+
       echo "Disk usage:"
       df -h /
     '')
@@ -191,29 +271,50 @@
     This is a console-only build without display manager or desktop.
 
     GETTING STARTED:
-      • console-help     - Show tmux shortcuts and tips
-      • console-status   - System information
-      • setup_nixos      - First-time setup wizard
-      • ssh-info         - Enable remote SSH access
+      • console-help     - Show all console commands and shortcuts
+      • console-status   - System information and status
+      • setup_nixos      - First-time setup wizard (Wi-Fi, expand disk)
+      • ssh-info         - Show SSH connection info
 
-    NETWORK:
-      • nmtui            - Text-based network config
-      • WiFi window      - Switch to window 4 (Ctrl+Right x3)
+    QUICK ACCESS:
+      • nmtui            - Configure Wi-Fi/network
+      • htop             - System monitor (or Ctrl+Right to switch)
+      • journalctl -f    - System logs (or Ctrl+Right x2 to switch)
 
-    MONITORING:
-      • htop window      - Switch to window 2 (Ctrl+Right)
-      • Logs window      - Switch to window 3 (Ctrl+Right x2)
+    AVAILABLE CONSOLES:
+      • tty2-6           - Text consoles (you're on tty2)
+      • ttyS0            - Serial console
+      • SSH              - Remote access (run 'ssh-info' for details)
 
     Run 'console-help' for full documentation.
+
+  '';
+
+  # Show helpful message if SSH is available
+  environment.etc."issue".text = ''
+
+    NixOS Shimboot Console Mode
+
+    Console access available on:
+    - tty2-6 (text consoles)
+    - ttyS0 (serial console if hardware connected)
+    - SSH (if network configured)
+
+    Default login: ${userConfig.user.username} / nixos-shimboot
 
   '';
 
   # Disable power management that requires X/Wayland
   services.tlp.enable = lib.mkForce false;
 
-  # Console font (for frecon-lite)
+  # Console font (for frecon-lite and TTYs)
   console = {
     font = "Lat2-Terminus16";
     keyMap = "us";
+  };
+
+  # Ensure getty.target waits for multi-user.target
+  systemd.targets.getty = {
+    after = [ "multi-user.target" ];
   };
 }
