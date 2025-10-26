@@ -152,4 +152,12 @@
       "theme.osd.monitor" = 1;
     };
   };
+
+  # Ensure HyprPanel restarts on failure
+  systemd.user.services.hyprpanel = {
+    Service = {
+      Restart = "on-failure";
+      RestartSec = "3s";
+    };
+  };
 }
