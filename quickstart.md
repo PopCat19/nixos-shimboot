@@ -139,6 +139,6 @@ sudo resize2fs /dev/sdXN
 - No suspend support (ChromeOS kernel limitation)
 - Limited audio support
 - May require `--impure` for some builds
-- May require manual kernel namespace workarounds for `nixos-rebuild` (e.g. appending `--options disable sandbox` on shim kernels <5.6)
+- May require manual kernel namespace workarounds for `nixos-rebuild` (e.g. appending `--option sandbox false` on shim kernels <5.6)
 
 For more documentation, see [README.md](README.md) and [SPEC.mc](SPEC.md).
