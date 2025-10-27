@@ -8,7 +8,7 @@
 # - Defines bar layouts for different monitors
 # - Configures dashboard shortcuts using userConfig
 # - Provides home-specific HyprPanel settings
-{userConfig, ...}: {
+{userConfig, pkgs, lib, ...}: {
   programs.hyprpanel = {
     enable = true;
     systemd.enable = true;
@@ -153,11 +153,24 @@
     };
   };
 
-  # Ensure HyprPanel restarts on failure
+  # Fix service dependencies
   systemd.user.services.hyprpanel = {
+    Unit = {
+      Description = "Bar/Panel for Hyprland with extensive customizability";
+      After = ["graphical-session.target" "hyprland-session.target"];
+      PartOf = ["graphical-session.target"];
+      # Remove ConditionEnvironment check; rely on After= instead
+      ConditionEnvironment = lib.mkForce [];
+    };
+
     Service = {
+      ExecStart = lib.mkForce "${pkgs.hyprpanel}/bin/hyprpanel";
       Restart = "on-failure";
       RestartSec = "3s";
+      # Ensure WAYLAND_DISPLAY is inherited from Hyprland session
+      Environment = "PATH=/run/current-system/sw/bin";
     };
+
+    Install.WantedBy = ["hyprland-session.target"];
   };
 }
