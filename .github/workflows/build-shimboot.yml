@@ -217,10 +217,10 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: shimboot-${{ matrix.board }}-${{ github.event.inputs.rootfs || 'minimal' }}
+          name: ${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}
           path: |
-            /nix/work/shimboot.img.zst
-            /nix/work/shimboot.img.zst.sha256
-            work/shimboot.img.zst
-            work/shimboot.img.zst.sha256
+            /nix/work/${{ matrix.board }}-shimboot.img.zst
+            /nix/work/${{ matrix.board }}-shimboot.img.zst.sha256
+            work/${{ matrix.board }}-shimboot.img.zst
+            work/${{ matrix.board }}-shimboot.img.zst.sha256
           retention-days: 30
