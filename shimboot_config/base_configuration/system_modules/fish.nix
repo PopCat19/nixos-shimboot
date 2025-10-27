@@ -13,9 +13,9 @@
     fish = {
       enable = lib.mkDefault true;
 
-     interactiveShellInit = lib.mkDefault ''
-       # Fish greeting is now handled by fish-functions.nix
-     '';
+      interactiveShellInit = lib.mkDefault ''
+        # Fish greeting is now handled by fish-functions.nix
+      '';
     };
 
     starship = {
