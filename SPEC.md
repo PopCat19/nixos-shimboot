@@ -118,6 +118,10 @@ raw-rootfs-minimal (board-independent)
 ├─ Input: base_configuration/ only
 ├─ Output: nixos.img (ext4 filesystem)
 └─ Generator: nixos-generators (raw format)
+
+Supported Boards:
+├─ dedede, grunt, hatch, nissa, octopus, snappy, zork
+└─ Each board provides: shim, recovery, kernel, initramfs variants
 ```
 
 ### Configuration Variants
@@ -178,6 +182,7 @@ flake.nix
    ├─ 2/15: Harvest ChromeOS drivers
    ├─ 3/15: Augment firmware with upstream linux-firmware
    ├─ 4/15: Prune unused firmware files (conservative Chromebook families)
+   │  └─ Enhanced with Chromebook family-specific pruning
    ├─ 5/15: Copy raw rootfs image
    ├─ 6/15: Optimize Nix store
    ├─ 7/15: Calculate partition sizes
@@ -245,57 +250,95 @@ shimboot_config/user-config.nix
 base_configuration/
 ├─ configuration.nix                - Main entry point
 └─ system_modules/
+   ├─ audio.nix                     - Audio configuration
    ├─ boot.nix                      - Disables standard bootloaders
-   ├─ networking.nix                - NetworkManager + wpa_supplicant
-   ├─ filesystems.nix               - Single ext4 partition
-   ├─ hardware.nix                  - Firmware enablement
-   ├─ systemd.nix                   - Patched systemd + kill-frecon service
-   ├─ users.nix                     - Default user accounts
    ├─ display.nix                   - LightDM + Hyprland
-   ├─ packages.nix                  - Minimal system packages
+   ├─ filesystems.nix               - Single ext4 partition
    ├─ fish.nix                      - Fish shell + Starship
    ├─ fish-functions.nix            - Fish shell functions and abbreviations
-   │  └─ fish_functions/
-   │     ├─ fix-fish-history.fish    - History repair utility
-   │     ├─ fish-greeting.fish       - Welcome message
-   │     ├─ list-fish-helpers.fish   - Function/abbreviation listing
-   │     ├─ nixos-flake-update.fish  - Flake update with backup
-   │     └─ nixos-rebuild-basic.fish - System rebuild with kernel checks
+   ├─ fonts.nix                     - System fonts
+   ├─ hardware.nix                  - Firmware enablement
+   ├─ localization.nix              - Locale and timezone settings
+   ├─ networking.nix                - NetworkManager + wpa_supplicant
+   ├─ packages.nix                  - Minimal system packages
+   ├─ power-management.nix          - Power management settings
+   ├─ security.nix                  - Security configurations
+   ├─ services.nix                  - System services
+   ├─ systemd.nix                   - Patched systemd + kill-frecon service
+   ├─ users.nix                     - Default user accounts
    ├─ zram.nix                      - Swap compression
+   ├─ fish_functions/
+   │  ├─ fix-fish-history.fish      - History repair utility
+   │  ├─ fish-greeting.fish         - Welcome message
+   │  ├─ list-fish-helpers.fish     - Function/abbreviation listing
+   │  ├─ nixos-flake-update.fish    - Flake update with backup
+   │  └─ nixos-rebuild-basic.fish   - System rebuild with kernel checks
    └─ helpers/
       ├─ filesystem-helpers.nix     - expand_rootfs
+      ├─ helpers.nix                - Helper scripts entry point
       ├─ permissions-helpers.nix    - permission utilities
-      ├─ setup-helpers.nix          - setup_nixos wizard
+      └─ setup-helpers.nix          - setup_nixos wizard
 
 main_configuration/
 ├─ configuration.nix                - Imports base + adds user modules
 ├─ system_modules/
-│  ├─ fonts.nix                     - System fonts
-│  └─ packages.nix                  - User applications
-│  └─ services.nix                  - Flatpak enablement
+   │  ├─ fonts.nix                  - System fonts
+   │  ├─ packages.nix               - User applications
+   │  └─ services.nix               - Flatpak enablement
 │
-└─ home_modules/
-   ├─ home.nix                      - Home Manager entry point
-   ├─ hypr_config/                  - Hyprland settings
-   │  ├─ hyprland.nix
-   │  ├─ hyprpanel-home.nix
-   │  └─ hypr_modules/
-   │     ├─ colors.nix
-   │     ├─ animations.nix
-   │     ├─ keybinds.nix
-   │     └─ window-rules.nix
-   │
-   ├─ packages/                     - Application categories
-   │  ├─ communication.nix          - Vesktop
-   │  ├─ media.nix                  - MPV, Audacious
-   │  ├─ utilities.nix              - CLI tools
-   │  └─ gaming.nix                 - Lutris, OSU
-   │
-   ├─ theme.nix                     - Rose Pine theming
-   ├─ kitty.nix                     - Terminal config
-   ├─ fish.nix                      - Shell abbreviations
-   ├─ zen-browser.nix               - Browser with extensions
-   └─ kde.nix                       - KDE apps (Dolphin, Gwenview)
+├─ home_modules/
+│  ├─ environment.nix               - Environment variables
+│  ├─ fcitx5.nix                    - Input method configuration
+│  ├─ fish.nix                      - Shell abbreviations
+│  ├─ home.nix                      - Home Manager entry point
+│  ├─ kde.nix                       - KDE apps (Dolphin, Gwenview)
+│  ├─ kitty.nix                     - Terminal config
+│  ├─ lib/
+│  │  └─ theme.nix                  - Theme library functions
+│  ├─ micro.nix                     - Micro editor configuration
+│  ├─ packages/
+│  │  ├─ communication.nix         - Vesktop
+│  │  ├─ gaming.nix                 - Lutris, OSU
+│  │  ├─ media.nix                  - MPV, Audacious
+│  │  ├─ notifications.nix          - Notification systems
+│  │  └─ utilities.nix              - CLI tools
+│  ├─ privacy.nix                   - Privacy settings
+│  ├─ programs.nix                  - Program configurations
+│  ├─ qt-gtk-config.nix             - Qt/GTK theme configuration
+│  ├─ screenshot.fish               - Screenshot function
+│  ├─ screenshot.nix                - Screenshot configuration
+│  ├─ services.nix                  - User services
+│  ├─ starship.nix                  - Starship prompt
+│  ├─ theme.nix                     - Rose Pine theming
+│  └─ zen-browser.nix               - Browser with extensions
+│
+├─ hypr_config/
+│  ├─ hypr_packages.nix             - Hyprland package definitions
+│  ├─ hyprland.nix                  - Hyprland configuration
+│  ├─ hyprpanel-common.nix          - HyprPanel common settings
+│  ├─ hyprpanel-home.nix            - HyprPanel home configuration
+│  ├─ hyprpaper.conf                - Wallpaper configuration
+│  ├─ monitors.conf                 - Monitor configuration
+│  ├─ userprefs.conf                - User preferences
+│  ├─ wallpaper.nix                 - Wallpaper management
+│  ├─ hypr_modules/
+│  │  ├─ animations.nix            - Window animations
+│  │  ├─ autostart.nix              - Autostart applications
+│  │  ├─ colors.nix                 - Color scheme
+│  │  ├─ environment.nix            - Environment variables
+│  │  ├─ fuzzel.nix                 - Application launcher
+│  │  ├─ general.nix                - General settings
+│  │  ├─ hyprlock.nix               - Lock screen
+│  │  ├─ keybinds.nix               - Keyboard shortcuts
+│  │  └─ window-rules.nix           - Window behavior rules
+│  ├─ shaders/
+│  │  ├─ blue-light-filter.glsl     - Blue light filter shader
+│  │  └─ cool-stuff.glsl            - Visual effects shader
+│  └─ micro_config/
+│     └─ rose-pine.micro            - Micro editor theme
+│
+└─ wallpaper/
+   └─ kasane_teto_utau_drawn_by_yananami_numata220.jpg
 ```
 
 ---
@@ -630,6 +673,7 @@ Build without upstream firmware:
 
 Flash to USB:
 └─ sudo ./tools/write-shimboot-image.sh -i work/shimboot.img --output /dev/sdX
+   └─ Uses improved dd flags for better reliability
 
 Expand rootfs on device:
 └─ sudo expand_rootfs
