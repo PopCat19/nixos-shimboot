@@ -78,7 +78,7 @@ Flake status and roadmap (not a spec) for the current branch:
 - [x] Builds functional NixOS with running hyprland
 - [x] Have functional networking
 - [x] `nix-shell -p firefox` works (note limited space without `expand_rootfs`)
-- [x] Builds functional NixOS with `nixos-rebuild` support (requires appending `--options disable sandbox` on shim kernels below 5.6 due to missing kernel namespaces)
+- [x] Builds functional NixOS with `nixos-rebuild` support (requires appending `--option sandbox false` on shim kernels below 5.6 due to missing kernel namespaces)
 - [x] Setup minimal base_configuration
 - [x] Setup initial main_configuration for hyprland and home-manager
 - [x] Implement multi-board compatibility in flake and build derivations (untested)
