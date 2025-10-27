@@ -168,9 +168,9 @@ jobs:
       # Artifact Preparation
       # Compress final image and generate checksum for distribution
 
-      - name: Compress image
+      - name: Compress and rename
         run: |
-          # Detect where assemble-final.sh placed the image
+          # Detect work directory
           if [ -f "/nix/work/shimboot.img" ]; then
             WORKDIR="/nix/work"
             echo "✅ Using CI work directory: /nix/work"
@@ -178,19 +178,40 @@ jobs:
             WORKDIR="work"
             echo "✅ Using local work directory: work"
           else
-            echo "❌ Error: shimboot.img not found in expected locations!"
-            echo "Searching for shimboot.img..."
-            find . -name "shimboot.img" -type f 2>/dev/null || echo "No shimboot.img found anywhere"
+            echo "❌ Error: shimboot.img not found!"
+            find . -name "shimboot.img" -type f 2>/dev/null || true
             exit 1
           fi
 
-          echo "📦 Compressing image at: $WORKDIR/shimboot.img"
+          # Fix permissions if in /nix/work (created by sudo)
+          if [ "$WORKDIR" = "/nix/work" ]; then
+            echo "🔧 Adjusting permissions for compression..."
+            sudo chown -R $(whoami):$(whoami) "$WORKDIR"
+          fi
+
           cd "$WORKDIR"
-
+          
+          echo "📦 Compressing ${{ matrix.board }} image..."
           pv shimboot.img | zstd -19 -T0 -o shimboot.img.zst
-          sha256sum shimboot.img.zst > shimboot.img.zst.sha256
-
-          echo "✅ Compressed: $(du -h shimboot.img.zst | cut -f1)"
+          
+          # Rename to board-specific name
+          ARTIFACT_NAME="${{ matrix.board }}-shimboot.img.zst"
+          mv shimboot.img.zst "$ARTIFACT_NAME"
+          
+          # Generate checksum
+          sha256sum "$ARTIFACT_NAME" > "${ARTIFACT_NAME}.sha256"
+          
+          # Verify size
+          SIZE_MB=$(du -m "$ARTIFACT_NAME" | cut -f1)
+          if [ "$SIZE_MB" -gt 2000 ]; then
+            echo "⚠️ WARNING: Artifact is ${SIZE_MB}MB (exceeds 2GB GitHub limit)"
+          else
+            echo "✅ Artifact size: ${SIZE_MB}MB (within 2GB limit)"
+          fi
+          
+          echo "✅ Created: $ARTIFACT_NAME ($(du -h $ARTIFACT_NAME | cut -f1))"
+          
+          # Clean up uncompressed image
           rm shimboot.img
 
       - name: Upload artifact
