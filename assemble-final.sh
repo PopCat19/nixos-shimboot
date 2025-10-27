@@ -18,19 +18,11 @@ set -euo pipefail
 # Use -H to set HOME to /root to avoid "$HOME is not owned by you" warnings under sudo.
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
 	echo "[assemble-final] Re-executing with sudo -H..."
-	# Preserve both BOARD and BOARD_EXPLICITLY_SET if they exist
 	SUDO_ENV=()
-	if [ -n "${BOARD:-}" ]; then
-		SUDO_ENV+=("BOARD=$BOARD")
-	fi
-	if [ -n "${BOARD_EXPLICITLY_SET:-}" ]; then
-		SUDO_ENV+=("BOARD_EXPLICITLY_SET=$BOARD_EXPLICITLY_SET")
-	fi
-	if [ ${#SUDO_ENV[@]} -gt 0 ]; then
-		exec sudo -H "${SUDO_ENV[@]}" "$0" "$@"
-	else
-		exec sudo -H "$0" "$@"
-	fi
+	for var in BOARD BOARD_EXPLICITLY_SET CACHIX_AUTH_TOKEN; do
+		if [ -n "${!var:-}" ]; then SUDO_ENV+=("$var=${!var}"); fi
+	done
+	exec sudo -E -H "${SUDO_ENV[@]}" "$0" "$@"
 fi
 
 # === Colors & Logging ===
@@ -56,6 +48,37 @@ log_warn() {
 log_error() {
 	printf "${ANSI_RED}  ✗ %s${ANSI_CLEAR}\n" "$1"
 }
+
+# === Cachix Configuration (fixed cache, CI-safe) ===
+CACHIX_CACHE="shimboot-systemd-nixos"
+CACHIX_PUBKEY="shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA="
+export CACHIX_CACHE CACHIX_PUBKEY
+
+# Enable caching if cachix is available
+if command -v cachix >/dev/null 2>&1; then
+  log_info "Using Cachix cache: ${CACHIX_CACHE}"
+
+  # Authenticate if token is provided (recommended for CI)
+  if [ -n "${CACHIX_AUTH_TOKEN:-}" ]; then
+    cachix authtoken "$CACHIX_AUTH_TOKEN" 2>/dev/null || true
+  fi
+
+  # Configure trusted cache only if writable (skip on NixOS read-only systems)
+  if [ -w /etc/nix/nix.conf ] 2>/dev/null; then
+    mkdir -p /etc/nix
+    if ! grep -q "$CACHIX_CACHE" /etc/nix/nix.conf 2>/dev/null; then
+      echo "substituters = https://cache.nixos.org https://${CACHIX_CACHE}.cachix.org" | sudo tee -a /etc/nix/nix.conf >/dev/null
+      echo "trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ${CACHIX_PUBKEY}" | sudo tee -a /etc/nix/nix.conf >/dev/null
+      log_info "Configured nix.conf for Cachix trust"
+    fi
+  elif [ -f /etc/nix/nix.conf ]; then
+    log_info "nix.conf is read-only (NixOS); cache should be configured in system config"
+  else
+    log_warn "nix.conf not accessible; ensure Cachix is configured via NixOS config or user settings"
+  fi
+else
+  log_warn "cachix CLI not installed; skipping cache integration"
+fi
 
 # Ensure unfree packages are allowed for nix builds that require ChromeOS tools/firmware
 export NIXPKGS_ALLOW_UNFREE="${NIXPKGS_ALLOW_UNFREE:-1}"
@@ -269,6 +292,18 @@ fi
 log_info "Original kernel p2: $ORIGINAL_KERNEL"
 log_info "Patched initramfs dir: $PATCHED_INITRAMFS"
 log_info "Raw rootfs: $RAW_ROOTFS_IMG"
+
+# === Step 1 (Cachix push, disabled on CI) ===
+if command -v cachix >/dev/null 2>&1 && [ "${CI:-}" != "true" ]; then
+  log_step "1/15 (Cachix)" "Pushing built derivations to ${CACHIX_CACHE}"
+  cachix push "$CACHIX_CACHE" \
+    "$(dirname "$ORIGINAL_KERNEL")" \
+    "$(dirname "$PATCHED_INITRAMFS")" \
+    "$(dirname "$RAW_ROOTFS_IMG")" \
+    || log_warn "Some Cachix pushes may have failed; continuing build."
+else
+  [ "${CI:-}" = "true" ] && log_info "CI detected — skipping manual Cachix push (handled by GitHub Action)"
+fi
 
 # Build ChromeOS SHIM and determine RECOVERY per policy
 SHIM_BIN="$(nix build --impure --accept-flake-config .#chromeos-shim-${BOARD} --print-out-paths)"
@@ -656,6 +691,22 @@ sudo umount "$WORKDIR/mnt_rootfs"
 sudo losetup -d "$LOOPDEV"
 LOOPDEV=""
 log_info "✅ Final image created at: $IMAGE"
+
+# === Step 16: Final Cachix sync (disabled on CI) ===
+if command -v cachix >/dev/null 2>&1 && [ "${CI:-}" != "true" ]; then
+  log_step "16/15" "Final Cachix push sync"
+  for drv in \
+    ".#chromeos-shim-${BOARD}" \
+    ".#extracted-kernel-${BOARD}" \
+    ".#initramfs-patching-${BOARD}" \
+    ".#${RAW_ROOTFS_ATTR}"; do
+    log_info "Pushing $drv path..."
+    nix path-info "$drv" | cachix push "$CACHIX_CACHE" || true
+  done
+  log_info "✅ Cachix push complete: ${CACHIX_CACHE}"
+else
+  [ "${CI:-}" = "true" ] && log_info "CI detected — skipping final Cachix push (handled externally)"
+fi
 
 # === Optional cleanup of old shimboot rootfs generations ===
 if [ "${CLEANUP_ROOTFS:-0}" -eq 1 ]; then

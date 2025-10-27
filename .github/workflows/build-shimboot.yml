@@ -190,37 +190,39 @@ jobs:
           fi
 
           cd "$WORKDIR"
-          
-          echo "📦 Compressing ${{ matrix.board }} image..."
-          pv shimboot.img | zstd -19 -T0 -o shimboot.img.zst
-          
-          # Rename to board-specific name
-          ARTIFACT_NAME="${{ matrix.board }}-shimboot.img.zst"
-          mv shimboot.img.zst "$ARTIFACT_NAME"
-          
-          # Generate checksum
-          sha256sum "$ARTIFACT_NAME" > "${ARTIFACT_NAME}.sha256"
-          
-          # Verify size
-          SIZE_MB=$(du -m "$ARTIFACT_NAME" | cut -f1)
+          # Build artifact directory structure
+          ARTIFACT_TAG="${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}"
+          ARTIFACT_DIR="${ARTIFACT_TAG}"
+          mkdir -p "$ARTIFACT_DIR"
+
+          echo "📦 Compressing image for ${ARTIFACT_TAG}..."
+          pv shimboot.img | zstd -19 -T0 -o "$ARTIFACT_DIR/${ARTIFACT_TAG}.img.zst"
+
+          echo "🔐 Generating SHA256 checksum..."
+          (
+            cd "$ARTIFACT_DIR"
+            sha256sum "${ARTIFACT_TAG}.img.zst" > "${ARTIFACT_TAG}.img.zst.sha256"
+          )
+
+          # Display info about final size
+          SIZE_MB=$(du -m "$ARTIFACT_DIR/${ARTIFACT_TAG}.img.zst" | cut -f1)
           if [ "$SIZE_MB" -gt 2000 ]; then
-            echo "⚠️ WARNING: Artifact is ${SIZE_MB}MB (exceeds 2GB GitHub limit)"
+            echo "⚠️ WARNING: Artifact is ${SIZE_MB}MB (exceeds 2GB GitHub upload limit)"
           else
             echo "✅ Artifact size: ${SIZE_MB}MB (within 2GB limit)"
           fi
-          
-          echo "✅ Created: $ARTIFACT_NAME ($(du -h $ARTIFACT_NAME | cut -f1))"
-          
-          # Clean up uncompressed image
-          rm shimboot.img
+
+          echo "✅ Created artifact directory:"
+          tree -h "$ARTIFACT_DIR" || ls -lh "$ARTIFACT_DIR"
+
+          # Remove uncompressed image
+          rm -f shimboot.img
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}
           path: |
-            /nix/work/${{ matrix.board }}-shimboot.img.zst
-            /nix/work/${{ matrix.board }}-shimboot.img.zst.sha256
-            work/${{ matrix.board }}-shimboot.img.zst
-            work/${{ matrix.board }}-shimboot.img.zst.sha256
+            /nix/work/${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}/
+            work/${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}/
           retention-days: 30
