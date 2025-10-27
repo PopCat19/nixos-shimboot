@@ -177,7 +177,7 @@ flake.nix
    ├─ 1/15: Build Nix outputs
    ├─ 2/15: Harvest ChromeOS drivers
    ├─ 3/15: Augment firmware with upstream linux-firmware
-   ├─ 4/15: Prune unused firmware files
+   ├─ 4/15: Prune unused firmware files (conservative Chromebook families)
    ├─ 5/15: Copy raw rootfs image
    ├─ 6/15: Optimize Nix store
    ├─ 7/15: Calculate partition sizes
@@ -270,9 +270,9 @@ base_configuration/
 main_configuration/
 ├─ configuration.nix                - Imports base + adds user modules
 ├─ system_modules/
-│  ├─ display.nix                   - Hyprland integration
 │  ├─ fonts.nix                     - System fonts
 │  └─ packages.nix                  - User applications
+│  └─ services.nix                  - Flatpak enablement
 │
 └─ home_modules/
    ├─ home.nix                      - Home Manager entry point
@@ -515,27 +515,23 @@ Example partition layout:
 ```
 Location: tools/harvest-drivers.sh → prune_unused_firmware()
 
-Purpose: Reduce firmware size by removing unused files
+Purpose: Reduce firmware size by conservatively pruning unused files
 Timing: After upstream firmware augmentation (step 4/15)
 
-Detection logic:
-├─ lspci -k | grep -i "network" → WiFi chipset detection
-├─ intel → iwlwifi pattern
-├─ realtek → rtw pattern
-└─ atheros → ath pattern
-
-Keep patterns (configurable):
-├─ intel/*           # Intel GPU/WiFi
-├─ iwlwifi-*         # Intel WiFi
-├─ rtw88/*           # Realtek WiFi
-├─ rtw89/*           # Realtek WiFi newer
-├─ brcm/*            # Broadcom
-├─ regulatory.db*    # WiFi regulatory
+Keep families (board-agnostic Chromebook support):
+├─ intel             # Intel WiFi/BT/GPU (most Chromebooks)
+├─ iwlwifi           # Intel WiFi (standalone files)
+├─ rtw88             # Realtek WiFi (newer)
+├─ rtw89             # Realtek WiFi (newest)
+├─ brcm              # Broadcom WiFi/BT
+├─ ath10k            # Atheros WiFi
+├─ mediatek          # MediaTek (new Chromebooks)
+├─ regulatory.db     # Required for WiFi
 └─ *.ucode           # CPU microcode
 
 Customization:
-└─ Edit keep_patterns array in prune_unused_firmware()
-   └─ Add patterns for specific hardware needs
+└─ Edit keep_families array in prune_unused_firmware()
+   └─ Add families for specific hardware needs
 
 Disable pruning:
 └─ Comment out step 4/15 in assemble-final.sh
@@ -551,23 +547,23 @@ Disable pruning:
 **Component Changes:**
 ```
 flake.nix modified
-└─ Update: Section 3 (Component Reference)
+└─ Update: Component Reference section
 
 New configuration module added
-└─ Update: Section 5 (Configuration System)
+└─ Update: Configuration System section
 
 Build process changed
-└─ Update: Section 4 (Build Pipeline)
+└─ Update: Build Pipeline section
 
 Boot mechanism altered
-└─ Update: Section 6 (Boot Mechanism)
+└─ Update: Boot Mechanism section
 
 Hardware compatibility discovered
-└─ Update: Section 1 (Tested Hardware)
-          Section 7 (Known Constraints)
+└─ Update: Tested Hardware section
+          Known Constraints section
 
 New extension point created
-└─ Update: Section 8 (Extension Points)
+└─ Update: Extension Points section
 ```
 
 ### Updating Build Artifacts
@@ -623,6 +619,9 @@ Build full image:
 Build minimal image:
 └─ sudo ./assemble-final.sh --board dedede --rootfs minimal
 
+Build with explicit board (avoids default warning):
+└─ sudo ./assemble-final.sh --board dedede --rootfs full
+
 Build with custom drivers mode:
 └─ sudo ./assemble-final.sh --board dedede --rootfs full --drivers vendor
 
@@ -656,8 +655,8 @@ Build system:
 ├─ flake.nix                                 - Main flake
 ├─ flake_modules/                            - Nix derivations
 ├─ tools/                                    - Build scripts
-│  ├─ harvest-drivers.sh                     - Driver harvesting with firmware pruning
-│  ├─ write-shimboot-image.sh                - USB image writing
+│  ├─ harvest-drivers.sh                     - Driver harvesting with conservative firmware pruning
+│  ├─ write-shimboot-image.sh                - USB image writing with improved dd flags
 │  └─ fetch-manifest.sh                      - ChromeOS manifest fetching
 └─ bootloader/                               - Shimboot bootloader
 
@@ -671,19 +670,19 @@ Build artifacts:
 ### Troubleshooting Entry Points
 ```
 Boot hangs at shimboot menu:
-└─ Section 6 (Boot Mechanism) → Execution Tree
+└─ Boot Mechanism section → Execution Tree
 
 LightDM fails to start:
-└─ Section 7 (Known Constraints) → Software Limitations
+└─ Known Constraints section → Software Limitations
 
 WiFi not working:
-└─ Section 6 (Boot Mechanism) → Vendor Driver Integration
+└─ Boot Mechanism section → Vendor Driver Integration
 
 Build fails:
-└─ Section 4 (Build Pipeline) → Reproducibility Matrix
+└─ Build Pipeline section → Reproducibility Matrix
 
 Want to add features:
-└─ Section 8 (Extension Points)
+└─ Extension Points section
 ```
 
 ---
