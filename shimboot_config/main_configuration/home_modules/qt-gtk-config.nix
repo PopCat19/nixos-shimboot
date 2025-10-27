@@ -107,5 +107,4 @@
     MimeType=text/plain;text/x-readme;text/x-log;application/json;text/x-python;text/x-shellscript;text/x-script;
     Terminal=true
   '';
-
 }

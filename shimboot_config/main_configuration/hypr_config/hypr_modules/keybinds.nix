@@ -9,7 +9,11 @@
 # - Sets up application launchers
 # - Configures media controls and utilities
 # - Defines workspace switching and mouse bindings
-{config, userConfig, ...}: {
+{
+  config,
+  userConfig,
+  ...
+}: {
   wayland.windowManager.hyprland.settings = {
     "$mainMod" = "SUPER";
 
