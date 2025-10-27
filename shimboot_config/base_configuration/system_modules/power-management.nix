@@ -8,6 +8,7 @@
 # - Enables system power management
 # - Configures thermal management for Intel CPUs
 # - Enables battery monitoring and power saving
+# - Configures WiFi power saving
 {
   config,
   pkgs,
@@ -18,4 +19,10 @@
   services.thermald.enable = lib.mkDefault true;
   services.upower.enable = lib.mkDefault true;
   services.tlp.enable = lib.mkDefault true;
+
+  networking = {
+    networkmanager = {
+      wifi.powersave = lib.mkDefault true;
+    };
+  };
 }

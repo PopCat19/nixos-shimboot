@@ -53,11 +53,7 @@
      in
        lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
 
-     fish_greeting = let
-       content = builtins.readFile ./fish_functions/fish-greeting.fish;
-       lines = lib.splitString "\n" content;
-     in
-       lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
+     fish_greeting = builtins.readFile ../../../../fish_functions/fish-greeting.fish;
    };
 
     shellAbbrs = {

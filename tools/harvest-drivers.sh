@@ -37,42 +37,40 @@ log_error() {
 # Prune unused firmware files to reduce size
 prune_unused_firmware() {
 	local firmware_dir="$1"
-	
-	log_step "Prune" "Analyzing required firmware..."
-	
-	# Detect WiFi chipset
-	local wifi_module=""
-	if lspci -k | grep -i "network" | grep -qi "intel"; then
-		wifi_module="iwlwifi"
-	elif lspci -k | grep -i "network" | grep -qi "realtek"; then
-		wifi_module="rtw"
-	elif lspci -k | grep -i "network" | grep -qi "atheros"; then
-		wifi_module="ath"
-	fi
-	
-	# Keep only essential firmware families
-	local keep_patterns=(
-		"intel/*"           # Intel GPU/WiFi
-		"iwlwifi-*"         # Intel WiFi
-		"rtw88/*"           # Realtek WiFi
-		"rtw89/*"
-		"brcm/*"            # Broadcom
-		"regulatory.db*"    # WiFi regulatory
+
+	log_step "Prune" "Conservatively pruning firmware..."
+
+	# Keep common Chromebook firmware families (board-agnostic)
+	local keep_families=(
+		"intel"             # Intel WiFi/BT/GPU (most Chromebooks)
+		"iwlwifi"           # Intel WiFi (standalone files)
+		"rtw88"             # Realtek WiFi (newer)
+		"rtw89"             # Realtek WiFi (newest)
+		"brcm"              # Broadcom WiFi/BT
+		"ath10k"            # Atheros WiFi
+		"mediatek"          # MediaTek (new Chromebooks)
+		"regulatory.db"     # Required for WiFi
 		"*.ucode"           # CPU microcode
 	)
-	
-	# Build find command to keep only matching files
+
+	log_info "Keeping essential Chromebook firmware families..."
+
+	# Build find exclusion expression dynamically
 	local find_cmd="find \"$firmware_dir\" -type f"
-	for pattern in "${keep_patterns[@]}"; do
-		find_cmd="$find_cmd ! -path \"*/$pattern\""
+	for family in "${keep_families[@]}"; do
+		find_cmd="$find_cmd ! -path \"*/$family/*\" ! -name \"$family*\""
 	done
 	find_cmd="$find_cmd -delete"
-	
+
 	log_info "Removing unused firmware files..."
 	eval "$find_cmd"
-	
-	# Report savings
-	local remaining_size=$(du -sh "$firmware_dir" | cut -f1)
+
+	# Remove empty directories
+	find "$firmware_dir" -type d -empty -delete 2>/dev/null || true
+
+	# Report size after pruning
+	local remaining_size
+	remaining_size=$(du -sh "$firmware_dir" | cut -f1)
 	log_info "Firmware pruned to $remaining_size"
 }
 

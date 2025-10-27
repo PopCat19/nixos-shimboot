@@ -18,30 +18,19 @@
   lib,
   ...
 }: {
-  # Absolutely minimal system packages only
+  # Minimal system packages
   environment.systemPackages = with pkgs; [
-    # Core utilities
-    coreutils
-    util-linux
     
     # Text editors
-    vim
-    nano
     micro
     
     # Network tools
-    wget
     curl
     
     # System tools
     git
     btop
-    file
-    
-    # These stay for base functionality:
-    # - systemd (implicit)
-    # - fish (from fish.nix)
-    # - LightDM + Hyprland (from display.nix)
+    fastfetch
   ];
   
   # Disable documentation to save space
