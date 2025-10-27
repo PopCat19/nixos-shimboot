@@ -16,7 +16,7 @@
   ...
 }: {
   hardware = {
-    enableRedistributableFirmware = true;
+    # enableRedistributableFirmware = true;
     graphics = {
       enable = true;
       enable32Bit = lib.mkDefault false;

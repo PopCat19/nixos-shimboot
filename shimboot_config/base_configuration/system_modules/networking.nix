@@ -24,8 +24,6 @@
     hostName = userConfig.host.hostname;
     networkmanager = {
       enable = true;
-      wifi.backend = lib.mkDefault "wpa_supplicant";
-      wifi.powersave = lib.mkDefault false;
     };
     wireless.enable = false;
   };

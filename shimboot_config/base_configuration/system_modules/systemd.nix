@@ -74,8 +74,6 @@
     };
   };
 
-  services.accounts-daemon.enable = true;
-
   services.logind = {
     settings = {
       Login = {

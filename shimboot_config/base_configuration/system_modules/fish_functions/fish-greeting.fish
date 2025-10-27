@@ -1,29 +1,42 @@
-# Fish Greeting Function
-#
-# Purpose: Display welcome message and system status on shell startup
-# Dependencies: awk, df, setup_nixos (optional)
-# Related: fish.nix, fish-functions.nix
-#
-# This function:
-# - Shows welcome message for NixOS Shimboot
-# - Checks if root filesystem needs expansion
-# - Provides tip about setup_nixos command
+# fish_functions/fish-greeting.fish
+# Purpose: Minimal, context-aware Fish shell greeting for base Shimboot
+# Displays system identity, optional config hints, and available helpers
 
-function fish_greeting --description 'Shimboot greeting'
-    echo "Welcome to NixOS Shimboot!"
-    echo "For documentation and to report bugs, please visit the project's Github page:"
-    echo " - https://github.com/popcat19/nixos-shimboot"
+function fish_greeting
+    set -l config_dir $NIXOS_CONFIG_DIR
+    set -l host (hostname)
+    set -l user (whoami)
 
-    set -l percent_full (df -BM / | tail -n1 | awk '{print $5}' | tr -d '%')
-    set -l total_size (df -BM / | tail -n1 | awk '{print $2}' | tr -d 'M')
-
-    if test "$percent_full" -gt 80 -a "$total_size" -lt 7000
-        echo
-        echo "Warning: Your storage is nearly full and you have not yet expanded the root filesystem. Run 'sudo expand_rootfs' to fix this."
+    # Prefer fastfetch or neofetch for system summary
+    if type -q fastfetch
+        fastfetch
+        echo ""
+    else if type -q neofetch
+        neofetch --disable uptime packages shell de wm resolution theme icons term kernel --off
+        echo ""
+    else
+        echo "-------------------------------------------"
+        echo "Welcome to NixOS Shimboot"
+        echo "Host: $host | User: $user | Kernel: (uname -sr)"
+        echo "-------------------------------------------"
+        echo ""
     end
 
-    echo
-    if type -q setup_nixos
-        echo "Tip: run 'setup_nixos' to configure Wi-Fi, expand rootfs, and set up your flake."
+    # Configuration path summary
+    if test -d "$config_dir"
+        echo "Active config: $config_dir"
+        echo ""
+        echo "Common commands:"
+        echo "  • nrb      – rebuild system using current flake"
+        echo "  • flup     – update flake inputs"
+        echo ""
+    else
+        echo "No nixos-config detected."
+        echo "You can initialize it with:"
+        echo "  setup_nixos"
+        echo ""
     end
+
+    echo "Tip: run 'sudo expand_rootfs' if this is a new install."
+    echo ""
 end

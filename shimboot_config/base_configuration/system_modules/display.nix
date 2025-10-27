@@ -56,7 +56,6 @@
       xdgOpenUsePortal = lib.mkDefault true;
       extraPortals = [
         pkgs.xdg-desktop-portal-hyprland
-        pkgs.xdg-desktop-portal-gtk
       ];
     };
   };
@@ -65,8 +64,6 @@
 
   environment.systemPackages = with pkgs; [
     brightnessctl
-    lightdm
-    lightdm-gtk-greeter
-    kitty  # Terminal emulator for Hyprland
+    kitty  # required for the default Hyprland config
   ];
 }

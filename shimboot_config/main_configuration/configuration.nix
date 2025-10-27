@@ -16,7 +16,6 @@
 }: {
   imports = [
     ../base_configuration/configuration.nix
-    ./system_modules/display.nix
     ./system_modules/fonts.nix
     ./system_modules/packages.nix
     ./system_modules/services.nix

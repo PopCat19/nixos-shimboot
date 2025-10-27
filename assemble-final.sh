@@ -18,7 +18,19 @@ set -euo pipefail
 # Use -H to set HOME to /root to avoid "$HOME is not owned by you" warnings under sudo.
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
 	echo "[assemble-final] Re-executing with sudo -H..."
-	exec sudo -H "$0" "$@"
+	# Preserve both BOARD and BOARD_EXPLICITLY_SET if they exist
+	SUDO_ENV=()
+	if [ -n "${BOARD:-}" ]; then
+		SUDO_ENV+=("BOARD=$BOARD")
+	fi
+	if [ -n "${BOARD_EXPLICITLY_SET:-}" ]; then
+		SUDO_ENV+=("BOARD_EXPLICITLY_SET=$BOARD_EXPLICITLY_SET")
+	fi
+	if [ ${#SUDO_ENV[@]} -gt 0 ]; then
+		exec sudo -H "${SUDO_ENV[@]}" "$0" "$@"
+	else
+		exec sudo -H "$0" "$@"
+	fi
 fi
 
 # === Colors & Logging ===
@@ -53,13 +65,20 @@ SYSTEM="x86_64-linux"
 WORKDIR="$(pwd)/work"
 IMAGE="$WORKDIR/shimboot.img"
 
-# Board selection (default: dedede)
-BOARD="${BOARD:-dedede}"
+# Initialize BOARD_EXPLICITLY_SET before CLI parsing
+BOARD_EXPLICITLY_SET="${BOARD_EXPLICITLY_SET:-}"
+BOARD="${BOARD:-}"  # Don't set default yet
 ROOTFS_NAME="${ROOTFS_NAME:-nixos}"
-
-# CLI parsing: --rootfs {full|minimal}, --inspect, non-interactive via env ROOTFS_FLAVOR
 ROOTFS_FLAVOR="${ROOTFS_FLAVOR:-}"
 INSPECT_AFTER=""
+
+# Firmware options
+FIRMWARE_UPSTREAM="${FIRMWARE_UPSTREAM:-1}"
+
+# Cleanup options
+CLEANUP_ROOTFS=0
+CLEANUP_NO_DRY_RUN=0
+CLEANUP_KEEP=""
 
 # Firmware options
 FIRMWARE_UPSTREAM="${FIRMWARE_UPSTREAM:-1}"
@@ -73,6 +92,7 @@ while [ $# -gt 0 ]; do
 	case "${1:-}" in
 	--board)
 		BOARD="${2:-}"
+		BOARD_EXPLICITLY_SET="set"
 		shift 2
 		;;
 	--rootfs)
@@ -117,13 +137,30 @@ while [ $# -gt 0 ]; do
 	esac
 done
 
+# NOW set default board if not provided
+if [ -z "$BOARD" ]; then
+	BOARD="dedede"
+fi
+
+# Warn only if board wasn't explicitly provided
+if [ -z "$BOARD_EXPLICITLY_SET" ]; then
+    log_warn "No --board specified; defaulting to 'dedede'."
+    log_warn "If this is unintended, rerun with --board <name>."
+    sleep 1
+fi
+
+if [ -z "$BOARD" ]; then
+    log_error "Board name cannot be empty; use --board <name>."
+    exit 1
+fi
+
 # Interactive prompt if not provided, default to full
 if [ -z "${ROOTFS_FLAVOR:-}" ]; then
 	if [ -t 0 ]; then
 		echo
 		echo "[assemble-final] Select rootfs flavor to build:"
-		echo "  1) full     (preferred) → uses main configuration (Home Manager, LightDM)"
-		echo "  2) minimal  (base-only) → standalone base with Hyprland via greetd"
+		echo "  1) full     (recommended) → complete desktop with Home Manager, Rose Pine theme, and user applications (~16-20GB)"
+		echo "  2) minimal  (lightweight) → base system with LightDM + Hyprland, network, and shell utilities (~6-8GB)"
 		read -rp "Enter choice [1/2, default=1]: " choice
 		case "${choice:-1}" in
 		2) ROOTFS_FLAVOR="minimal" ;;
@@ -166,14 +203,18 @@ cleanup() {
 	log_info "Cleanup: unmounting and detaching loop devices..."
 	set +e
 
-	# Try to unmount known mount points (normal, then lazy if busy)
-	for mnt in "$WORKDIR/mnt_rootfs" "$WORKDIR/mnt_bootloader" "$WORKDIR/mnt_src_rootfs" "$WORKDIR/inspect_rootfs" "$WORKDIR/mnt_vendor"; do
+	# Improved cleanup logging
+	for mnt in "$WORKDIR/mnt_rootfs" "$WORKDIR/mnt_bootloader" \
+	           "$WORKDIR/mnt_src_rootfs" "$WORKDIR/inspect_rootfs" \
+	           "$WORKDIR/mnt_vendor"; do
 		if mountpoint -q "$mnt"; then
+			log_info "Unmounting $mnt..."
 			sudo umount "$mnt" || sudo umount -l "$mnt"
 		fi
 	done
 
-	# Give kernel a moment to release references
+	# After unmounting, add a short pause before losetup cleanup
+	log_info "Waiting for unmount to settle..."
 	sync
 	sleep 0.5
 
@@ -204,6 +245,13 @@ log_step "1/15" "Building Nix outputs"
 ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config .#extracted-kernel-${BOARD} --print-out-paths)/p2.bin"
 PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config .#initramfs-patching-${BOARD} --print-out-paths)/patched-initramfs"
 RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config .#${RAW_ROOTFS_ATTR} --print-out-paths)/nixos.img"
+
+# Validate build results
+if [ ! -f "$ORIGINAL_KERNEL" ]; then
+	log_error "Kernel binary build failed or missing: $ORIGINAL_KERNEL"
+	exit 1
+fi
+
 log_info "Original kernel p2: $ORIGINAL_KERNEL"
 log_info "Patched initramfs dir: $PATCHED_INITRAMFS"
 log_info "Raw rootfs: $RAW_ROOTFS_IMG"
@@ -261,28 +309,26 @@ else
 	log_info "Upstream firmware disabled, using only harvested firmware"
 fi
 
-# Decompress module .ko.gz and precompute depmod metadata
+# === Step 5: Calculate vendor partition size AFTER firmware augmentation ===
+log_step "5/15" "Calculate vendor partition size after firmware merge"
+VENDOR_SRC_SIZE_MB=0
 if [ -d "$HARVEST_OUT/lib/modules" ]; then
-	compressed_files="$(find "$HARVEST_OUT/lib/modules" -type f -name '*.gz' 2>/dev/null || true)"
-	if [ -n "$compressed_files" ]; then
-		echo "$compressed_files" | xargs -r -n1 gunzip -f || true
-	fi
-	for kdir in "$HARVEST_OUT/lib/modules/"*; do
-		[ -d "$kdir" ] || continue
-		kver="$(basename "$kdir")"
-		log_info "Running depmod for kernel $kver"
-		depmod -b "$HARVEST_OUT" "$kver" || true
-	done
-else
-	log_warn "No harvested modules found under $HARVEST_OUT/lib/modules"
+	 VENDOR_SRC_SIZE_MB=$((VENDOR_SRC_SIZE_MB + $(sudo du -sm "$HARVEST_OUT/lib/modules" | cut -f1)))
+fi
+if [ -d "$HARVEST_OUT/lib/firmware" ]; then
+	 VENDOR_SRC_SIZE_MB=$((VENDOR_SRC_SIZE_MB + $(sudo du -sm "$HARVEST_OUT/lib/firmware" | cut -f1)))
 fi
 
-# === Step 5: Copy raw rootfs image ===
-log_step "5/15" "Copy raw rootfs image"
+# Add 15% overhead + small safety cushion
+VENDOR_PART_SIZE=$(((VENDOR_SRC_SIZE_MB * 115 / 100) + 20))
+log_info "Vendor partition size (post-firmware): ${VENDOR_PART_SIZE} MB"
+
+# === Step 6: Copy raw rootfs image ===
+log_step "6/15" "Copy raw rootfs image"
 cp "$RAW_ROOTFS_IMG" "$WORKDIR/rootfs.img"
 
-# === Step 6: Optimize Nix store in raw rootfs ===
-log_step "6/15" "Optimize Nix store in raw rootfs"
+# === Step 7: Optimize Nix store in raw rootfs ===
+log_step "7/15" "Optimize Nix store in raw rootfs"
 LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
 sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
 log_info "Running nix-store --optimise on raw rootfs (may take a while)..."
@@ -292,8 +338,8 @@ sudo umount "$WORKDIR/mnt_src_rootfs"
 sudo losetup -d "$LOOPROOT"
 LOOPROOT=""
 
-# === Step 7: Calculate rootfs size ===
-log_step "7/15" "Calculate rootfs size"
+# === Step 8: Calculate rootfs size ===
+log_step "8/15" "Calculate rootfs size"
 LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
 sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
 ROOTFS_SIZE_MB=$(sudo du -sm "$WORKDIR/mnt_src_rootfs" | cut -f1)
@@ -302,25 +348,11 @@ sudo umount "$WORKDIR/mnt_src_rootfs"
 sudo losetup -d "$LOOPROOT"
 LOOPROOT=""
 
-ROOTFS_PART_SIZE=$(((ROOTFS_SIZE_MB * 12 / 10) + 5))
+# Add 10% growth margin, at least 100 MiB spare
+ROOTFS_PART_SIZE=$(((ROOTFS_SIZE_MB * 110 / 100) + 100))
+log_info "Rootfs partition size: ${ROOTFS_PART_SIZE} MB (with safety margin)"
 
-# Estimate vendor partition size from harvested drivers
-VENDOR_SRC_SIZE_MB=0
-if [ -d "$HARVEST_OUT/lib/modules" ]; then
-	VENDOR_SRC_SIZE_MB=$((VENDOR_SRC_SIZE_MB + $(sudo du -sm "$HARVEST_OUT/lib/modules" | cut -f1)))
-fi
-if [ -d "$HARVEST_OUT/lib/firmware" ]; then
-	VENDOR_SRC_SIZE_MB=$((VENDOR_SRC_SIZE_MB + $(sudo du -sm "$HARVEST_OUT/lib/firmware" | cut -f1)))
-fi
-
-if [ "$VENDOR_SRC_SIZE_MB" -le 0 ]; then
-	# Default vendor size when no harvest is available
-	VENDOR_PART_SIZE=256
-	log_warn "No harvested drivers; defaulting vendor partition to ${VENDOR_PART_SIZE} MB"
-else
-	# 20% headroom + 32MB buffer
-	VENDOR_PART_SIZE=$(((VENDOR_SRC_SIZE_MB * 12 / 10) + 32))
-fi
+# Compute end of vendor and total size (MiB)
 
 # Compute end of vendor and total size (MiB)
 # NEW LAYOUT: vendor comes before rootfs
@@ -331,12 +363,19 @@ log_info "Vendor partition size: ${VENDOR_PART_SIZE} MB"
 log_info "Rootfs partition size: ${ROOTFS_PART_SIZE} MB (initial, expandable)"
 log_info "Total image size: ${TOTAL_SIZE_MB} MB"
 
-# === Step 8: Create empty image ===
-log_step "8/15" "Create empty image"
+# === Step 9: Create empty image ===
+log_step "9/15" "Create empty image"
 fallocate -l ${TOTAL_SIZE_MB}M "$IMAGE"
 
-# === Step 9: Partition image ===
-log_step "9/15" "Partition image (GPT, ChromeOS GUIDs, vendor before rootfs)"
+# === Step 10: Partition image ===
+log_step "10/15" "Partition image (GPT, ChromeOS GUIDs, vendor before rootfs)"
+log_info "Partition layout:"
+log_info "  p1: STATE (1–2 MiB)"
+log_info "  p2: KERNEL (2–34 MiB, ChromeOS kernel)"
+log_info "  p3: BOOT (34–54 MiB, bootloader/initramfs)"
+log_info "  p4: VENDOR (${VENDOR_START_MB}–${VENDOR_END_MB} MiB, drivers/firmware)"
+log_info "  p5: ROOTFS (${VENDOR_END_MB} MiB–end, NixOS system)"
+
 parted --script "$IMAGE" \
 	mklabel gpt \
 	mkpart stateful ext4 1MiB 2MiB \
@@ -357,8 +396,8 @@ parted --script "$IMAGE" \
 log_info "Partition table:"
 sudo partx -o NR,START,END,SIZE,TYPE,NAME,UUID -g --show "$IMAGE"
 
-# === Step 10: Setup loop device ===
-log_step "10/15" "Setup loop device"
+# === Step 11: Setup loop device ===
+log_step "11/15" "Setup loop device"
 LOOPDEV=$(sudo losetup --show -fP "$IMAGE")
 log_info "Loop device: $LOOPDEV"
 
@@ -366,28 +405,29 @@ log_info "Loop device: $LOOPDEV"
 log_info "Setting ChromeOS boot flags on KERNEL partition..."
 sudo cgpt add -i 2 -S 1 -T 5 -P 10 "$LOOPDEV"
 
-# === Step 11: Format partitions ===
-log_step "11/15" "Format partitions"
+# === Step 12: Format partitions ===
+log_step "12/15" "Format partitions"
 # Use conservative ext4 features for ChromeOS kernel compatibility (avoid EINVAL on mount)
 MKFS_EXT4_FLAGS="-O ^orphan_file,^metadata_csum_seed"
 sudo mkfs.ext4 -q "$MKFS_EXT4_FLAGS" "${LOOPDEV}p1"
 sudo dd if="$ORIGINAL_KERNEL" of="${LOOPDEV}p2" bs=1M conv=fsync status=progress
 sudo mkfs.ext2 -q "${LOOPDEV}p3"
 # Vendor partition (drivers/firmware donor) - now p4
-sudo mkfs.ext4 -q -L "shimboot_vendor" "$MKFS_EXT4_FLAGS" "${LOOPDEV}p4"
+sudo mkfs.ext4 -q -O ^has_journal,^orphan_file,^metadata_csum_seed \
+  -L "shimboot_vendor" "${LOOPDEV}p4"
 # IMPORTANT: Label rootfs as $ROOTFS_NAME so NixOS can resolve fileSystems."/".device = /dev/disk/by-label/${ROOTFS_NAME}
 # Rootfs is now p5
 sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "$MKFS_EXT4_FLAGS" "${LOOPDEV}p5"
 
-# === Step 12: Populate bootloader partition ===
-log_step "12/15" "Populate bootloader partition"
+# === Step 13: Populate bootloader partition ===
+log_step "13/15" "Populate bootloader partition"
 sudo mount "${LOOPDEV}p3" "$WORKDIR/mnt_bootloader"
 total_bytes=$(sudo du -sb "$PATCHED_INITRAMFS" | cut -f1)
 (cd "$PATCHED_INITRAMFS" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_bootloader" && sudo tar xf -)
 sudo umount "$WORKDIR/mnt_bootloader"
 
-# === Step 13: Populate rootfs partition ===
-log_step "13/15" "Populate rootfs partition (now p5)"
+# === Step 14: Populate rootfs partition ===
+log_step "14/15" "Populate rootfs partition (now p5)"
 LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
 sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
 sudo mount "${LOOPDEV}p5" "$WORKDIR/mnt_rootfs"  # Changed from p4 to p5
@@ -470,6 +510,12 @@ LOOPROOT=""
 # === Step 15: Inject harvested drivers into rootfs (optional) ===
 # DRIVERS_MODE set earlier (default 'vendor'); valid: vendor|inject|none
 
+# === Step 15: Handle driver placement strategy ===
+# Modes:
+#   vendor: Place drivers in separate vendor partition (p4) - mounted at boot
+#   inject: Directly copy drivers into rootfs (p5) /lib/{modules,firmware}
+#   both:   Populate vendor partition AND inject into rootfs (redundant but safe)
+#   none:   Skip driver handling entirely
 case "$DRIVERS_MODE" in
 vendor | CROSDRV)
 	log_step "15/15" "Populate vendor partition (p4) with harvested drivers (/lib/modules, /lib/firmware)"
@@ -525,7 +571,7 @@ log_step "15/15" "Populate vendor partition (p4) with harvested drivers, then in
 		sudo umount "$WORKDIR/mnt_vendor"
 	fi
 
-	log_step "15b/15" "Inject drivers into rootfs (p5) (/lib/modules, /lib/firmware, modprobe.d)"
+	log_step "15/15 (continued)" "Inject drivers into rootfs (p5) (/lib/modules, /lib/firmware, modprobe.d)"
 	if [ -d "$HARVEST_OUT/lib/modules" ]; then
 		sudo rm -rf "$WORKDIR/mnt_rootfs/lib/modules"
 		sudo mkdir -p "$WORKDIR/mnt_rootfs/lib"

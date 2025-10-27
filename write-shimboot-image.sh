@@ -643,7 +643,7 @@ prompt_for_device() {
 run_writer() {
 	local img="$1" dev="$2"
 	action "Writing with dd..."
-	dd if="${img}" of="${dev}" bs=4M status=progress conv=fsync
+	dd if="${img}" of="${dev}" bs=4M status=progress conv=fdatasync oflag=direct
 }
 
 # ---------- Main logic helpers ----------
