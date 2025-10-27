@@ -28,33 +28,34 @@
       end
     '';
 
-   functions = {
-     list-fish-helpers = let
-       content = builtins.readFile ./fish_functions/list-fish-helpers.fish;
-       lines = lib.splitString "\n" content;
-     in
-       lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
+    functions = {
+      list-fish-helpers = let
+        content = builtins.readFile ./fish_functions/list-fish-helpers.fish;
+        lines = lib.splitString "\n" content;
+      in
+        lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
 
-     nixos-rebuild-basic = let
-       content = builtins.readFile ./fish_functions/nixos-rebuild-basic.fish;
-       lines = lib.splitString "\n" content;
-     in
-       lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
+      nixos-rebuild-basic = let
+        content = builtins.readFile ./fish_functions/nixos-rebuild-basic.fish;
+        lines = lib.splitString "\n" content;
+      in
+        lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
 
-     nixos-flake-update = let
-       content = builtins.readFile ./fish_functions/nixos-flake-update.fish;
-       lines = lib.splitString "\n" content;
-     in
-       lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
+      nixos-flake-update = let
+        content = builtins.readFile ./fish_functions/nixos-flake-update.fish;
+        lines = lib.splitString "\n" content;
+      in
+        lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
 
-     fix-fish-history = let
-       content = builtins.readFile ./fish_functions/fix-fish-history.fish;
-       lines = lib.splitString "\n" content;
-     in
-       lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
+      fix-fish-history = let
+        content = builtins.readFile ./fish_functions/fix-fish-history.fish;
+        lines = lib.splitString "\n" content;
+      in
+        lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
 
-     fish_greeting = builtins.readFile ../../../../fish_functions/fish-greeting.fish;
-   };
+      # Load greeting FIRST to ensure it's the active one
+      fish_greeting = builtins.readFile ./fish_functions/fish-greeting.fish;
+    };
 
     shellAbbrs = {
       ".." = "cd ..";

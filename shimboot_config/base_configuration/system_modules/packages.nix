@@ -11,7 +11,6 @@
 # - System tools (git, btop, file)
 # - Documentation disabled to save space
 # - Only English locale to reduce size
-
 {
   config,
   pkgs,
@@ -20,19 +19,18 @@
 }: {
   # Minimal system packages
   environment.systemPackages = with pkgs; [
-    
     # Text editors
     micro
-    
+
     # Network tools
     curl
-    
+
     # System tools
     git
     btop
     fastfetch
   ];
-  
+
   # Disable documentation to save space
   documentation = {
     enable = false;
@@ -41,7 +39,7 @@
     info.enable = false;
     nixos.enable = false;
   };
-  
+
   # Only English locale
-  i18n.supportedLocales = [ "en_US.UTF-8/UTF-8" ];
+  i18n.supportedLocales = ["en_US.UTF-8/UTF-8"];
 }

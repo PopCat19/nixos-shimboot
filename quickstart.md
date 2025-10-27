@@ -56,7 +56,7 @@ The script will:
 
 **⚠️ WARNING: This will overwrite the target device. Double-check your device selection!**
 
-List available devices to identify your USB drive:
+First, list available devices to identify your USB drive:
 
 ```bash
 sudo ./write-shimboot-image.sh --list
@@ -70,7 +70,7 @@ sudo ./write-shimboot-image.sh -i "$(pwd)/work/shimboot.img" --output /dev/sdX
 
 The assembled image is ready to flash and already contains everything needed for your board.
 
-### 4. Boot Your Chromebook
+### 5. Boot Your Chromebook
 
 1. Insert the prepared USB drive into your Chromebook
 2. Enter recovery mode (usually Esc + Refresh + Power, or check your specific model's key combination)
@@ -139,6 +139,6 @@ sudo resize2fs /dev/sdXN
 - No suspend support (ChromeOS kernel limitation)
 - Limited audio support
 - May require `--impure` for some builds
-- May require manual kernel namespace workarounds for `nixos-rebuild` (e.g. appending `--options disable sandbox` on shim kernels <5.6)
+- May require manual kernel namespace workarounds for `nixos-rebuild` (e.g. appending `--option sandbox false` on shim kernels <5.6)
 
-For more documentation, see [README.md](README.md) and [SPEC.md](SPEC.md).
+For more documentation, see [README.md](README.md) and [SPEC.mc](SPEC.md).

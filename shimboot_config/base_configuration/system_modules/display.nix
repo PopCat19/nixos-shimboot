@@ -9,7 +9,6 @@
 # - Configures LightDM display manager without autologin
 # - Sets up XDG portals for Wayland compatibility
 # - Enables brightness control and display tools
-
 {
   config,
   pkgs,
@@ -64,6 +63,6 @@
 
   environment.systemPackages = with pkgs; [
     brightnessctl
-    kitty  # required for the default Hyprland config
+    kitty # required for the default Hyprland config
   ];
 }
