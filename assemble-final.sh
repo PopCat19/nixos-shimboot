@@ -62,7 +62,21 @@ export NIXPKGS_ALLOW_UNFREE="${NIXPKGS_ALLOW_UNFREE:-1}"
 
 # === Config ===
 SYSTEM="x86_64-linux"
-WORKDIR="$(pwd)/work"
+
+# Detect if we're in CI with Nothing but Nix (large /nix mount)
+if [ -d "/nix" ] && mountpoint -q /nix 2>/dev/null; then
+    # Check if /nix has >50GB free (indicates CI environment)
+    NIX_AVAIL_GB=$(df -BG /nix | awk 'NR==2 {print $4}' | sed 's/G//')
+    if [ "${NIX_AVAIL_GB:-0}" -gt 50 ]; then
+        WORKDIR="/nix/work"
+        log_info "CI mode detected: using /nix/work (${NIX_AVAIL_GB}GB available)"
+    else
+        WORKDIR="$(pwd)/work"
+    fi
+else
+    WORKDIR="$(pwd)/work"
+fi
+
 IMAGE="$WORKDIR/shimboot.img"
 
 # Initialize BOARD_EXPLICITLY_SET before CLI parsing
