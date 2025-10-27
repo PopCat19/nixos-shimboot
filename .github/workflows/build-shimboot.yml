@@ -151,10 +151,18 @@ jobs:
       # Assemble final image
       - name: Assemble image
         run: |
-          sudo BOARD="${{ matrix.board }}" ./assemble-final.sh \
-            --board "${{ matrix.board }}" \
-            --rootfs "${{ github.event.inputs.rootfs || 'minimal' }}" \
-            --drivers vendor
+          # Ensure Nix environment is available for root
+          if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+            source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+          fi
+
+          # Re-run assemble-final.sh with preserved PATH
+          sudo -E env "PATH=$PATH" "NIX_PATH=$NIX_PATH" \
+            BOARD="${{ matrix.board }}" \
+            ./assemble-final.sh \
+              --board "${{ matrix.board }}" \
+              --rootfs "${{ github.event.inputs.rootfs || 'minimal' }}" \
+              --drivers vendor
 
       # Artifact Preparation
       # Compress final image and generate checksum for distribution
