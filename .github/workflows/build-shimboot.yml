@@ -168,20 +168,38 @@ jobs:
       # Artifact Preparation
       # Compress final image and generate checksum for distribution
 
-      # Compress
       - name: Compress image
         run: |
-          cd work
+          # Detect where assemble-final.sh placed the image
+          if [ -f "/nix/work/shimboot.img" ]; then
+            WORKDIR="/nix/work"
+            echo "✅ Using CI work directory: /nix/work"
+          elif [ -f "work/shimboot.img" ]; then
+            WORKDIR="work"
+            echo "✅ Using local work directory: work"
+          else
+            echo "❌ Error: shimboot.img not found in expected locations!"
+            echo "Searching for shimboot.img..."
+            find . -name "shimboot.img" -type f 2>/dev/null || echo "No shimboot.img found anywhere"
+            exit 1
+          fi
+
+          echo "📦 Compressing image at: $WORKDIR/shimboot.img"
+          cd "$WORKDIR"
+
           pv shimboot.img | zstd -19 -T0 -o shimboot.img.zst
           sha256sum shimboot.img.zst > shimboot.img.zst.sha256
+
+          echo "✅ Compressed: $(du -h shimboot.img.zst | cut -f1)"
           rm shimboot.img
 
-      # Upload artifact
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: shimboot-${{ matrix.board }}-${{ github.event.inputs.rootfs || 'minimal' }}
           path: |
+            /nix/work/shimboot.img.zst
+            /nix/work/shimboot.img.zst.sha256
             work/shimboot.img.zst
             work/shimboot.img.zst.sha256
           retention-days: 30
