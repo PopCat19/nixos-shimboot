@@ -146,33 +146,81 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y parted gdisk e2fsprogs util-linux pv zstd
+          sudo apt-get install -y \
+            parted gdisk e2fsprogs util-linux pv zstd vboot-utils
 
       # Assemble final image
       - name: Assemble image
         run: |
-          sudo BOARD="${{ matrix.board }}" ./assemble-final.sh \
-            --board "${{ matrix.board }}" \
-            --rootfs "${{ github.event.inputs.rootfs || 'minimal' }}" \
-            --drivers vendor
+          # Ensure Nix environment is available for root
+          if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+            source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+          fi
+
+          # Re-run assemble-final.sh with preserved PATH
+          sudo -E env "PATH=$PATH" "NIX_PATH=$NIX_PATH" \
+            BOARD="${{ matrix.board }}" \
+            ./assemble-final.sh \
+              --board "${{ matrix.board }}" \
+              --rootfs "${{ github.event.inputs.rootfs || 'minimal' }}" \
+              --drivers vendor
 
       # Artifact Preparation
       # Compress final image and generate checksum for distribution
 
-      # Compress
-      - name: Compress image
+      - name: Compress and rename
         run: |
-          cd work
+          # Detect work directory
+          if [ -f "/nix/work/shimboot.img" ]; then
+            WORKDIR="/nix/work"
+            echo "✅ Using CI work directory: /nix/work"
+          elif [ -f "work/shimboot.img" ]; then
+            WORKDIR="work"
+            echo "✅ Using local work directory: work"
+          else
+            echo "❌ Error: shimboot.img not found!"
+            find . -name "shimboot.img" -type f 2>/dev/null || true
+            exit 1
+          fi
+
+          # Fix permissions if in /nix/work (created by sudo)
+          if [ "$WORKDIR" = "/nix/work" ]; then
+            echo "🔧 Adjusting permissions for compression..."
+            sudo chown -R $(whoami):$(whoami) "$WORKDIR"
+          fi
+
+          cd "$WORKDIR"
+          
+          echo "📦 Compressing ${{ matrix.board }} image..."
           pv shimboot.img | zstd -19 -T0 -o shimboot.img.zst
-          sha256sum shimboot.img.zst > shimboot.img.zst.sha256
+          
+          # Rename to board-specific name
+          ARTIFACT_NAME="${{ matrix.board }}-shimboot.img.zst"
+          mv shimboot.img.zst "$ARTIFACT_NAME"
+          
+          # Generate checksum
+          sha256sum "$ARTIFACT_NAME" > "${ARTIFACT_NAME}.sha256"
+          
+          # Verify size
+          SIZE_MB=$(du -m "$ARTIFACT_NAME" | cut -f1)
+          if [ "$SIZE_MB" -gt 2000 ]; then
+            echo "⚠️ WARNING: Artifact is ${SIZE_MB}MB (exceeds 2GB GitHub limit)"
+          else
+            echo "✅ Artifact size: ${SIZE_MB}MB (within 2GB limit)"
+          fi
+          
+          echo "✅ Created: $ARTIFACT_NAME ($(du -h $ARTIFACT_NAME | cut -f1))"
+          
+          # Clean up uncompressed image
           rm shimboot.img
 
-      # Upload artifact
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: shimboot-${{ matrix.board }}-${{ github.event.inputs.rootfs || 'minimal' }}
+          name: ${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}
           path: |
-            work/shimboot.img.zst
-            work/shimboot.img.zst.sha256
+            /nix/work/${{ matrix.board }}-shimboot.img.zst
+            /nix/work/${{ matrix.board }}-shimboot.img.zst.sha256
+            work/${{ matrix.board }}-shimboot.img.zst
+            work/${{ matrix.board }}-shimboot.img.zst.sha256
           retention-days: 30
