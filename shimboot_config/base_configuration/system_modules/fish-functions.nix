@@ -53,7 +53,8 @@
       in
         lib.concatStringsSep "\n" (lib.sublist 1 (lib.length lines - 2) lines);
 
-      fish_greeting = builtins.readFile ../../../../fish_functions/fish-greeting.fish;
+      # Load greeting FIRST to ensure it's the active one
+      fish_greeting = builtins.readFile ./fish_functions/fish-greeting.fish;
     };
 
     shellAbbrs = {

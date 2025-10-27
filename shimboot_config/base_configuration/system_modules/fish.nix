@@ -14,7 +14,7 @@
       enable = lib.mkDefault true;
 
       interactiveShellInit = lib.mkDefault ''
-        # Fish greeting is now handled by fish-functions.nix
+        # DO NOT set fish_greeting here; it's defined in fish-functions.nix
       '';
     };
 
