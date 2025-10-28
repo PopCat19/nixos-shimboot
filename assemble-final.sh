@@ -694,7 +694,7 @@ log_info "✅ Final image created at: $IMAGE"
 
 # === Step 16: Final Cachix sync (disabled on CI) ===
 if command -v cachix >/dev/null 2>&1 && [ "${CI:-}" != "true" ]; then
-  log_step "16/15" "Final Cachix push sync"
+  log_step "Sync" "Final Cachix push sync"
   for drv in \
     ".#chromeos-shim-${BOARD}" \
     ".#extracted-kernel-${BOARD}" \
