@@ -24,7 +24,7 @@ on:
         required: true
         default: 'dedede'
         type: choice
-        options: [dedede, octopus, zork, nissa, hatch, grunt, snappy]
+        options: [all, dedede, octopus, zork, nissa, hatch, grunt, snappy]
       rootfs:
         description: 'Rootfs variant'
         required: true
@@ -57,7 +57,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        board: ${{ github.event.inputs.board == 'all' && fromJSON('["dedede"]') || fromJSON(format('["{0}"]', github.event.inputs.board || 'dedede')) }}
+        board: ${{
+          github.event.inputs.board == 'all'
+          && fromJSON('["dedede", "octopus", "zork", "nissa", "hatch", "grunt", "snappy"]')
+          || fromJSON(format('["{0}"]', github.event.inputs.board))
+        }}
 
     # Build Steps
     # Sequential steps to prepare environment, build components, and assemble final image
