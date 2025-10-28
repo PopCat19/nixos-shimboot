@@ -31,7 +31,58 @@
 #   # Build with vendor drivers and cleanup
 #   ./assemble-final.sh --board dedede --rootfs minimal --drivers vendor --cleanup-rootfs --cleanup-keep 2 --no-dry-run
 
-set -euo pipefail
+set -Eeuo pipefail
+
+# === Error Handling ===
+handle_error() {
+    local exit_code=$?
+    local step="$1"
+    
+    log_error "Build failed at step $step with exit code $exit_code"
+    
+    case "$step" in
+        "1/15")
+            log_error "Troubleshooting:"
+            log_error "  1. Check Nix daemon: systemctl status nix-daemon"
+            log_error "  2. Clear build cache: nix-collect-garbage -d"
+            log_error "  3. Verify board exists: ls manifests/${BOARD}-manifest.nix"
+            ;;
+        "2/15")
+            log_error "Driver harvest failed. Check:"
+            log_error "  1. Shim file exists: $SHIM_BIN"
+            log_error "  2. Recovery image valid (if used)"
+            ;;
+        "12/15")
+            log_error "Partition formatting failed. Possible causes:"
+            log_error "  1. Loop device issues: sudo losetup -D"
+            log_error "  2. Insufficient permissions"
+            log_error "  3. Corrupted image file"
+            ;;
+        "13/15")
+            log_error "Bootloader population failed. Check:"
+            log_error "  1. Patched initramfs exists: $PATCHED_INITRAMFS"
+            log_error "  2. Bootloader partition mounted: ${LOOPDEV}p3"
+            log_error "  3. Sufficient disk space"
+            ;;
+        "14/15")
+            log_error "Rootfs population failed. Check:"
+            log_error "  1. Raw rootfs image exists: $WORKDIR/rootfs.img"
+            log_error "  2. Target partition mounted: ${LOOPDEV}p5"
+            log_error "  3. User configuration valid"
+            ;;
+        "15/15")
+            log_error "Driver handling failed. Check:"
+            log_error "  1. Harvested drivers exist: $HARVEST_OUT"
+            log_error "  2. DRIVERS_MODE value: $DRIVERS_MODE"
+            log_error "  3. Partition permissions"
+            ;;
+    esac
+    
+    exit $exit_code
+}
+
+# Set up error trap
+trap 'handle_error "${CURRENT_STEP:-unknown}"' ERR
 
 # Elevate to root so nix-daemon treats this client as trusted; required for substituters/trusted-public-keys
 # Use -H to set HOME to /root to avoid "$HOME is not owned by you" warnings under sudo.
@@ -404,7 +455,8 @@ retry_command() {
 
 # === Step 1: Build Nix outputs (parallel) ===
 if [ "$START_STEP" -le 1 ]; then
-    log_step "1/15" "Building Nix outputs (parallel)"
+    CURRENT_STEP="1/15"
+    log_step "$CURRENT_STEP" "Building Nix outputs (parallel)"
 
     # Build all in parallel, capture PIDs
     nix build --impure --accept-flake-config .#extracted-kernel-${BOARD} &
@@ -415,9 +467,9 @@ if [ "$START_STEP" -le 1 ]; then
     ROOTFS_PID=$!
 
     # Wait and check each
-    wait $KERNEL_PID || { log_error "Kernel build failed"; exit 1; }
-    wait $INITRAMFS_PID || { log_error "Initramfs build failed"; exit 1; }
-    wait $ROOTFS_PID || { log_error "Rootfs build failed"; exit 1; }
+    wait $KERNEL_PID || { log_error "Kernel build failed"; handle_error "$CURRENT_STEP"; }
+    wait $INITRAMFS_PID || { log_error "Initramfs build failed"; handle_error "$CURRENT_STEP"; }
+    wait $ROOTFS_PID || { log_error "Rootfs build failed"; handle_error "$CURRENT_STEP"; }
 
     # Get paths (instant since already built)
     ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config .#extracted-kernel-${BOARD} --print-out-paths)/p2.bin"
@@ -436,7 +488,7 @@ fi
 # Validate build results
 if [ ! -f "$ORIGINAL_KERNEL" ]; then
 	log_error "Kernel binary build failed or missing: $ORIGINAL_KERNEL"
-	exit 1
+	handle_error "$CURRENT_STEP"
 fi
 
 log_info "Original kernel p2: $ORIGINAL_KERNEL"
@@ -445,7 +497,8 @@ log_info "Raw rootfs: $RAW_ROOTFS_IMG"
 
 # === Step 1 (Cachix push, disabled on CI) ===
 if command -v cachix >/dev/null 2>&1 && ! is_ci; then
-  log_step "1/15 (Cachix)" "Pushing built derivations to ${CACHIX_CACHE}"
+  CURRENT_STEP="1/15 (Cachix)"
+  log_step "$CURRENT_STEP" "Pushing built derivations to ${CACHIX_CACHE}"
   cachix push "$CACHIX_CACHE" \
     "$(dirname "$ORIGINAL_KERNEL")" \
     "$(dirname "$PATCHED_INITRAMFS")" \
@@ -476,11 +529,12 @@ fi
 if [ "$START_STEP" -le 2 ]; then
 	HARVEST_OUT="$WORKDIR/harvested"
 	mkdir -p "$HARVEST_OUT"
-	log_step "2/15" "Harvest ChromeOS drivers"
+	CURRENT_STEP="2/15"
+	log_step "$CURRENT_STEP" "Harvest ChromeOS drivers"
 	if [ -n "$RECOVERY_PATH" ]; then
-		bash tools/harvest-drivers.sh --shim "$SHIM_BIN" --recovery "$RECOVERY_PATH" --out "$HARVEST_OUT"
+		bash tools/harvest-drivers.sh --shim "$SHIM_BIN" --recovery "$RECOVERY_PATH" --out "$HARVEST_OUT" || { log_error "Driver harvest failed with recovery image"; handle_error "$CURRENT_STEP"; }
 	else
-		bash tools/harvest-drivers.sh --shim "$SHIM_BIN" --out "$HARVEST_OUT"
+		bash tools/harvest-drivers.sh --shim "$SHIM_BIN" --out "$HARVEST_OUT" || { log_error "Driver harvest failed without recovery image"; handle_error "$CURRENT_STEP"; }
 	fi
 	save_checkpoint 2
 else
@@ -491,7 +545,8 @@ fi
 # === Step 3: Augment firmware with upstream ChromiumOS linux-firmware ===
 if [ "$START_STEP" -le 3 ]; then
 	if [ "${FIRMWARE_UPSTREAM:-1}" != "0" ]; then
-		log_step "3/15" "Augment firmware with upstream linux-firmware"
+		CURRENT_STEP="3/15"
+		log_step "$CURRENT_STEP" "Augment firmware with upstream linux-firmware"
 		log_info "Cloning upstream linux-firmware repository..."
 		UPSTREAM_FW_DIR="$WORKDIR/linux-firmware.upstream"
 		if [ ! -d "$UPSTREAM_FW_DIR" ]; then
@@ -515,7 +570,8 @@ fi
 # === Step 4: Prune unused firmware files ===
 if [ "$START_STEP" -le 4 ]; then
 	if [ -d "$HARVEST_OUT/lib/firmware" ]; then
-		log_step "4/15" "Prune unused firmware files"
+		CURRENT_STEP="4/15"
+		log_step "$CURRENT_STEP" "Prune unused firmware files"
 		# More robust path resolution
 		SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 		if [ -f "$SCRIPT_DIR/tools/harvest-drivers.sh" ]; then
@@ -532,7 +588,8 @@ fi
 
 # === Step 5: Calculate vendor partition size AFTER firmware augmentation ===
 if [ "$START_STEP" -le 5 ]; then
-	log_step "5/15" "Calculate vendor partition size after firmware merge"
+	CURRENT_STEP="5/15"
+	log_step "$CURRENT_STEP" "Calculate vendor partition size after firmware merge"
 	VENDOR_SRC_SIZE_MB=0
 	if [ -d "$HARVEST_OUT/lib/modules" ]; then
 		 VENDOR_SRC_SIZE_MB=$((VENDOR_SRC_SIZE_MB + $(sudo du -sm "$HARVEST_OUT/lib/modules" | cut -f1)))
@@ -560,7 +617,8 @@ fi
 
 # === Step 6: Copy raw rootfs image ===
 if [ "$START_STEP" -le 6 ]; then
-	log_step "6/15" "Copy raw rootfs image"
+	CURRENT_STEP="6/15"
+	log_step "$CURRENT_STEP" "Copy raw rootfs image"
 	pv "$RAW_ROOTFS_IMG" > "$WORKDIR/rootfs.img"
 	save_checkpoint 6
 else
@@ -569,9 +627,10 @@ fi
 
 # === Step 7: Optimize Nix store in raw rootfs ===
 if [ "$START_STEP" -le 7 ]; then
-	log_step "7/15" "Optimize Nix store in raw rootfs"
-	LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
-	sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
+	CURRENT_STEP="7/15"
+	log_step "$CURRENT_STEP" "Optimize Nix store in raw rootfs"
+	LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img") || { log_error "Failed to setup loop device for rootfs optimization"; handle_error "$CURRENT_STEP"; }
+	sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs" || { log_error "Failed to mount rootfs for optimization"; handle_error "$CURRENT_STEP"; }
 	log_info "Running nix-store --optimise on raw rootfs (may take a while)..."
 	sudo nix-store --store "$WORKDIR/mnt_src_rootfs" --optimise || true
 	log_info "Store optimization complete"
@@ -585,7 +644,8 @@ fi
 
 # === Step 8: Calculate rootfs size ===
 if [ "$START_STEP" -le 8 ]; then
-	log_step "8/15" "Calculate rootfs size"
+	CURRENT_STEP="8/15"
+	log_step "$CURRENT_STEP" "Calculate rootfs size"
 	LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
 	sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
 	ROOTFS_SIZE_MB=$(sudo du -sm "$WORKDIR/mnt_src_rootfs" | cut -f1)
@@ -624,7 +684,8 @@ fi
 
 # === Step 9: Create empty image ===
 if [ "$START_STEP" -le 9 ]; then
-	log_step "9/15" "Create empty image"
+	CURRENT_STEP="9/15"
+	log_step "$CURRENT_STEP" "Create empty image"
 	fallocate -l ${TOTAL_SIZE_MB}M "$IMAGE"
 	save_checkpoint 9
 else
@@ -633,7 +694,8 @@ fi
 
 # === Step 10: Partition image ===
 if [ "$START_STEP" -le 10 ]; then
-	log_step "10/15" "Partition image (GPT, ChromeOS GUIDs, vendor before rootfs)"
+	CURRENT_STEP="10/15"
+	log_step "$CURRENT_STEP" "Partition image (GPT, ChromeOS GUIDs, vendor before rootfs)"
 	log_info "Partition layout:"
 	log_info "  p1: STATE (1–2 MiB)"
 	log_info "  p2: KERNEL (2–34 MiB, ChromeOS kernel)"
@@ -667,13 +729,14 @@ fi
 
 # === Step 11: Setup loop device ===
 if [ "$START_STEP" -le 11 ]; then
-	log_step "11/15" "Setup loop device"
-	LOOPDEV=$(sudo losetup --show -fP "$IMAGE")
+	CURRENT_STEP="11/15"
+	log_step "$CURRENT_STEP" "Setup loop device"
+	LOOPDEV=$(sudo losetup --show -fP "$IMAGE") || { log_error "Failed to setup loop device for $IMAGE"; handle_error "$CURRENT_STEP"; }
 	log_info "Loop device: $LOOPDEV"
 
 	# Set ChromeOS boot flags on p2
 	log_info "Setting ChromeOS boot flags on KERNEL partition..."
-	sudo cgpt add -i 2 -S 1 -T 5 -P 10 "$LOOPDEV"
+	sudo cgpt add -i 2 -S 1 -T 5 -P 10 "$LOOPDEV" || { log_error "Failed to set ChromeOS boot flags"; handle_error "$CURRENT_STEP"; }
 	save_checkpoint 11
 else
 	log_info "Skipping step 11 (already completed)"
@@ -683,7 +746,8 @@ fi
 
 # === Step 12: Format partitions ===
 if [ "$START_STEP" -le 12 ]; then
-	log_step "12/15" "Format partitions"
+	CURRENT_STEP="12/15"
+	log_step "$CURRENT_STEP" "Format partitions"
 	# Use conservative ext4 features for ChromeOS kernel compatibility (avoid EINVAL on mount)
 	MKFS_EXT4_FLAGS="-O ^orphan_file,^metadata_csum_seed"
 	sudo mkfs.ext4 -q "$MKFS_EXT4_FLAGS" "${LOOPDEV}p1"
@@ -701,7 +765,7 @@ if [ "$START_STEP" -le 12 ]; then
 	for part in p1 p2 p3 p4 p5; do
 	  if [ ! -b "${LOOPDEV}${part}" ]; then
 	    log_error "Partition ${part} not found after formatting"
-	    exit 1
+	    handle_error "$CURRENT_STEP"
 	  fi
 	done
 	save_checkpoint 12
@@ -713,10 +777,11 @@ fi
 
 # === Step 13: Populate bootloader partition ===
 if [ "$START_STEP" -le 13 ]; then
-	log_step "13/15" "Populate bootloader partition"
-	sudo mount "${LOOPDEV}p3" "$WORKDIR/mnt_bootloader"
+	CURRENT_STEP="13/15"
+	log_step "$CURRENT_STEP" "Populate bootloader partition"
+	sudo mount "${LOOPDEV}p3" "$WORKDIR/mnt_bootloader" || { log_error "Failed to mount bootloader partition"; handle_error "$CURRENT_STEP"; }
 	total_bytes=$(sudo du -sb "$PATCHED_INITRAMFS" | cut -f1)
-	(cd "$PATCHED_INITRAMFS" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_bootloader" && sudo tar xf -)
+	(cd "$PATCHED_INITRAMFS" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_bootloader" && sudo tar xf -) || { log_error "Failed to populate bootloader partition"; handle_error "$CURRENT_STEP"; }
 	sudo umount "$WORKDIR/mnt_bootloader"
 	save_checkpoint 13
 else
@@ -725,7 +790,8 @@ fi
 
 # === Step 14: Populate rootfs partition ===
 if [ "$START_STEP" -le 14 ]; then
-	log_step "14/15" "Populate rootfs partition (now p5)"
+	CURRENT_STEP="14/15"
+	log_step "$CURRENT_STEP" "Populate rootfs partition (now p5)"
 	LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
 	sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
 	sudo mount "${LOOPDEV}p5" "$WORKDIR/mnt_rootfs"  # Changed from p4 to p5
@@ -737,7 +803,7 @@ if [ "$START_STEP" -le 14 ]; then
 	log_info "Using username from userConfig: $USERNAME"
 
 	# === Step 14: Clone nixos-config repository into rootfs ===
-	log_step "14/15" "Clone nixos-config repository into rootfs"
+	log_step "$CURRENT_STEP" "Clone nixos-config repository into rootfs"
 	NIXOS_CONFIG_DEST="$WORKDIR/mnt_rootfs/home/$USERNAME/nixos-config"
 
 	if command -v git >/dev/null 2>&1 && [ -d .git ]; then
@@ -818,7 +884,7 @@ fi
 populate_vendor() {
 	if [ ! -b "${LOOPDEV}p4" ]; then
 		log_error "Vendor partition p4 not found on ${LOOPDEV}"
-		return 1
+		handle_error "$CURRENT_STEP"
 	fi
 	
 	log_step "15/15" "Populate vendor partition (p4) with harvested drivers (/lib/modules, /lib/firmware)"
@@ -916,7 +982,8 @@ fi
 
 # === Step 16: Final Cachix sync (disabled on CI) ===
 if command -v cachix >/dev/null 2>&1 && ! is_ci; then
-  log_step "Sync" "Final Cachix push sync"
+  CURRENT_STEP="Sync"
+  log_step "$CURRENT_STEP" "Final Cachix push sync"
   for drv in \
     ".#chromeos-shim-${BOARD}" \
     ".#extracted-kernel-${BOARD}" \
@@ -932,7 +999,8 @@ fi
 
 # === Optional cleanup of old shimboot rootfs generations ===
 if [ "${CLEANUP_ROOTFS:-0}" -eq 1 ]; then
-	log_step "Cleanup" "Pruning older shimboot rootfs generations"
+	CURRENT_STEP="Cleanup"
+	log_step "$CURRENT_STEP" "Pruning older shimboot rootfs generations"
 	# Build arguments for cleanup script
 	CLEANUP_CMD=(sudo bash tools/cleanup-shimboot-rootfs.sh --results-dir "$(pwd)")
 	if [ -n "${CLEANUP_KEEP:-}" ]; then
@@ -948,7 +1016,8 @@ fi
 
 # === Optional inspection ===
 if [ "$INSPECT_AFTER" = "--inspect" ]; then
-	log_step "Inspect" "Partition table and init check"
+	CURRENT_STEP="Inspect"
+	log_step "$CURRENT_STEP" "Partition table and init check"
 	sudo partx -o NR,START,END,SIZE,TYPE,NAME,UUID -g --show "$IMAGE"
 	LOOPDEV=$(sudo losetup --show -fP "$IMAGE")
 	mkdir -p "$WORKDIR/inspect_rootfs"
