@@ -124,6 +124,57 @@ Supported Boards:
 └─ Each board provides: shim, recovery, kernel, initramfs variants
 ```
 
+### Flake Modules
+```
+cachix-config.nix
+├─ Purpose: Configure Cachix binary cache for all builds
+├─ Dependencies: None
+├─ Related: flake.nix
+└─ Provides: nixConfig with substituters and trusted keys
+
+chromeos-sources.nix
+├─ Purpose: ChromeOS source management and recovery URLs
+├─ Dependencies: None
+├─ Related: flake.nix, manifests/
+└─ Provides: chromeos-shim, chromeos-recovery derivations
+
+development-environment.nix
+├─ Purpose: Development tools and environment setup
+├─ Dependencies: nixpkgs
+├─ Related: flake.nix
+└─ Provides: devShell with necessary tools
+
+kernel-extraction.nix
+├─ Purpose: Kernel extraction utilities
+├─ Dependencies: chromeos-sources
+├─ Related: initramfs-extraction.nix
+└─ Provides: extracted-kernel derivations
+
+initramfs-extraction.nix
+├─ Purpose: Initramfs extraction utilities
+├─ Dependencies: kernel-extraction
+├─ Related: initramfs-patching.nix
+└─ Provides: initramfs-extraction derivations
+
+initramfs-patching.nix
+├─ Purpose: Initramfs patching utilities
+├─ Dependencies: initramfs-extraction, bootloader/
+├─ Related: assemble-final.sh
+└─ Provides: initramfs-patching derivations
+
+raw-image.nix
+├─ Purpose: Raw image generation
+├─ Dependencies: nixpkgs, nixos-generators
+├─ Related: base_configuration/, main_configuration/
+└─ Provides: raw-rootfs, raw-rootfs-minimal
+
+system-configuration.nix
+├─ Purpose: System configuration utilities
+├─ Dependencies: nixpkgs
+├─ Related: shimboot_config/
+└─ Provides: NixOS configuration utilities
+```
+
 ### Configuration Variants
 ```
 base_configuration/
@@ -177,17 +228,24 @@ flake.nix
  │           ├─ lib/firmware/
  │           └─ modprobe.d/
  │
- └─ assemble-final.sh v2.0 (imperative)
-    ├─ 1/15: Build Nix outputs
+ └─ assemble-final.sh v2.0 (imperative with enhanced features)
+    ├─ Pre-build: Cache verification and optional prewarming
+    │  ├─ verify_cachix_config() - Check cache setup before builds
+    │  ├─ show_cache_stats() - Display build cache statistics
+    │  └─ --prewarm-cache option - Fetch from cache before building
+    ├─ 1/15: Build Nix outputs (with retry logic and CI flags)
+    │  ├─ Conditional NIX_BUILD_FLAGS for CI vs local environments
+    │  ├─ JSON build metadata at /etc/shimboot-build.json
+    │  └─ Comprehensive error handling with safe_exec wrapper
     ├─ 1/15 (Cachix): Push built derivations to cache (enhanced CI detection)
-    ├─ 2/15: Harvest ChromeOS drivers
+    ├─ 2/15: Harvest ChromeOS drivers (with comprehensive error handling)
     ├─ 3/15: Augment firmware with upstream ChromiumOS linux-firmware
     ├─ 4/15: Prune unused firmware files (robust path resolution)
     ├─ 5/15: Calculate vendor partition size after firmware merge
     ├─ 6/15: Copy raw rootfs image (progress indication with pv)
     ├─ 7/15: Optimize Nix store in raw rootfs
     ├─ 8/15: Calculate rootfs size
-    ├─ 9/15: Create empty image
+    ├─ 9/15: Create empty image (with --dry-run support)
     ├─ 10/15: Partition image (GPT, ChromeOS GUIDs, vendor before rootfs)
     ├─ 11/15: Setup loop device
     ├─ 12/15: Format partitions + verification
@@ -590,6 +648,72 @@ Disable pruning:
    └─ Or set FIRMWARE_UPSTREAM=0 to skip augmentation entirely
 ```
 
+### Cache Management and CI Integration
+
+#### Cachix Configuration
+```
+Location: flake_modules/cachix-config.nix
+
+Purpose: Centralized binary cache configuration for all builds
+Features:
+├─ Configures Nix substituters for binary cache access
+├─ Sets up trusted public keys for cache verification
+├─ Enables faster builds through cache reuse
+└─ Automatically imported by flake.nix
+
+Cache endpoints:
+├─ https://cache.nixos.org (official NixOS cache)
+└─ https://shimboot-systemd-nixos.cachix.org (project-specific cache)
+```
+
+#### Cache Health Monitoring
+```
+Tool: tools/check-cachix.sh
+
+Purpose: Check Cachix cache health and coverage for shimboot derivations
+Usage: ./tools/check-cachix.sh [BOARD]
+
+Features:
+├─ Cache endpoint connectivity testing
+├─ Cache coverage verification for board-specific derivations
+├─ Derivation availability checking (cached vs needs build)
+└─ Board-specific cache analysis
+
+Example output:
+├─ chromeos-shim-dedede     ... CACHED ✓
+├─ extracted-kernel-dedede  ... MISSING ✗
+├─ initramfs-patching-dedede ... CACHED ✓
+└─ raw-rootfs               ... CACHED ✓
+```
+
+#### Enhanced Build Features
+```
+Cache Management Options:
+├─ --prewarm-cache     - Fetch from cache before building
+├─ verify_cachix_config() - Check cache setup before builds
+└─ show_cache_stats() - Display build cache statistics
+
+CI Integration Features:
+├─ Conditional NIX_BUILD_FLAGS for CI vs local environments
+├─ Enhanced CI detection for multiple CI environments
+├─ JSON build metadata at /etc/shimboot-build.json
+└─ Retry logic for Nix build commands
+
+Dry-run Mode:
+├─ --dry-run option for safe testing
+├─ safe_exec wrapper for all destructive operations
+└─ No actual filesystem modifications
+
+Build Metadata (JSON):
+├─ git_commit      - Current commit hash
+├─ build_timestamp - Build start time
+├─ board          - Target board
+├─ rootfs_type    - minimal|full
+├─ drivers_mode   - vendor|inject|both|none
+├─ image_size     - Final image size in bytes
+└─ cache_hits     - Number of derivations from cache
+```
+
 ---
 
 ## 9. Maintenance Guide
@@ -689,6 +813,15 @@ Build with cleanup options:
 Build with vendor drivers and cleanup:
 └─ sudo ./assemble-final.sh --board dedede --rootfs minimal --drivers vendor --cleanup-rootfs --cleanup-keep 2 --no-dry-run
 
+Build with cache management options:
+└─ sudo ./assemble-final.sh --board dedede --rootfs full --prewarm-cache
+
+Build in dry-run mode (safe for testing):
+└─ sudo ./assemble-final.sh --board dedede --rootfs full --dry-run
+
+Check cache health before building:
+└─ ./tools/check-cachix.sh dedede
+
 Flash to USB:
 └─ sudo ./tools/write-shimboot-image.sh -i work/shimboot.img --output /dev/sdX
    └─ Uses improved dd flags for better reliability
@@ -717,7 +850,16 @@ Build system:
 ├─ assemble-final.sh                         - Main build script v2.0 with enhanced features
 ├─ flake.nix                                 - Main flake
 ├─ flake_modules/                            - Nix derivations
+│  ├─ cachix-config.nix                      - Cachix binary cache configuration
+│  ├─ chromeos-sources.nix                   - ChromeOS source management
+│  ├─ development-environment.nix            - Development tools and environment
+│  ├─ kernel-extraction.nix                  - Kernel extraction utilities
+│  ├─ initramfs-extraction.nix               - Initramfs extraction utilities
+│  ├─ initramfs-patching.nix                 - Initramfs patching utilities
+│  ├─ raw-image.nix                          - Raw image generation
+│  └─ system-configuration.nix               - System configuration utilities
 ├─ tools/                                    - Build scripts
+│  ├─ check-cachix.sh                        - Cache health monitoring
 │  ├─ harvest-drivers.sh                     - Driver harvesting with conservative firmware pruning
 │  ├─ write-shimboot-image.sh                - USB image writing with improved dd flags
 │  └─ fetch-manifest.sh                      - ChromeOS manifest fetching
@@ -727,6 +869,7 @@ Build artifacts:
 ├─ work/shimboot.img                         - Final disk image
 ├─ work/harvested/                           - ChromeOS drivers (pruned firmware)
 ├─ work/linux-firmware.upstream/             - Upstream firmware clone
+├─ /etc/shimboot-build.json                  - Build metadata (JSON format)
 └─ manifests/${board}-manifest.nix           - Download chunks
 ```
 
@@ -743,6 +886,18 @@ WiFi not working:
 
 Build fails:
 └─ Build Pipeline section → Reproducibility Matrix
+
+Cache issues:
+└─ Cache Management and CI Integration section → Cache Health Monitoring
+
+CI build problems:
+└─ Cache Management and CI Integration section → Enhanced Build Features
+
+Dry-run mode not working:
+└─ Cache Management and CI Integration section → Dry-run Mode
+
+Build metadata missing:
+└─ Cache Management and CI Integration section → Build Metadata
 
 Want to add features:
 └─ Extension Points section
