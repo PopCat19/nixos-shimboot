@@ -308,8 +308,40 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-# === Step 1: Build Nix outputs ===
+# === Retry Logic ===
+retry_command() {
+    local max_attempts="${1:-3}"
+    local wait_time="${2:-5}"
+    shift 2
+    local attempt=1
+    
+    while [ $attempt -le $max_attempts ]; do
+        log_info "Attempt $attempt/$max_attempts: $*"
+        if "$@"; then
+            return 0
+        fi
+        
+        local exit_code=$?
+        if [ $attempt -lt $max_attempts ]; then
+            log_warn "Command failed with exit code $exit_code, retrying in ${wait_time}s..."
+            sleep "$wait_time"
+        else
+            log_error "Command failed after $max_attempts attempts"
+            return $exit_code
+        fi
+        
+        ((attempt++))
+    done
+}
+
+# === Step 1: Build Nix outputs (with retry logic) ===
 log_step "1/15" "Building Nix outputs"
+
+retry_command 3 5 nix build --impure --accept-flake-config \
+  .#extracted-kernel-${BOARD} \
+  .#initramfs-patching-${BOARD} \
+  .#${RAW_ROOTFS_ATTR}
+
 ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config .#extracted-kernel-${BOARD} --print-out-paths)/p2.bin"
 PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config .#initramfs-patching-${BOARD} --print-out-paths)/patched-initramfs"
 RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config .#${RAW_ROOTFS_ATTR} --print-out-paths)/nixos.img"
