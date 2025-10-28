@@ -21,7 +21,6 @@
   };
 
   services = {
-    thermald.enable = lib.mkDefault true;
     upower.enable = lib.mkDefault true;
 
     auto-cpufreq = {
