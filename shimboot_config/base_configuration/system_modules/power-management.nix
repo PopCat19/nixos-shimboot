@@ -17,7 +17,7 @@
 }: {
   powerManagement = {
     enable = true;
-    cpuFreqGovernor = lib.mkDefault "performance";
+    cpuFreqGovernor = lib.mkDefault "userspace";
   };
 
   services = {
@@ -27,11 +27,11 @@
       enable = lib.mkDefault true;
       settings = {
         battery = {
-          governor = lib.mkDefault "performance";
+          governor = lib.mkDefault "schedutil";
           turbo = lib.mkDefault "auto";
         };
         charger = {
-          governor = "performance";
+          governor = "schedutil";
           turbo = "auto";
         };
       };
