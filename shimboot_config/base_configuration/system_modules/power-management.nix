@@ -15,10 +15,29 @@
   lib,
   ...
 }: {
-  powerManagement.enable = true;
-  services.thermald.enable = lib.mkDefault true;
-  services.upower.enable = lib.mkDefault true;
-  services.auto-cpufreq.enable = lib.mkDefault true;
+  powerManagement = {
+    enable = true;
+    cpuFreqGovernor = lib.mkDefault "performance";
+  };
+
+  services = {
+    thermald.enable = lib.mkDefault true;
+    upower.enable = lib.mkDefault true;
+
+    auto-cpufreq = {
+      enable = lib.mkDefault true;
+      settings = {
+        battery = {
+          governor = lib.mkDefault "performance";
+          turbo = lib.mkDefault "auto";
+        };
+        charger = {
+          governor = "performance";
+          turbo = "auto";
+        };
+      };
+    };
+  };
 
   networking = {
     networkmanager = {
