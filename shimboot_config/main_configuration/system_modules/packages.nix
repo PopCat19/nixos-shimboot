@@ -8,7 +8,7 @@
 # - Provides placeholder for system packages
 {pkgs, ...}: {
   environment.systemPackages = with pkgs; [
-  gh
-  ranger
+    gh
+    ranger
   ];
 }

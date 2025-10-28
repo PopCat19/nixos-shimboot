@@ -8,7 +8,12 @@
 # - Defines bar layouts for different monitors
 # - Configures dashboard shortcuts using userConfig
 # - Provides home-specific HyprPanel settings
-{userConfig, pkgs, lib, ...}: {
+{
+  userConfig,
+  pkgs,
+  lib,
+  ...
+}: {
   programs.hyprpanel = {
     enable = true;
     systemd.enable = true;

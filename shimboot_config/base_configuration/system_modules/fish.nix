@@ -10,7 +10,12 @@
 # - Loads custom Fish functions from external files
 # - Defines shell abbreviations for common commands
 # - Configures Starship prompt
-{ lib, pkgs, userConfig, ... }: {
+{
+  lib,
+  pkgs,
+  userConfig,
+  ...
+}: {
   programs.fish.enable = lib.mkDefault true;
   programs.starship.enable = lib.mkDefault true;
 
@@ -49,5 +54,5 @@
   };
 
   # You can still provide helpful CLI wrappers as actual binaries if needed
-  environment.systemPackages = with pkgs; [ fish starship eza ];
+  environment.systemPackages = with pkgs; [fish starship eza];
 }

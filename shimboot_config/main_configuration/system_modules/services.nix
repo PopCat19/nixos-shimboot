@@ -10,8 +10,8 @@
   services = {
     flatpak.enable = true;
     syncthing = {
-        enable = true;
-        openDefaultPorts = true;
+      enable = true;
+      openDefaultPorts = true;
     };
   };
 }
