@@ -1,14 +1,14 @@
-# Power Management Configuration Module
+# Power Management Module
 #
-# Purpose: Configure power management for ChromeOS devices
-# Dependencies: tlp, thermald, upower
+# Purpose: Configure system power management and optimization for ChromeOS devices
+# Dependencies: auto-cpufreq, upower, networkmanager
 # Related: hardware.nix, services.nix
 #
 # This module:
-# - Enables system power management
-# - Configures thermal management for Intel CPUs
-# - Enables battery monitoring and power saving
-# - Configures WiFi power saving
+# - Enables system power management with userspace governor
+# - Configures auto-cpufreq for dynamic CPU scaling
+# - Enables battery monitoring via upower
+# - Configures WiFi power saving through NetworkManager
 {
   config,
   pkgs,
@@ -31,8 +31,8 @@
           turbo = lib.mkDefault "auto";
         };
         charger = {
-          governor = "schedutil";
-          turbo = "auto";
+          governor = lib.mkDefault "schedutil";
+          turbo = lib.mkDefault "auto";
         };
       };
     };
