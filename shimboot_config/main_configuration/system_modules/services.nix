@@ -9,5 +9,9 @@
 {pkgs, ...}: {
   services = {
     flatpak.enable = true;
+    syncthing = {
+        enable = true;
+        openDefaultPorts = true;
+    }
   };
 }
