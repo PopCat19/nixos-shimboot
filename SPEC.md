@@ -89,7 +89,7 @@ chromeos-shim-${board}
 ├─ Source: ChromeOS CDN (manifest-based download)
 └─ Contains: Firmware, kernel, initramfs
 
-chromeos-recovery-${board} (optional)
+chromeos-recovery-${board}
 ├─ Type: Unfree binary
 ├─ Source: Google recovery API
 └─ Purpose: Firmware/driver harvesting
@@ -162,41 +162,45 @@ USB write              | No           | Hardware-specific
 ```
 flake.nix
 ├─ nixos-generators (imports)
-│  └─ base_configuration/ OR main_configuration/
-│     └─ raw-rootfs.img
-│
-├─ chromeos-shim-${board}
-│  ├─ extracted-kernel-${board}
-│  │  └─ initramfs-extraction-${board}
-│  │     └─ initramfs-patching-${board}
-│  │
-│  └─ (optional) chromeos-recovery-${board}
-│     └─ harvest-drivers.sh
-│        └─ harvested/
-│           ├─ lib/modules/
-│           ├─ lib/firmware/
-│           └─ modprobe.d/
-│
-└─ assemble-final.sh (imperative)
-   ├─ 1/15: Build Nix outputs
-   ├─ 2/15: Harvest ChromeOS drivers
-   ├─ 3/15: Augment firmware with upstream linux-firmware
-   ├─ 4/15: Prune unused firmware files (conservative Chromebook families)
-   │  └─ Enhanced with Chromebook family-specific pruning
-   ├─ 5/15: Copy raw rootfs image
-   ├─ 6/15: Optimize Nix store
-   ├─ 7/15: Calculate partition sizes
-   ├─ 8/15: Create empty image
-   ├─ 9/15: Partition image (GPT)
-   ├─ 10/15: Setup loop device
-   ├─ 11/15: Format partitions
-   ├─ 12/15: Populate bootloader partition
-   ├─ 13/15: Populate rootfs partition
-   ├─ 14/15: Clone nixos-config repository
-   ├─ 15/15: Inject harvested drivers
-   │  ├─ Inputs: raw-rootfs.img, patched-initramfs/, harvested/
-   │  ├─ Creates: shimboot.img (partitioned disk image)
-   │  └─ Integrates: vendor drivers (vendor/inject/both/none)
+ │  └─ base_configuration/ OR main_configuration/
+ │     └─ raw-rootfs.img
+ │
+ ├─ chromeos-shim-${board}
+ │  ├─ extracted-kernel-${board}
+ │  │  └─ initramfs-extraction-${board}
+ │  │     └─ initramfs-patching-${board}
+ │  │
+ │  └─ (optional) chromeos-recovery-${board}
+ │     └─ harvest-drivers.sh
+ │        └─ harvested/
+ │           ├─ lib/modules/
+ │           ├─ lib/firmware/
+ │           └─ modprobe.d/
+ │
+ └─ assemble-final.sh (imperative)
+    ├─ 1/15: Build Nix outputs
+    ├─ 1/15 (Cachix): Push built derivations to cache (disabled on CI)
+    ├─ 2/15: Harvest ChromeOS drivers
+    ├─ 3/15: Augment firmware with upstream ChromiumOS linux-firmware
+    ├─ 4/15: Prune unused firmware files (conservative Chromebook families)
+    ├─ 5/15: Calculate vendor partition size after firmware merge
+    ├─ 6/15: Copy raw rootfs image
+    ├─ 7/15: Optimize Nix store in raw rootfs
+    ├─ 8/15: Calculate rootfs size
+    ├─ 9/15: Create empty image
+    ├─ 10/15: Partition image (GPT, ChromeOS GUIDs, vendor before rootfs)
+    ├─ 11/15: Setup loop device
+    ├─ 12/15: Format partitions
+    ├─ 13/15: Populate bootloader partition
+    ├─ 14/15: Populate rootfs partition (now p5)
+    │  └─ Clone nixos-config repository into rootfs
+    ├─ 15/15: Handle driver placement strategy
+    │  ├─ Modes: vendor|inject|both|none
+    │  ├─ Inputs: raw-rootfs.img, patched-initramfs/, harvested/
+    │  ├─ Creates: shimboot.img (partitioned disk image)
+    │  └─ Integrates: vendor drivers (separate partition or injected)
+    ├─ Sync: Final Cachix push sync (disabled on CI)
+    └─ (optional) Cleanup: Prune older shimboot rootfs generations
 ```
 
 ### Pure vs Impure Operations
@@ -247,98 +251,101 @@ shimboot_config/user-config.nix
 
 ### Module Structure
 ```
-base_configuration/
-├─ configuration.nix                - Main entry point
-└─ system_modules/
-   ├─ audio.nix                     - Audio configuration
-   ├─ boot.nix                      - Disables standard bootloaders
-   ├─ display.nix                   - LightDM + Hyprland
-   ├─ filesystems.nix               - Single ext4 partition
-   ├─ fish.nix                      - Fish shell + Starship
-   ├─ fish-functions.nix            - Fish shell functions and abbreviations
-   ├─ fonts.nix                     - System fonts
-   ├─ hardware.nix                  - Firmware enablement
-   ├─ localization.nix              - Locale and timezone settings
-   ├─ networking.nix                - NetworkManager + wpa_supplicant
-   ├─ packages.nix                  - Minimal system packages
-   ├─ power-management.nix          - Power management settings
-   ├─ security.nix                  - Security configurations
-   ├─ services.nix                  - System services
-   ├─ systemd.nix                   - Patched systemd + kill-frecon service
-   ├─ users.nix                     - Default user accounts
-   ├─ zram.nix                      - Swap compression
-   ├─ fish_functions/
-   │  ├─ fix-fish-history.fish      - History repair utility
-   │  ├─ fish-greeting.fish         - Welcome message
-   │  ├─ list-fish-helpers.fish     - Function/abbreviation listing
-   │  ├─ nixos-flake-update.fish    - Flake update with backup
-   │  └─ nixos-rebuild-basic.fish   - System rebuild with kernel checks
-   └─ helpers/
-      ├─ filesystem-helpers.nix     - expand_rootfs
-      ├─ helpers.nix                - Helper scripts entry point
-      ├─ permissions-helpers.nix    - permission utilities
-      └─ setup-helpers.nix          - setup_nixos wizard
-
-main_configuration/
-├─ configuration.nix                - Imports base + adds user modules
-├─ system_modules/
-   │  ├─ fonts.nix                  - System fonts
-   │  ├─ packages.nix               - User applications
-   │  └─ services.nix               - Flatpak enablement
-│
-├─ home_modules/
-│  ├─ environment.nix               - Environment variables
-│  ├─ fcitx5.nix                    - Input method configuration
-│  ├─ fish.nix                      - Shell abbreviations
-│  ├─ home.nix                      - Home Manager entry point
-│  ├─ kde.nix                       - KDE apps (Dolphin, Gwenview)
-│  ├─ kitty.nix                     - Terminal config
-│  ├─ lib/
-│  │  └─ theme.nix                  - Theme library functions
-│  ├─ micro.nix                     - Micro editor configuration
-│  ├─ packages/
-│  │  ├─ communication.nix         - Vesktop
-│  │  ├─ gaming.nix                 - Lutris, OSU
-│  │  ├─ media.nix                  - MPV, Audacious
-│  │  ├─ notifications.nix          - Notification systems
-│  │  └─ utilities.nix              - CLI tools
-│  ├─ privacy.nix                   - Privacy settings
-│  ├─ programs.nix                  - Program configurations
-│  ├─ qt-gtk-config.nix             - Qt/GTK theme configuration
-│  ├─ screenshot.fish               - Screenshot function
-│  ├─ screenshot.nix                - Screenshot configuration
-│  ├─ services.nix                  - User services
-│  ├─ starship.nix                  - Starship prompt
-│  ├─ theme.nix                     - Rose Pine theming
-│  └─ zen-browser.nix               - Browser with extensions
-│
-├─ hypr_config/
-│  ├─ hypr_packages.nix             - Hyprland package definitions
-│  ├─ hyprland.nix                  - Hyprland configuration
-│  ├─ hyprpanel-common.nix          - HyprPanel common settings
-│  ├─ hyprpanel-home.nix            - HyprPanel home configuration
-│  ├─ hyprpaper.conf                - Wallpaper configuration
-│  ├─ monitors.conf                 - Monitor configuration
-│  ├─ userprefs.conf                - User preferences
-│  ├─ wallpaper.nix                 - Wallpaper management
-│  ├─ hypr_modules/
-│  │  ├─ animations.nix            - Window animations
-│  │  ├─ autostart.nix              - Autostart applications
-│  │  ├─ colors.nix                 - Color scheme
+shimboot_config/
+├─ user-config.nix                  - User settings and configuration
+├─ base_configuration/
+│  ├─ configuration.nix             - Main entry point
+│  └─ system_modules/
+│     ├─ audio.nix                  - Audio configuration
+│     ├─ boot.nix                   - Disables standard bootloaders
+│     ├─ display.nix                - LightDM + Hyprland
+│     ├─ filesystems.nix            - Single ext4 partition
+│     ├─ fish.nix                   - Fish shell + Starship
+│     ├─ fonts.nix                  - System fonts
+│     ├─ hardware.nix               - Firmware enablement
+│     ├─ localization.nix           - Locale and timezone settings
+│     ├─ networking.nix             - NetworkManager + wpa_supplicant
+│     ├─ packages.nix               - Minimal system packages
+│     ├─ power-management.nix       - Power management settings
+│     ├─ security.nix               - Security configurations
+│     ├─ services.nix               - System services
+│     ├─ systemd.nix                - Patched systemd + kill-frecon service
+│     ├─ users.nix                  - Default user accounts
+│     ├─ zram.nix                   - Swap compression
+│     ├─ fish_functions/
+│     │  ├─ fix-fish-history.fish   - History repair utility
+│     │  ├─ fish-greeting.fish      - Welcome message
+│     │  ├─ list-fish-helpers.fish  - Function/abbreviation listing
+│     │  ├─ nixos-flake-update.fish - Flake update with backup
+│     │  └─ nixos-rebuild-basic.fish - System rebuild with kernel checks
+│     └─ helpers/
+│        ├─ filesystem-helpers.nix  - expand_rootfs
+│        ├─ helpers.nix             - Helper scripts entry point
+│        ├─ permissions-helpers.nix - permission utilities
+│        └─ setup-helpers.nix       - setup_nixos wizard
+├─ main_configuration/
+│  ├─ configuration.nix             - Imports base + adds user modules
+│  ├─ system_modules/
+│  │  ├─ fonts.nix                  - System fonts
+│  │  ├─ packages.nix               - User applications
+│  │  └─ services.nix               - Flatpak enablement
+│  ├─ home_modules/
 │  │  ├─ environment.nix            - Environment variables
-│  │  ├─ fuzzel.nix                 - Application launcher
-│  │  ├─ general.nix                - General settings
-│  │  ├─ hyprlock.nix               - Lock screen
-│  │  ├─ keybinds.nix               - Keyboard shortcuts
-│  │  └─ window-rules.nix           - Window behavior rules
-│  ├─ shaders/
-│  │  ├─ blue-light-filter.glsl     - Blue light filter shader
-│  │  └─ cool-stuff.glsl            - Visual effects shader
-│  └─ micro_config/
-│     └─ rose-pine.micro            - Micro editor theme
-│
-└─ wallpaper/
-   └─ kasane_teto_utau_drawn_by_yananami_numata220.jpg
+│  │  ├─ fcitx5.nix                 - Input method configuration
+│  │  ├─ fish-themes.nix            - Fish shell themes
+│  │  ├─ fish.nix                   - Shell abbreviations
+│  │  ├─ home.nix                   - Home Manager entry point
+│  │  ├─ kde.nix                    - KDE apps (Dolphin, Gwenview)
+│  │  ├─ kitty.nix                  - Terminal config
+│  │  ├─ micro.nix                  - Micro editor configuration
+│  │  ├─ packages.nix               - User applications
+│  │  ├─ privacy.nix                - Privacy settings
+│  │  ├─ programs.nix               - Program configurations
+│  │  ├─ qt-gtk-config.nix          - Qt/GTK theme configuration
+│  │  ├─ screenshot.fish            - Screenshot function
+│  │  ├─ screenshot.nix             - Screenshot configuration
+│  │  ├─ services.nix               - User services
+│  │  ├─ starship.nix               - Starship prompt
+│  │  ├─ theme.nix                  - Rose Pine theming
+│  │  ├─ zen-browser.nix            - Browser with extensions
+│  │  ├─ lib/
+│  │  │  └─ theme.nix               - Theme library functions
+│  │  ├─ packages/
+│  │  │  ├─ communication.nix       - Vesktop
+│  │  │  ├─ gaming.nix              - Lutris, OSU
+│  │  │  ├─ media.nix               - MPV, Audacious
+│  │  │  ├─ notifications.nix       - Notification systems
+│  │  │  └─ utilities.nix           - CLI tools
+│  ├─ hypr_config/
+│  │  ├─ hypr_packages.nix          - Hyprland package definitions
+│  │  ├─ hyprland.nix               - Hyprland configuration
+│  │  ├─ hyprpanel-common.nix       - HyprPanel common settings
+│  │  ├─ hyprpanel-home.nix         - HyprPanel home configuration
+│  │  ├─ hyprpaper.conf             - Wallpaper configuration
+│  │  ├─ monitors.conf              - Monitor configuration
+│  │  ├─ userprefs.conf             - User preferences
+│  │  ├─ wallpaper.nix              - Wallpaper management
+│  │  ├─ hypr_modules/
+│  │  │  ├─ animations.nix         - Window animations
+│  │  │  ├─ autostart.nix          - Autostart applications
+│  │  │  ├─ colors.nix             - Color scheme
+│  │  │  ├─ environment.nix        - Environment variables
+│  │  │  ├─ fuzzel.nix             - Application launcher
+│  │  │  ├─ general.nix            - General settings
+│  │  │  ├─ hyprlock.nix           - Lock screen
+│  │  │  ├─ keybinds.nix           - Keyboard shortcuts
+│  │  │  └─ window-rules.nix       - Window behavior rules
+│  │  ├─ shaders/
+│  │  │  ├─ blue-light-filter.glsl - Blue light filter shader
+│  │  │  └─ cool-stuff.glsl        - Visual effects shader
+│  │  └─ micro_config/
+│  │     └─ rose-pine.micro        - Micro editor theme
+│  └─ wallpaper/
+│     └─ kasane_teto_utau_drawn_by_yananami_numata220.jpg
+└─ fish_themes/
+   ├─ Rosé Pine Dawn.theme
+   ├─ Rosé Pine Moon.theme
+   └─ Rosé Pine.theme
 ```
 
 ---
@@ -560,6 +567,7 @@ Location: tools/harvest-drivers.sh → prune_unused_firmware()
 
 Purpose: Reduce firmware size by conservatively pruning unused files
 Timing: After upstream firmware augmentation (step 4/15)
+Method: Keep firmware for known Chromebook families (intel, iwlwifi, rtw88, rtw89, brcm, ath10k, mediatek, regulatory.db, *.ucode)
 
 Keep families (board-agnostic Chromebook support):
 ├─ intel             # Intel WiFi/BT/GPU (most Chromebooks)
@@ -670,6 +678,12 @@ Build with custom drivers mode:
 
 Build without upstream firmware:
 └─ sudo ./assemble-final.sh --board dedede --rootfs full --no-firmware-upstream
+
+Build with inspection after completion:
+└─ sudo ./assemble-final.sh --board dedede --rootfs full --inspect
+
+Build with cleanup options:
+└─ sudo ./assemble-final.sh --board dedede --rootfs full --cleanup-rootfs --cleanup-keep 3
 
 Flash to USB:
 └─ sudo ./tools/write-shimboot-image.sh -i work/shimboot.img --output /dev/sdX
