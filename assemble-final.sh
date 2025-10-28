@@ -523,27 +523,6 @@ else
     )
 fi
 
-# Add wrapper for nix build
-nix_build_with_progress() {
-    local attr="$1"
-    local description="$2"
-    
-    log_info "Building $description..."
-    
-    # Run build with output parsing
-    nix build --impure --accept-flake-config "$attr" 2>&1 | while IFS= read -r line; do
-        case "$line" in
-            *"copying path"*)
-                log_info "  📥 Downloading: $(echo "$line" | sed "s/.*copying path '\([^']*\)'.*/\1/")"
-                ;;
-            *"building"*)
-                log_info "  🔨 Building: $(echo "$line" | sed "s/.*building '\([^']*\)'.*/\1/")"
-                ;;
-        esac
-    done
-    
-    nix build --impure --accept-flake-config "$attr" --print-out-paths
-}
 
 # Call before Step 1
 verify_cachix_config
@@ -579,17 +558,17 @@ if [ "$START_STEP" -le 1 ]; then
     wait $ROOTFS_PID || { log_error "Rootfs build failed"; handle_error "$CURRENT_STEP"; }
 
     # Get paths (instant since already built)
-    ORIGINAL_KERNEL="$(nix_build_with_progress ".#extracted-kernel-${BOARD}" "kernel extraction")/p2.bin"
-    PATCHED_INITRAMFS="$(nix_build_with_progress ".#initramfs-patching-${BOARD}" "initramfs patching")/patched-initramfs"
-    RAW_ROOTFS_IMG="$(nix_build_with_progress ".#${RAW_ROOTFS_ATTR}" "raw rootfs")/nixos.img"
+    ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config ".#extracted-kernel-${BOARD}" --print-out-paths)/p2.bin"
+    PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config ".#initramfs-patching-${BOARD}" --print-out-paths)/patched-initramfs"
+    RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config ".#${RAW_ROOTFS_ATTR}" --print-out-paths)/nixos.img"
     
     save_checkpoint 1
 else
     log_info "Skipping step 1 (already completed)"
     # Get paths (instant since already built)
-    ORIGINAL_KERNEL="$(nix_build_with_progress ".#extracted-kernel-${BOARD}" "kernel extraction")/p2.bin"
-    PATCHED_INITRAMFS="$(nix_build_with_progress ".#initramfs-patching-${BOARD}" "initramfs patching")/patched-initramfs"
-    RAW_ROOTFS_IMG="$(nix_build_with_progress ".#${RAW_ROOTFS_ATTR}" "raw rootfs")/nixos.img"
+    ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config ".#extracted-kernel-${BOARD}" --print-out-paths)/p2.bin"
+    PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config ".#initramfs-patching-${BOARD}" --print-out-paths)/patched-initramfs"
+    RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config ".#${RAW_ROOTFS_ATTR}" --print-out-paths)/nixos.img"
 fi
 
 # Validate build results
