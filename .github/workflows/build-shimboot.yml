@@ -162,7 +162,9 @@ jobs:
             source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
           fi
 
-          # Re-run assemble-final.sh with preserved PATH
+          echo "💾 Available space before assembly:"
+          df -h
+
           sudo -E env "PATH=$PATH" "NIX_PATH=$NIX_PATH" \
             BOARD="${{ matrix.board }}" \
             ./assemble-final.sh \
@@ -170,21 +172,28 @@ jobs:
               --rootfs "${{ github.event.inputs.rootfs || 'minimal' }}" \
               --drivers vendor
 
+          echo "💾 Available space after assembly:"
+          df -h
+
       # Artifact Preparation
       # Compress final image and generate checksum for distribution
 
       - name: Compress and rename
         run: |
-          # Detect work directory
+          set -e
           if [ -f "/nix/work/shimboot.img" ]; then
             WORKDIR="/nix/work"
-            echo "✅ Using CI work directory: /nix/work"
           elif [ -f "work/shimboot.img" ]; then
             WORKDIR="work"
-            echo "✅ Using local work directory: work"
           else
             echo "❌ Error: shimboot.img not found!"
-            find . -name "shimboot.img" -type f 2>/dev/null || true
+            echo "🔍 Searching entire filesystem..."
+            sudo find / -name "shimboot.img" -type f 2>/dev/null | head -10
+            exit 1
+          fi
+
+          if ! sudo parted -s "$WORKDIR/shimboot.img" print >/dev/null 2>&1; then
+            echo "❌ Error: shimboot.img is not a valid disk image!"
             exit 1
           fi
 
@@ -201,20 +210,29 @@ jobs:
           mkdir -p "$ARTIFACT_DIR"
 
           echo "📦 Compressing image for ${ARTIFACT_TAG}..."
-          pv shimboot.img | zstd -19 -T0 -o "$ARTIFACT_DIR/${ARTIFACT_TAG}.img.zst"
+          pv shimboot.img | zstd -19 --long -T0 -o "$ARTIFACT_DIR/${ARTIFACT_TAG}.img.zst"
 
           echo "🔐 Generating SHA256 checksum..."
           (
             cd "$ARTIFACT_DIR"
             sha256sum "${ARTIFACT_TAG}.img.zst" > "${ARTIFACT_TAG}.img.zst.sha256"
+            du -h "${ARTIFACT_TAG}.img.zst" >> "${ARTIFACT_TAG}.img.zst.sha256"
           )
 
-          # Display info about final size
           SIZE_MB=$(du -m "$ARTIFACT_DIR/${ARTIFACT_TAG}.img.zst" | cut -f1)
+          ORIG_SIZE_MB=$(du -m "shimboot.img" | cut -f1)
+          COMPRESSION_RATIO=$((100 - (SIZE_MB * 100 / ORIG_SIZE_MB)))
+
+          echo "📊 Compression stats:"
+          echo "  Original: ${ORIG_SIZE_MB}MB"
+          echo "  Compressed: ${SIZE_MB}MB (${COMPRESSION_RATIO}% reduction)"
+
           if [ "$SIZE_MB" -gt 2000 ]; then
-            echo "⚠️ WARNING: Artifact is ${SIZE_MB}MB (exceeds 2GB GitHub upload limit)"
+            echo "⚠️ Exceeds 2GB limit (${SIZE_MB}MB)"
+            echo "💡 Consider uploading via release assets"
+            exit 1
           else
-            echo "✅ Artifact size: ${SIZE_MB}MB (within 2GB limit)"
+            echo "✅ Size OK (${SIZE_MB}MB)"
           fi
 
           echo "✅ Created artifact directory:"

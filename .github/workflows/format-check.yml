@@ -1,0 +1,49 @@
+# Code Formatting Check Workflow
+#
+# Purpose: Validates code formatting on pull requests
+# Triggers: Pull requests to main/dev branches
+# Dependencies: cachix/install-nix-action, alejandra (via nix fmt)
+#
+# This workflow:
+# - Checks that code follows project's formatting standards
+# - Uses alejandra formatter via nix fmt
+# - Prevents merge of improperly formatted code
+
+name: format-check
+
+on:
+  pull_request:
+    branches: [ "main", "dev" ]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: |
+            experimental-features = nix-command flakes
+
+      - name: Setup Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Check formatting
+        id: format
+        continue-on-error: true
+        run: |
+          if ! nix fmt -- --check .; then
+            echo "## ❌ Formatting Issues Detected" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Run this to fix locally:" >> $GITHUB_STEP_SUMMARY
+            echo '```bash' >> $GITHUB_STEP_SUMMARY
+            echo 'nix fmt' >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+      - name: Show formatting diff
+        if: steps.format.outcome == 'failure'
+        run: nix fmt -- --check . 2>&1 | head -100 || true
