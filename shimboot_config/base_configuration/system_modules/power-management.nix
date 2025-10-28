@@ -18,7 +18,7 @@
   powerManagement.enable = true;
   services.thermald.enable = lib.mkDefault true;
   services.upower.enable = lib.mkDefault true;
-  services.tlp.enable = lib.mkDefault true;
+  services.auto-cpufreq.enable = lib.mkDefault true;
 
   networking = {
     networkmanager = {
