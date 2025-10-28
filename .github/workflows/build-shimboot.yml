@@ -57,11 +57,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        board: ${{
-          github.event.inputs.board == 'all'
-          && fromJSON('["dedede", "octopus", "zork", "nissa", "hatch", "grunt", "snappy"]')
-          || fromJSON(format('["{0}"]', github.event.inputs.board))
-        }}
+        board: >-
+          ${{
+            github.event.inputs.board == 'all'
+            && fromJSON('["dedede", "octopus", "zork", "nissa", "hatch", "grunt", "snappy"]')
+            || fromJSON(format('["{0}"]', github.event.inputs.board))
+          }}
 
     # Build Steps
     # Sequential steps to prepare environment, build components, and assemble final image
