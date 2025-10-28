@@ -36,7 +36,18 @@ log_error() {
 
 # Prune unused firmware files to reduce size
 prune_unused_firmware() {
-	local firmware_dir="$1"
+	local fw_dir="$1"
+	
+	# Safety check: verify we're in the right directory
+	if [[ ! "$fw_dir" =~ /harvested/lib/firmware$ ]] && \
+	   [[ ! "$fw_dir" =~ /work/harvested/lib/firmware$ ]]; then
+		log_error "Refusing to prune firmware: unsafe path $fw_dir"
+		return 1
+	fi
+	
+	# Backup firmware list before pruning
+	log_info "Creating firmware backup manifest..."
+	find "$fw_dir" -type f > "$fw_dir/../firmware-manifest.txt"
 
 	log_step "Prune" "Conservatively pruning firmware..."
 
@@ -56,7 +67,7 @@ prune_unused_firmware() {
 	log_info "Keeping essential Chromebook firmware families..."
 
 	# Build find exclusion expression dynamically
-	local find_cmd="find \"$firmware_dir\" -type f"
+	local find_cmd="find \"$fw_dir\" -type f"
 	for family in "${keep_families[@]}"; do
 		find_cmd="$find_cmd ! -path \"*/$family/*\" ! -name \"$family*\""
 	done
@@ -66,11 +77,11 @@ prune_unused_firmware() {
 	eval "$find_cmd"
 
 	# Remove empty directories
-	find "$firmware_dir" -type d -empty -delete 2>/dev/null || true
+	find "$fw_dir" -type d -empty -delete 2>/dev/null || true
 
 	# Report size after pruning
 	local remaining_size
-	remaining_size=$(du -sh "$firmware_dir" | cut -f1)
+	remaining_size=$(du -sh "$fw_dir" | cut -f1)
 	log_info "Firmware pruned to $remaining_size"
 }
 
