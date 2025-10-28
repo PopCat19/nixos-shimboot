@@ -177,29 +177,30 @@ flake.nix
  │           ├─ lib/firmware/
  │           └─ modprobe.d/
  │
- └─ assemble-final.sh (imperative)
+ └─ assemble-final.sh v2.0 (imperative)
     ├─ 1/15: Build Nix outputs
-    ├─ 1/15 (Cachix): Push built derivations to cache (disabled on CI)
+    ├─ 1/15 (Cachix): Push built derivations to cache (enhanced CI detection)
     ├─ 2/15: Harvest ChromeOS drivers
     ├─ 3/15: Augment firmware with upstream ChromiumOS linux-firmware
-    ├─ 4/15: Prune unused firmware files (conservative Chromebook families)
+    ├─ 4/15: Prune unused firmware files (robust path resolution)
     ├─ 5/15: Calculate vendor partition size after firmware merge
-    ├─ 6/15: Copy raw rootfs image
+    ├─ 6/15: Copy raw rootfs image (progress indication with pv)
     ├─ 7/15: Optimize Nix store in raw rootfs
     ├─ 8/15: Calculate rootfs size
     ├─ 9/15: Create empty image
     ├─ 10/15: Partition image (GPT, ChromeOS GUIDs, vendor before rootfs)
     ├─ 11/15: Setup loop device
-    ├─ 12/15: Format partitions
+    ├─ 12/15: Format partitions + verification
     ├─ 13/15: Populate bootloader partition
     ├─ 14/15: Populate rootfs partition (now p5)
-    │  └─ Clone nixos-config repository into rootfs
-    ├─ 15/15: Handle driver placement strategy
+    │  └─ Clone nixos-config repository into rootfs (dynamic remote detection)
+    ├─ 15/15: Handle driver placement strategy (refactored functions)
     │  ├─ Modes: vendor|inject|both|none
+    │  ├─ Functions: populate_vendor(), inject_drivers()
     │  ├─ Inputs: raw-rootfs.img, patched-initramfs/, harvested/
     │  ├─ Creates: shimboot.img (partitioned disk image)
     │  └─ Integrates: vendor drivers (separate partition or injected)
-    ├─ Sync: Final Cachix push sync (disabled on CI)
+    ├─ Sync: Final Cachix push sync (enhanced CI detection)
     └─ (optional) Cleanup: Prune older shimboot rootfs generations
 ```
 
@@ -683,7 +684,10 @@ Build with inspection after completion:
 └─ sudo ./assemble-final.sh --board dedede --rootfs full --inspect
 
 Build with cleanup options:
-└─ sudo ./assemble-final.sh --board dedede --rootfs full --cleanup-rootfs --cleanup-keep 3
+└─ sudo ./assemble-final.sh --board dedede --rootfs full --cleanup-rootfs --cleanup-keep 2 --no-dry-run
+
+Build with vendor drivers and cleanup:
+└─ sudo ./assemble-final.sh --board dedede --rootfs minimal --drivers vendor --cleanup-rootfs --cleanup-keep 2 --no-dry-run
 
 Flash to USB:
 └─ sudo ./tools/write-shimboot-image.sh -i work/shimboot.img --output /dev/sdX
@@ -710,6 +714,7 @@ Configuration:
 └─ shimboot_config/main_configuration/       - Full desktop
 
 Build system:
+├─ assemble-final.sh                         - Main build script v2.0 with enhanced features
 ├─ flake.nix                                 - Main flake
 ├─ flake_modules/                            - Nix derivations
 ├─ tools/                                    - Build scripts

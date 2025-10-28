@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Assemble Final Script
+# Assemble Final Script v2.0
 #
 # Purpose: Build and assemble final shimboot image with Nix outputs, drivers, and partitioning
 # Dependencies: nix, sudo, parted, mkfs.ext4, dd, pv, losetup, mount, umount, cgpt
@@ -10,7 +10,25 @@
 # building Nix packages, harvesting drivers, and creating the final disk image.
 #
 # Usage:
+#   ./assemble-final.sh [OPTIONS]
+#
+# Options:
+#   --board BOARD          Target board (dedede, octopus, etc.)
+#   --rootfs FLAVOR        Rootfs variant (full, minimal)
+#   --drivers MODE         Driver placement (vendor, inject, both, none)
+#   --firmware-upstream    Enable upstream firmware (default: 1)
+#   --no-firmware-upstream Disable upstream firmware
+#   --inspect              Inspect final image after build
+#   --cleanup-rootfs       Clean up old rootfs generations
+#   --cleanup-keep N       Keep last N generations (default: 3)
+#   --no-dry-run           Actually delete in cleanup (default: dry-run)
+#
+# Examples:
+#   # Build dedede with full rootfs
 #   ./assemble-final.sh --board dedede --rootfs full
+#
+#   # Build with vendor drivers and cleanup
+#   ./assemble-final.sh --board dedede --rootfs minimal --drivers vendor --cleanup-rootfs --cleanup-keep 2 --no-dry-run
 
 set -euo pipefail
 
@@ -24,6 +42,14 @@ if [ "${EUID:-$(id -u)}" -ne 0 ]; then
 	done
 	exec sudo -E -H "${SUDO_ENV[@]}" "$0" "$@"
 fi
+
+# === CI Detection ===
+is_ci() {
+	[ "${CI:-}" = "true" ] || \
+	[ -n "${GITHUB_ACTIONS:-}" ] || \
+	[ -n "${GITLAB_CI:-}" ] || \
+	[ -n "${JENKINS_HOME:-}" ]
+}
 
 # === Colors & Logging ===
 ANSI_CLEAR='\033[0m'
@@ -250,10 +276,15 @@ cleanup() {
 		fi
 	done
 
-	# After unmounting, add a short pause before losetup cleanup
+	# After unmounting, wait for all mount points to be actually unmounted
 	log_info "Waiting for unmount to settle..."
 	sync
-	sleep 0.5
+	for i in {1..10}; do
+		if ! mountpoint -q "$WORKDIR/mnt_rootfs" 2>/dev/null; then
+			break
+		fi
+		sleep 0.1
+	done
 
 	# Detach any loops recorded in variables if they still exist
 	if [ -n "${LOOPDEV:-}" ] && losetup "${LOOPDEV}" &>/dev/null; then
@@ -294,7 +325,7 @@ log_info "Patched initramfs dir: $PATCHED_INITRAMFS"
 log_info "Raw rootfs: $RAW_ROOTFS_IMG"
 
 # === Step 1 (Cachix push, disabled on CI) ===
-if command -v cachix >/dev/null 2>&1 && [ "${CI:-}" != "true" ]; then
+if command -v cachix >/dev/null 2>&1 && ! is_ci; then
   log_step "1/15 (Cachix)" "Pushing built derivations to ${CACHIX_CACHE}"
   cachix push "$CACHIX_CACHE" \
     "$(dirname "$ORIGINAL_KERNEL")" \
@@ -302,7 +333,7 @@ if command -v cachix >/dev/null 2>&1 && [ "${CI:-}" != "true" ]; then
     "$(dirname "$RAW_ROOTFS_IMG")" \
     || log_warn "Some Cachix pushes may have failed; continuing build."
 else
-  [ "${CI:-}" = "true" ] && log_info "CI detected — skipping manual Cachix push (handled by GitHub Action)"
+  is_ci && log_info "CI detected — skipping manual Cachix push (handled by CI system)"
 fi
 
 # Build ChromeOS SHIM and determine RECOVERY per policy
@@ -350,9 +381,14 @@ if [ "${FIRMWARE_UPSTREAM:-1}" != "0" ]; then
 	# Prune unused firmware files after upstream augmentation
 	if [ -d "$HARVEST_OUT/lib/firmware" ]; then
 		log_step "4/15" "Prune unused firmware files"
-		# Source the pruning function from harvest-drivers.sh
-		source tools/harvest-drivers.sh
-		prune_unused_firmware "$HARVEST_OUT/lib/firmware"
+		# More robust path resolution
+		SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+		if [ -f "$SCRIPT_DIR/tools/harvest-drivers.sh" ]; then
+			source "$SCRIPT_DIR/tools/harvest-drivers.sh"
+			prune_unused_firmware "$HARVEST_OUT/lib/firmware"
+		else
+			log_warn "harvest-drivers.sh not found; skipping firmware pruning"
+		fi
 	fi
 else
 	log_info "Upstream firmware disabled, using only harvested firmware"
@@ -374,7 +410,7 @@ log_info "Vendor partition size (post-firmware): ${VENDOR_PART_SIZE} MB"
 
 # === Step 6: Copy raw rootfs image ===
 log_step "6/15" "Copy raw rootfs image"
-cp "$RAW_ROOTFS_IMG" "$WORKDIR/rootfs.img"
+pv "$RAW_ROOTFS_IMG" > "$WORKDIR/rootfs.img"
 
 # === Step 7: Optimize Nix store in raw rootfs ===
 log_step "7/15" "Optimize Nix store in raw rootfs"
@@ -468,6 +504,15 @@ sudo mkfs.ext4 -q -O ^has_journal,^orphan_file,^metadata_csum_seed \
 # Rootfs is now p5
 sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "$MKFS_EXT4_FLAGS" "${LOOPDEV}p5"
 
+# After Step 12: Format partitions
+log_info "Verifying partition formatting..."
+for part in p1 p2 p3 p4 p5; do
+  if [ ! -b "${LOOPDEV}${part}" ]; then
+    log_error "Partition ${part} not found after formatting"
+    exit 1
+  fi
+done
+
 # === Step 13: Populate bootloader partition ===
 log_step "13/15" "Populate bootloader partition"
 sudo mount "${LOOPDEV}p3" "$WORKDIR/mnt_bootloader"
@@ -508,8 +553,9 @@ if command -v git >/dev/null 2>&1 && [ -d .git ]; then
   # Clone the repository
   log_info "Cloning nixos-config repository..."
   sudo git clone --no-local "$(pwd)" "$NIXOS_CONFIG_DEST"
-  # Set the remote to the actual GitHub URL instead of the local path
-  sudo git -C "$NIXOS_CONFIG_DEST" remote set-url origin "https://github.com/PopCat19/nixos-shimboot.git"
+  # Detect actual remote origin
+  ACTUAL_REMOTE=$(git remote get-url origin 2>/dev/null || echo "https://github.com/PopCat19/nixos-shimboot.git")
+  sudo git -C "$NIXOS_CONFIG_DEST" remote set-url origin "$ACTUAL_REMOTE"
 
   # Switch to the same branch as the source repository
   if [ "$GIT_BRANCH" != "unknown" ]; then
@@ -556,8 +602,59 @@ sudo losetup -d "$LOOPROOT"
 LOOPROOT=""
 
 
-# === Step 15: Inject harvested drivers into rootfs (optional) ===
-# DRIVERS_MODE set earlier (default 'vendor'); valid: vendor|inject|none
+# === Step 15: Driver handling functions ===
+# Extract functions first to eliminate code duplication
+
+populate_vendor() {
+	if [ ! -b "${LOOPDEV}p4" ]; then
+		log_error "Vendor partition p4 not found on ${LOOPDEV}"
+		return 1
+	fi
+	
+	log_step "15/15" "Populate vendor partition (p4) with harvested drivers (/lib/modules, /lib/firmware)"
+	sudo mkdir -p "$WORKDIR/mnt_vendor"
+	sudo mount "${LOOPDEV}p4" "$WORKDIR/mnt_vendor"
+	sudo mkdir -p "$WORKDIR/mnt_vendor/lib/modules" "$WORKDIR/mnt_vendor/lib/firmware"
+
+	if [ -d "$HARVEST_OUT/lib/modules" ]; then
+		log_info "Copying modules to vendor..."
+		sudo cp -a "$HARVEST_OUT/lib/modules/." "$WORKDIR/mnt_vendor/lib/modules/"
+	else
+		log_warn "No harvested lib/modules; nothing to place into vendor partition"
+	fi
+
+	if [ -d "$HARVEST_OUT/lib/firmware" ]; then
+		log_info "Copying firmware to vendor..."
+		sudo cp -a "$HARVEST_OUT/lib/firmware/." "$WORKDIR/mnt_vendor/lib/firmware/"
+	else
+		log_warn "No harvested lib/firmware; nothing to place into vendor partition"
+	fi
+
+	sudo sync
+	sudo umount "$WORKDIR/mnt_vendor"
+}
+
+inject_drivers() {
+	log_step "15/15" "Inject drivers into rootfs (p5) (/lib/modules, /lib/firmware, modprobe.d)"
+	if [ -d "$HARVEST_OUT/lib/modules" ]; then
+		sudo rm -rf "$WORKDIR/mnt_rootfs/lib/modules"
+		sudo mkdir -p "$WORKDIR/mnt_rootfs/lib"
+		sudo cp -a "$HARVEST_OUT/lib/modules" "$WORKDIR/mnt_rootfs/lib/modules"
+	else
+		log_warn "No harvested lib/modules; skipping module injection"
+	fi
+	if [ -d "$HARVEST_OUT/lib/firmware" ]; then
+		sudo mkdir -p "$WORKDIR/mnt_rootfs/lib/firmware"
+		sudo cp -a "$HARVEST_OUT/lib/firmware/." "$WORKDIR/mnt_rootfs/lib/firmware/"
+	else
+		log_warn "No harvested lib/firmware; skipping firmware injection"
+	fi
+	if [ -d "$HARVEST_OUT/modprobe.d" ]; then
+		sudo mkdir -p "$WORKDIR/mnt_rootfs/lib/modprobe.d" "$WORKDIR/mnt_rootfs/etc/modprobe.d"
+		sudo cp -a "$HARVEST_OUT/modprobe.d/." "$WORKDIR/mnt_rootfs/lib/modprobe.d/" 2>/dev/null || true
+		sudo cp -a "$HARVEST_OUT/modprobe.d/." "$WORKDIR/mnt_rootfs/etc/modprobe.d/" 2>/dev/null || true
+	fi
+}
 
 # === Step 15: Handle driver placement strategy ===
 # Modes:
@@ -567,120 +664,21 @@ LOOPROOT=""
 #   none:   Skip driver handling entirely
 case "$DRIVERS_MODE" in
 vendor | CROSDRV)
-	log_step "15/15" "Populate vendor partition (p4) with harvested drivers (/lib/modules, /lib/firmware)"
-	if [ ! -b "${LOOPDEV}p4" ]; then
-		log_error "Vendor partition p4 not found on ${LOOPDEV}"
-	else
-		sudo mkdir -p "$WORKDIR/mnt_vendor"
-		sudo mount "${LOOPDEV}p4" "$WORKDIR/mnt_vendor"
-		sudo mkdir -p "$WORKDIR/mnt_vendor/lib/modules" "$WORKDIR/mnt_vendor/lib/firmware"
-
-		if [ -d "$HARVEST_OUT/lib/modules" ]; then
-			log_info "Copying modules to vendor..."
-			sudo cp -a "$HARVEST_OUT/lib/modules/." "$WORKDIR/mnt_vendor/lib/modules/"
-		else
-			log_warn "No harvested lib/modules; nothing to place into vendor partition"
-		fi
-
-		if [ -d "$HARVEST_OUT/lib/firmware" ]; then
-			log_info "Copying firmware to vendor..."
-			sudo cp -a "$HARVEST_OUT/lib/firmware/." "$WORKDIR/mnt_vendor/lib/firmware/"
-		else
-			log_warn "No harvested lib/firmware; nothing to place into vendor partition"
-		fi
-
-		sudo sync
-		sudo umount "$WORKDIR/mnt_vendor"
-	fi
+	populate_vendor
 	;;
 both)
-log_step "15/15" "Populate vendor partition (p4) with harvested drivers, then inject into rootfs (p5)"
-	if [ ! -b "${LOOPDEV}p4" ]; then
-		log_error "Vendor partition p4 not found on ${LOOPDEV}"
-	else
-		sudo mkdir -p "$WORKDIR/mnt_vendor"
-		sudo mount "${LOOPDEV}p4" "$WORKDIR/mnt_vendor"
-		sudo mkdir -p "$WORKDIR/mnt_vendor/lib/modules" "$WORKDIR/mnt_vendor/lib/firmware"
-
-		if [ -d "$HARVEST_OUT/lib/modules" ]; then
-			log_info "Copying modules to vendor..."
-			sudo cp -a "$HARVEST_OUT/lib/modules/." "$WORKDIR/mnt_vendor/lib/modules/"
-		else
-			log_warn "No harvested lib/modules; nothing to place into vendor partition"
-		fi
-
-		if [ -d "$HARVEST_OUT/lib/firmware" ]; then
-			log_info "Copying firmware to vendor..."
-			sudo cp -a "$HARVEST_OUT/lib/firmware/." "$WORKDIR/mnt_vendor/lib/firmware/"
-		else
-			log_warn "No harvested lib/firmware; nothing to place into vendor partition"
-		fi
-
-		sudo sync
-		sudo umount "$WORKDIR/mnt_vendor"
-	fi
-
-	log_step "15/15 (continued)" "Inject drivers into rootfs (p5) (/lib/modules, /lib/firmware, modprobe.d)"
-	if [ -d "$HARVEST_OUT/lib/modules" ]; then
-		sudo rm -rf "$WORKDIR/mnt_rootfs/lib/modules"
-		sudo mkdir -p "$WORKDIR/mnt_rootfs/lib"
-		sudo cp -a "$HARVEST_OUT/lib/modules" "$WORKDIR/mnt_rootfs/lib/modules"
-	else
-		log_warn "No harvested lib/modules; skipping module injection"
-	fi
-	if [ -d "$HARVEST_OUT/lib/firmware" ]; then
-		sudo mkdir -p "$WORKDIR/mnt_rootfs/lib/firmware"
-		sudo cp -a "$HARVEST_OUT/lib/firmware/." "$WORKDIR/mnt_rootfs/lib/firmware/"
-	else
-		log_warn "No harvested lib/firmware; skipping firmware injection"
-	fi
-	if [ -d "$HARVEST_OUT/modprobe.d" ]; then
-		sudo mkdir -p "$WORKDIR/mnt_rootfs/lib/modprobe.d" "$WORKDIR/mnt_rootfs/etc/modprobe.d"
-		sudo cp -a "$HARVEST_OUT/modprobe.d/." "$WORKDIR/mnt_rootfs/lib/modprobe.d/" 2>/dev/null || true
-		sudo cp -a "$HARVEST_OUT/modprobe.d/." "$WORKDIR/mnt_rootfs/etc/modprobe.d/" 2>/dev/null || true
-	fi
+	populate_vendor
+	inject_drivers
 	;;
 inject)
-log_step "15/15" "Inject drivers into rootfs (p5) (/lib/modules, /lib/firmware, modprobe.d)"
-	if [ -d "$HARVEST_OUT/lib/modules" ]; then
-		sudo rm -rf "$WORKDIR/mnt_rootfs/lib/modules"
-		sudo mkdir -p "$WORKDIR/mnt_rootfs/lib"
-		sudo cp -a "$HARVEST_OUT/lib/modules" "$WORKDIR/mnt_rootfs/lib/modules"
-	else
-		log_warn "No harvested lib/modules; skipping module injection"
-	fi
-	if [ -d "$HARVEST_OUT/lib/firmware" ]; then
-		sudo mkdir -p "$WORKDIR/mnt_rootfs/lib/firmware"
-		sudo cp -a "$HARVEST_OUT/lib/firmware/." "$WORKDIR/mnt_rootfs/lib/firmware/"
-	else
-		log_warn "No harvested lib/firmware; skipping firmware injection"
-	fi
-	if [ -d "$HARVEST_OUT/modprobe.d" ]; then
-		sudo mkdir -p "$WORKDIR/mnt_rootfs/lib/modprobe.d" "$WORKDIR/mnt_rootfs/etc/modprobe.d"
-		sudo cp -a "$HARVEST_OUT/modprobe.d/." "$WORKDIR/mnt_rootfs/lib/modprobe.d/" 2>/dev/null || true
-		sudo cp -a "$HARVEST_OUT/modprobe.d/." "$WORKDIR/mnt_rootfs/etc/modprobe.d/" 2>/dev/null || true
-	fi
+	inject_drivers
 	;;
 none)
 	log_info "DRIVERS_MODE=none; leaving rootfs unchanged"
 	;;
 *)
 	log_warn "Unknown DRIVERS_MODE='${DRIVERS_MODE}', defaulting to vendor populate"
-	if [ -b "${LOOPDEV}p4" ]; then
-		sudo mkdir -p "$WORKDIR/mnt_vendor"
-		sudo mount "${LOOPDEV}p4" "$WORKDIR/mnt_vendor"
-		sudo mkdir -p "$WORKDIR/mnt_vendor/lib/modules" "$WORKDIR/mnt_vendor/lib/firmware"
-		if [ -d "$HARVEST_OUT/lib/modules" ]; then
-			sudo cp -a "$HARVEST_OUT/lib/modules/." "$WORKDIR/mnt_vendor/lib/modules/"
-		fi
-		if [ -d "$HARVEST_OUT/lib/firmware" ]; then
-			sudo cp -a "$HARVEST_OUT/lib/firmware/." "$WORKDIR/mnt_vendor/lib/firmware/"
-		fi
-		sudo sync
-		sudo umount "$WORKDIR/mnt_vendor"
-	else
-		log_error "Vendor partition p4 not found on ${LOOPDEV}"
-	fi
+	populate_vendor
 	;;
 esac
 
@@ -693,7 +691,7 @@ LOOPDEV=""
 log_info "✅ Final image created at: $IMAGE"
 
 # === Step 16: Final Cachix sync (disabled on CI) ===
-if command -v cachix >/dev/null 2>&1 && [ "${CI:-}" != "true" ]; then
+if command -v cachix >/dev/null 2>&1 && ! is_ci; then
   log_step "Sync" "Final Cachix push sync"
   for drv in \
     ".#chromeos-shim-${BOARD}" \
@@ -705,7 +703,7 @@ if command -v cachix >/dev/null 2>&1 && [ "${CI:-}" != "true" ]; then
   done
   log_info "✅ Cachix push complete: ${CACHIX_CACHE}"
 else
-  [ "${CI:-}" = "true" ] && log_info "CI detected — skipping final Cachix push (handled externally)"
+  is_ci && log_info "CI detected — skipping final Cachix push (handled by CI system)"
 fi
 
 # === Optional cleanup of old shimboot rootfs generations ===
