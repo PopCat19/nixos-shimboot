@@ -51,9 +51,6 @@ jobs:
             experimental-features = nix-command flakes
             accept-flake-config = true
 
-      - name: Setup Magic Nix Cache
-        uses: DeterminateSystems/magic-nix-cache-action@v2
-
       - name: Auto-format Nix files
         run: |
           echo "✨ Running nix fmt (auto format)..."
