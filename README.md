@@ -18,6 +18,19 @@ Before this repo, I've made a bunch of attempts initially from [nixos-shimboot-l
 
 The reason I made this repo and moved away from [nixos-shimboot-legacy](https://github.com/PopCat19/nixos-shimboot-legacy/tree/qemu-method2) is due to its inherited contributers and commits from [ading2210/shimboot](https://github.com/ading2210/shimboot), which considering substantial amounts of change that's been made compared to the original repo, I decided to initialize a clean repo to avoid potential misconceptions. I will keep the original GPLv3 license except for unfree chromeos artifacts.
 
+## Why NixOS?
+While NixOS isn't the fastest nor the most minimal linux distribution to run on low-end hardware, it can be one of the most stable, up-to-date, and reproducible distros with proper configurations.
+
+NixOS follows differently from the usual Filesystem Hierarchy Standard, where almost everything is configured and stored within `/nix` and `/nix/store` directories, including various Nix and systemd utilities that make NixOS configurations reproducible and usable.
+
+In turn, users who've only used FHS compliant linux distributions (like Debian for example) will need to familiarize configuring Nix configurations to install packages, configure services and eventually build a custom, reproducible NixOS machine configuration. 
+
+If you're interested, I strongly recommend trying NixOS in a VM first (or try the Nix package manager for your distribution, if you prefer learning Nix first) following: https://nixos.org/download/\
+|\
+You may need to look up several online documentations, videos, or even Reddit and Large Language Model guidance (better if said LLM has Model Context Protocols like context7 to pull documents from) to learn what you want to do with Nix/NixOS. I find that exploring someone else's NixOS configurations can also help reason and understand NixOS via first/second-hand experience.\
+|\
+Helpful sources like https://mynixos.com/ can show definitions, options, and available Nix packages.
+
 ## What's shimboot?
 A helpful excerpt from [ading2210/shimboot](https://github.com/ading2210/shimboot)'s [README](https://github.com/PopCat19/shimboot-nixos/raw/refs/heads/main/README.md):
 > Shimboot is a collection of scripts for patching a Chrome OS RMA shim to serve as a bootloader for a standard Linux distribution. It allows you to boot a full desktop Debian install on a Chromebook, without needing to unenroll it or modify the firmware.
