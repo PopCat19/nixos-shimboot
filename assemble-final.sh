@@ -95,12 +95,21 @@ trap 'handle_error "${CURRENT_STEP:-unknown}"' ERR
 # Elevate to root so nix-daemon treats this client as trusted; required for substituters/trusted-public-keys
 # Use -H to set HOME to /root to avoid "$HOME is not owned by you" warnings under sudo.
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
-	echo "[assemble-final] Re-executing with sudo -H..."
-	SUDO_ENV=()
-	for var in BOARD BOARD_EXPLICITLY_SET CACHIX_AUTH_TOKEN; do
-		if [ -n "${!var:-}" ]; then SUDO_ENV+=("$var=${!var}"); fi
-	done
-	exec sudo -E -H "${SUDO_ENV[@]}" "$0" "$@"
+    if command -v sudo >/dev/null 2>&1; then
+        echo "[assemble-final] Re‑executing with sudo ‑H (detected non‑root user)…"
+        SUDO_ENV=()
+        for var in BOARD BOARD_EXPLICITLY_SET CACHIX_AUTH_TOKEN; do
+            if [ -n "${!var:-}" ]; then SUDO_ENV+=("$var=${!var}"); fi
+        done
+        exec sudo -E -H "${SUDO_ENV[@]}" "$0" "$@"
+    else
+        if [ "$(id -u)" -ne 0 ]; then
+            echo "[assemble‑final] ⚠️  Warning: running without root privileges and no sudo available."
+            echo "Commands that require privil­eged access (mkfs, losetup, mount) may fail."
+            echo "To run fully, execute as root or install sudo."
+        fi
+        # continue without re‑exec; script will likely run with reduced capability
+    fi
 fi
 
 # === CI Detection ===
