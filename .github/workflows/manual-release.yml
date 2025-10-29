@@ -13,13 +13,20 @@ name: manual-release
 
 on:
   workflow_dispatch:
+    inputs:
+      runner_type:
+        description: 'Runner type (self-hosted or GitHub-hosted)'
+        required: true
+        default: 'ubuntu-latest'
+        type: choice
+        options: [ubuntu-latest, popcat19-nixos0]
 
 env:
   NIXPKGS_ALLOW_UNFREE: 1
 
 jobs:
   build-all:
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event.inputs.runner_type || 'ubuntu-latest' }}
     permissions:
       contents: write
 
@@ -172,7 +179,7 @@ jobs:
 
   create-release:
     needs: build-all
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event.inputs.runner_type || 'ubuntu-latest' }}
     permissions:
       contents: write
 

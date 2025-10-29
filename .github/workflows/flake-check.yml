@@ -24,13 +24,20 @@ on:
       - '**.nix'
       - '**.lock'
   workflow_dispatch:
+    inputs:
+      runner_type:
+        description: 'Runner type (self-hosted or GitHub-hosted)'
+        required: true
+        default: 'ubuntu-latest'
+        type: choice
+        options: [ubuntu-latest, popcat19-nixos0]
 
 permissions:
   contents: read
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event.inputs.runner_type || 'ubuntu-latest' }}
 
     steps:
       - uses: actions/checkout@v4

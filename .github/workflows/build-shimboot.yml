@@ -36,6 +36,12 @@ on:
         required: false
         default: false
         type: boolean
+      runner_type:
+        description: 'Runner type (self-hosted or GitHub-hosted)'
+        required: true
+        default: 'ubuntu-latest'
+        type: choice
+        options: [ubuntu-latest, popcat19-nixos0]
 
 # Environment Variables
 # Allow unfree packages in Nix builds for proprietary components
@@ -48,7 +54,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ github.event.inputs.runner_type || 'ubuntu-latest' }}
     permissions:
       contents: write
 
