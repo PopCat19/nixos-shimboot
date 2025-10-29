@@ -99,11 +99,17 @@ jobs:
 
       - name: Clean old build artifacts
         run: |
+          SUDO=""
+          if command -v sudo >/dev/null 2>&1; then
+            SUDO=sudo
+          fi
+          echo "🔧 Using privilege command: ${SUDO:-none}"
+
           # Remove old work directories (older than 7 days)
-          find . -maxdepth 1 -name "work*" -type d -mtime +7 -exec rm -rf {} + 2>/dev/null || true
-          
+          $SUDO find . -maxdepth 1 -name "work*" -type d -mtime +7 -exec rm -rf {} + 2>/dev/null || true
+
           # Clean up old result symlinks
-          find . -maxdepth 1 -name "result*" -type l -delete 2>/dev/null || true
+          $SUDO find . -maxdepth 1 -name "result*" -type l -delete 2>/dev/null || true
 
   # Main build job with matrix strategy
   build:
@@ -186,12 +192,18 @@ jobs:
         if: github.event.inputs.skip_assembly != 'true'
         run: |
           echo "🔧 Assembling final image..."
-          
+
+          SUDO=""
+          if command -v sudo >/dev/null 2>&1; then
+            SUDO=sudo
+          fi
+          echo "🔧 Using privilege command: ${SUDO:-none}"
+
           # Use dedicated work directory for this build
           export WORKDIR="${PWD}/work-${{ matrix.board }}-${{ matrix.rootfs }}"
           mkdir -p "$WORKDIR"
-          
-          sudo -E env "PATH=$PATH" \
+
+          $SUDO -E env "PATH=$PATH" \
             BOARD="${{ matrix.board }}" \
             WORKDIR="$WORKDIR" \
             ./assemble-final.sh \
@@ -243,11 +255,17 @@ jobs:
       - name: Cleanup build directory
         if: always()
         run: |
+          SUDO=""
+          if command -v sudo >/dev/null 2>&1; then
+            SUDO=sudo
+          fi
+          echo "🔧 Using privilege command: ${SUDO:-none}"
+
           # Clean up this specific build's work directory
           WORKDIR="${PWD}/work-${{ matrix.board }}-${{ matrix.rootfs }}"
           if [ -d "$WORKDIR" ]; then
             echo "🧹 Cleaning up $WORKDIR..."
-            sudo rm -rf "$WORKDIR"
+            $SUDO rm -rf "$WORKDIR" || true
           fi
 
   # Optional: Garbage collection job
@@ -261,9 +279,15 @@ jobs:
         if: always()
         continue-on-error: true
         run: |
+          SUDO=""
+          if command -v sudo >/dev/null 2>&1; then
+            SUDO=sudo
+          fi
+          echo "🔧 Using privilege command: ${SUDO:-none}"
+
           echo "🗑️ Running Nix garbage collection..."
-          sudo nix-collect-garbage --delete-older-than 7d || true
-          sudo nix-store --optimise || true
+          $SUDO nix-collect-garbage --delete-older-than 7d || true
+          $SUDO nix-store --optimise || true
 
       - name: Report storage stats
         run: |

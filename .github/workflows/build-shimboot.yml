@@ -80,8 +80,13 @@ jobs:
       - name: Maximize build space
         run: |
           df -h
-          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
-          sudo docker image prune --all --force
+          SUDO=""
+          if command -v sudo >/dev/null 2>&1; then
+            SUDO=sudo
+          fi
+          echo "🔧 Using privilege command: ${SUDO:-none}"
+          $SUDO rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          $SUDO docker image prune --all --force || true
           df -h
 
       # Repository Setup
@@ -156,8 +161,13 @@ jobs:
       # Install assembly dependencies
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          SUDO=""
+          if command -v sudo >/dev/null 2>&1; then
+            SUDO=sudo
+          fi
+          echo "🔧 Using privilege command: ${SUDO:-none}"
+          $SUDO apt-get update
+          $SUDO apt-get install -y \
             parted gdisk e2fsprogs util-linux pv zstd vboot-utils
 
       # Assemble final image
@@ -171,7 +181,13 @@ jobs:
           echo "💾 Available space before assembly:"
           df -h
 
-          sudo -E env "PATH=$PATH" "NIX_PATH=$NIX_PATH" \
+          SUDO=""
+          if command -v sudo >/dev/null 2>&1; then
+            SUDO=sudo
+          fi
+          echo "🔧 Using privilege command: ${SUDO:-none}"
+
+          $SUDO -E env "PATH=$PATH" "NIX_PATH=$NIX_PATH" \
             BOARD="${{ matrix.board }}" \
             ./assemble-final.sh \
               --board "${{ matrix.board }}" \
@@ -204,9 +220,15 @@ jobs:
           fi
 
           # Fix permissions if in /nix/work (created by sudo)
+          SUDO=""
+          if command -v sudo >/dev/null 2>&1; then
+            SUDO=sudo
+          fi
+          echo "🔧 Using privilege command: ${SUDO:-none}"
+
           if [ "$WORKDIR" = "/nix/work" ]; then
             echo "🔧 Adjusting permissions for compression..."
-            sudo chown -R $(whoami):$(whoami) "$WORKDIR"
+            $SUDO chown -R $(whoami):$(whoami) "$WORKDIR" || true
           fi
 
           cd "$WORKDIR"
