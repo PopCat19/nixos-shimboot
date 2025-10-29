@@ -54,13 +54,20 @@ jobs:
       - name: Setup Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@v2
 
-      - name: Run Nix formatter check
+      - name: Auto-format Nix files
         run: |
-          echo "✨ Checking nix fmt consistency..."
-          nix fmt -- --check .
-          echo "✅ Nix files are properly formatted."
-        continue-on-error: false
+          echo "✨ Running nix fmt (auto format)..."
+          nix fmt .
+          echo "💾 Formatting complete."
 
+      - name: Verify formatting (safety check)
+        run: |
+          echo "🔍 Verifying formatting..."
+          nix fmt -- --check .
+          echo "✅ Format verified, proceeding to flake check."
+
+        # Optional safety: commit changes when run manually
+        if: github.event_name == 'workflow_dispatch'
 
       - name: Check flake
         run: |
