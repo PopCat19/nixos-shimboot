@@ -17,8 +17,9 @@ in {
     src = fetchFromGitHub {
       owner = "Fausto-Korpsvart";
       repo = "Rose-Pine-GTK-Theme";
-      rev = "main";
-      sha256 = "sha256-3V2s7s6fEFIKysAGdf35gmiEO7LJc+QCbOluykKi7Ck=";
+      # Pin upstream to a stable commit to avoid hash drift
+      rev = "c4fdfa62a9eb6941a36b2cd5026fc64123aaa0dd";
+      sha256 = "sha256-eeBuGvJKdv/puMg2FN3Ue52OU1LgipEte/OhRwIDDs8=";
     };
 
     nativeBuildInputs = [

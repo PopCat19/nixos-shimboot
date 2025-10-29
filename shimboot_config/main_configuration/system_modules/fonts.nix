@@ -5,9 +5,12 @@
 # Related: theme.nix
 #
 # This module:
+# - Disables default font packages
 # - Installs Noto fonts, Google fonts, and JetBrains Mono
 # - Configures fontconfig with default font families
 {pkgs, ...}: {
+  fonts.enableDefaultPackages = false;
+
   fonts.packages = with pkgs; [
     noto-fonts
     noto-fonts-cjk-sans

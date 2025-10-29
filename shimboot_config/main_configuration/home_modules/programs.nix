@@ -5,12 +5,7 @@
 # Related: fish.nix
 #
 # This module:
-# - Enables Fish shell and Git
-# - Provides placeholder for gaming programs (system-level)
+# - Placeholder for home-manager programs configuration
 {pkgs, ...}: {
-  programs.fish.enable = true;
-
-  programs.git = {
-    enable = true;
-  };
+  
 }
