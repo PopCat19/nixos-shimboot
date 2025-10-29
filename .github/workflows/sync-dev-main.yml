@@ -12,8 +12,6 @@
 name: sync-dev-to-main
 
 on:
-  schedule:
-    - cron: '0 5 * * 1,4'
   workflow_dispatch:
 
 jobs:
@@ -46,14 +44,6 @@ jobs:
           fi
           echo "✅ dev branch ready for merge."
 
-      - name: Backup current main
-        run: |
-          TIMESTAMP=$(date +'%Y%m%d-%H%M')
-          BACKUP_BRANCH="backup-main-${TIMESTAMP}"
-          git checkout -b "$BACKUP_BRANCH"
-          git push origin "$BACKUP_BRANCH"
-          echo "🔒 Backup created: $BACKUP_BRANCH"
-
       - name: Attempt merge from dev
         id: merge
         continue-on-error: true
@@ -65,10 +55,26 @@ jobs:
           # If conflicts remain after --theirs, abort safe-merge mode
           if git ls-files -u | grep -q .; then
             echo "⚠️ Remaining conflicts detected."
+            echo "🧩 Creating safety backup of main before PR..."
+
+            TIMESTAMP=$(date +'%Y%m%d-%H%M')
+            BACKUP_BRANCH="backup-main-${TIMESTAMP}"
+            git checkout -b "$BACKUP_BRANCH"
+            git push origin "$BACKUP_BRANCH"
+            echo "🔒 Backup created: $BACKUP_BRANCH"
+
             echo "Setting MERGE_CONFLICT=1" >> "$GITHUB_ENV"
           else
             echo "🧩 Merge clean — pushing updated main branch"
             git push origin HEAD:main
+          fi
+
+      - name: Log merge result
+        run: |
+          if [ "${{ env.MERGE_CONFLICT }}" = "1" ]; then
+            echo "❌ Merge required manual resolution, backup created."
+          else
+            echo "✅ Merge succeeded without conflicts. No backup branch created."
           fi
 
       - name: Log backup and changes

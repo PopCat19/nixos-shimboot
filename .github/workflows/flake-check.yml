@@ -54,6 +54,14 @@ jobs:
       - name: Setup Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@v2
 
+      - name: Run Nix formatter check
+        run: |
+          echo "✨ Checking nix fmt consistency..."
+          nix fmt -- --check .
+          echo "✅ Nix files are properly formatted."
+        continue-on-error: false
+
+
       - name: Check flake
         run: |
           echo "🔍 Validating flake configuration..."
