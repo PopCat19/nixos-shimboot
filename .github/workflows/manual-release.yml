@@ -45,8 +45,16 @@ jobs:
             SUDO=sudo
           fi
           echo "🔧 Using privilege command: ${SUDO:-none}"
-          $SUDO rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
-          $SUDO docker image prune --all --force || true
+          if [ "${{ github.event.inputs.runner_type }}" = "ubuntu-latest" ]; then
+            $SUDO rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+            if command -v docker >/dev/null 2>&1; then
+              $SUDO docker image prune --all --force || true
+            else
+              echo "🐋 Docker not available, skipping prune."
+            fi
+          else
+            echo "💡 Skipping Ubuntu-specific cleanup on self-hosted runner."
+          fi
           df -h
 
       - name: Checkout repository
@@ -55,9 +63,10 @@ jobs:
           fetch-depth: 0
 
       - name: Reclaim disk space for Nix
+        if: ${{ github.event.inputs.runner_type == 'ubuntu-latest' }}
         uses: wimpysworld/nothing-but-nix@main
         with:
-          hatchet-protocol: 'cleave'
+          hatchet-protocol: 'cleave'  # only valid on GitHub-hosted Ubuntu runners
 
       # Nix Setup
       - name: Install Nix
@@ -96,12 +105,20 @@ jobs:
 
       # Assembly
       - name: Install dependencies
+        if: ${{ github.event.inputs.runner_type == 'ubuntu-latest' }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          SUDO=""
+          if command -v sudo >/dev/null 2>&1; then
+            SUDO=sudo
+          fi
+          echo "🔧 Using privilege command: ${SUDO:-none}"
+
+          $SUDO apt-get update && \
+          $SUDO apt-get install -y \
             parted gdisk e2fsprogs util-linux pv zstd vboot-utils
 
       - name: Assemble image
+        if: always()  # runs on both GitHub-hosted and self-hosted runners safely
         run: |
           SUDO=""
           if command -v sudo >/dev/null 2>&1; then
@@ -137,11 +154,21 @@ jobs:
             WORKDIR="work"
           else
             echo "❌ Error: shimboot.img not found!"
-            sudo find / -name "shimboot.img" -type f 2>/dev/null | head -10
+            SUDO=""
+            if command -v sudo >/dev/null 2>&1; then
+              SUDO=sudo
+            fi
+            $SUDO find / -name "shimboot.img" -type f 2>/dev/null | head -10
             exit 1
           fi
 
-          if ! sudo parted -s "$WORKDIR/shimboot.img" print >/dev/null 2>&1; then
+          SUDO=""
+          if command -v sudo >/dev/null 2>&1; then
+            SUDO=sudo
+          fi
+          echo "🔧 Using privilege command: ${SUDO:-none}"
+
+          if ! $SUDO parted -s "$WORKDIR/shimboot.img" print >/dev/null 2>&1; then
             echo "❌ Error: shimboot.img is not a valid disk image!"
             exit 1
           fi
