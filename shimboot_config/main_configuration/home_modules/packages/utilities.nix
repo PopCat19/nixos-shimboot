@@ -14,5 +14,6 @@
     playerctl
     localsend
     keepassxc
+    vscodium
   ];
 }

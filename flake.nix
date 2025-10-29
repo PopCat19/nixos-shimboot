@@ -44,6 +44,8 @@
     rose-pine-hyprcursor,
     ...
   }: let
+    # Import Cachix configuration
+    cachixConfig = import ./flake_modules/cachix-config.nix {inherit self nixpkgs;};
     system = "x86_64-linux";
 
     # Supported ChromeOS boards
@@ -124,5 +126,5 @@
     # Export all merged outputs
     formatter.${system} = nixpkgs.legacyPackages.${system}.alejandra;
     inherit packages devShells nixosConfigurations nixosModules;
-  };
+  } // cachixConfig;
 }

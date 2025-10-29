@@ -1,0 +1,250 @@
+# Manual Release Workflow
+#
+# Purpose: Build and release shimboot images for all boards
+# Triggers: Manual dispatch only
+# Dependencies: GitHub Actions, Nix, softprops/action-gh-release
+#
+# This workflow:
+# - Builds minimal shimboot images for all supported boards
+# - Creates a timestamped release with build artifacts
+# - Uploads compressed images with checksums
+
+name: manual-release
+
+on:
+  workflow_dispatch:
+
+env:
+  NIXPKGS_ALLOW_UNFREE: 1
+
+jobs:
+  build-all:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        board: [dedede, octopus, zork, nissa, hatch, grunt, snappy]
+
+    steps:
+      # Environment Preparation
+      - name: Maximize build space
+        run: |
+          df -h
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          df -h
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reclaim disk space for Nix
+        uses: wimpysworld/nothing-but-nix@main
+        with:
+          hatchet-protocol: 'cleave'
+
+      # Nix Setup
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+            auto-optimise-store = true
+            substituters = https://cache.nixos.org https://shimboot-systemd-nixos.cachix.org
+            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA=
+
+      - name: Setup Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v14
+        with:
+          name: shimboot-systemd-nixos
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
+      # Build Components
+      - name: Build Nix components
+        run: |
+          BOARD="${{ matrix.board }}"
+          echo "🔨 Building minimal rootfs for: $BOARD"
+
+          nix build --impure --accept-flake-config \
+            .#chromeos-shim-${BOARD} \
+            .#extracted-kernel-${BOARD} \
+            .#initramfs-patching-${BOARD} \
+            .#raw-rootfs-minimal \
+            --print-out-paths
+
+          df -h
+
+      # Assembly
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            parted gdisk e2fsprogs util-linux pv zstd vboot-utils
+
+      - name: Assemble image
+        run: |
+          if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
+            source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+          fi
+
+          echo "💾 Available space before assembly:"
+          df -h
+
+          sudo -E env "PATH=$PATH" "NIX_PATH=$NIX_PATH" \
+            BOARD="${{ matrix.board }}" \
+            ./assemble-final.sh \
+              --board "${{ matrix.board }}" \
+              --rootfs minimal \
+              --drivers vendor
+
+          echo "💾 Available space after assembly:"
+          df -h
+
+      # Compress and Prepare for Release
+      - name: Compress and prepare release artifact
+        run: |
+          set -e
+
+          if [ -f "/nix/work/shimboot.img" ]; then
+            WORKDIR="/nix/work"
+          elif [ -f "work/shimboot.img" ]; then
+            WORKDIR="work"
+          else
+            echo "❌ Error: shimboot.img not found!"
+            sudo find / -name "shimboot.img" -type f 2>/dev/null | head -10
+            exit 1
+          fi
+
+          if ! sudo parted -s "$WORKDIR/shimboot.img" print >/dev/null 2>&1; then
+            echo "❌ Error: shimboot.img is not a valid disk image!"
+            exit 1
+          fi
+
+          if [ "$WORKDIR" = "/nix/work" ]; then
+            sudo chown -R $(whoami):$(whoami) "$WORKDIR"
+          fi
+
+          cd "$WORKDIR"
+
+          ARTIFACT_NAME="${{ matrix.board }}-shimboot-minimal"
+          
+          echo "📦 Compressing ${ARTIFACT_NAME}..."
+          pv shimboot.img | zstd -19 --long -T0 -o "${ARTIFACT_NAME}.img.zst"
+
+          echo "🔐 Generating checksums..."
+          sha256sum "${ARTIFACT_NAME}.img.zst" > "${ARTIFACT_NAME}.img.zst.sha256"
+          du -h "${ARTIFACT_NAME}.img.zst" >> "${ARTIFACT_NAME}.img.zst.sha256"
+
+          SIZE_MB=$(du -m "${ARTIFACT_NAME}.img.zst" | cut -f1)
+          ORIG_SIZE_MB=$(du -m "shimboot.img" | cut -f1)
+          COMPRESSION_RATIO=$((100 - (SIZE_MB * 100 / ORIG_SIZE_MB)))
+
+          echo "📊 Compression stats for ${{ matrix.board }}:"
+          echo "  Original: ${ORIG_SIZE_MB}MB"
+          echo "  Compressed: ${SIZE_MB}MB (${COMPRESSION_RATIO}% reduction)"
+          
+          # 🗜️ Package artifacts together for release
+          echo "📦 Zipping ${ARTIFACT_NAME}.zip ..."
+          zip -9 "${ARTIFACT_NAME}.zip" "${ARTIFACT_NAME}.img.zst" "${ARTIFACT_NAME}.img.zst.sha256"
+
+          # Show zip contents
+          unzip -l "${ARTIFACT_NAME}.zip"
+
+          # Cleanup raw files
+          rm -f shimboot.img "${ARTIFACT_NAME}.img.zst" "${ARTIFACT_NAME}.img.zst.sha256"
+
+      - name: Upload zipped artifact for release
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.board }}-shimboot-minimal
+          path: |
+            /nix/work/${{ matrix.board }}-shimboot-minimal.zip
+            work/${{ matrix.board }}-shimboot-minimal.zip
+          retention-days: 1
+
+  create-release:
+    needs: build-all
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Generate release metadata
+        id: metadata
+        run: |
+          # Generate timestamp (UTC)
+          TIMESTAMP=$(date -u '+%Y.%m.%d.%H%M-UTC')
+          echo "timestamp=${TIMESTAMP}" >> "$GITHUB_OUTPUT"
+
+          # Get branch and commit
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          COMMIT=$(git rev-parse --short HEAD)
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
+          echo "commit=${COMMIT}" >> "$GITHUB_OUTPUT"
+
+          # Generate release title and body
+          TITLE="${TIMESTAMP} build artifacts"
+          BODY="Minimal nixos-shimboot build artifacts from ${BRANCH} at ${COMMIT}"
+          
+          echo "title=${TITLE}" >> "$GITHUB_OUTPUT"
+          echo "body<<EOF" >> "$GITHUB_OUTPUT"
+          echo "${BODY}" >> "$GITHUB_OUTPUT"
+          echo "" >> "$GITHUB_OUTPUT"
+          echo "## 📦 Artifacts" >> "$GITHUB_OUTPUT"
+          echo "" >> "$GITHUB_OUTPUT"
+          echo "All boards built with minimal rootfs configuration." >> "$GITHUB_OUTPUT"
+          echo "" >> "$GITHUB_OUTPUT"
+          echo "### Boards Included" >> "$GITHUB_OUTPUT"
+          echo "- dedede" >> "$GITHUB_OUTPUT"
+          echo "- octopus" >> "$GITHUB_OUTPUT"
+          echo "- zork" >> "$GITHUB_OUTPUT"
+          echo "- nissa" >> "$GITHUB_OUTPUT"
+          echo "- hatch" >> "$GITHUB_OUTPUT"
+          echo "- grunt" >> "$GITHUB_OUTPUT"
+          echo "- snappy" >> "$GITHUB_OUTPUT"
+          echo "" >> "$GITHUB_OUTPUT"
+          echo "### Usage" >> "$GITHUB_OUTPUT"
+          echo '```bash' >> "$GITHUB_OUTPUT"
+          echo "# Download and decompress" >> "$GITHUB_OUTPUT"
+          echo "unzip <board>-shimboot-minimal.zip" >> "$GITHUB_OUTPUT"
+          echo "zstd -d <board>-shimboot-minimal.img.zst" >> "$GITHUB_OUTPUT"
+          echo "" >> "$GITHUB_OUTPUT"
+          echo "# Verify checksum" >> "$GITHUB_OUTPUT"
+          echo "sha256sum -c <board>-shimboot-minimal.img.zst.sha256" >> "$GITHUB_OUTPUT"
+          echo "" >> "$GITHUB_OUTPUT"
+          echo "# Flash to USB" >> "$GITHUB_OUTPUT"
+          echo "sudo dd if=<board>-shimboot-minimal.img of=/dev/sdX bs=4M status=progress" >> "$GITHUB_OUTPUT"
+          echo '```' >> "$GITHUB_OUTPUT"
+          echo "" >> "$GITHUB_OUTPUT"
+          echo "---" >> "$GITHUB_OUTPUT"
+          echo "_Built from commit ${COMMIT} on ${BRANCH}_" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.metadata.outputs.timestamp }}
+          name: ${{ steps.metadata.outputs.title }}
+          body: ${{ steps.metadata.outputs.body }}
+          draft: false
+          prerelease: false
+          files: |
+            release-artifacts/**/*.zip

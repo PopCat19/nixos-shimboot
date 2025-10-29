@@ -30,9 +30,21 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: cachix/install-nix-action@v27
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
         with:
-          nix_version: 2.18.1
+          extra-conf: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      - name: Setup Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v2
 
       - name: Check flake
-        run: nix flake check
+        run: |
+          echo "🔍 Validating flake configuration..."
+          nix flake check --accept-flake-config
+
+          echo "## ✅ Flake Check Passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          nix flake show --accept-flake-config >> $GITHUB_STEP_SUMMARY

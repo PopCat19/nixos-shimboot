@@ -25,26 +25,66 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: Checkout main
+      - name: Checkout main branch
         uses: actions/checkout@v4
         with:
           ref: main
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
-      - name: Fetch dev branch
-        run: git fetch origin dev:dev
+      - name: Configure Git identity
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+      - name: Verify dev branch exists
+        run: |
+          git fetch origin dev:dev || true
+          if ! git show-ref --verify --quiet refs/heads/dev; then
+            echo "❌ dev branch missing from remote!"
+            git branch -a
+            exit 1
+          fi
+          echo "✅ dev branch ready for merge."
+
+      - name: Backup current main
+        run: |
+          TIMESTAMP=$(date +'%Y%m%d-%H%M')
+          BACKUP_BRANCH="backup-main-${TIMESTAMP}"
+          git checkout -b "$BACKUP_BRANCH"
+          git push origin "$BACKUP_BRANCH"
+          echo "🔒 Backup created: $BACKUP_BRANCH"
 
       - name: Attempt merge from dev
+        id: merge
+        continue-on-error: true
         run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git merge --no-edit origin/dev || export MERGE_CONFLICT=1
-          if [ "${MERGE_CONFLICT:-0}" = "1" ]; then
-            echo "⚠️ Merge conflict detected — creating pull request instead"
+          echo "🚀 Merging dev into main (dev-preferred)..."
+          # Use theirs strategy for automatic preference to dev changes
+          git merge origin/dev --strategy-option=theirs --no-edit || true
+
+          # If conflicts remain after --theirs, abort safe-merge mode
+          if git ls-files -u | grep -q .; then
+            echo "⚠️ Remaining conflicts detected."
+            echo "Setting MERGE_CONFLICT=1" >> "$GITHUB_ENV"
           else
-            git push origin main
-            echo "✅ Successfully merged dev → main"
+            echo "🧩 Merge clean — pushing updated main branch"
+            git push origin HEAD:main
           fi
+
+      - name: Log backup and changes
+        if: success()
+        run: |
+          echo "✅ Backup exists for main before this merge."
+          echo "   → Branch: $(git branch --show-current)"
+          echo "   → Remote: origin/main"
+
+      - name: Summary output
+        run: |
+          echo "## 🧭 Dev → Main Merge Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Backup created before merge" >> $GITHUB_STEP_SUMMARY
+          echo "- 'dev' changes preferred automatically (--theirs)" >> $GITHUB_STEP_SUMMARY
+          echo "- If conflicts remain, a PR will be created" >> $GITHUB_STEP_SUMMARY
 
       - name: Create PR if conflict (fallback)
         if: env.MERGE_CONFLICT == '1'
@@ -53,5 +93,22 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           base: main
           branch: dev
-          title: "chore: dev → main sync (manual review needed)"
-          body: "Automatic merge detected a conflict. Please review and merge manually."
+          title: "chore: sync dev → main (conflicts detected)"
+          body: |
+            🔀 Automatic merge failed due to conflicts
+
+            **Action Required:** Please review manually.**
+
+            A backup branch has been created for main:
+            ```
+            git fetch origin
+            git checkout backup-main-<timestamp>
+            ```
+
+            Manual merge instructions (dev wins by default):
+
+            ```bash
+            git checkout main
+            git merge origin/dev --strategy-option=theirs
+            git push origin main
+            ```

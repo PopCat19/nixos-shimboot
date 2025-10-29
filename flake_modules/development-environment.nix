@@ -11,16 +11,16 @@ in {
       # Nix tooling
       nixos-generators
       nixpkgs-fmt
-      alejandra  # Better formatter
-      
+      alejandra # Better formatter
+
       # Image assembly tools
       parted
-      util-linux  # losetup, mount, etc.
-      e2fsprogs   # mkfs.ext4
-      pv          # progress viewer
-      zstd        # compression
-      vboot_reference  # cgpt, futility
-      
+      util-linux # losetup, mount, etc.
+      e2fsprogs # mkfs.ext4
+      pv # progress viewer
+      zstd # compression
+      vboot_reference # cgpt, futility
+
       # Development utilities
       git
       jq

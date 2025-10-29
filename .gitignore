@@ -15,3 +15,4 @@ vmlinuz
 .crush*
 .shimboot_branch
 .temp
+.shimboot_build_info
