@@ -75,6 +75,27 @@ jobs:
         with:
           fetch-depth: 0
 
+      # 🧹 Optional Ubuntu-only disk reclaim (skip on selfhost)
+      - name: Reclaim disk space for Nix (Ubuntu only)
+        if: startsWith(runner.name, 'GitHub') || runner.os == 'Linux' && runner.arch == 'X64'
+        uses: wimpysworld/nothing-but-nix@main
+        with:
+          hatchet-protocol: 'cleave'
+
+      - name: Maximize build space (Ubuntu only)
+        if: startsWith(runner.name, 'GitHub') || runner.os == 'Linux' && runner.arch == 'X64'
+        run: |
+          echo "Running disk cleanup for Ubuntu runner..."
+          SUDO=""
+          if command -v sudo >/dev/null 2>&1; then
+            SUDO=sudo
+          fi
+          echo "🔧 Using privilege command: ${SUDO:-none}"
+          df -h
+          $SUDO rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          $SUDO docker image prune --all --force || true
+          df -h
+
       - name: Generate build matrix
         id: matrix
         run: |
@@ -140,9 +161,13 @@ jobs:
               echo "⚠️ CACHIX_AUTH_TOKEN not set, using read-only mode"
             fi
           else
-            echo "Installing cachix..."
-            nix-env -iA cachix -f https://cachix.org/api/v1/install
-            cachix use shimboot-systemd-nixos
+            echo "🧩 Skipping Cachix install (system likely has Nix preinstalled)"
+            if [ -f /run/current-system/sw/bin/cachix ]; then
+              echo "✅ Found Cachix preinstalled in NixOS system path"
+              export PATH="/run/current-system/sw/bin:$PATH"
+            else
+              echo "⚠️ Cachix not installed; continuing without it."
+            fi
           fi
 
       - name: Build Nix components
@@ -210,6 +235,18 @@ jobs:
               --board "${{ matrix.board }}" \
               --rootfs "${{ matrix.rootfs }}" \
               --drivers vendor
+
+      # 💾 Skip unnecessary package installs on selfhost
+      - name: Install Ubuntu build dependencies (Ubuntu only)
+        if: startsWith(runner.name, 'GitHub')
+        run: |
+          SUDO=""
+          if command -v sudo >/dev/null 2>&1; then
+            SUDO=sudo
+          fi
+          echo "🔧 Using privilege command: ${SUDO:-none}"
+          $SUDO apt-get update
+          $SUDO apt-get install -y zstd zip pv parted e2fsprogs gdisk
 
       - name: Compress and prepare artifact
         if: success() && github.event.inputs.skip_assembly != 'true'
