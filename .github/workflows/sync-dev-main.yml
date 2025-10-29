@@ -25,11 +25,26 @@ jobs:
       pull-requests: write
 
     steps:
-      - name: Checkout main
+      - name: Checkout main branch
         uses: actions/checkout@v4
         with:
           ref: main
-          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Configure Git identity
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+
+      - name: Verify dev branch exists
+        run: |
+          git fetch origin dev:dev || true
+          if ! git show-ref --verify --quiet refs/heads/dev; then
+            echo "❌ dev branch missing from remote!"
+            git branch -a
+            exit 1
+          fi
+          echo "✅ dev branch ready for merge."
 
       - name: Backup current main
         run: |
@@ -39,15 +54,10 @@ jobs:
           git push origin "$BACKUP_BRANCH"
           echo "🔒 Backup created: $BACKUP_BRANCH"
 
-      - name: Fetch dev branch
-        run: git fetch origin dev:dev
-
       - name: Attempt merge from dev
         id: merge
         continue-on-error: true
         run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
           echo "🚀 Merging dev into main (dev-preferred)..."
           # Use theirs strategy for automatic preference to dev changes
           git merge origin/dev --strategy-option=theirs --no-edit || true
