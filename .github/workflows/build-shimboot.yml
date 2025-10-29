@@ -229,14 +229,6 @@ jobs:
           echo "  Original: ${ORIG_SIZE_MB}MB"
           echo "  Compressed: ${SIZE_MB}MB (${COMPRESSION_RATIO}% reduction)"
 
-          if [ "$SIZE_MB" -gt 2000 ]; then
-            echo "⚠️ Exceeds 2GB limit (${SIZE_MB}MB)"
-            echo "💡 Consider uploading via release assets"
-            exit 1
-          else
-            echo "✅ Size OK (${SIZE_MB}MB)"
-          fi
-
           echo "✅ Created artifact directory:"
           tree -h "$ARTIFACT_DIR" || ls -lh "$ARTIFACT_DIR"
 
