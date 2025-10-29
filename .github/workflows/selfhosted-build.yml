@@ -220,21 +220,32 @@ jobs:
 
           SUDO=""
           if command -v sudo >/dev/null 2>&1; then
-            SUDO=sudo
+            SUDO="sudo -E"
           fi
           echo "🔧 Using privilege command: ${SUDO:-none}"
 
-          # Use dedicated work directory for this build
+          # Isolate workdir for this build
           export WORKDIR="${PWD}/work-${{ matrix.board }}-${{ matrix.rootfs }}"
           mkdir -p "$WORKDIR"
 
-          $SUDO -E env "PATH=$PATH" \
-            BOARD="${{ matrix.board }}" \
-            WORKDIR="$WORKDIR" \
-            ./assemble-final.sh \
-              --board "${{ matrix.board }}" \
-              --rootfs "${{ matrix.rootfs }}" \
-              --drivers vendor
+          if [ -n "$SUDO" ]; then
+            $SUDO env "PATH=$PATH" \
+              BOARD="${{ matrix.board }}" \
+              WORKDIR="$WORKDIR" \
+              ./assemble-final.sh \
+                --board "${{ matrix.board }}" \
+                --rootfs "${{ matrix.rootfs }}" \
+                --drivers vendor
+          else
+            echo "⚙️  Running assemble-final.sh as $(whoami)..."
+            env "PATH=$PATH" \
+              BOARD="${{ matrix.board }}" \
+              WORKDIR="$WORKDIR" \
+              ./assemble-final.sh \
+                --board "${{ matrix.board }}" \
+                --rootfs "${{ matrix.rootfs }}" \
+                --drivers vendor
+          fi
 
       # 💾 Skip unnecessary package installs on selfhost
       - name: Install Ubuntu build dependencies (Ubuntu only)

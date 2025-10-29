@@ -183,16 +183,26 @@ jobs:
 
           SUDO=""
           if command -v sudo >/dev/null 2>&1; then
-            SUDO=sudo
+            SUDO="sudo -E"
           fi
           echo "🔧 Using privilege command: ${SUDO:-none}"
 
-          $SUDO -E env "PATH=$PATH" "NIX_PATH=$NIX_PATH" \
-            BOARD="${{ matrix.board }}" \
-            ./assemble-final.sh \
-              --board "${{ matrix.board }}" \
-              --rootfs "${{ github.event.inputs.rootfs || 'minimal' }}" \
-              --drivers vendor
+          if [ -n "$SUDO" ]; then
+            $SUDO env "PATH=$PATH" "NIX_PATH=$NIX_PATH" \
+              BOARD="${{ matrix.board }}" \
+              ./assemble-final.sh \
+                --board "${{ matrix.board }}" \
+                --rootfs "${{ github.event.inputs.rootfs || 'minimal' }}" \
+                --drivers vendor
+          else
+            echo "⚙️  Running as $(whoami) (no sudo detected)"
+            env "PATH=$PATH" "NIX_PATH=$NIX_PATH" \
+              BOARD="${{ matrix.board }}" \
+              ./assemble-final.sh \
+                --board "${{ matrix.board }}" \
+                --rootfs "${{ github.event.inputs.rootfs || 'minimal' }}" \
+                --drivers vendor
+          fi
 
           echo "💾 Available space after assembly:"
           df -h

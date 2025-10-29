@@ -15,8 +15,12 @@ in {
 
       # Image assembly tools
       parted
-      util-linux # losetup, mount, etc.
+      util-linux # losetup, mount, umount, fdisk
       e2fsprogs # mkfs.ext4
+      gawk       # required by disk-space check
+      coreutils  # df, sed, etc.
+      findutils
+      shadow     # for 'su' binary if root escalation via su is used
       pv # progress viewer
       zstd # compression
       vboot_reference # cgpt, futility
@@ -28,6 +32,7 @@ in {
 
     shellHook = ''
       echo "🦊 nixos-shimboot development environment"
+      echo "   run 'sudo -i' or 'su -' to enter root shell if needed"
       echo ""
       echo "📦 Tools available:"
       echo "  • nixos-generators    - Generate NixOS images"
