@@ -1,25 +1,23 @@
-# Flake Check Workflow
+# Nix Flake Check Workflow (Portable)
 #
-# Purpose: Validates Nix flake configuration on pushes and PRs
+# Purpose: Validates Nix flake configuration, formats .nix files automatically
 # Triggers: Push/PR to main/dev branches with Nix file changes, manual dispatch
 # Dependencies: DeterminateSystems/nix-installer-action, actions/checkout
 #
-# This workflow:
-# - Runs nix flake check to validate configuration
-# - Ensures flake integrity before merges
-# - Provides CI validation for NixOS configurations
-# - Only triggers when Nix files are modified
+# Portable and reusable across any Nix-based repo.
+# - Auto-formats and checks all .nix files
+# - Pushes formatting back on manual runs
+# - Validates flake integrity after formatting
+# - Safe defaults for any branch
 
 name: flake-check
 
 on:
   push:
-    branches: [ "main", "dev" ]
     paths:
       - '**.nix'
       - '**.lock'
   pull_request:
-    branches: [ "main", "dev" ]
     paths:
       - '**.nix'
       - '**.lock'
@@ -38,6 +36,8 @@ permissions:
 jobs:
   build:
     runs-on: ${{ github.event.inputs.runner_type || 'ubuntu-latest' }}
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
