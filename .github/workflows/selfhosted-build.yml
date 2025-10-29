@@ -45,7 +45,7 @@ env:
 jobs:
   # Pre-flight checks and cache warming
   preflight:
-    runs-on: self-hosted
+    runs-on: popcat19-nixos0
     outputs:
       boards: ${{ steps.matrix.outputs.boards }}
       rootfs_variants: ${{ steps.matrix.outputs.rootfs }}
