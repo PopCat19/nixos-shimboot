@@ -258,20 +258,12 @@ jobs:
     
     steps:
       - name: Nix garbage collection
+        if: always()
+        continue-on-error: true
         run: |
           echo "🗑️ Running Nix garbage collection..."
-          
-          # Show current store size
-          du -sh /nix/store
-          
-          # Delete build results older than 7 days
-          nix-collect-garbage --delete-older-than 7d
-          
-          # Optimize store (deduplicate)
-          nix-store --optimise
-          
-          echo "✅ Cleanup complete"
-          du -sh /nix/store
+          sudo nix-collect-garbage --delete-older-than 7d || true
+          sudo nix-store --optimise || true
 
       - name: Report storage stats
         run: |
