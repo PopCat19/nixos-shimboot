@@ -1,8 +1,8 @@
 # Self-Hosted Full Build Workflow
 #
 # Purpose: Build shimboot images on self-hosted GitHub runners
-# Triggers: Manual dispatch, push to main/dev (optional)
-# Dependencies: Self-hosted runner with Nix, 100GB+ disk space
+# Triggers: Manual dispatch
+# Dependencies: Self-hosted runner with Nix, 50GB+ disk space
 #
 # This workflow:
 # - Leverages persistent Nix store on self-hosted infrastructure
@@ -108,7 +108,7 @@ jobs:
   # Main build job with matrix strategy
   build:
     needs: preflight
-    runs-on: self-hosted
+    runs-on: popcat19-nixos0
     
     strategy:
       fail-fast: false
@@ -253,7 +253,7 @@ jobs:
   # Optional: Garbage collection job
   cleanup:
     needs: build
-    runs-on: self-hosted
+    runs-on: popcat19-nixos0
     if: always()
     
     steps:
