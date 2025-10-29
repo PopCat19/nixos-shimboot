@@ -1,21 +1,28 @@
 # Flake Check Workflow
 #
 # Purpose: Validates Nix flake configuration on pushes and PRs
-# Triggers: Push/PR to main/dev branches, manual dispatch
-# Dependencies: cachix/install-nix-action, actions/checkout
+# Triggers: Push/PR to main/dev branches with Nix file changes, manual dispatch
+# Dependencies: DeterminateSystems/nix-installer-action, actions/checkout
 #
 # This workflow:
 # - Runs nix flake check to validate configuration
 # - Ensures flake integrity before merges
 # - Provides CI validation for NixOS configurations
+# - Only triggers when Nix files are modified
 
 name: flake-check
 
 on:
   push:
     branches: [ "main", "dev" ]
+    paths:
+      - '**.nix'
+      - '**.lock'
   pull_request:
     branches: [ "main", "dev" ]
+    paths:
+      - '**.nix'
+      - '**.lock'
   workflow_dispatch:
 
 permissions:
