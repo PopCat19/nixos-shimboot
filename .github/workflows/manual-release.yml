@@ -122,7 +122,7 @@ jobs:
         run: |
           SUDO=""
           if command -v sudo >/dev/null 2>&1; then
-            SUDO=sudo
+            SUDO="sudo -E"
           fi
           echo "🔧 Using privilege command: ${SUDO:-none}"
 
@@ -133,12 +133,21 @@ jobs:
           echo "💾 Available space before assembly:"
           df -h
 
-          $SUDO -E env "PATH=$PATH" "NIX_PATH=$NIX_PATH" \
-            BOARD="${{ matrix.board }}" \
-            ./assemble-final.sh \
-              --board "${{ matrix.board }}" \
-              --rootfs minimal \
-              --drivers vendor
+          if [ -n "$SUDO" ]; then
+            $SUDO env "PATH=$PATH" "NIX_PATH=$NIX_PATH" \
+              BOARD="${{ matrix.board }}" \
+              ./assemble-final.sh \
+                --board "${{ matrix.board }}" \
+                --rootfs minimal \
+                --drivers vendor
+          else
+            env "PATH=$PATH" "NIX_PATH=$NIX_PATH" \
+              BOARD="${{ matrix.board }}" \
+              ./assemble-final.sh \
+                --board "${{ matrix.board }}" \
+                --rootfs minimal \
+                --drivers vendor
+          fi
 
           echo "💾 Available space after assembly:"
           df -h
