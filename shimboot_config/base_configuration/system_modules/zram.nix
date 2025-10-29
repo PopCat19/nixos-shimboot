@@ -18,7 +18,7 @@
   zramSwap = {
     enable = true;
     algorithm = "lzo"; # Fast, matches upstream
-    memoryPercent = 100; # Use all RAM for swap
+    memoryPercent = 200; # Use all RAM for swap
     priority = 10;
   };
 
