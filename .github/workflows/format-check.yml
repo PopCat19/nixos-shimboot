@@ -1,8 +1,8 @@
 # Code Formatting Check Workflow
 #
 # Purpose: Validates code formatting on pull requests
-# Triggers: Pull requests to main/dev branches
-# Dependencies: cachix/install-nix-action, alejandra (via nix fmt)
+# Triggers: Pull requests to main/dev branches, push events, manual dispatch
+# Dependencies: DeterminateSystems/nix-installer-action, alejandra (via nix fmt)
 #
 # This workflow:
 # - Checks that code follows project's formatting standards
@@ -14,6 +14,9 @@ name: format-check
 on:
   pull_request:
     branches: [ "main", "dev" ]
+  push:
+    branches: [ "main", "dev" ]
+  workflow_dispatch:
 
 jobs:
   check:
@@ -32,18 +35,13 @@ jobs:
 
       - name: Check formatting
         id: format
-        continue-on-error: true
+        continue-on-error: false
         run: |
-          if ! nix fmt -- --check .; then
-            echo "## ❌ Formatting Issues Detected" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Run this to fix locally:" >> $GITHUB_STEP_SUMMARY
-            echo '```bash' >> $GITHUB_STEP_SUMMARY
-            echo 'nix fmt' >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            exit 1
-          fi
+          echo "🧹 Checking Nix formatting..."
+          nix fmt -- --check .
+          echo "✅ All files are properly formatted."
 
-      - name: Show formatting diff
-        if: steps.format.outcome == 'failure'
-        run: nix fmt -- --check . 2>&1 | head -100 || true
+      - name: Show format summary
+        run: |
+          echo "## ✅ Formatting OK" >> $GITHUB_STEP_SUMMARY
+          echo "All nix files follow project formatting rules." >> $GITHUB_STEP_SUMMARY
