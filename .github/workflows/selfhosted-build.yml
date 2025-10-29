@@ -1,8 +1,8 @@
 # Self-Hosted Full Build Workflow
 #
 # Purpose: Build shimboot images on self-hosted GitHub runners
-# Triggers: Manual dispatch, push to main/dev (optional)
-# Dependencies: Self-hosted runner with Nix, 100GB+ disk space
+# Triggers: Manual dispatch
+# Dependencies: Self-hosted runner with Nix, 50GB+ disk space
 #
 # This workflow:
 # - Leverages persistent Nix store on self-hosted infrastructure
@@ -45,7 +45,7 @@ env:
 jobs:
   # Pre-flight checks and cache warming
   preflight:
-    runs-on: self-hosted
+    runs-on: popcat19-nixos0
     outputs:
       boards: ${{ steps.matrix.outputs.boards }}
       rootfs_variants: ${{ steps.matrix.outputs.rootfs }}
@@ -108,7 +108,7 @@ jobs:
   # Main build job with matrix strategy
   build:
     needs: preflight
-    runs-on: self-hosted
+    runs-on: popcat19-nixos0
     
     strategy:
       fail-fast: false
@@ -253,25 +253,17 @@ jobs:
   # Optional: Garbage collection job
   cleanup:
     needs: build
-    runs-on: self-hosted
+    runs-on: popcat19-nixos0
     if: always()
     
     steps:
       - name: Nix garbage collection
+        if: always()
+        continue-on-error: true
         run: |
           echo "🗑️ Running Nix garbage collection..."
-          
-          # Show current store size
-          du -sh /nix/store
-          
-          # Delete build results older than 7 days
-          nix-collect-garbage --delete-older-than 7d
-          
-          # Optimize store (deduplicate)
-          nix-store --optimise
-          
-          echo "✅ Cleanup complete"
-          du -sh /nix/store
+          sudo nix-collect-garbage --delete-older-than 7d || true
+          sudo nix-store --optimise || true
 
       - name: Report storage stats
         run: |
