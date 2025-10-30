@@ -17,11 +17,17 @@
   # Enable zram swap
   zramSwap = {
     enable = true;
-    algorithm = "lzo"; # Fast, matches upstream
-    memoryPercent = 200; # Use all RAM for swap
-    priority = 10;
+    algorithm = "lzo"; # fastest for your scale
+    memoryPercent = 75;
+    priority = 100;
   };
 
   # Ensure kernel module loads
   boot.kernelModules = ["zram"];
+
+  boot.kernel.sysctl = {
+    "vm.swappiness" = 45;
+    "vm.dirty_ratio" = 10;
+    "vm.dirty_background_ratio" = 3;
+  };
 }
