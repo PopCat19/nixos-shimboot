@@ -144,28 +144,26 @@ in {
 
             # Help message
             if [ "$HELP" = true ]; then
-              cat << 'EOF'
-      NixOS Shimboot Setup Script
-
-      USAGE:
-          setup_nixos [OPTIONS]
-
-      OPTIONS:
-          --skip-wifi      Skip Wi-Fi configuration
-          --skip-expand    Skip root filesystem expansion
-          --skip-config    Skip nixos-rebuild configuration
-          --skip-rebuild   Skip system rebuild
-          --auto           Run in automatic mode with sensible defaults
-          --debug          Enable debug output
-          --help, -h       Show this help message
-
-      EXAMPLES:
-          setup_nixos                    # Interactive mode with all steps
-          setup_nixos --auto             # Automatic mode
-          setup_nixos --skip-wifi        # Skip Wi-Fi setup
-          setup_nixos --debug            # Enable debug logging
-
-      EOF
+              echo "NixOS Shimboot Setup Script"
+              echo ""
+              echo "USAGE:"
+              echo "    setup_nixos [OPTIONS]"
+              echo ""
+              echo "OPTIONS:"
+              echo "    --skip-wifi      Skip Wi-Fi configuration"
+              echo "    --skip-expand    Skip root filesystem expansion"
+              echo "    --skip-config    Skip nixos-rebuild configuration"
+              echo "    --skip-rebuild   Skip system rebuild"
+              echo "    --auto           Run in automatic mode with sensible defaults"
+              echo "    --debug          Enable debug output"
+              echo "    --help, -h       Show this help message"
+              echo ""
+              echo "EXAMPLES:"
+              echo "    setup_nixos                    # Interactive mode with all steps"
+              echo "    setup_nixos --auto             # Automatic mode"
+              echo "    setup_nixos --skip-wifi        # Skip Wi-Fi setup"
+              echo "    setup_nixos --debug            # Enable debug logging"
+              echo ""
               exit 0
             fi
 
