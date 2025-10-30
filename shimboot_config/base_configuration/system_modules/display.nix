@@ -48,15 +48,18 @@
     NIXOS_OZONE_WL = lib.mkDefault "1";
   };
 
-  xdg = {
-    mime.enable = lib.mkDefault true;
-    portal = {
-      enable = lib.mkDefault true;
-      xdgOpenUsePortal = lib.mkDefault true;
-      extraPortals = [
-        pkgs.xdg-desktop-portal-hyprland
-        pkgs.xdg-desktop-portal-gtk
-      ];
+  xdg.mime.enable = lib.mkDefault true;
+  xdg.portal = {
+    enable = lib.mkDefault true;
+    xdgOpenUsePortal = lib.mkDefault true;
+    extraPortals = [
+      pkgs.xdg-desktop-portal-hyprland
+      pkgs.xdg-desktop-portal-gtk
+    ];
+    # choose handlers; Hyprland first, fallback to GTK; default GTK for non-Hyprland
+    config = {
+      common = { default = [ "gtk" ]; };
+      hyprland = { default = [ "hyprland" "gtk" ]; };
     };
   };
 
