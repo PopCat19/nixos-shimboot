@@ -40,8 +40,8 @@ function fish_greeting
         echo "Config: $config_dir"
         set_color normal
         if test -d "$config_dir/.git"
-            set -l branch (string trim (git -C $config_dir rev-parse --abbrev-ref HEAD ^/dev/null))
-            set -l commit (string sub -l 7 (git -C $config_dir rev-parse HEAD ^/dev/null))
+            set -l branch (string trim (git -C $config_dir rev-parse --abbrev-ref HEAD 2>/dev/null))
+            set -l commit (string sub -l 7 (git -C $config_dir rev-parse HEAD 2>/dev/null))
             echo "Git: $branch @ $commit"
         end
         _divider
