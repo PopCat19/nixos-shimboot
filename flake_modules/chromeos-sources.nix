@@ -30,27 +30,27 @@
     };
     hatch = {
       url = "https://dl.cros.download/files/hatch/hatch.zip";
-      sha256 = "sha256-1111111111111111111111111111111111111111111=";
+      sha256 = "sha256-+Zi+6bSstwqP5X2F3+HdnV9X64sFI3UC5OxktG66sRw=";
     };
     nissa = {
       url = "https://dl.cros.download/files/nissa/nissa.zip";
-      sha256 = "sha256-2222222222222222222222222222222222222222222=";
+      sha256 = "sha256-byjJyDg/mDtFXFrK0Zm3Xxk8XRurBu1SEIiORgSg0Gc=";
     };
     zork = {
       url = "https://dl.cros.download/files/zork/zork.zip";
-      sha256 = "sha256-3333333333333333333333333333333333333333333=";
+      sha256 = "sha256-wCEKeqnNhDaWdPMsYx8+vfyhEFCA9aWth2KSujU9eNM=";
     };
     grunt = {
       url = "https://dl.cros.download/files/grunt/grunt.zip";
-      sha256 = "sha256-4444444444444444444444444444444444444444444=";
+      sha256 = "sha256-N9mahweJI2ZCB6HjRR3JH4ucyRscyAr3SvqNHXW2NJY=";
     };
     snappy = {
       url = "https://dl.cros.download/files/snappy/snappy.zip";
-      sha256 = "sha256-5555555555555555555555555555555555555555555=";
+      sha256 = "sha256-Gkm7Xv0yVepRTV4q+4qxnKlsj+ZYvTj8B3H9kEsUMiM=";
     };
     octopus = {
       url = "https://dl.cros.download/files/octopus/octopus.zip";
-      sha256 = "sha256-6666666666666666666666666666666666666666666=";
+      sha256 = "sha256-Txq9esErTSVCxrMX/8J7eqa8hGY2b0Sru6slLxALNYk=";
     };
   };
 
