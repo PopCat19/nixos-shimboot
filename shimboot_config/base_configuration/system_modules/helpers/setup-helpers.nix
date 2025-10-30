@@ -485,16 +485,6 @@ in {
             echo
             log_step "Setup Complete"
 
-            echo
-            echo "╭─[ Setup Complete ]──────────────────────────────╮"
-            echo "│ Config  : $CONFIG_DIR                           │"
-            echo "│ Branch  : $(git -C $CONFIG_DIR rev-parse --abbrev-ref HEAD 2>/dev/null)"
-            echo "│ Next    : cd $CONFIG_DIR && sudo nixos-rebuild switch --flake .#$(hostname) │"
-            echo "│ Network : nmcli connection show --active        │"
-            echo "│ Re-run  : sudo setup_nixos                      │"
-            echo "╰────────────────────────────────────────────────╯"
-            echo ""
-
             # Display fish greeting if available
             if command -v fish >/dev/null 2>&1; then
               fish -c "source $CONFIG_DIR/shimboot_config/base_configuration/system_modules/fish_functions/fish-greeting.fish; fish_greeting" 2>/dev/null || true
