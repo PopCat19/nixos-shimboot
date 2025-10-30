@@ -25,7 +25,7 @@ NixOS follows differently from the usual Filesystem Hierarchy Standard, where al
 
 In turn, users who've only used FHS compliant linux distributions (like Debian for example) will need to familiarize configuring Nix configurations to install packages, configure services and eventually build a custom, reproducible NixOS machine configuration. 
 
-If you're interested, I strongly recommend trying NixOS in a VM first (or try the Nix package manager for your distribution, if you prefer learning Nix first) following: https://nixos.org/download/\
+If you're interested, I strongly recommend trying NixOS in a VM first (or try the Nix package manager for your distribution, if you prefer learning Nix first) following: https://nixos.org/download/ \
 |\
 You may need to look up several online documentations, videos, or even Reddit and Large Language Model guidance (better if said LLM has Model Context Protocols like context7 to pull documents from) to learn what you want to do with Nix/NixOS. I find that exploring someone else's NixOS configurations can also help reason and understand NixOS via first/second-hand experience.\
 |\

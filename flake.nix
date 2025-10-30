@@ -10,6 +10,17 @@
 # - Development environment and tools
 # - ChromeOS kernel/initramfs extraction and patching
 {
+  nixConfig = {
+    extra-substituters = [
+      "https://cache.nixos.org"
+      "https://shimboot-systemd-nixos.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+      "shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA="
+    ];
+  };
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -126,5 +137,5 @@
     # Export all merged outputs
     formatter.${system} = nixpkgs.legacyPackages.${system}.alejandra;
     inherit packages devShells nixosConfigurations nixosModules;
-  } // cachixConfig;
+  };
 }

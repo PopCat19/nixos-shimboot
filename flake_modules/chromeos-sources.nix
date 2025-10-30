@@ -17,137 +17,141 @@
     };
   };
 
-  # Import generated manifest from fetch-manifest.sh
-  boardManifest = import ../manifests/${board}-manifest.nix;
+  # ChromeOS shim firmware (direct download model)
+  #
+  # Each board fetches a single .zip blob, avoiding manifest chunk assembly.
+  # Example URL: https://dl.cros.download/files/dedede/dedede.zip
+  #
+  # You must precompute and fill in the sha256 for your target board.
+  shimUrls = {
+    dedede = {
+      url = "https://dl.cros.download/files/dedede/dedede.zip";
+      sha256 = "sha256-y2yOK8UYyQXqDwH/nRVmDgFv8I7FyBBCPOngWfFAaxY=";
+    };
+    hatch = {
+      url = "https://dl.cros.download/files/hatch/hatch.zip";
+      sha256 = "sha256-1111111111111111111111111111111111111111111=";
+    };
+    nissa = {
+      url = "https://dl.cros.download/files/nissa/nissa.zip";
+      sha256 = "sha256-2222222222222222222222222222222222222222222=";
+    };
+    zork = {
+      url = "https://dl.cros.download/files/zork/zork.zip";
+      sha256 = "sha256-3333333333333333333333333333333333333333333=";
+    };
+    grunt = {
+      url = "https://dl.cros.download/files/grunt/grunt.zip";
+      sha256 = "sha256-4444444444444444444444444444444444444444444=";
+    };
+    snappy = {
+      url = "https://dl.cros.download/files/snappy/snappy.zip";
+      sha256 = "sha256-5555555555555555555555555555555555555555555=";
+    };
+    octopus = {
+      url = "https://dl.cros.download/files/octopus/octopus.zip";
+      sha256 = "sha256-6666666666666666666666666666666666666666666=";
+    };
+  };
 
-  chunkBaseUrl = "https://cdn.cros.download/files/${board}";
+  shimData = shimUrls.${board} or (throw "Unsupported board ${board}: add to shimUrls set.");
 
-  # Fetch each chunk as a fixed-output derivation
-  chunkDrvs =
-    map (
-      chunk:
-        pkgs.fetchurl {
-          url = "${chunkBaseUrl}/${chunk.name}";
-          sha256 = chunk.sha256;
-          curlOpts = "--retry-delay 10";
-        }
-    )
-    boardManifest.chunks;
-
-  # ChromeOS shim firmware - proprietary binary from Google
-  # This derivation downloads and repackages ChromeOS firmware blobs.
-  # The output remains under Google's proprietary license terms and is marked unfree.
   chromeosShim = pkgs.stdenv.mkDerivation {
     name = "chromeos-shim-${board}";
     version = board;
 
-    # Fixed-output derivation: Nix knows the final zip hash
-    outputHashMode = "flat";
-    outputHashAlgo = "sha256";
-    outputHash = boardManifest.hash;
+    src = pkgs.fetchurl {
+      inherit (shimData) url sha256;
+    };
 
     nativeBuildInputs = [pkgs.unzip];
-
     buildCommand = ''
-      echo "Joining ${toString (builtins.length boardManifest.chunks)} chunks for ${board}..."
-      cat ${pkgs.lib.concatStringsSep " " chunkDrvs} > ${board}.zip
-
-      echo "Extracting shim.bin..."
-      unzip -p ${board}.zip > $out
+      echo "Extracting ${board}.zip -> shim.bin..."
+      unzip -p "$src" > "$out"
     '';
 
     meta = with pkgs.lib; {
-      description = "ChromeOS shim firmware for ${board} board";
-      longDescription = ''
-        Downloads and extracts the ChromeOS shim firmware for the ${board} board
-        from the official ChromeOS CDN, using the manifest + chunk method.
-      '';
+      description = "Direct ChromeOS shim binary for board ${board}";
       license = licenses.unfree;
-      platforms = platforms.linux;
       maintainers = ["shimboot developers"];
+      platforms = platforms.linux;
     };
   };
 
-  # ChromeOS recovery firmware - proprietary binary from Google
-  # This derivation downloads and extracts ChromeOS recovery images.
-  # The output remains under Google's proprietary license terms and is marked unfree.
-  chromeosRecovery = let
-    recoveryUrls = {
-      dedede = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_13597.105.0_dedede_recovery_stable-channel_mp-v3.bin.zip";
-        sha256 = "sha256-4YNU6qHF/LF/znVJ1pOJpI+NJYB/B/TGGMaHM5uyJhQ=";
-      };
-      grunt = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_11151.113.0_grunt_recovery_stable-channel_mp-v5.bin.zip";
-        sha256 = "sha256-aIYRcj8+Lx5PLz9PWfYp4xnzy9f5TNYnRp9S5DdrlW4=";
-      };
-      hatch = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_12739.94.0_hatch_recovery_stable-channel_mp-v4.bin.zip";
-        sha256 = "sha256-H34UUn4iwo2wuOAxE4LjbkynUmE8BKHYkUKPagIji6Q=";
-      };
-      nissa = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_15236.80.0_nissa_recovery_stable-channel_mp-v2.bin.zip";
-        sha256 = "sha256-dfNnmYrjIIpDVcp4Dh6OLoRmami4N4+XCPsqXjbITog=";
-      };
-      octopus = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_11316.165.0_octopus_recovery_stable-channel_mp-v5.bin.zip";
-        sha256 = "sha256-wZS7P8Ad2xYTPb8RtT4YiH9SXGCclped/nls+Y+XCRQ=";
-      };
-      snappy = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_9334.72.0_snappy_recovery_stable-channel_mp.bin.zip";
-        sha256 = "sha256-Bh7YW9xl0KDIW9nNXR1m+xUgZumQJ421B5QgpJkoGEo=";
-      };
-      zork = {
-        url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_13505.73.0_zork_recovery_stable-channel_mp-v4.bin.zip";
-        sha256 = "sha256-WGhEKw68CGEhPcXVTRUSrYguUBPUnKnPH28338PHmDM=";
-      };
-    };
-    recoveryData = recoveryUrls.${board} or (throw "Unsupported board: ${board}");
-  in
+  # Define helper for recovery derivations
+  defineRecovery = boardData:
     pkgs.stdenv.mkDerivation {
-      name = "chromeos-recovery-${board}";
-      version = "${board}";
+      name = "chromeos-recovery-${boardData.board}";
+      version = boardData.board;
 
-      src = pkgs.fetchurl {
-        inherit (recoveryData) url sha256;
-      };
-
-      nativeBuildInputs = [pkgs.unzip];
+      src = pkgs.fetchurl { inherit (boardData) url sha256; };
+      nativeBuildInputs = [ pkgs.unzip ];
 
       unpackPhase = ''
         runHook preUnpack
-        echo "Unpacking ChromeOS recovery image..."
-        unzip $src
+        echo "🔍 Unpacking recovery for ${boardData.board}..."
+        unzip -q "$src"
         runHook postUnpack
       '';
 
       installPhase = ''
         runHook preInstall
-        mkdir -p $out
-        echo "Searching for recovery binary..."
-        for file in $(find . -type f); do
-          file_size=$(stat -c%s "$file")
-          if [ $file_size -gt 1000000 ]; then
-            echo "Installing $file as recovery.bin"
-            cp "$file" $out/recovery.bin
-            break
-          fi
+        mkdir -p "$out"
+        echo "Installing recovery image..."
+        find . -type f -size +1M | head -1 | while read f; do
+          cp "$f" "$out/recovery.bin"
+          echo "✓ Installed $(basename "$f")"
         done
-        if [ ! -f "$out/recovery.bin" ]; then
-          echo "ERROR: Could not find recovery binary"
-          exit 1
-        fi
-        echo "Installed recovery.bin ($(stat -c%s $out/recovery.bin) bytes)"
         runHook postInstall
       '';
 
       meta = with pkgs.lib; {
-        description = "ChromeOS recovery firmware for ${board} board";
+        description = "ChromeOS recovery image for ${boardData.board} board";
         license = licenses.unfree;
         platforms = platforms.linux;
         maintainers = ["shimboot developers"];
       };
     };
+
+  recoveryDefs = {
+    dedede = defineRecovery {
+      board = "dedede";
+      url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_13597.105.0_dedede_recovery_stable-channel_mp-v3.bin.zip";
+      sha256 = "sha256-4YNU6qHF/LF/znVJ1pOJpI+NJYB/B/TGGMaHM5uyJhQ=";
+    };
+    zork = defineRecovery {
+      board = "zork";
+      url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_13505.73.0_zork_recovery_stable-channel_mp-v4.bin.zip";
+      sha256 = "sha256-WGhEKw68CGEhPcXVTRUSrYguUBPUnKnPH28338PHmDM=";
+    };
+    hatch = defineRecovery {
+      board = "hatch";
+      url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_12739.94.0_hatch_recovery_stable-channel_mp-v4.bin.zip";
+      sha256 = "sha256-H34UUn4iwo2wuOAxE4LjbkynUmE8BKHYkUKPagIji6Q=";
+    };
+    nissa = defineRecovery {
+      board = "nissa";
+      url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_15236.80.0_nissa_recovery_stable-channel_mp-v2.bin.zip";
+      sha256 = "sha256-dfNnmYrjIIpDVcp4Dh6OLoRmami4N4+XCPsqXjbITog=";
+    };
+    octopus = defineRecovery {
+      board = "octopus";
+      url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_11316.165.0_octopus_recovery_stable-channel_mp-v5.bin.zip";
+      sha256 = "sha256-wZS7P8Ad2xYTPb8RtT4YiH9SXGCclped/nls+Y+XCRQ=";
+    };
+    snappy = defineRecovery {
+      board = "snappy";
+      url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_9334.72.0_snappy_recovery_stable-channel_mp.bin.zip";
+      sha256 = "sha256-Bh7YW9xl0KDIW9nNXR1m+xUgZumQJ421B5QgpJkoGEo=";
+    };
+    grunt = defineRecovery {
+      board = "grunt";
+      url = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_11151.113.0_grunt_recovery_stable-channel_mp-v5.bin.zip";
+      sha256 = "sha256-aIYRcj8+Lx5PLz9PWfYp4xnzy9f5TNYnRp9S5DdrlW4=";
+    };
+  };
+
+  chromeosRecovery = recoveryDefs.${board} or (throw "Unsupported board ${board} for recovery.");
 in {
   packages.${system} = {
     "chromeos-shim-${board}" = chromeosShim;
