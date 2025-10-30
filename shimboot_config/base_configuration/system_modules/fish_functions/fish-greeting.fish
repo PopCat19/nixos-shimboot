@@ -20,12 +20,11 @@ function fish_greeting
                 > $cache_file 2>/dev/null; or true
             cat $cache_file
         end
-        echo ""
     end
 
     # System summary line
     set_color green
-    echo "System: " (uname -sr) " CPU: " (string replace -r ' +$' '' (cat /proc/cpuinfo | grep 'model name' -m1 | cut -d: -f2))
+    echo "System:" (uname -sr) "CPU:" (string replace -r ' +$' '' (cat /proc/cpuinfo | grep 'model name' -m1 | cut -d: -f2))
     set_color normal
 
     # Config summary
@@ -38,14 +37,12 @@ function fish_greeting
             set -l commit (string sub -l 7 (git -C $config_dir rev-parse HEAD 2>/dev/null))
             echo "Git: $branch @ $commit"
         end
-        echo "Helpful:  nrb (rebuild)   flup (flake update)   cdn (cd config)   setup_nixos   list-fish-helpers"
+        echo "Helpful: \n nrb (rebuild) flup (flake update) cdn (cd config) setup_nixos list-fish-helpers \n"
     else
         set_color bryellow
         echo "⚠️  No nixos-config detected."
         set_color normal
         echo "Run: setup_nixos to initialize"
     end
-
     echo (date "+%a, %b %d %Y  %H:%M:%S")
-    echo ""
 end
