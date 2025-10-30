@@ -495,14 +495,19 @@ in {
             echo "╰────────────────────────────────────────────────╯"
             echo ""
 
-            if command -v fastfetch >/dev/null 2>&1; then
-              fastfetch
-            elif command -v neofetch >/dev/null 2>&1; then
-              neofetch
+            # Display fish greeting if available
+            if command -v fish >/dev/null 2>&1; then
+              fish -c "source $CONFIG_DIR/shimboot_config/base_configuration/system_modules/fish_functions/fish-greeting.fish; fish_greeting" 2>/dev/null || true
             else
-              echo "System:   $(uname -s) $(uname -r)"
-              echo "Hostname: $(hostname)"
-              echo "User:     $USERNAME"
+              if command -v fastfetch >/dev/null 2>&1; then
+                fastfetch
+              elif command -v neofetch >/dev/null 2>&1; then
+                neofetch
+              else
+                echo "System:   $(uname -s) $(uname -r)"
+                echo "Hostname: $(hostname)"
+                echo "User:     $USERNAME"
+              fi
             fi
 
             exit 0
