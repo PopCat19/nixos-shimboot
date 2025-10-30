@@ -498,18 +498,15 @@ in {
             fi
 
             echo
-            echo -e "''${BOLD}Next Steps:''${NC}"
-            echo "  • Customize:  edit $CONFIG_DIR"
-            echo "  • Rebuild:    cd $CONFIG_DIR && sudo nixos-rebuild switch --flake .#\$(hostname)"
-            echo "  • Expand FS:  sudo expand_rootfs"
-            echo "  • Network:    nmcli"
-            if [ -f "$LOG_FILE" ]; then
-              echo "  • Logs:       $LOG_FILE"
-            fi
-            if [ -d "$BACKUP_DIR" ]; then
-              echo "  • Backups:    $BACKUP_DIR"
-            fi
-            echo
+echo ""
+echo "╭─[ Setup Complete ]──────────────────────────────╮"
+echo "│ Config  : $CONFIG_DIR                           │"
+echo "│ Branch  : $(git -C $CONFIG_DIR rev-parse --abbrev-ref HEAD 2>/dev/null)"
+echo "│ Next    : cd $CONFIG_DIR && sudo nixos-rebuild switch --flake .#$(hostname) │"
+echo "│ Network : nmcli connection show --active        │"
+echo "│ Re-run  : sudo setup_nixos                      │"
+echo "╰────────────────────────────────────────────────╯"
+echo ""
 
             exit 0
     '')
