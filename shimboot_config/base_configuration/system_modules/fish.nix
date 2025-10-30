@@ -51,6 +51,13 @@
 
     "fish/functions/list-fish-helpers.fish".text =
       builtins.readFile ./fish_functions/list-fish-helpers.fish;
+
+    "fish/conf.d/01-functions-path.fish".text = ''
+      # Make system-wide functions visible
+      if not contains /etc/fish/functions $fish_function_path
+          set -g fish_function_path /etc/fish/functions $fish_function_path
+      end
+    '';
   };
 
   # You can still provide helpful CLI wrappers as actual binaries if needed
