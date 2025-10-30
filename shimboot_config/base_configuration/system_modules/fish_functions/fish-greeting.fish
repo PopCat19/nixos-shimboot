@@ -45,7 +45,7 @@ function fish_greeting
             echo "Git: $branch @ $commit"
         end
         _divider
-        echo "Helpful:  nrb (rebuild)   flup (flake update)   cdn (cd config)   list-fish-helpers"
+        echo "Helpful:  nrb (rebuild)   flup (flake update)   cdn (cd config)   setup_nixos   list-fish-helpers"
     else
         _divider
         set_color bryellow
