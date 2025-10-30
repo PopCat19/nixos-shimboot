@@ -28,6 +28,7 @@
     # Abbreviations for common NixOS commands
     abbr -a nrb nixos-rebuild-basic
     abbr -a flup nixos-flake-update
+    abbr -a cdn 'cd $NIXOS_CONFIG_DIR'
   '';
 
   environment.etc = {
