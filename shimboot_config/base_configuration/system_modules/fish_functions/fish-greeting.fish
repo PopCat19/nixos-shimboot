@@ -30,7 +30,7 @@ function fish_greeting
 
     # System summary line
     set_color green
-    echo "🧠 (uname -sr) | CPU: (string replace -r ' +$' '' (cat /proc/cpuinfo | grep 'model name' -m1 | cut -d: -f2))"
+    echo "🧠 " (uname -sr) " | CPU: " (string replace -r ' +$' '' (cat /proc/cpuinfo | grep 'model name' -m1 | cut -d: -f2))
     set_color normal
 
     # Config summary
