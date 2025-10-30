@@ -291,15 +291,22 @@ in {
               elif ! nmcli radio wifi 2>/dev/null | grep -q enabled; then
                 log_warn "Wi-Fi radio appears to be disabled"
               else
-                echo "Scanning networks..."
-                nmcli dev wifi rescan 2>/dev/null || true
-                sleep 1
+                # Check if already connected to Wi-Fi
+                CURRENT_CONNECTION=$(nmcli -t -f active,ssid dev wifi | grep "^yes:" | cut -d: -f2-)
+                
+                if [ -n "$CURRENT_CONNECTION" ]; then
+                  log_ok "Already connected to Wi-Fi: '$CURRENT_CONNECTION'"
+                  echo "Skipping network scan since connection is active."
+                else
+                  echo "Scanning networks..."
+                  nmcli dev wifi rescan 2>/dev/null || true
+                  sleep 1
 
-                echo
-                nmcli -f SSID,SECURITY,SIGNAL,CHAN dev wifi list | head -15
-                echo
+                  echo
+                  nmcli -f SSID,SECURITY,SIGNAL,CHAN dev wifi list | head -15
+                  echo
 
-                if prompt_yes_no "Connect to Wi-Fi now?"; then
+                  if prompt_yes_no "Connect to Wi-Fi now?"; then
                   read -r -p "SSID: " SSID
                   if [ -n "$SSID" ]; then
                     read -r -s -p "Password: " PSK
@@ -319,6 +326,7 @@ in {
                       log_error "Failed to connect (check password/signal)"
                     fi
                   fi
+                fi
                 fi
               fi
             else
