@@ -44,13 +44,23 @@ sudo ./assemble-final.sh --board dedede --rootfs minimal
 - `--drivers vendor`: Store ChromeOS drivers on separate vendor partition (default)
 - `--drivers inject`: Inject drivers directly into the rootfs
 - `--drivers none`: Skip driver harvesting
+- `--drivers both`: Place drivers in vendor partition AND inject into rootfs
 - `--inspect`: Inspect the final image after building
+- `--dry-run`: Test build process without making destructive changes
+- `--prewarm-cache`: Fetch derivations from Cachix before building
+- `--cleanup-rootfs`: Remove old shimboot rootfs generations after build
+- `--cleanup-keep N`: Keep last N generations during cleanup (default: 3)
+- `--no-dry-run`: Actually delete files during cleanup (default: dry-run)
+- `--fresh`: Start build from beginning, ignoring any checkpoints
 
 The script will:
-- Build the NixOS rootfs and ChromeOS components
-- Harvest ChromeOS drivers and firmware
-- Create a partitioned image at `work/shimboot.img`
-- Populate all partitions with the bootloader, rootfs, and drivers
+- Verify Cachix cache configuration and connectivity
+- Build Nix outputs with retry logic and CI optimization
+- Harvest ChromeOS drivers and firmware with upstream augmentation
+- Create partitioned image at `work/shimboot.img`
+- Populate all partitions with bootloader, rootfs, and drivers
+- Generate build metadata at `/etc/shimboot-build.json`
+- Optionally push built derivations to Cachix cache
 
 ### 3. Flash to USB Drive
 
@@ -62,11 +72,24 @@ First, list available devices to identify your USB drive:
 sudo ./write-shimboot-image.sh --list
 ```
 
-Flash the assembled image to your USB drive (replace `/dev/sdX` with your actual USB device path):
+Interactive device selection with safety validation:
+
+```bash
+sudo ./write-shimboot-image.sh -i "$(pwd)/work/shimboot.img"
+```
+
+Direct device targeting with safety checks:
 
 ```bash
 sudo ./write-shimboot-image.sh -i "$(pwd)/work/shimboot.img" --output /dev/sdX
 ```
+
+**Safety Features:**
+- Automatic system disk detection and exclusion
+- Interactive confirmation with countdown timer
+- Automatic unmounting of target device partitions
+- Size validation and large device warnings
+- Dry-run mode for testing: `--dry-run`
 
 The assembled image is ready to flash and already contains everything needed for your board.
 
@@ -112,16 +135,27 @@ sudo resize2fs /dev/sdXN
 - If you get impure errors, try: `nix build --impure`
 - Ensure you're using the correct board name (case-sensitive): dedede, grunt, hatch, nissa, octopus, snappy, zork
 - For ChromeOS artifacts, ensure you have the correct board manifest
+- Check cache health before building: `./tools/check-cachix.sh dedede`
+- Use `--dry-run` to test the build process without destructive operations
+- Enable cache pre-warming: `--prewarm-cache` to fetch derivations before building
+
+### Cache Management
+- Built-in Cachix integration for faster builds
+- Check cache coverage: `./tools/check-cachix.sh [BOARD]`
+- Cache automatically configured in Nix settings
+- Push built derivations to cache for faster subsequent builds
 
 ### Boot Issues
 - Verify your Chromebook board is in the supported list above
 - Confirm the shim image matches your exact device model
 - Try the minimal image if the full image fails: `sudo ./assemble-final.sh --board BOARD --rootfs minimal`
 - Check that recovery mode key combination is correct for your model
+- Inspect build metadata: `cat /etc/shimboot-build.json` on the running system
 
 ### Space Issues
 - Ensure `sudo expand_rootfs` succeeded in allocating rootfs to full USB space
 - The default minimal/base image is ~6-8GB (expandable); ensure your USB drive has enough space
+- Use `--cleanup-rootfs` to remove old generations and free space
 - Use `nix-shell` for temporary packages to save space
 - Consider the minimal image for devices with limited storage (you can also create your own custom main_configuration port if you'd prefer c:)
 
