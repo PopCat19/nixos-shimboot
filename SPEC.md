@@ -317,7 +317,9 @@ shimboot_config/
 │  └─ system_modules/
 │     ├─ audio.nix                  - Audio configuration
 │     ├─ boot.nix                   - Disables standard bootloaders
-│     ├─ display.nix                - LightDM + Hyprland
+│     ├─ display-manager.nix        - X server and LightDM
+│     ├─ hyprland.nix               - Hyprland window manager
+│     ├─ xdg-portals.nix            - XDG portals and desktop integration
 │     ├─ filesystems.nix            - Single ext4 partition
 │     ├─ fish.nix                   - Fish shell + Starship
 │     ├─ fonts.nix                  - System fonts

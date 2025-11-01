@@ -28,7 +28,9 @@ in {
     ./system_modules/localization.nix
     ./system_modules/hardware.nix
     ./system_modules/power-management.nix
-    ./system_modules/display.nix
+    ./system_modules/hyprland.nix
+    ./system_modules/display-manager.nix
+    ./system_modules/xdg-portals.nix
     ./system_modules/fonts.nix
     ./system_modules/users.nix
     ./system_modules/audio.nix

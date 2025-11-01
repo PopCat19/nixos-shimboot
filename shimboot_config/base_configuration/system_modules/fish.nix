@@ -19,6 +19,18 @@
   programs.fish.enable = lib.mkDefault true;
   programs.starship.enable = lib.mkDefault true;
 
+  programs.fish.interactiveShellInit = ''
+    # Make system-wide functions visible
+    if not contains /etc/fish/functions $fish_function_path
+        set -g fish_function_path /etc/fish/functions $fish_function_path
+    end
+
+    # Abbreviations for common NixOS commands
+    abbr -a nrb nixos-rebuild-basic
+    abbr -a flup nixos-flake-update
+    abbr -a cdn 'cd $NIXOS_CONFIG_DIR'
+  '';
+
   environment.etc = {
     # Global env setup
     "fish/conf.d/00-shimboot.fish".text = ''
