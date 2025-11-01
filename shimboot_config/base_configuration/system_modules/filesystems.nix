@@ -24,5 +24,4 @@
   # System-wide tmpfs configuration
   boot.tmp.useTmpfs = true;
   boot.tmp.tmpfsSize = "2G";
-
 }

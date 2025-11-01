@@ -24,14 +24,14 @@
     ];
     # choose handlers; Hyprland first, fallback to GTK; default GTK for non-Hyprland
     config = {
-      common = { default = [ "gtk" ]; };
-      hyprland = { default = [ "hyprland" "gtk" ]; };
+      common = {default = ["gtk"];};
+      hyprland = {default = ["hyprland" "gtk"];};
     };
   };
-  
+
   # Ensure portal starts with session
   systemd.user.services.xdg-desktop-portal-hyprland = {
-    wantedBy = [ "graphical-session.target" ];
-    partOf = [ "graphical-session.target" ];
+    wantedBy = ["graphical-session.target"];
+    partOf = ["graphical-session.target"];
   };
 }

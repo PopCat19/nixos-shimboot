@@ -63,7 +63,6 @@
 
     "fish/functions/list-fish-helpers.fish".text =
       builtins.readFile ./fish_functions/list-fish-helpers.fish;
-
   };
 
   # You can still provide helpful CLI wrappers as actual binaries if needed
