@@ -1,13 +1,14 @@
 # Hardware Configuration Module
 #
 # Purpose: Configure hardware settings for ChromeOS devices
-# Dependencies: linux-firmware, mesa
+# Dependencies: linux-firmware, mesa, brightnessctl
 # Related: boot.nix, display.nix
 #
 # This module:
 # - Enables redistributable firmware for ChromeOS compatibility
 # - Configures graphics drivers with 32-bit support
 # - Enables Bluetooth with power-on-boot
+# - Provides brightness control utilities
 {
   config,
   pkgs,
@@ -26,4 +27,8 @@
       powerOnBoot = lib.mkDefault true;
     };
   };
+
+  environment.systemPackages = [
+    pkgs.brightnessctl
+  ];
 }
