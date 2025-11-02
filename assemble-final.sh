@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Assemble Final Script v2.0
+# Assemble Final Script
 #
 # Purpose: Build and assemble final shimboot image with Nix outputs, drivers, and partitioning
 # Dependencies: nix, sudo, parted, mkfs.ext4, dd, pv, losetup, mount, umount, cgpt
