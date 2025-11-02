@@ -25,6 +25,7 @@
 #   --fresh                Start fresh, ignoring any checkpoints
 #   --dry-run              Show what would be done without executing destructive operations
 #   --prewarm-cache        Attempt to fetch from Cachix before building
+#   --pull-cached-image    Pull pre-built image from Cachix instead of building
 #
 # Examples:
 #   # Build dedede with full rootfs
@@ -38,6 +39,9 @@
 #
 #   # Build with cache pre-warming
 #   ./assemble-final.sh --board dedede --rootfs full --prewarm-cache
+#
+#   # Use cached image instead of building
+#   ./assemble-final.sh --board dedede --rootfs full --pull-cached-image
 
 set -Eeuo pipefail
 
@@ -135,6 +139,10 @@ log_error() {
 	printf "${ANSI_RED}  ✗ %s${ANSI_CLEAR}\n" "$1"
 }
 
+log_success() {
+	printf "${ANSI_GREEN}  ✓ %s${ANSI_CLEAR}\n" "$1"
+}
+
 # Add after color definitions
 show_progress() {
     local current="$1"
@@ -185,7 +193,7 @@ verify_cachix_config() {
     log_step "Pre-check" "Verifying Cachix configuration"
     
     # Check if Cachix is in substituters
-    if nix show-config | grep -q "shimboot-systemd-nixos.cachix.org"; then
+    if nix config show | grep -q "shimboot-systemd-nixos.cachix.org"; then
         log_info "✓ Cachix configured in Nix settings"
     else
         log_warn "Cachix not found in Nix settings; builds may not use cache"
@@ -203,7 +211,7 @@ verify_cachix_config() {
     
     # Show current substituters
     log_info "Active substituters:"
-    nix show-config | grep "^substituters" | sed 's/^/    /'
+    nix config show | grep "^substituters" | sed 's/^/    /'
 }
 
 # Ensure unfree packages are allowed for nix builds that require ChromeOS tools/firmware
@@ -248,6 +256,7 @@ CLEANUP_KEEP=""
 
 # Cache options
 PREWARM_CACHE=0
+PULL_CACHED_IMAGE=0
 
 while [ $# -gt 0 ]; do
 	case "${1:-}" in
@@ -298,6 +307,10 @@ while [ $# -gt 0 ]; do
 		;;
 	--prewarm-cache)
 		PREWARM_CACHE=1
+		shift
+		;;
+	--pull-cached-image)
+		PULL_CACHED_IMAGE=1
 		shift
 		;;
 	*)
@@ -396,6 +409,72 @@ check_disk_space() {
 
 # Usage
 check_disk_space 30 "$(dirname "$WORKDIR")"
+
+# === Function: Check for cached image ===
+check_cached_image() {
+    local board="$1"
+    local rootfs="$2"
+    local drivers="$3"
+    
+    log_step "Cache" "Checking for pre-built image in Cachix"
+    
+    # Get git commit
+    local git_commit="unknown"
+    if command -v git >/dev/null 2>&1 && [[ -d .git ]]; then
+        git_commit=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+    fi
+    
+    # Compute config hash (same as push-to-cachix.sh)
+    local config_hash
+    config_hash=$(echo "${board}-${rootfs}-${drivers}-${git_commit}" | sha256sum | cut -d' ' -f1 | cut -c1-16)
+    
+    local manifest_name="shimboot-manifest-${config_hash}.json"
+    local manifest_url="https://${CACHIX_CACHE}.cachix.org/${manifest_name}"
+    
+    log_info "Looking for manifest: $manifest_name"
+    
+    # Check if manifest exists
+    if ! curl -sf "$manifest_url" -o "/tmp/${manifest_name}" 2>/dev/null; then
+        log_warn "No cached image found for this configuration"
+        return 1
+    fi
+    
+    log_success "Found cached image manifest"
+    
+    # Parse manifest
+    local filename
+    filename=$(jq -r '.filename' "/tmp/${manifest_name}")
+    
+    if [[ -z "$filename" ]] || [[ "$filename" == "null" ]]; then
+        log_error "Invalid manifest format"
+        rm -f "/tmp/${manifest_name}"
+        return 1
+    fi
+    
+    # Download compressed image
+    local image_url="https://${CACHIX_CACHE}.cachix.org/${filename}"
+    log_info "Downloading: $filename"
+    
+    if ! curl -L --progress-bar "$image_url" -o "/tmp/${filename}"; then
+        log_error "Failed to download cached image"
+        rm -f "/tmp/${manifest_name}"
+        return 1
+    fi
+    
+    # Decompress
+    log_info "Decompressing image..."
+    if ! pv "/tmp/${filename}" | zstd -d > "$IMAGE"; then
+        log_error "Failed to decompress image"
+        rm -f "/tmp/${filename}" "/tmp/${manifest_name}"
+        return 1
+    fi
+    
+    # Cleanup
+    rm -f "/tmp/${filename}" "/tmp/${manifest_name}"
+    
+    log_success "Successfully retrieved cached image: $IMAGE"
+    return 0
+}
 
 # === Checkpoint System ===
 CHECKPOINT_FILE="$WORKDIR/.build_checkpoint"
@@ -539,6 +618,37 @@ if [ "$PREWARM_CACHE" -eq 1 ]; then
         2>&1 | grep "will be fetched" || log_info "Nothing to fetch"
 fi
 
+# === Check for cached image if requested ===
+if [ "$PULL_CACHED_IMAGE" -eq 1 ]; then
+    if check_cached_image "$BOARD" "$ROOTFS_FLAVOR" "$DRIVERS_MODE"; then
+        log_success "Using cached image, skipping build"
+        
+        # Optionally inspect
+        if [ "$INSPECT_AFTER" = "--inspect" ]; then
+            CURRENT_STEP="Inspect"
+            log_step "$CURRENT_STEP" "Partition table and init check"
+            safe_exec sudo partx -o NR,START,END,SIZE,TYPE,NAME,UUID -g --show "$IMAGE"
+            LOOPDEV=$(sudo losetup --show -fP "$IMAGE")
+            mkdir -p "$WORKDIR/inspect_rootfs"
+            safe_exec sudo mount "${LOOPDEV}p5" "$WORKDIR/inspect_rootfs"
+            sudo ls -l "$WORKDIR/inspect_rootfs"
+            if [ -f "$WORKDIR/inspect_rootfs/sbin/init" ]; then
+                log_info "Init found at /sbin/init → $(file -b "$WORKDIR/inspect_rootfs/sbin/init")"
+            elif [ -f "$WORKDIR/inspect_rootfs/init" ]; then
+                log_info "Init found at /init → $(file -b "$WORKDIR/inspect_rootfs/init")"
+            else
+                log_error "Init missing"
+            fi
+            safe_exec sudo umount "$WORKDIR/inspect_rootfs"
+            safe_exec sudo losetup -d "$LOOPDEV"
+        fi
+        
+        exit 0
+    else
+        log_warn "Cached image not found, proceeding with build"
+    fi
+fi
+
 # === Step 1: Build Nix outputs (parallel) ===
 if [ "$START_STEP" -le 1 ]; then
     CURRENT_STEP="1/15"
@@ -580,28 +690,6 @@ fi
 log_info "Original kernel p2: $ORIGINAL_KERNEL"
 log_info "Patched initramfs dir: $PATCHED_INITRAMFS"
 log_info "Raw rootfs: $RAW_ROOTFS_IMG"
-
-# === Step 1 (Cachix push, disabled on CI) ===
-if command -v cachix >/dev/null 2>&1 && ! is_ci; then
-  log_step "1/15 (Cachix)" "Pushing built derivations to ${CACHIX_CACHE}"
-  
-  # Only push our own derivations, not nixpkgs dependencies
-  for drv in \
-    "$(dirname "$ORIGINAL_KERNEL")" \
-    "$(dirname "$PATCHED_INITRAMFS")" \
-    "$(dirname "$RAW_ROOTFS_IMG")"; do
-    
-    # Check if derivation is from our flake
-    if [[ "$drv" =~ /nix/store/.*-(chromeos-shim|extracted-kernel|initramfs|raw-rootfs) ]]; then
-      log_info "Pushing $drv..."
-      cachix push "$CACHIX_CACHE" "$drv" 2>&1 | grep -v "Compressing" || true
-    else
-      log_info "Skipping nixpkgs derivation: $(basename "$drv")"
-    fi
-  done
-else
-  is_ci && log_info "CI detected — skipping manual Cachix push"
-fi
 
 # Build ChromeOS SHIM and determine RECOVERY per policy
 SHIM_BIN="$(nix build "${NIX_BUILD_FLAGS[@]}" .#chromeos-shim-${BOARD} --print-out-paths)"
@@ -1143,40 +1231,23 @@ else
 		safe_exec sudo losetup -d "$LOOPDEV" 2>/dev/null || true
 		LOOPDEV=""
 	fi
-	log_info "✅ Final image already exists at: $IMAGE"
-fi
-
-# === Step 16: Final Cachix sync (disabled on CI) ===
-if command -v cachix >/dev/null 2>&1 && ! is_ci; then
-  CURRENT_STEP="Sync"
-  log_step "$CURRENT_STEP" "Final Cachix push sync"
-  for drv in \
-    ".#chromeos-shim-${BOARD}" \
-    ".#extracted-kernel-${BOARD}" \
-    ".#initramfs-patching-${BOARD}" \
-    ".#${RAW_ROOTFS_ATTR}"; do
-    log_info "Pushing $drv path..."
-    nix path-info "${NIX_BUILD_FLAGS[@]}" "$drv" | cachix push "$CACHIX_CACHE" || true
-  done
-  log_info "✅ Cachix push complete: ${CACHIX_CACHE}"
-else
-  is_ci && log_info "CI detected — skipping final Cachix push (handled by CI system)"
+log_info "✅ Final image already exists at: $IMAGE"
 fi
 
 # Add before final cleanup
 show_cache_stats() {
-    log_step "Stats" "Build cache statistics"
-    
-    if [ -f /nix/var/log/nix/drvs ]; then
-        local total_derivations=$(find /nix/var/log/nix/drvs -type f | wc -l)
-        log_info "Total derivations built: $total_derivations"
-    fi
-    
-    # Show what was fetched vs built
-    if command -v nix >/dev/null 2>&1; then
-        log_info "Checking recent store operations..."
-        nix store diff-closures /nix/var/nix/profiles/system-{1,2}-link 2>/dev/null | head -n 20 || true
-    fi
+	   log_step "Stats" "Build cache statistics"
+	   
+	   if [ -f /nix/var/log/nix/drvs ]; then
+	       local total_derivations=$(find /nix/var/log/nix/drvs -type f | wc -l)
+	       log_info "Total derivations built: $total_derivations"
+	   fi
+	   
+	   # Show what was fetched vs built
+	   if command -v nix >/dev/null 2>&1; then
+	       log_info "Checking recent store operations..."
+	       nix store diff-closures /nix/var/nix/profiles/system-{1,2}-link 2>/dev/null | head -n 20 || true
+	   fi
 }
 
 # === Optional cleanup of old shimboot rootfs generations ===
@@ -1199,6 +1270,10 @@ fi
 # === Optional inspection ===
 # Call at end of script
 show_cache_stats
+
+# === Final instruction for Cachix push ===
+log_info "To push to Cachix, run:"
+log_info "  ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE --image $IMAGE"
 
 # === Optional inspection ===
 if [ "$INSPECT_AFTER" = "--inspect" ]; then
