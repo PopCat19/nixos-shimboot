@@ -787,37 +787,72 @@ else
 	log_info "Skipping step 9 (already completed)"
 fi
 
+# === Partition Layout Logic ===
+if [ "$DRIVERS_MODE" = "inject" ]; then
+    HAS_VENDOR_PARTITION=0
+    ROOTFS_PARTITION_INDEX=4
+    log_info "Inject mode: skipping vendor partition (rootfs -> p4)"
+else
+    HAS_VENDOR_PARTITION=1
+    ROOTFS_PARTITION_INDEX=5
+    log_info "Vendor mode: keeping vendor partition (rootfs -> p5)"
+fi
+
+
 # === Step 10: Partition image ===
 if [ "$START_STEP" -le 10 ]; then
 	CURRENT_STEP="10/15"
 	log_step "$CURRENT_STEP" "Partition image (GPT, ChromeOS GUIDs, vendor before rootfs)"
-	log_info "Partition layout:"
-	log_info "  p1: STATE (1–2 MiB)"
-	log_info "  p2: KERNEL (2–34 MiB, ChromeOS kernel)"
-	log_info "  p3: BOOT (34–54 MiB, bootloader/initramfs)"
-	log_info "  p4: VENDOR (${VENDOR_START_MB}–${VENDOR_END_MB} MiB, drivers/firmware)"
-	log_info "  p5: ROOTFS (${VENDOR_END_MB} MiB–end, NixOS system)"
+    if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
+        log_info "Partition layout: vendor (p4), rootfs (p5)"
+        log_info "  p1: STATE (1–2 MiB)"
+        log_info "  p2: KERNEL (2–34 MiB, ChromeOS kernel)"
+        log_info "  p3: BOOT (34–54 MiB, bootloader/initramfs)"
+        log_info "  p4: VENDOR (${VENDOR_START_MB}–${VENDOR_END_MB} MiB, drivers/firmware)"
+        log_info "  p5: ROOTFS (${VENDOR_END_MB} MiB–end, NixOS system)"
 
-	parted --script "$IMAGE" \
-		mklabel gpt \
-		mkpart stateful ext4 1MiB 2MiB \
-		name 1 STATE \
-		mkpart kernel 2MiB 34MiB \
-		name 2 KERNEL \
-		type 2 FE3A2A5D-4F32-41A7-B725-ACCC3285A309 \
-		mkpart bootloader ext2 34MiB 54MiB \
-		name 3 BOOT \
-		type 3 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC \
-		mkpart vendor ext4 ${VENDOR_START_MB}MiB ${VENDOR_END_MB}MiB \
-		name 4 "shimboot_rootfs:vendor" \
-		type 4 0FC63DAF-8483-4772-8E79-3D69D8477DE4 \
-		mkpart rootfs ext4 ${VENDOR_END_MB}MiB 100% \
-		name 5 "shimboot_rootfs:${ROOTFS_NAME}" \
-		type 5 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC
+        parted --script "$IMAGE" \
+            mklabel gpt \
+            mkpart stateful ext4 1MiB 2MiB \
+            name 1 STATE \
+            mkpart kernel 2MiB 34MiB \
+            name 2 KERNEL \
+            type 2 FE3A2A5D-4F32-41A7-B725-ACCC3285A309 \
+            mkpart bootloader ext2 34MiB 54MiB \
+            name 3 BOOT \
+            type 3 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC \
+            mkpart vendor ext4 ${VENDOR_START_MB}MiB ${VENDOR_END_MB}MiB \
+            name 4 "shimboot_rootfs:vendor" \
+            type 4 0FC63DAF-8483-4772-8E79-3D69D8477DE4 \
+            mkpart rootfs ext4 ${VENDOR_END_MB}MiB 100% \
+            name 5 "shimboot_rootfs:${ROOTFS_NAME}" \
+            type 5 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC
 
-	log_info "Partition table:"
-	sudo partx -o NR,START,END,SIZE,TYPE,NAME,UUID -g --show "$IMAGE"
-	save_checkpoint 10
+    else
+        log_info "Partition layout: rootfs (p4), no vendor partition"
+        log_info "  p1: STATE (1–2 MiB)"
+        log_info "  p2: KERNEL (2–34 MiB, ChromeOS kernel)"
+        log_info "  p3: BOOT (34–54 MiB, bootloader/initramfs)"
+        log_info "  p4: ROOTFS (54 MiB–end, NixOS system)"
+
+        parted --script "$IMAGE" \
+            mklabel gpt \
+            mkpart stateful ext4 1MiB 2MiB \
+            name 1 STATE \
+            mkpart kernel 2MiB 34MiB \
+            name 2 KERNEL \
+            type 2 FE3A2A5D-4F32-41A7-B725-ACCC3285A309 \
+            mkpart bootloader ext2 34MiB 54MiB \
+            name 3 BOOT \
+            type 3 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC \
+            mkpart rootfs ext4 54MiB 100% \
+            name 4 "shimboot_rootfs:${ROOTFS_NAME}" \
+            type 4 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC
+    fi
+
+    log_info "Partition table:"
+    sudo partx -o NR,START,END,SIZE,TYPE,NAME,UUID -g --show "$IMAGE"
+    save_checkpoint 10
 else
 	log_info "Skipping step 10 (already completed)"
 fi
@@ -848,21 +883,35 @@ if [ "$START_STEP" -le 12 ]; then
 	safe_exec sudo mkfs.ext4 -q "$MKFS_EXT4_FLAGS" "${LOOPDEV}p1"
 	safe_exec sudo dd if="$ORIGINAL_KERNEL" of="${LOOPDEV}p2" bs=1M conv=fsync status=progress
 	safe_exec sudo mkfs.ext2 -q "${LOOPDEV}p3"
-	# Vendor partition (drivers/firmware donor) - now p4
-	safe_exec sudo mkfs.ext4 -q -O ^has_journal,^orphan_file,^metadata_csum_seed \
-	  -L "shimboot_vendor" "${LOOPDEV}p4"
-	# IMPORTANT: Label rootfs as $ROOTFS_NAME so NixOS can resolve fileSystems."/".device = /dev/disk/by-label/${ROOTFS_NAME}
-	# Rootfs is now p5
-	safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "$MKFS_EXT4_FLAGS" "${LOOPDEV}p5"
+
+	if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
+	    # Vendor partition (drivers/firmware donor) - p4
+	    safe_exec sudo mkfs.ext4 -q -O ^has_journal,^orphan_file,^metadata_csum_seed \
+	      -L "shimboot_vendor" "${LOOPDEV}p4"
+	    # Rootfs is p5
+	    safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "$MKFS_EXT4_FLAGS" "${LOOPDEV}p5"
+	else
+	    # Rootfs directly as p4
+	    safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "$MKFS_EXT4_FLAGS" "${LOOPDEV}p4"
+	fi
 
 	# After Step 12: Format partitions
 	log_info "Verifying partition formatting..."
-	for part in p1 p2 p3 p4 p5; do
-	  if [ ! -b "${LOOPDEV}${part}" ]; then
-	    log_error "Partition ${part} not found after formatting"
-	    handle_error "$CURRENT_STEP"
-	  fi
-	done
+	if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
+	    for part in p1 p2 p3 p4 p5; do
+	      if [ ! -b "${LOOPDEV}${part}" ]; then
+	        log_error "Partition ${part} not found after formatting"
+	        handle_error "$CURRENT_STEP"
+	      fi
+	    done
+	else
+	    for part in p1 p2 p3 p4; do
+	      if [ ! -b "${LOOPDEV}${part}" ]; then
+	        log_error "Partition ${part} not found after formatting"
+	        handle_error "$CURRENT_STEP"
+	      fi
+	    done
+	fi
 	save_checkpoint 12
 else
 	log_info "Skipping step 12 (already completed)"
@@ -886,10 +935,10 @@ fi
 # === Step 14: Populate rootfs partition ===
 if [ "$START_STEP" -le 14 ]; then
 	CURRENT_STEP="14/15"
-	log_step "$CURRENT_STEP" "Populate rootfs partition (now p5)"
+	log_step "$CURRENT_STEP" "Populate rootfs partition (now p${ROOTFS_PARTITION_INDEX})"
 	LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
 	safe_exec sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
-	safe_exec sudo mount "${LOOPDEV}p5" "$WORKDIR/mnt_rootfs"  # Changed from p4 to p5
+	safe_exec sudo mount "${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "$WORKDIR/mnt_rootfs"
 	total_bytes=$(sudo du -sb "$WORKDIR/mnt_src_rootfs" | cut -f1)
 	(cd "$WORKDIR/mnt_src_rootfs" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_rootfs" && sudo tar xf -)
 
@@ -986,7 +1035,7 @@ EOF
 else
 	log_info "Skipping step 14 (already completed)"
 	# Need to mount rootfs for step 15
-	safe_exec sudo mount "${LOOPDEV}p5" "$WORKDIR/mnt_rootfs" 2>/dev/null || true
+	safe_exec sudo mount "${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "$WORKDIR/mnt_rootfs" 2>/dev/null || true
 fi
 
 
@@ -1023,7 +1072,7 @@ populate_vendor() {
 }
 
 inject_drivers() {
-	log_step "15/15" "Inject drivers into rootfs (p5) (/lib/modules, /lib/firmware, modprobe.d)"
+	log_step "15/15" "Inject drivers into rootfs (p${ROOTFS_PARTITION_INDEX}) (/lib/modules, /lib/firmware, modprobe.d)"
 	if [ -d "$HARVEST_OUT/lib/modules" ]; then
 		safe_exec sudo rm -rf "$WORKDIR/mnt_rootfs/lib/modules"
 		safe_exec sudo mkdir -p "$WORKDIR/mnt_rootfs/lib"
@@ -1048,7 +1097,7 @@ inject_drivers() {
 if [ "$START_STEP" -le 15 ]; then
 	# Modes:
 	#   vendor: Place drivers in separate vendor partition (p4) - mounted at boot
-	#   inject: Directly copy drivers into rootfs (p5) /lib/{modules,firmware}
+	#   inject: Directly copy drivers into rootfs (p${ROOTFS_PARTITION_INDEX}) /lib/{modules,firmware}
 	#   both:   Populate vendor partition AND inject into rootfs (redundant but safe)
 	#   none:   Skip driver handling entirely
 	case "$DRIVERS_MODE" in
@@ -1060,6 +1109,11 @@ if [ "$START_STEP" -le 15 ]; then
 		inject_drivers
 		;;
 	inject)
+		if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
+		    populate_vendor
+		else
+		    log_info "Skipping vendor partition creation (inject mode)"
+		fi
 		inject_drivers
 		;;
 	none)
