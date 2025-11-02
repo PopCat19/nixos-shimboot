@@ -1,19 +1,19 @@
-# Manual Release Workflow
-#
-# Purpose: Build and release shimboot images for all boards
-# Triggers: Manual dispatch only
-# Dependencies: GitHub Actions, Nix, softprops/action-gh-release
-#
-# This workflow:
-# - Builds minimal shimboot images for all supported boards
-# - Creates a timestamped release with build artifacts
-# - Uploads compressed images with checksums
-
 name: manual-release
 
 on:
   workflow_dispatch:
     inputs:
+      drivers_mode:
+        description: 'Driver placement mode'
+        required: true
+        default: 'vendor'
+        type: choice
+        options: [vendor, inject, both, none]
+      firmware_upstream:
+        description: 'Include upstream ChromiumOS firmware'
+        required: false
+        default: true
+        type: boolean
       runner_type:
         description: 'Runner type (self-hosted or GitHub-hosted)'
         required: true
@@ -36,7 +36,6 @@ jobs:
         board: [dedede, octopus, zork, nissa, hatch, grunt, snappy]
 
     steps:
-      # Environment Preparation
       - name: Maximize build space
         run: |
           df -h
@@ -54,7 +53,6 @@ jobs:
         with:
           hatchet-protocol: 'cleave'
 
-      # Nix Setup
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
         with:
@@ -71,7 +69,6 @@ jobs:
           name: shimboot-systemd-nixos
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
 
-      # Build Components
       - name: Build Nix components
         run: |
           BOARD="${{ matrix.board }}"
@@ -86,7 +83,6 @@ jobs:
 
           df -h
 
-      # Assembly
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -102,17 +98,29 @@ jobs:
           echo "💾 Available space before assembly:"
           df -h
 
+          # Build assemble-final.sh command with release-specific options
+          ASSEMBLE_CMD=(
+            ./assemble-final.sh
+            --board "${{ matrix.board }}"
+            --rootfs minimal
+            --drivers "${{ github.event.inputs.drivers_mode || 'vendor' }}"
+          )
+
+          # Add firmware upstream flag
+          if [ "${{ github.event.inputs.firmware_upstream }}" = "false" ]; then
+            ASSEMBLE_CMD+=(--no-firmware-upstream)
+          else
+            ASSEMBLE_CMD+=(--firmware-upstream)
+          fi
+
+          echo "🚀 Running: ${ASSEMBLE_CMD[*]}"
           sudo -E env "PATH=$PATH" "NIX_PATH=$NIX_PATH" \
             BOARD="${{ matrix.board }}" \
-            ./assemble-final.sh \
-              --board "${{ matrix.board }}" \
-              --rootfs minimal \
-              --drivers vendor
+            "${ASSEMBLE_CMD[@]}"
 
           echo "💾 Available space after assembly:"
           df -h
 
-      # Compress and Prepare for Release
       - name: Compress and prepare release artifact
         run: |
           set -e
@@ -155,14 +163,11 @@ jobs:
           echo "  Original: ${ORIG_SIZE_MB}MB"
           echo "  Compressed: ${SIZE_MB}MB (${COMPRESSION_RATIO}% reduction)"
           
-          # 🗜️ Package artifacts together for release
           echo "📦 Zipping ${ARTIFACT_NAME}.zip ..."
           zip -9 "${ARTIFACT_NAME}.zip" "${ARTIFACT_NAME}.img.zst" "${ARTIFACT_NAME}.img.zst.sha256"
 
-          # Show zip contents
           unzip -l "${ARTIFACT_NAME}.zip"
 
-          # Cleanup raw files
           rm -f shimboot.img "${ARTIFACT_NAME}.img.zst" "${ARTIFACT_NAME}.img.zst.sha256"
 
       - name: Upload zipped artifact for release
@@ -194,17 +199,14 @@ jobs:
       - name: Generate release metadata
         id: metadata
         run: |
-          # Generate timestamp (UTC)
           TIMESTAMP=$(date -u '+%Y.%m.%d.%H%M-UTC')
           echo "timestamp=${TIMESTAMP}" >> "$GITHUB_OUTPUT"
 
-          # Get branch and commit
           BRANCH="${GITHUB_REF#refs/heads/}"
           COMMIT=$(git rev-parse --short HEAD)
           echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
           echo "commit=${COMMIT}" >> "$GITHUB_OUTPUT"
 
-          # Generate release title and body
           TITLE="${TIMESTAMP} build artifacts"
           BODY="Minimal nixos-shimboot build artifacts from ${BRANCH} at ${COMMIT}"
           
@@ -215,6 +217,10 @@ jobs:
           echo "## 📦 Artifacts" >> "$GITHUB_OUTPUT"
           echo "" >> "$GITHUB_OUTPUT"
           echo "All boards built with minimal rootfs configuration." >> "$GITHUB_OUTPUT"
+          echo "" >> "$GITHUB_OUTPUT"
+          echo "### Configuration" >> "$GITHUB_OUTPUT"
+          echo "- Driver mode: ${{ github.event.inputs.drivers_mode || 'vendor' }}" >> "$GITHUB_OUTPUT"
+          echo "- Upstream firmware: ${{ github.event.inputs.firmware_upstream != 'false' && 'enabled' || 'disabled' }}" >> "$GITHUB_OUTPUT"
           echo "" >> "$GITHUB_OUTPUT"
           echo "### Boards Included" >> "$GITHUB_OUTPUT"
           echo "- dedede" >> "$GITHUB_OUTPUT"
