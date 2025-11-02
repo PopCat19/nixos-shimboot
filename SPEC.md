@@ -144,23 +144,22 @@ development-environment.nix
 ├─ Related: flake.nix
 └─ Provides: devShell with necessary tools
 
-kernel-extraction.nix
-├─ Purpose: Kernel extraction utilities
-├─ Dependencies: chromeos-sources
-├─ Related: initramfs-extraction.nix
-└─ Provides: extracted-kernel derivations
-
-initramfs-extraction.nix
-├─ Purpose: Initramfs extraction utilities
-├─ Dependencies: kernel-extraction
-├─ Related: initramfs-patching.nix
-└─ Provides: initramfs-extraction derivations
-
-initramfs-patching.nix
-├─ Purpose: Initramfs patching utilities
-├─ Dependencies: initramfs-extraction, bootloader/
-├─ Related: assemble-final.sh
-└─ Provides: initramfs-patching derivations
+patch_initramfs/
+├─ initramfs-extraction.nix
+│  ├─ Purpose: Initramfs extraction utilities
+│  ├─ Dependencies: kernel-extraction
+│  ├─ Related: initramfs-patching.nix
+│  └─ Provides: initramfs-extraction derivations
+├─ initramfs-patching.nix
+│  ├─ Purpose: Initramfs patching utilities
+│  ├─ Dependencies: initramfs-extraction, bootloader/
+│  ├─ Related: assemble-final.sh
+│  └─ Provides: initramfs-patching derivations
+└─ kernel-extraction.nix
+   ├─ Purpose: Kernel extraction utilities
+   ├─ Dependencies: chromeos-sources
+   ├─ Related: initramfs-extraction.nix
+   └─ Provides: extracted-kernel derivations
 
 raw-image.nix
 ├─ Purpose: Raw image generation
@@ -318,12 +317,11 @@ shimboot_config/
 │     ├─ audio.nix                  - Audio configuration
 │     ├─ boot.nix                   - Disables standard bootloaders
 │     ├─ display-manager.nix        - X server and LightDM
-│     ├─ hyprland.nix               - Hyprland window manager
-│     ├─ xdg-portals.nix            - XDG portals and desktop integration
 │     ├─ filesystems.nix            - Single ext4 partition
 │     ├─ fish.nix                   - Fish shell + Starship
 │     ├─ fonts.nix                  - System fonts
 │     ├─ hardware.nix               - Firmware enablement
+│     ├─ hyprland.nix               - Hyprland window manager
 │     ├─ localization.nix           - Locale and timezone settings
 │     ├─ networking.nix             - NetworkManager + wpa_supplicant
 │     ├─ packages.nix               - Minimal system packages
@@ -332,10 +330,11 @@ shimboot_config/
 │     ├─ services.nix               - System services
 │     ├─ systemd.nix                - Patched systemd + kill-frecon service
 │     ├─ users.nix                  - Default user accounts
+│     ├─ xdg-portals.nix            - XDG portals and desktop integration
 │     ├─ zram.nix                   - Swap compression
 │     ├─ fish_functions/
-│     │  ├─ fix-fish-history.fish   - History repair utility
 │     │  ├─ fish-greeting.fish      - Welcome message
+│     │  ├─ fix-fish-history.fish   - History repair utility
 │     │  ├─ list-fish-helpers.fish  - Function/abbreviation listing
 │     │  ├─ nixos-flake-update.fish - Flake update with backup
 │     │  └─ nixos-rebuild-basic.fish - System rebuild with kernel checks
@@ -346,19 +345,22 @@ shimboot_config/
 │        └─ setup-helpers.nix       - setup_nixos wizard
 ├─ main_configuration/
 │  ├─ configuration.nix             - Imports base + adds user modules
-│  ├─ system_modules/
-│  │  ├─ fonts.nix                  - System fonts
-│  │  ├─ packages.nix               - User applications
-│  │  └─ services.nix               - Flatpak enablement
 │  ├─ home_modules/
 │  │  ├─ environment.nix            - Environment variables
 │  │  ├─ fcitx5.nix                 - Input method configuration
 │  │  ├─ fish-themes.nix            - Fish shell themes
-│  │  ├─ fish.nix                   - Shell abbreviations
 │  │  ├─ home.nix                   - Home Manager entry point
 │  │  ├─ kde.nix                    - KDE apps (Dolphin, Gwenview)
 │  │  ├─ kitty.nix                  - Terminal config
+│  │  ├─ lib/
+│  │  │  └─ theme.nix               - Theme library functions
 │  │  ├─ micro.nix                  - Micro editor configuration
+│  │  ├─ packages/
+│  │  │  ├─ communication.nix       - Vesktop
+│  │  │  ├─ gaming.nix              - Lutris, OSU
+│  │  │  ├─ media.nix               - MPV, Audacious
+│  │  │  ├─ notifications.nix       - Notification systems
+│  │  │  └─ utilities.nix           - CLI tools
 │  │  ├─ packages.nix               - User applications
 │  │  ├─ privacy.nix                - Privacy settings
 │  │  ├─ programs.nix               - Program configurations
@@ -366,26 +368,10 @@ shimboot_config/
 │  │  ├─ screenshot.fish            - Screenshot function
 │  │  ├─ screenshot.nix             - Screenshot configuration
 │  │  ├─ services.nix               - User services
-│  │  ├─ starship.nix               - Starship prompt
 │  │  ├─ theme.nix                  - Rose Pine theming
-│  │  ├─ zen-browser.nix            - Browser with extensions
-│  │  ├─ lib/
-│  │  │  └─ theme.nix               - Theme library functions
-│  │  ├─ packages/
-│  │  │  ├─ communication.nix       - Vesktop
-│  │  │  ├─ gaming.nix              - Lutris, OSU
-│  │  │  ├─ media.nix               - MPV, Audacious
-│  │  │  ├─ notifications.nix       - Notification systems
-│  │  │  └─ utilities.nix           - CLI tools
+│  │  └─ zen-browser.nix            - Browser with extensions
 │  ├─ hypr_config/
-│  │  ├─ hypr_packages.nix          - Hyprland package definitions
 │  │  ├─ hyprland.nix               - Hyprland configuration
-│  │  ├─ hyprpanel-common.nix       - HyprPanel common settings
-│  │  ├─ hyprpanel-home.nix         - HyprPanel home configuration
-│  │  ├─ hyprpaper.conf             - Wallpaper configuration
-│  │  ├─ monitors.conf              - Monitor configuration
-│  │  ├─ userprefs.conf             - User preferences
-│  │  ├─ wallpaper.nix              - Wallpaper management
 │  │  ├─ hypr_modules/
 │  │  │  ├─ animations.nix         - Window animations
 │  │  │  ├─ autostart.nix          - Autostart applications
@@ -396,17 +382,71 @@ shimboot_config/
 │  │  │  ├─ hyprlock.nix           - Lock screen
 │  │  │  ├─ keybinds.nix           - Keyboard shortcuts
 │  │  │  └─ window-rules.nix       - Window behavior rules
+│  │  ├─ hyprland.nix               - Hyprland configuration
+│  │  ├─ hypr_packages.nix          - Hyprland package definitions
+│  │  ├─ hyprpanel-common.nix       - HyprPanel common settings
+│  │  ├─ hyprpanel-home.nix         - HyprPanel home configuration
+│  │  ├─ hyprpaper.conf             - Wallpaper configuration
+│  │  ├─ micro_config/
+│  │  │  └─ rose-pine.micro        - Micro editor theme
+│  │  ├─ monitors.conf              - Monitor configuration
 │  │  ├─ shaders/
 │  │  │  ├─ blue-light-filter.glsl - Blue light filter shader
 │  │  │  └─ cool-stuff.glsl        - Visual effects shader
-│  │  └─ micro_config/
-│  │     └─ rose-pine.micro        - Micro editor theme
+│  │  ├─ userprefs.conf             - User preferences
+│  │  └─ wallpaper.nix              - Wallpaper management
 │  └─ wallpaper/
 │     └─ kasane_teto_utau_drawn_by_yananami_numata220.jpg
 └─ fish_themes/
    ├─ Rosé Pine Dawn.theme
    ├─ Rosé Pine Moon.theme
    └─ Rosé Pine.theme
+
+Project Structure:
+├─ bootloader/
+│  ├─ bin/
+│  │  ├─ bootstrap.sh               - Bootloader entry point
+│  │  └─ init                       - BusyBox init replacement
+│  └─ opt/
+│     ├─ crossystem                 - ChromeOS system tools
+│     └─ mount-encrypted            - LUKS decryption helper
+├─ flake_modules/
+│  ├─ cachix-config.nix             - Cachix binary cache configuration
+│  ├─ chromeos-sources.nix          - ChromeOS source management
+│  ├─ development-environment.nix   - Development environment setup
+│  ├─ patch_initramfs/
+│  │  ├─ initramfs-extraction.nix   - Initramfs extraction utilities
+│  │  ├─ initramfs-patching.nix     - Initramfs patching utilities
+│  │  └─ kernel-extraction.nix      - Kernel extraction utilities
+│  ├─ raw-image.nix                 - Raw image generation
+│  └─ system-configuration.nix      - System configuration utilities
+├─ llm-notes/
+│  ├─ commenting-conventions.md     - Code commenting and documentation standards
+│  └─ development-workflow.md       - Development workflow and practices
+├─ manifests/                       - ChromeOS board manifests
+│  ├─ dedede-manifest.nix
+│  ├─ grunt-manifest.nix
+│  ├─ hatch-manifest.nix
+│  ├─ nissa-manifest.nix
+│  ├─ octopus-manifest.nix
+│  ├─ snappy-manifest.nix
+│  └─ zork-manifest.nix
+├─ overlays/                        - Custom package overlays
+│  ├─ overlays.nix                  - Package overlay definitions
+│  └─ rose-pine-gtk-theme-full.nix  - GTK theme overlay
+├─ snapshots/                       - Project state snapshots
+│  ├─ project-state-2025-10-23T15:20:16.151Z.md
+│  ├─ project-state-2025-10-23T18:18:51.852Z.md
+│  └─ project-state-2025-10-24T09:28:50.503Z.md
+└─ tools/                           - Build and utility scripts
+   ├─ check-cachix.sh               - Cache health monitoring
+   ├─ cleanup-shimboot-rootfs.sh    - Rootfs cleanup utilities
+   ├─ collect-minimal-logs.sh       - Log collection
+   ├─ compress-nix-store.sh         - Nix store compression
+   ├─ fetch-manifest.sh             - ChromeOS manifest fetching
+   ├─ fetch-recovery.sh             - Recovery image fetching
+   ├─ harvest-drivers.sh            - Driver harvesting with firmware pruning
+   └─ test-board-builds.sh          - Board-specific build testing
 ```
 
 ---
@@ -851,21 +891,49 @@ Configuration:
 Build system:
 ├─ assemble-final.sh                         - Main build script v2.0 with enhanced features
 ├─ flake.nix                                 - Main flake
+├─ bootloader/                               - Shimboot bootloader
+│  ├─ bin/bootstrap.sh                       - Bootloader entry point
+│  ├─ bin/init                               - BusyBox init replacement
+│  └─ opt/
+│     ├─ crossystem                          - ChromeOS system tools
+│     └─ mount-encrypted                     - LUKS decryption helper
 ├─ flake_modules/                            - Nix derivations
 │  ├─ cachix-config.nix                      - Cachix binary cache configuration
 │  ├─ chromeos-sources.nix                   - ChromeOS source management
 │  ├─ development-environment.nix            - Development tools and environment
-│  ├─ kernel-extraction.nix                  - Kernel extraction utilities
-│  ├─ initramfs-extraction.nix               - Initramfs extraction utilities
-│  ├─ initramfs-patching.nix                 - Initramfs patching utilities
+│  ├─ patch_initramfs/
+│  │  ├─ initramfs-extraction.nix            - Initramfs extraction utilities
+│  │  ├─ initramfs-patching.nix              - Initramfs patching utilities
+│  │  └─ kernel-extraction.nix               - Kernel extraction utilities
 │  ├─ raw-image.nix                          - Raw image generation
 │  └─ system-configuration.nix               - System configuration utilities
-├─ tools/                                    - Build scripts
-│  ├─ check-cachix.sh                        - Cache health monitoring
-│  ├─ harvest-drivers.sh                     - Driver harvesting with conservative firmware pruning
-│  ├─ write-shimboot-image.sh                - USB image writing with improved dd flags
-│  └─ fetch-manifest.sh                      - ChromeOS manifest fetching
-└─ bootloader/                               - Shimboot bootloader
+├─ llm-notes/                                - Documentation and conventions
+│  ├─ commenting-conventions.md              - Code commenting standards
+│  └─ development-workflow.md                - Development workflow
+├─ manifests/                                - ChromeOS board manifests
+│  ├─ dedede-manifest.nix
+│  ├─ grunt-manifest.nix
+│  ├─ hatch-manifest.nix
+│  ├─ nissa-manifest.nix
+│  ├─ octopus-manifest.nix
+│  ├─ snappy-manifest.nix
+│  └─ zork-manifest.nix
+├─ overlays/                                 - Custom package overlays
+│  ├─ overlays.nix                           - Package overlay definitions
+│  └─ rose-pine-gtk-theme-full.nix           - GTK theme overlay
+├─ snapshots/                                - Project state snapshots
+│  ├─ project-state-2025-10-23T15:20:16.151Z.md
+│  ├─ project-state-2025-10-23T18:18:51.852Z.md
+│  └─ project-state-2025-10-24T09:28:50.503Z.md
+└─ tools/                                    - Build and utility scripts
+   ├─ check-cachix.sh                        - Cache health monitoring
+   ├─ cleanup-shimboot-rootfs.sh             - Rootfs cleanup utilities
+   ├─ collect-minimal-logs.sh                - Log collection
+   ├─ compress-nix-store.sh                  - Nix store compression
+   ├─ fetch-manifest.sh                      - ChromeOS manifest fetching
+   ├─ fetch-recovery.sh                      - Recovery image fetching
+   ├─ harvest-drivers.sh                     - Driver harvesting with conservative firmware pruning
+   └─ test-board-builds.sh                   - Board-specific build testing
 
 Build artifacts:
 ├─ work/shimboot.img                         - Final disk image
@@ -873,6 +941,17 @@ Build artifacts:
 ├─ work/linux-firmware.upstream/             - Upstream firmware clone
 ├─ /etc/shimboot-build.json                  - Build metadata (JSON format)
 └─ manifests/${board}-manifest.nix           - Download chunks
+
+Working directories:
+├─ work/mnt_bootloader                       - Bootloader mount point
+├─ work/mnt_rootfs                           - Rootfs mount point
+└─ work/mnt_src_rootfs                       - Source rootfs mount point
+
+Development files:
+├─ quickstart.md                             - Quick start guide
+├─ README.md                                 - Project documentation
+├─ LICENSE                                   - License file
+└─ SPEC.md                                   - Technical specification (this file)
 ```
 
 ### Troubleshooting Entry Points
