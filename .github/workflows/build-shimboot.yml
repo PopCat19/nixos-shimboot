@@ -1,20 +1,4 @@
-# Build Shimboot Workflow
-#
-# Purpose: Build ChromeOS shimboot images for specified boards with configurable rootfs variants
-# Dependencies: GitHub Actions runners, Nix, Cachix (optional)
-# Related: assemble-final.sh, flake.nix
-#
-# This workflow:
-# - Builds NixOS shimboot images for ChromeOS devices
-# - Supports multiple board variants and rootfs configurations
-# - Optimizes GitHub Actions runner space for large builds
-# - Caches build artifacts using optional Cachix
-# - Assembles final bootable images with vendor drivers
-
 name: build-shimboot
-
-# Workflow Triggers
-# Manual dispatch with user inputs for board selection, rootfs variant, and caching options
 
 on:
   workflow_dispatch:
@@ -31,6 +15,32 @@ on:
         default: 'minimal'
         type: choice
         options: [minimal, full]
+      drivers_mode:
+        description: 'Driver placement mode'
+        required: true
+        default: 'vendor'
+        type: choice
+        options: [vendor, inject, both, none]
+      firmware_upstream:
+        description: 'Include upstream ChromiumOS firmware'
+        required: false
+        default: true
+        type: boolean
+      inspect_after:
+        description: 'Inspect final image after build'
+        required: false
+        default: false
+        type: boolean
+      prewarm_cache:
+        description: 'Pre-warm Cachix cache before building'
+        required: false
+        default: false
+        type: boolean
+      fresh_start:
+        description: 'Ignore build checkpoints and start fresh'
+        required: false
+        default: false
+        type: boolean
       push_to_cachix:
         description: 'Push to Cachix'
         required: false
@@ -43,14 +53,8 @@ on:
         type: choice
         options: [ubuntu-latest, popcat19-nixos0]
 
-# Environment Variables
-# Allow unfree packages in Nix builds for proprietary components
-
 env:
   NIXPKGS_ALLOW_UNFREE: 1
-
-# Job Definitions
-# Single build job with matrix strategy for different boards
 
 jobs:
   build:
@@ -58,8 +62,6 @@ jobs:
     permissions:
       contents: write
 
-    # Build Strategy
-    # Matrix build for selected board, fail-fast disabled to build all variants
     strategy:
       fail-fast: false
       matrix:
@@ -70,13 +72,7 @@ jobs:
             || fromJSON(format('["{0}"]', github.event.inputs.board))
           }}
 
-    # Build Steps
-    # Sequential steps to prepare environment, build components, and assemble final image
     steps:
-      # Environment Preparation
-      # Clean up GitHub Actions runner to maximize available disk space for Nix builds
-
-      # ✨ NEW: Maximize space BEFORE anything else
       - name: Maximize build space
         run: |
           df -h
@@ -84,24 +80,16 @@ jobs:
           sudo docker image prune --all --force
           df -h
 
-      # Repository Setup
-      # Checkout full repository history for complete build context
-
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # ✨ NEW: Nothing but Nix for massive space reclamation
       - name: Reclaim disk space for Nix
         uses: wimpysworld/nothing-but-nix@main
         with:
-          hatchet-protocol: 'cleave'  # 115GB mode
+          hatchet-protocol: 'cleave'
 
-      # Nix Installation and Configuration
-      # Install Nix with flake support and configure binary caches
-
-      # Install Nix with Determinate Systems installer (faster)
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@main
         with:
@@ -112,7 +100,6 @@ jobs:
             substituters = https://cache.nixos.org https://shimboot-systemd-nixos.cachix.org
             trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA=
 
-      # Optional: Setup Cachix for external binary cache
       - name: Setup Cachix
         if: ${{ github.event.inputs.push_to_cachix == 'true' || github.event_name == 'release' }}
         uses: cachix/cachix-action@v14
@@ -120,10 +107,6 @@ jobs:
           name: shimboot-systemd-nixos
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
 
-      # Nix Component Building
-      # Build all required Nix derivations for the selected board and rootfs variant
-
-      # Build Nix components
       - name: Build Nix components
         run: |
           BOARD="${{ matrix.board }}"
@@ -131,7 +114,6 @@ jobs:
 
           echo "🔨 Building for: $BOARD (rootfs: $ROOTFS)"
 
-          # Build all derivations
           nix build --impure --accept-flake-config \
             .#chromeos-shim-${BOARD} \
             .#extracted-kernel-${BOARD} \
@@ -146,20 +128,14 @@ jobs:
 
           df -h
 
-      # Assembly Preparation
-      # Install system tools required for image assembly and compression
-
-      # Install assembly dependencies
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             parted gdisk e2fsprogs util-linux pv zstd vboot-utils
 
-      # Assemble final image
       - name: Assemble image
         run: |
-          # Ensure Nix environment is available for root
           if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
             source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
           fi
@@ -167,18 +143,43 @@ jobs:
           echo "💾 Available space before assembly:"
           df -h
 
+          # Build assemble-final.sh command with all options
+          ASSEMBLE_CMD=(
+            ./assemble-final.sh
+            --board "${{ matrix.board }}"
+            --rootfs "${{ github.event.inputs.rootfs || 'minimal' }}"
+            --drivers "${{ github.event.inputs.drivers_mode || 'vendor' }}"
+          )
+
+          # Add firmware upstream flag
+          if [ "${{ github.event.inputs.firmware_upstream }}" = "false" ]; then
+            ASSEMBLE_CMD+=(--no-firmware-upstream)
+          else
+            ASSEMBLE_CMD+=(--firmware-upstream)
+          fi
+
+          # Add inspect flag
+          if [ "${{ github.event.inputs.inspect_after }}" = "true" ]; then
+            ASSEMBLE_CMD+=(--inspect)
+          fi
+
+          # Add prewarm cache flag
+          if [ "${{ github.event.inputs.prewarm_cache }}" = "true" ]; then
+            ASSEMBLE_CMD+=(--prewarm-cache)
+          fi
+
+          # Add fresh start flag
+          if [ "${{ github.event.inputs.fresh_start }}" = "true" ]; then
+            ASSEMBLE_CMD+=(--fresh)
+          fi
+
+          echo "🚀 Running: ${ASSEMBLE_CMD[*]}"
           sudo -E env "PATH=$PATH" "NIX_PATH=$NIX_PATH" \
             BOARD="${{ matrix.board }}" \
-            ./assemble-final.sh \
-              --board "${{ matrix.board }}" \
-              --rootfs "${{ github.event.inputs.rootfs || 'minimal' }}" \
-              --drivers vendor
+            "${ASSEMBLE_CMD[@]}"
 
           echo "💾 Available space after assembly:"
           df -h
-
-      # Artifact Preparation
-      # Compress final image and generate checksum for distribution
 
       - name: Compress and rename
         run: |
@@ -189,7 +190,6 @@ jobs:
             WORKDIR="work"
           else
             echo "❌ Error: shimboot.img not found!"
-            echo "🔍 Searching entire filesystem..."
             sudo find / -name "shimboot.img" -type f 2>/dev/null | head -10
             exit 1
           fi
@@ -199,14 +199,11 @@ jobs:
             exit 1
           fi
 
-          # Fix permissions if in /nix/work (created by sudo)
           if [ "$WORKDIR" = "/nix/work" ]; then
-            echo "🔧 Adjusting permissions for compression..."
             sudo chown -R $(whoami):$(whoami) "$WORKDIR"
           fi
 
           cd "$WORKDIR"
-          # Build artifact directory structure
           ARTIFACT_TAG="${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}"
           ARTIFACT_DIR="${ARTIFACT_TAG}"
           mkdir -p "$ARTIFACT_DIR"
@@ -229,10 +226,6 @@ jobs:
           echo "  Original: ${ORIG_SIZE_MB}MB"
           echo "  Compressed: ${SIZE_MB}MB (${COMPRESSION_RATIO}% reduction)"
 
-          echo "✅ Created artifact directory:"
-          tree -h "$ARTIFACT_DIR" || ls -lh "$ARTIFACT_DIR"
-
-          # Remove uncompressed image
           rm -f shimboot.img
 
       - name: Upload artifact

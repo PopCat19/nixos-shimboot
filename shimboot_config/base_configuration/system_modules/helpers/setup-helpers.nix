@@ -1,7 +1,7 @@
 # Setup Helpers Module
 #
 # Purpose: Provide setup and configuration utility scripts
-# Dependencies: jq, networkmanager, git
+# Dependencies: networkmanager, git
 # Related: helpers.nix, networking.nix
 #
 # This module provides:
@@ -52,21 +52,22 @@ in {
         # Create symlink to user's flake
         ln -sf "$NIXOS_CONFIG_PATH/flake.nix" /etc/nixos/flake.nix
 
-        HOSTNAME="''${HOSTNAME:-$(hostname)}"
         echo
         echo "[setup_nixos_config] ✓ Linked to nixos-shimboot repository"
         echo
+        HOSTNAME_VALUE="''${HOSTNAME:-$(hostname)}"
         echo "To rebuild:"
         echo "  cd $NIXOS_CONFIG_PATH"
-        echo "  sudo nixos-rebuild switch --flake .#$HOSTNAME"
+        echo "  sudo nixos-rebuild switch --flake .#$HOSTNAME_VALUE"
         echo
         echo "Available configurations:"
-        if command -v nix >/dev/null 2>&1; then
-          (cd "$NIXOS_CONFIG_PATH" && \
-           nix flake show --json 2>/dev/null | \
-           ${pkgs.jq}/bin/jq -r '.nixosConfigurations | keys[]' 2>/dev/null) || \
-           echo "  (run 'nix flake show' in $NIXOS_CONFIG_PATH to list)"
-        fi
+        echo "  • $HOSTNAME_VALUE-minimal (minimal system configuration)"
+        echo "  • $HOSTNAME_VALUE (full system configuration)"
+        echo "  • nixos-shimboot (generic shimboot configuration)"
+        echo "  • raw-efi-system (EFI system only)"
+        echo
+        echo "Default: $HOSTNAME_VALUE"
+        echo "Tip: 'minimal' variant uses only base modules (no desktop environment)"
       else
         echo "[setup_nixos_config] ✗ nixos-config not found at $NIXOS_CONFIG_PATH"
         echo
@@ -100,6 +101,7 @@ in {
       SKIP_CONFIG=false
       SKIP_REBUILD=false
       AUTO_MODE=false
+      CONFIG_NAME=""
       DEBUG=false
       HELP=false
 
@@ -124,6 +126,10 @@ in {
           --auto)
             AUTO_MODE=true
             shift
+            ;;
+          --config)
+            CONFIG_NAME="$2"
+            shift 2
             ;;
           --debug)
             DEBUG=true
@@ -155,6 +161,7 @@ in {
         echo "    --skip-config    Skip nixos-rebuild configuration"
         echo "    --skip-rebuild   Skip system rebuild"
         echo "    --auto           Run in automatic mode with sensible defaults"
+        echo "    --config <name>  Specify which configuration to use for rebuild"
         echo "    --debug          Enable debug output"
         echo "    --help, -h       Show this help message"
         echo ""
@@ -238,7 +245,6 @@ in {
 
         command -v nmcli >/dev/null 2>&1 || missing+=("networkmanager")
         command -v git >/dev/null 2>&1 || missing+=("git")
-        command -v jq >/dev/null 2>&1 || missing+=("jq")
 
         if [ ''${#missing[@]} -gt 0 ]; then
           echo -e "''${YELLOW}Warning: Missing commands: ''${missing[*]}''${NC}"
@@ -292,7 +298,8 @@ in {
           log_warn "Wi-Fi radio appears to be disabled"
         else
           # Check if already connected to Wi-Fi
-          CURRENT_CONNECTION=$(nmcli -t -f active,ssid dev wifi | grep "^yes:" | cut -d: -f2-)
+          # Avoid abort when no active Wi-Fi is found (pipefail-safe)
+          CURRENT_CONNECTION=$(nmcli -t -f active,ssid dev wifi | grep "^yes:" | cut -d: -f2- || true)
 
           if [ -n "$CURRENT_CONNECTION" ]; then
             log_ok "Already connected to Wi-Fi: '$CURRENT_CONNECTION'"
@@ -430,27 +437,68 @@ in {
         elif prompt_yes_no "Run nixos-rebuild switch now?" n; then
           cd "$CONFIG_DIR"
 
-          # Detect available configs
-          echo "Scanning for configurations..."
-          CONFIGS="$(nix flake show --json 2>/dev/null | \
-                     ${pkgs.jq}/bin/jq -r '.nixosConfigurations | keys[]' 2>/dev/null || \
-                     echo "nixos-user")"
-
-          if [ -n "$CONFIGS" ]; then
-            echo
-            echo "Available:"
-            echo "$CONFIGS" | nl -w2 -s') '
-            echo
-          fi
-
+          # Available configurations (no flake evaluation needed)
           DEFAULT_HOST="''${HOSTNAME:-$(hostname)}"
-          read -r -p "Configuration name [$DEFAULT_HOST]: " TARGET
-          TARGET="''${TARGET:-$DEFAULT_HOST}"
+          CONFIGS="$DEFAULT_HOST-minimal
+$DEFAULT_HOST
+nixos-shimboot
+raw-efi-system"
+
+          echo
+          echo "Available:"
+          echo "$CONFIGS" | nl -w2 -s') '
+          echo "Default: $DEFAULT_HOST"
+          echo "Note: 'minimal' variant uses only base modules (no desktop environment)"
+          echo
+
+          # Choose configuration: prioritize --config, then auto, then interactive
+          if [ -n "$CONFIG_NAME" ]; then
+            TARGET="$CONFIG_NAME"
+            echo
+            echo "Using configuration (from argument): $TARGET"
+          elif [ "$AUTO_MODE" = true ]; then
+            TARGET="$DEFAULT_HOST"
+            echo
+            echo "Auto mode: using default configuration: $TARGET"
+          else
+            echo
+            read -r -p "Configuration name [$DEFAULT_HOST]: " USER_CHOICE
+            TARGET="''${USER_CHOICE:-$DEFAULT_HOST}"
+          fi
 
           echo
           echo "Building: .#$TARGET"
           echo "This may take several minutes..."
           echo
+
+          # Validate that target exists in flake outputs (if possible)
+          echo "Validating configuration '$TARGET' in flake..."
+
+          VALID_TARGET=false
+          if command -v nix >/dev/null 2>&1; then
+            if command -v jq >/dev/null 2>&1; then
+              if nix flake show --json 2>/dev/null | jq -e ".\"nixosConfigurations\".\"$TARGET\"" >/dev/null; then
+                VALID_TARGET=true
+              fi
+            else
+              # Fallback if jq not installed: rough text match
+              if nix flake show 2>/dev/null | grep -q "nixosConfigurations.$TARGET"; then
+                VALID_TARGET=true
+              fi
+            fi
+          fi
+
+          if [ "$VALID_TARGET" = false ]; then
+            echo
+            echo "⚠️  Configuration '$TARGET' not found in this flake."
+            echo "Available configurations might include:"
+            nix flake show | grep -A1 "nixosConfigurations" 2>/dev/null | sed 's/^/  /'
+            echo
+            if ! prompt_yes_no "Continue anyway (may fail during build)?" n; then
+              log_warn "Aborted before rebuild (invalid configuration)."
+              exit 0
+            fi
+          fi
 
           export NIX_CONFIG="accept-flake-config = true"
 

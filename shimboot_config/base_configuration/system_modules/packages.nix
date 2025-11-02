@@ -29,6 +29,7 @@
     git
     btop
     fastfetch
+    jql
   ];
 
   # Disable documentation to save space
