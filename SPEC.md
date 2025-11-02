@@ -1,6 +1,6 @@
 # NixOS Shimboot Technical Specification
 
-**Status:** Proof of Concept  
+**Status:** Functional (Single Board Verified)  
 **Target:** ChromeOS devices with RMA shim vulnerability  
 **License:** GPL-3.0 (code) / Unfree (ChromeOS artifacts)
 
@@ -13,6 +13,10 @@
 - Declarative system built with Nix flakes
 - No firmware modification required
 - Boots from USB/SD persistent storage
+- Checkpoint-based build system with resume capability
+- Integrated binary cache (Cachix)
+- CI/CD workflows for automated testing
+- Comprehensive error handling and recovery
 
 ### What This Is Not
 - Production-ready system
@@ -26,14 +30,18 @@ HP Chromebook 11 G9 EE (dedede board)
 ├─ Status: Working
 ├─ WiFi: Functional (vendor drivers)
 ├─ Display: Hyprland compositing works
+├─ LightDM: Functional
+├─ User session: Stable
 ├─ Audio: Limited/non-functional
-└─ Suspend: Not available (kernel limitation)
+├─ Suspend: Not available (kernel limitation)
+└─ nixos-rebuild: Requires --option sandbox false on kernels <5.6
 ```
 
 ### Supported Boards (Infrastructure Only)
 ```
 dedede, octopus, zork, nissa, hatch, grunt, snappy
-└─ Note: Only dedede confirmed working as of writing
+└─ Note: Only dedede fully tested and confirmed working
+    └─ Other boards have build infrastructure but require hardware verification
 ```
 
 ---
@@ -82,46 +90,25 @@ ChromeOS initramfs
 
 ## 3. Component Reference
 
-### Build Artifacts (per board)
+### Flake Entry Points
 ```
-chromeos-shim-${board}
-├─ Type: Unfree binary
-├─ Source: ChromeOS CDN (manifest-based download)
-└─ Contains: Firmware, kernel, initramfs
-
-chromeos-recovery-${board}
-├─ Type: Unfree binary
-├─ Source: Google recovery API
-└─ Purpose: Firmware/driver harvesting
-
-extracted-kernel-${board}
-├─ Input: chromeos-shim
-├─ Output: kernel.bin (vbutil_kernel blob)
-└─ Method: KERN-A partition extraction + CHROMEOS magic search
-
-initramfs-extraction-${board}
-├─ Input: extracted-kernel
-├─ Output: initramfs.tar (unpacked cpio)
-└─ Method: futility vbutil_kernel + multi-layer decompression
-
-initramfs-patching-${board}
-├─ Input: initramfs-extraction, bootloader/
-├─ Output: patched-initramfs/ (directory)
-└─ Method: Overlay bootloader scripts over initramfs
-
-raw-rootfs (board-independent)
-├─ Input: main_configuration/, home-manager
-├─ Output: nixos.img (ext4 filesystem)
-└─ Generator: nixos-generators (raw format)
-
-raw-rootfs-minimal (board-independent)
-├─ Input: base_configuration/ only
-├─ Output: nixos.img (ext4 filesystem)
-└─ Generator: nixos-generators (raw format)
-
-Supported Boards:
-├─ dedede, grunt, hatch, nissa, octopus, snappy, zork
-└─ Each board provides: shim, recovery, kernel, initramfs variants
+flake.nix
+├─ packages.${system}
+│  ├─ raw-rootfs                    # Full rootfs with Home Manager
+│  ├─ raw-rootfs-minimal            # Base rootfs without HM
+│  ├─ chromeos-shim-${board}        # Per-board shim
+│  ├─ chromeos-recovery-${board}    # Per-board recovery
+│  ├─ extracted-kernel-${board}     # Per-board kernel
+│  ├─ initramfs-extraction-${board} # Per-board initramfs
+│  └─ initramfs-patching-${board}   # Per-board patched initramfs
+│
+├─ nixosConfigurations
+│  ├─ ${hostname}                   # Full system (from user-config.nix)
+│  ├─ ${hostname}-minimal           # Minimal system
+│  ├─ nixos-shimboot                # Legacy alias for full
+│  └─ raw-efi-system                # Legacy alias for minimal
+│
+└─ devShells.${system}.default      # Development environment
 ```
 
 ### Flake Modules
@@ -172,6 +159,319 @@ system-configuration.nix
 ├─ Dependencies: nixpkgs
 ├─ Related: shimboot_config/
 └─ Provides: NixOS configuration utilities
+```
+
+### Configuration Structure
+```
+shimboot_config/
+├─ user-config.nix                  # User settings and configuration
+├─ base_configuration/
+│  ├─ configuration.nix             # Main entry point
+│  └─ system_modules/
+│     ├─ Core System
+│     │  ├─ boot.nix                # Disables standard bootloaders
+│     │  ├─ filesystems.nix         # Single ext4 partition
+│     │  ├─ hardware.nix            # Firmware enablement
+│     │  ├─ localization.nix        # Locale and timezone settings
+│     │  ├─ networking.nix          # NetworkManager + wpa_supplicant
+│     │  ├─ security.nix            # Security configurations
+│     │  ├─ services.nix            # System services
+│     │  ├─ systemd.nix             # Patched systemd + kill-frecon
+│     │  └─ users.nix               # Default user accounts
+│     ├─ Desktop Environment
+│     │  ├─ audio.nix               # Audio configuration
+│     │  ├─ display-manager.nix     # X server and LightDM
+│     │  ├─ hyprland.nix            # Hyprland window manager
+│     │  └─ xdg-portals.nix         # XDG portals and desktop integration
+│     ├─ User Experience
+│     │  ├─ fish.nix                # Fish shell + Starship
+│     │  ├─ fonts.nix               # System fonts
+│     │  ├─ packages.nix            # Minimal system packages
+│     │  └─ power-management.nix    # Power management settings
+│     └─ Utilities
+│        ├─ helpers/                # Helper scripts
+│        ├─ fish_functions/         # Fish shell functions
+│        └─ zram.nix                # Swap compression
+```
+
+### Build Artifacts (per board)
+```
+chromeos-shim-${board}
+├─ Type: Unfree binary
+├─ Source: ChromeOS CDN (manifest-based download)
+└─ Contains: Firmware, kernel, initramfs
+
+chromeos-recovery-${board}
+├─ Type: Unfree binary
+├─ Source: Google recovery API
+└─ Purpose: Firmware/driver harvesting
+
+extracted-kernel-${board}
+├─ Input: chromeos-shim
+├─ Output: kernel.bin (vbutil_kernel blob)
+└─ Method: KERN-A partition extraction + CHROMEOS magic search
+
+initramfs-extraction-${board}
+├─ Input: extracted-kernel
+├─ Output: initramfs.tar (unpacked cpio)
+└─ Method: futility vbutil_kernel + multi-layer decompression
+
+initramfs-patching-${board}
+├─ Input: initramfs-extraction, bootloader/
+├─ Output: patched-initramfs/ (directory)
+└─ Method: Overlay bootloader scripts over initramfs
+
+raw-rootfs (board-independent)
+├─ Input: main_configuration/, home-manager
+├─ Output: nixos.img (ext4 filesystem)
+└─ Generator: nixos-generators (raw format)
+
+raw-rootfs-minimal (board-independent)
+├─ Input: base_configuration/ only
+├─ Output: nixos.img (ext4 filesystem)
+└─ Generator: nixos-generators (raw format)
+```
+
+### Helper Scripts
+```
+base_configuration/system_modules/helpers/
+├─ filesystem-helpers.nix
+│  └─ expand_rootfs
+│     ├─ Purpose: Expand root partition to full USB capacity
+│     ├─ Method: growpart + resize2fs
+│     └─ Safety: Interactive confirmation with disk info display
+│
+├─ setup-helpers.nix
+│  ├─ setup_nixos_config
+│  │  ├─ Purpose: Configure /etc/nixos for nixos-rebuild
+│  │  ├─ Method: Symlink ~/nixos-config/flake.nix to /etc/nixos/
+│  │  └─ Validation: Checks for cloned repository
+│  │
+│  └─ setup_nixos
+│     ├─ Purpose: Interactive post-install setup wizard
+│     ├─ Options: --skip-wifi, --skip-expand, --skip-config, --skip-rebuild,
+│     │          --auto, --config NAME, --debug, --help
+│     ├─ Steps:
+│     │  1. Wi-Fi configuration (nmcli)
+│     │  2. Root filesystem expansion
+│     │  3. Git repository update
+│     │  4. /etc/nixos configuration
+│     │  5. System rebuild (optional)
+│     └─ Safety: Backup system, dry-run support, failsafe operations
+│
+└─ permissions-helpers.nix
+   └─ (Placeholder for future utilities)
+```
+
+### Fish Functions
+```
+base_configuration/system_modules/fish_functions/
+├─ fish-greeting.fish
+│  ├─ Purpose: Minimal, context-aware shell greeting
+│  ├─ Features: System info, config status, git branch
+│  └─ Caching: Uses fastfetch cache to reduce startup lag
+│
+├─ nixos-rebuild-basic.fish
+│  ├─ Purpose: Perform basic NixOS system rebuild
+│  ├─ Abbreviation: nrb
+│  ├─ Features: Kernel version check, sandbox compatibility
+│  └─ Method: sudo nixos-rebuild switch --flake .
+│
+├─ nixos-flake-update.fish
+│  ├─ Purpose: Update NixOS flake inputs
+│  ├─ Abbreviation: flup
+│  ├─ Features: Backup flake.lock, show diff, restore on failure
+│  └─ Method: nix flake update with kernel compatibility checks
+│
+├─ fix-fish-history.fish
+│  ├─ Purpose: Repair corrupted Fish history files
+│  ├─ Method: history merge with fallback to manual truncation
+│  └─ Safety: Creates backup before repair
+│
+└─ list-fish-helpers.fish
+   ├─ Purpose: Display available Fish functions and abbreviations
+   └─ Output: Sorted list of custom functions and abbreviations
+```
+
+### Build System Features
+```
+assemble-final.sh v2.0
+├─ Checkpoint System
+│  ├─ Save/load build state at each step
+│  ├─ Resume from last completed step
+│  └─ --fresh flag to ignore checkpoints
+│
+├─ Error Handling
+│  ├─ Step-specific error messages with troubleshooting
+│  ├─ Automatic cleanup on failure
+│  └─ Retry logic for Nix builds
+│
+├─ CI Integration
+│  ├─ Auto-detection: GITHUB_ACTIONS, GITLAB_CI, JENKINS_HOME
+│  ├─ Conditional NIX_BUILD_FLAGS
+│  └─ Enhanced logging for CI environments
+│
+├─ Cache Management
+│  ├─ verify_cachix_config() - Pre-build cache verification
+│  ├─ show_cache_stats() - Post-build statistics
+│  ├─ --prewarm-cache - Fetch from cache before building
+│  └─ --pull-cached-image - Use pre-built image from cache
+│
+├─ Safety Features
+│  ├─ --dry-run mode for testing
+│  ├─ safe_exec wrapper for destructive operations
+│  ├─ Loop device cleanup on exit
+│  └─ Partition validation after formatting
+│
+├─ Build Metadata
+│  ├─ JSON output at /etc/shimboot-build.json
+│  ├─ Fields: build_date, board, rootfs_flavor, drivers_mode,
+│  │         git_commit, nix_version, image_size_mb
+│  └─ Clones nixos-config to /home/{user}/nixos-config with branch info
+│
+└─ Progress Tracking
+   ├─ 15 distinct build steps with clear labels
+   ├─ Progress bar for long operations
+   └─ Disk space checks before building
+```
+
+### Write Script Features
+```
+write-shimboot-image.sh
+├─ Safety Features
+│  ├─ Automatic system disk detection and exclusion
+│  ├─ Interactive device selection with validation
+│  ├─ Automatic unmounting of target device partitions
+│  ├─ Size validation and large device warnings (>128GiB)
+│  └─ Countdown timer before write (default: 10s)
+│
+├─ Device Listing
+│  ├─ --list: Show safe candidate devices (unmounted, non-system)
+│  ├─ --list-all: Show all disks with MNT/SYS/IGN markers
+│  └─ Color-coded: RED=system, YELLOW=mounted, MAGENTA=ignored
+│
+├─ UDisks Integration
+│  ├─ Detects UDisks-managed mounts (uhelper=udisks2)
+│  ├─ Shows mounts under /run/media and /media
+│  └─ Automatic unmount via udisksctl before write
+│
+├─ Options
+│  ├─ -i, --input PATH        Input image path
+│  ├─ -o, --output DEVICE     Output block device
+│  ├─ --yes                   Skip countdown confirmation
+│  ├─ --countdown N           Confirmation seconds (default: 10)
+│  ├─ --dry-run               Show what would be done
+│  ├─ --auto-unmount          Try to unmount target (default)
+│  ├─ --no-auto-unmount       Abort if mounted
+│  ├─ --force-part            Allow writing to partition
+│  ├─ --ignore LIST           Comma-separated devices to hide
+│  ├─ --ignore-file PATH      File with device names to hide
+│  └─ --allow-large           Skip confirmation for >128GiB devices
+│
+└─ Write Method
+   ├─ dd with 4M block size
+   ├─ status=progress for visual feedback
+   ├─ conv=fdatasync for data integrity
+   └─ oflag=direct for better performance
+```
+
+### Utility Scripts
+```
+tools/
+├─ check-cachix.sh
+│  ├─ Purpose: Check Cachix cache health and coverage
+ │  ├─ Input: main_configuration/, home-manager
+ │  ├─ Output: nixos.img (ext4 filesystem)
+ │  └─ Generator: nixos-generators (raw format)
+ │
+├─ cleanup-shimboot-rootfs.sh
+│  ├─ Purpose: Prune old shimboot rootfs generations
+│  ├─ Discovery: Nix profile, GC roots, result* symlinks
+│  ├─ Options: --keep N, --dry-run, --no-dry-run
+│  └─ Safety: Backup critical files, dry-run by default
+│
+├─ collect-minimal-logs.sh
+│  ├─ Purpose: Collect diagnostics from minimal rootfs
+│  ├─ Method: Mount rootfs read-only, extract logs
+│  ├─ Logs: LightDM, Xorg, journal, PAM, user configs
+│  └─ Safety: Auto-unmount, cleanup on exit
+│
+├─ fetch-manifest.sh
+│  ├─ Purpose: Download ChromeOS recovery image manifest
+│  ├─ Method: Fetch JSON from CDN, download chunks in parallel
+│  ├─ Options: --jobs N, --path FILE, --regenerate, --fixup
+│  └─ Output: manifests/${board}-manifest.nix
+│
+├─ fetch-recovery.sh
+│  ├─ Purpose: Automate fetching ChromeOS recovery image hashes
+│  ├─ Sources: ChromeOS releases JSON, Google recovery API
+│  ├─ Options: --skip-wifi, --board BOARD, --dry-run, --debug
+│  └─ Updates: flake_modules/chromeos-sources.nix
+│
+├─ harvest-drivers.sh
+│  ├─ Purpose: Extract ChromeOS drivers from shim/recovery
+│  ├─ Method: Mount images read-only, copy lib/{modules,firmware}
+│  ├─ Features: Firmware pruning, symlink dereferencing
+│  └─ Output: lib/modules, lib/firmware, modprobe.d
+│
+└─ test-board-builds.sh
+   ├─ Purpose: Test flake builds for all supported boards
+   ├─ Method: Build chromeos-shim package per board
+   ├─ Options: --json for machine-readable output
+   └─ Output: Build success/failure summary
+```
+
+### Home Manager Integration (main_configuration only)
+```
+main_configuration/home_modules/
+├─ home.nix                          # Entry point
+├─ packages.nix                      # User applications
+├─ programs.nix                      # Program configurations
+├─ services.nix                      # User services
+├─ environment.nix                   # Environment variables
+├─ theme.nix                         # Rose Pine theming
+├─ qt-gtk-config.nix                 # Qt/GTK theme configuration
+├─ privacy.nix                       # Privacy settings
+├─ packages/
+│  ├─ communication.nix              # Vesktop
+│  ├─ gaming.nix                     # Lutris, OSU
+│  ├─ media.nix                      # MPV, Audacious
+│  ├─ notifications.nix              # Notification systems
+│  └─ utilities.nix                  # CLI tools
+├─ kde.nix                           # KDE apps (Dolphin, Gwenview)
+├─ kitty.nix                         # Terminal config
+├─ micro.nix                         # Micro editor configuration
+├─ zen-browser.nix                   # Browser with extensions
+├─ fcitx5.nix                        # Input method configuration
+├─ fish-themes.nix                   # Fish shell themes
+├─ screenshot.fish                   # Screenshot function
+└─ screenshot.nix                    # Screenshot configuration
+```
+
+### Hyprland Configuration (main_configuration only)
+```
+main_configuration/hypr_config/
+├─ hyprland.nix                      # Hyprland configuration
+├─ hypr_modules/
+│  ├─ animations.nix                # Window animations
+│  ├─ autostart.nix                 # Autostart applications
+│  ├─ colors.nix                    # Color scheme
+│  ├─ environment.nix               # Environment variables
+│  ├─ fuzzel.nix                    # Application launcher
+│  ├─ general.nix                   # General settings
+│  ├─ hyprlock.nix                  # Lock screen
+│  ├─ keybinds.nix                  # Keyboard shortcuts
+│  └─ window-rules.nix              # Window behavior rules
+├─ hypr_packages.nix                 # Hyprland package definitions
+├─ hyprpanel-common.nix              # HyprPanel common settings
+├─ hyprpanel-home.nix                # HyprPanel home configuration
+├─ hyprpaper.conf                    # Wallpaper configuration
+├─ monitors.conf                     # Monitor configuration
+├─ shaders/
+│  ├─ blue-light-filter.glsl        # Blue light filter shader
+│  └─ cool-stuff.glsl               # Visual effects shader
+├─ userprefs.conf                    # User preferences
+└─ wallpaper.nix                     # Wallpaper management
 ```
 
 ### Configuration Variants
