@@ -62,8 +62,9 @@ in {
         echo
         echo "Available configurations:"
         if command -v nix >/dev/null 2>&1; then
+          # Use timeout to prevent hanging on flake evaluation
           (cd "$NIXOS_CONFIG_PATH" && \
-           nix flake show --json 2>/dev/null | \
+           timeout 30s nix flake show --json 2>/dev/null | \
            ${pkgs.jq}/bin/jq -r '.nixosConfigurations | keys[]' 2>/dev/null) || \
            echo "  (run 'nix flake show' in $NIXOS_CONFIG_PATH to list)"
         fi
@@ -432,7 +433,7 @@ in {
 
           # Detect available configs
           echo "Scanning for configurations..."
-          CONFIGS="$(nix flake show --json 2>/dev/null | \
+          CONFIGS="$(timeout 30s nix flake show --json 2>/dev/null | \
                      ${pkgs.jq}/bin/jq -r '.nixosConfigurations | keys[]' 2>/dev/null || \
                      echo "nixos-user")"
 
