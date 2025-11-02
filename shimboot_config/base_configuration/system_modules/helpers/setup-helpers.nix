@@ -101,6 +101,7 @@ in {
       SKIP_CONFIG=false
       SKIP_REBUILD=false
       AUTO_MODE=false
+      CONFIG_NAME=""
       DEBUG=false
       HELP=false
 
@@ -125,6 +126,10 @@ in {
           --auto)
             AUTO_MODE=true
             shift
+            ;;
+          --config)
+            CONFIG_NAME="$2"
+            shift 2
             ;;
           --debug)
             DEBUG=true
@@ -156,6 +161,7 @@ in {
         echo "    --skip-config    Skip nixos-rebuild configuration"
         echo "    --skip-rebuild   Skip system rebuild"
         echo "    --auto           Run in automatic mode with sensible defaults"
+        echo "    --config <name>  Specify which configuration to use for rebuild"
         echo "    --debug          Enable debug output"
         echo "    --help, -h       Show this help message"
         echo ""
@@ -292,7 +298,8 @@ in {
           log_warn "Wi-Fi radio appears to be disabled"
         else
           # Check if already connected to Wi-Fi
-          CURRENT_CONNECTION=$(nmcli -t -f active,ssid dev wifi | grep "^yes:" | cut -d: -f2-)
+          # Avoid abort when no active Wi-Fi is found (pipefail-safe)
+          CURRENT_CONNECTION=$(nmcli -t -f active,ssid dev wifi | grep "^yes:" | cut -d: -f2- || true)
 
           if [ -n "$CURRENT_CONNECTION" ]; then
             log_ok "Already connected to Wi-Fi: '$CURRENT_CONNECTION'"
@@ -444,13 +451,54 @@ raw-efi-system"
           echo "Note: 'minimal' variant uses only base modules (no desktop environment)"
           echo
 
-          read -r -p "Configuration name [$DEFAULT_HOST]: " TARGET
-          TARGET="''${TARGET:-$DEFAULT_HOST}"
+          # Choose configuration: prioritize --config, then auto, then interactive
+          if [ -n "$CONFIG_NAME" ]; then
+            TARGET="$CONFIG_NAME"
+            echo
+            echo "Using configuration (from argument): $TARGET"
+          elif [ "$AUTO_MODE" = true ]; then
+            TARGET="$DEFAULT_HOST"
+            echo
+            echo "Auto mode: using default configuration: $TARGET"
+          else
+            echo
+            read -r -p "Configuration name [$DEFAULT_HOST]: " USER_CHOICE
+            TARGET="''${USER_CHOICE:-$DEFAULT_HOST}"
+          fi
 
           echo
           echo "Building: .#$TARGET"
           echo "This may take several minutes..."
           echo
+
+          # Validate that target exists in flake outputs (if possible)
+          echo "Validating configuration '$TARGET' in flake..."
+
+          VALID_TARGET=false
+          if command -v nix >/dev/null 2>&1; then
+            if command -v jq >/dev/null 2>&1; then
+              if nix flake show --json 2>/dev/null | jq -e ".\"nixosConfigurations\".\"$TARGET\"" >/dev/null; then
+                VALID_TARGET=true
+              fi
+            else
+              # Fallback if jq not installed: rough text match
+              if nix flake show 2>/dev/null | grep -q "nixosConfigurations.$TARGET"; then
+                VALID_TARGET=true
+              fi
+            fi
+          fi
+
+          if [ "$VALID_TARGET" = false ]; then
+            echo
+            echo "⚠️  Configuration '$TARGET' not found in this flake."
+            echo "Available configurations might include:"
+            nix flake show | grep -A1 "nixosConfigurations" 2>/dev/null | sed 's/^/  /'
+            echo
+            if ! prompt_yes_no "Continue anyway (may fail during build)?" n; then
+              log_warn "Aborted before rebuild (invalid configuration)."
+              exit 0
+            fi
+          fi
 
           export NIX_CONFIG="accept-flake-config = true"
 
