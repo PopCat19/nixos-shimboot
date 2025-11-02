@@ -1,7 +1,7 @@
 # Setup Helpers Module
 #
 # Purpose: Provide setup and configuration utility scripts
-# Dependencies: jq, networkmanager, git
+# Dependencies: networkmanager, git
 # Related: helpers.nix, networking.nix
 #
 # This module provides:
@@ -52,22 +52,22 @@ in {
         # Create symlink to user's flake
         ln -sf "$NIXOS_CONFIG_PATH/flake.nix" /etc/nixos/flake.nix
 
-        HOSTNAME="''${HOSTNAME:-$(hostname)}"
         echo
         echo "[setup_nixos_config] ✓ Linked to nixos-shimboot repository"
         echo
+        HOSTNAME_VALUE="''${HOSTNAME:-$(hostname)}"
         echo "To rebuild:"
         echo "  cd $NIXOS_CONFIG_PATH"
-        echo "  sudo nixos-rebuild switch --flake .#$HOSTNAME"
+        echo "  sudo nixos-rebuild switch --flake .#$HOSTNAME_VALUE"
         echo
         echo "Available configurations:"
-        if command -v nix >/dev/null 2>&1; then
-          # Use timeout to prevent hanging on flake evaluation
-          (cd "$NIXOS_CONFIG_PATH" && \
-           timeout 30s nix flake show --json 2>/dev/null | \
-           ${pkgs.jq}/bin/jq -r '.nixosConfigurations | keys[]' 2>/dev/null) || \
-           echo "  (run 'nix flake show' in $NIXOS_CONFIG_PATH to list)"
-        fi
+        echo "  • $HOSTNAME_VALUE-minimal (minimal system configuration)"
+        echo "  • $HOSTNAME_VALUE (full system configuration)"
+        echo "  • nixos-shimboot (generic shimboot configuration)"
+        echo "  • raw-efi-system (EFI system only)"
+        echo
+        echo "Default: $HOSTNAME_VALUE"
+        echo "Tip: 'minimal' variant uses only base modules (no desktop environment)"
       else
         echo "[setup_nixos_config] ✗ nixos-config not found at $NIXOS_CONFIG_PATH"
         echo
@@ -239,7 +239,6 @@ in {
 
         command -v nmcli >/dev/null 2>&1 || missing+=("networkmanager")
         command -v git >/dev/null 2>&1 || missing+=("git")
-        command -v jq >/dev/null 2>&1 || missing+=("jq")
 
         if [ ''${#missing[@]} -gt 0 ]; then
           echo -e "''${YELLOW}Warning: Missing commands: ''${missing[*]}''${NC}"
@@ -431,20 +430,20 @@ in {
         elif prompt_yes_no "Run nixos-rebuild switch now?" n; then
           cd "$CONFIG_DIR"
 
-          # Detect available configs
-          echo "Scanning for configurations..."
-          CONFIGS="$(timeout 30s nix flake show --json 2>/dev/null | \
-                     ${pkgs.jq}/bin/jq -r '.nixosConfigurations | keys[]' 2>/dev/null || \
-                     echo "nixos-user")"
-
-          if [ -n "$CONFIGS" ]; then
-            echo
-            echo "Available:"
-            echo "$CONFIGS" | nl -w2 -s') '
-            echo
-          fi
-
+          # Available configurations (no flake evaluation needed)
           DEFAULT_HOST="''${HOSTNAME:-$(hostname)}"
+          CONFIGS="$DEFAULT_HOST-minimal
+$DEFAULT_HOST
+nixos-shimboot
+raw-efi-system"
+
+          echo
+          echo "Available:"
+          echo "$CONFIGS" | nl -w2 -s') '
+          echo "Default: $DEFAULT_HOST"
+          echo "Note: 'minimal' variant uses only base modules (no desktop environment)"
+          echo
+
           read -r -p "Configuration name [$DEFAULT_HOST]: " TARGET
           TARGET="''${TARGET:-$DEFAULT_HOST}"
 
