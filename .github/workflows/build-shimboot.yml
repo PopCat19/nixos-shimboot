@@ -41,6 +41,12 @@ on:
         required: false
         default: false
         type: boolean
+      build_only:
+        description: 'Only build Nix derivations and push to Cachix (skip assembly and packaging)'
+        required: false
+        default: false
+        type: boolean
+
       runner_type:
         description: 'Runner type (self-hosted or GitHub-hosted)'
         required: true
@@ -101,7 +107,7 @@ jobs:
             trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA=
 
       - name: Setup Cachix
-        if: ${{ github.event.inputs.push_to_cachix == 'true' || github.event_name == 'release' }}
+        if: ${{ github.event.inputs.push_to_cachix == 'true' || github.event.inputs.build_only == 'true' || github.event_name == 'release' }}
         uses: cachix/cachix-action@v14
         with:
           name: shimboot-systemd-nixos
@@ -135,6 +141,7 @@ jobs:
             parted gdisk e2fsprogs util-linux pv zstd vboot-utils
 
       - name: Assemble image
+        if: ${{ github.event.inputs.build_only != 'true' }}
         run: |
           if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
             source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
@@ -177,6 +184,7 @@ jobs:
           df -h
 
       - name: Compress and rename
+        if: ${{ github.event.inputs.build_only != 'true' }}
         run: |
           set -e
 
@@ -239,6 +247,7 @@ jobs:
           sudo rm -rf "$WORKDIR"
 
       - name: Upload artifact
+        if: ${{ github.event.inputs.build_only != 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}
