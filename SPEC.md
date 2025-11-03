@@ -295,7 +295,7 @@ base_configuration/system_modules/fish_functions/
 
 ### Build System Features
 ```
-assemble-final.sh v2.0
+assemble-final.sh
 ├─ Checkpoint System
 │  ├─ Save/load build state at each step
 │  ├─ Resume from last completed step
@@ -380,10 +380,10 @@ write-shimboot-image.sh
 tools/
 ├─ check-cachix.sh
 │  ├─ Purpose: Check Cachix cache health and coverage
- │  ├─ Input: main_configuration/, home-manager
- │  ├─ Output: nixos.img (ext4 filesystem)
- │  └─ Generator: nixos-generators (raw format)
- │
+│  ├─ Input: main_configuration/, home-manager
+│  ├─ Output: nixos.img (ext4 filesystem)
+│  └─ Generator: nixos-generators (raw format)
+│
 ├─ cleanup-shimboot-rootfs.sh
 │  ├─ Purpose: Prune old shimboot rootfs generations
 │  ├─ Discovery: Nix profile, GC roots, result* symlinks
