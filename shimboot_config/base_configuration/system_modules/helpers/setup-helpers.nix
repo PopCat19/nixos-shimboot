@@ -451,24 +451,28 @@ raw-efi-system"
           echo "Note: 'minimal' variant uses only base modules (no desktop environment)"
           echo
 
-          # Choose configuration: prioritize --config, then auto, then interactive
-          if [ -n "$CONFIG_NAME" ]; then
-            TARGET="$CONFIG_NAME"
+          # Handle Ctrl+C / SIGINT cleanly
+          trap 'echo; echo -e "\n${YELLOW}Aborted by user (Ctrl+C).${NC}"; exit 130' INT
+
+          # Numerical selection instead of name input
+          echo "Select configuration to build (1-$(echo "$CONFIGS" | wc -l)):"
+          echo "(press Enter for default: $DEFAULT_HOST)"
+
+          # Read user input safely
+          if ! read -r SELECTION; then
             echo
-            echo "Using configuration (from argument): $TARGET"
-          elif [ "$AUTO_MODE" = true ]; then
+            echo -e "${YELLOW}Input interrupted or cancelled.${NC}"
+            exit 130
+          fi
+
+          if [ -z "$SELECTION" ]; then
             TARGET="$DEFAULT_HOST"
-            echo
-            echo "Auto mode: using default configuration: $TARGET"
           else
-            echo
-            read -r -p "Configuration name [$DEFAULT_HOST]: " USER_CHOICE
-            TARGET="''${USER_CHOICE:-$DEFAULT_HOST}"
+            TARGET="$(echo "$CONFIGS" | sed -n "${SELECTION}p")"
           fi
 
           echo
-          echo "Building: .#$TARGET"
-          echo "This may take several minutes..."
+          echo "Building configuration: $TARGET"
           echo
 
           # Validate that target exists in flake outputs (if possible)
