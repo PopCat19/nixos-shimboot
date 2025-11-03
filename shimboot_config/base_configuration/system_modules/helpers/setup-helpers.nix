@@ -451,54 +451,32 @@ raw-efi-system"
           echo "Note: 'minimal' variant uses only base modules (no desktop environment)"
           echo
 
-          # Choose configuration: prioritize --config, then auto, then interactive
-          if [ -n "$CONFIG_NAME" ]; then
-            TARGET="$CONFIG_NAME"
+          # Handle Ctrl+C / SIGINT cleanly
+          trap 'echo; echo -e "\n\033[1;33mAborted by user (Ctrl+C).\033[0m"; exit 130' INT
+
+          # Numerical selection instead of name input
+          echo "Select configuration to build (1-$(echo "$CONFIGS" | wc -l)):"
+          echo "(press Enter for default: $DEFAULT_HOST)"
+
+          # Read user input safely
+          if ! read -r SELECTION; then
             echo
-            echo "Using configuration (from argument): $TARGET"
-          elif [ "$AUTO_MODE" = true ]; then
+            echo -e "''${YELLOW}Input interrupted or cancelled.''${NC}"
+            exit 130
+          fi
+
+          if [ -z "$SELECTION" ]; then
             TARGET="$DEFAULT_HOST"
-            echo
-            echo "Auto mode: using default configuration: $TARGET"
           else
-            echo
-            read -r -p "Configuration name [$DEFAULT_HOST]: " USER_CHOICE
-            TARGET="''${USER_CHOICE:-$DEFAULT_HOST}"
+            TARGET="$(echo "$CONFIGS" | sed -n "''${SELECTION}p")"
           fi
 
           echo
-          echo "Building: .#$TARGET"
-          echo "This may take several minutes..."
+          echo "Building configuration: $TARGET"
           echo
 
-          # Validate that target exists in flake outputs (if possible)
-          echo "Validating configuration '$TARGET' in flake..."
-
-          VALID_TARGET=false
-          if command -v nix >/dev/null 2>&1; then
-            if command -v jq >/dev/null 2>&1; then
-              if nix flake show --json 2>/dev/null | jq -e ".\"nixosConfigurations\".\"$TARGET\"" >/dev/null; then
-                VALID_TARGET=true
-              fi
-            else
-              # Fallback if jq not installed: rough text match
-              if nix flake show 2>/dev/null | grep -q "nixosConfigurations.$TARGET"; then
-                VALID_TARGET=true
-              fi
-            fi
-          fi
-
-          if [ "$VALID_TARGET" = false ]; then
-            echo
-            echo "⚠️  Configuration '$TARGET' not found in this flake."
-            echo "Available configurations might include:"
-            nix flake show | grep -A1 "nixosConfigurations" 2>/dev/null | sed 's/^/  /'
-            echo
-            if ! prompt_yes_no "Continue anyway (may fail during build)?" n; then
-              log_warn "Aborted before rebuild (invalid configuration)."
-              exit 0
-            fi
-          fi
+          # NOTE: Validation skipped — configurations are listed explicitly above.
+          # Supports targets like 'nixos-user' without needing 'nixosConfigurations.' prefix.
 
           export NIX_CONFIG="accept-flake-config = true"
 

@@ -22,7 +22,6 @@
 #   --cleanup-rootfs       Clean up old rootfs generations
 #   --cleanup-keep N       Keep last N generations (default: 3)
 #   --no-dry-run           Actually delete in cleanup (default: dry-run)
-#   --fresh                Start fresh, ignoring any checkpoints
 #   --dry-run              Show what would be done without executing destructive operations
 #   --prewarm-cache        Attempt to fetch from Cachix before building
 #   --pull-cached-image    Pull pre-built image from Cachix instead of building
@@ -297,10 +296,7 @@ while [ $# -gt 0 ]; do
 		CLEANUP_KEEP="${2:-}"
 		shift 2
 		;;
-	--fresh)
-		FRESH_START="true"
-		shift
-		;;
+	
 	--dry-run)
 		DRY_RUN=1
 		shift
@@ -476,37 +472,7 @@ check_cached_image() {
     return 0
 }
 
-# === Checkpoint System ===
-CHECKPOINT_FILE="$WORKDIR/.build_checkpoint"
-
-save_checkpoint() {
-    echo "$1" > "$CHECKPOINT_FILE"
-}
-
-load_checkpoint() {
-    [ -f "$CHECKPOINT_FILE" ] && cat "$CHECKPOINT_FILE" || echo "0"
-}
-
-# Check for --fresh flag to ignore checkpoints
-FRESH_START=""
-if [[ "${*}" =~ --fresh ]]; then
-    FRESH_START="true"
-    rm -f "$CHECKPOINT_FILE" 2>/dev/null || true
-fi
-
-# Usage in main script
-START_STEP=$(load_checkpoint)
-
-if [ "$START_STEP" -gt 0 ] && [ -z "$FRESH_START" ]; then
-    log_warn "Resuming from step $START_STEP (use --fresh to start over)"
-    if [ -t 0 ]; then  # Only prompt if interactive
-        read -p "Continue? [Y/n] " -n 1 -r
-        echo
-        [[ ! $REPLY =~ ^[Yy]$ ]] && START_STEP=0
-    else
-        log_info "Non-interactive mode: continuing from step $START_STEP"
-    fi
-fi
+START_STEP=0
 
 # === Track loop devices for cleanup ===
 LOOPDEV=""
@@ -556,7 +522,26 @@ cleanup() {
     
     set -e
 }
-trap cleanup EXIT INT TERM
+# Handle user keyboard interrupt gracefully
+handle_interrupt() {
+    echo
+    log_warn "Keyboard interrupt detected (Ctrl+C)"
+    log_warn "Cleaning up in-progress mounts and loop devices..."
+
+    # Prevent recursive triggers while cleaning up
+    trap - INT
+
+    # Attempt graceful cleanup
+    cleanup
+
+    log_error "Assembly interrupted by user."
+    exit 130   # 130 = 128 + SIGINT
+}
+
+# Normal cleanup on script exit or termination
+trap cleanup EXIT TERM
+# Handle manual user interrupt
+trap handle_interrupt INT
 
 # === Retry Logic ===
 retry_command() {
@@ -671,8 +656,6 @@ if [ "$START_STEP" -le 1 ]; then
     ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config ".#extracted-kernel-${BOARD}" --print-out-paths)/p2.bin"
     PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config ".#initramfs-patching-${BOARD}" --print-out-paths)/patched-initramfs"
     RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config ".#${RAW_ROOTFS_ATTR}" --print-out-paths)/nixos.img"
-    
-    save_checkpoint 1
 else
     log_info "Skipping step 1 (already completed)"
     # Get paths (instant since already built)
@@ -719,7 +702,6 @@ if [ "$START_STEP" -le 2 ]; then
 	else
 		bash tools/harvest-drivers.sh --shim "$SHIM_BIN" --out "$HARVEST_OUT" || { log_error "Driver harvest failed without recovery image"; handle_error "$CURRENT_STEP"; }
 	fi
-	save_checkpoint 2
 else
 	log_info "Skipping step 2 (already completed)"
 	HARVEST_OUT="$WORKDIR/harvested"
@@ -741,10 +723,8 @@ if [ "$START_STEP" -le 3 ]; then
 		# Merge, preserving attributes; ignore errors on collisions
 		sudo cp -a "$UPSTREAM_FW_DIR/." "$HARVEST_OUT/lib/firmware/" 2>/dev/null || true
 		log_info "Upstream firmware augmentation complete"
-		save_checkpoint 3
 	else
 		log_info "Upstream firmware disabled, using only harvested firmware"
-		save_checkpoint 3
 	fi
 else
 	log_info "Skipping step 3 (already completed)"
@@ -764,7 +744,6 @@ if [ "$START_STEP" -le 4 ]; then
 			log_warn "harvest-drivers.sh not found; skipping firmware pruning"
 		fi
 	fi
-	save_checkpoint 4
 else
 	log_info "Skipping step 4 (already completed)"
 fi
@@ -784,7 +763,6 @@ if [ "$START_STEP" -le 5 ]; then
 	# Add 15% overhead + small safety cushion
 	VENDOR_PART_SIZE=$(((VENDOR_SRC_SIZE_MB * 115 / 100) + 20))
 	log_info "Vendor partition size (post-firmware): ${VENDOR_PART_SIZE} MB"
-	save_checkpoint 5
 else
 	log_info "Skipping step 5 (already completed)"
 	# Recalculate values needed for later steps
@@ -803,7 +781,7 @@ if [ "$START_STEP" -le 6 ]; then
 	CURRENT_STEP="6/15"
 	log_step "$CURRENT_STEP" "Copy raw rootfs image"
 	pv "$RAW_ROOTFS_IMG" > "$WORKDIR/rootfs.img"
-	save_checkpoint 6
+	
 else
 	log_info "Skipping step 6 (already completed)"
 fi
@@ -820,7 +798,7 @@ if [ "$START_STEP" -le 7 ]; then
 	safe_exec sudo umount "$WORKDIR/mnt_src_rootfs"
 	safe_exec sudo losetup -d "$LOOPROOT"
 	LOOPROOT=""
-	save_checkpoint 7
+	
 else
 	log_info "Skipping step 7 (already completed)"
 fi
@@ -849,7 +827,7 @@ if [ "$START_STEP" -le 8 ]; then
 	log_info "Vendor partition size: ${VENDOR_PART_SIZE} MB"
 	log_info "Rootfs partition size: ${ROOTFS_PART_SIZE} MB (initial, expandable)"
 	log_info "Total image size: ${TOTAL_SIZE_MB} MB"
-	save_checkpoint 8
+	
 else
 	log_info "Skipping step 8 (already completed)"
 	# Recalculate values needed for later steps
@@ -870,7 +848,7 @@ if [ "$START_STEP" -le 9 ]; then
 	CURRENT_STEP="9/15"
 	log_step "$CURRENT_STEP" "Create empty image"
 	fallocate -l ${TOTAL_SIZE_MB}M "$IMAGE"
-	save_checkpoint 9
+	
 else
 	log_info "Skipping step 9 (already completed)"
 fi
@@ -940,7 +918,7 @@ if [ "$START_STEP" -le 10 ]; then
 
     log_info "Partition table:"
     sudo partx -o NR,START,END,SIZE,TYPE,NAME,UUID -g --show "$IMAGE"
-    save_checkpoint 10
+    
 else
 	log_info "Skipping step 10 (already completed)"
 fi
@@ -955,7 +933,7 @@ if [ "$START_STEP" -le 11 ]; then
 	# Set ChromeOS boot flags on p2
 	log_info "Setting ChromeOS boot flags on KERNEL partition..."
 	safe_exec sudo cgpt add -i 2 -S 1 -T 5 -P 10 "$LOOPDEV" || { log_error "Failed to set ChromeOS boot flags"; handle_error "$CURRENT_STEP"; }
-	save_checkpoint 11
+	
 else
 	log_info "Skipping step 11 (already completed)"
 	# Need to set up loop device for later steps
@@ -1000,7 +978,7 @@ if [ "$START_STEP" -le 12 ]; then
 	      fi
 	    done
 	fi
-	save_checkpoint 12
+	
 else
 	log_info "Skipping step 12 (already completed)"
 	# Set MKFS_EXT4_FLAGS for later use
@@ -1015,7 +993,7 @@ if [ "$START_STEP" -le 13 ]; then
 	total_bytes=$(sudo du -sb "$PATCHED_INITRAMFS" | cut -f1)
 	(cd "$PATCHED_INITRAMFS" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_bootloader" && sudo tar xf -) || { log_error "Failed to populate bootloader partition"; handle_error "$CURRENT_STEP"; }
 	safe_exec sudo umount "$WORKDIR/mnt_bootloader"
-	save_checkpoint 13
+	
 else
 	log_info "Skipping step 13 (already completed)"
 fi
@@ -1119,7 +1097,7 @@ EOF
 	safe_exec sudo umount "$WORKDIR/mnt_src_rootfs"
 	safe_exec sudo losetup -d "$LOOPROOT"
 	LOOPROOT=""
-	save_checkpoint 14
+	
 else
 	log_info "Skipping step 14 (already completed)"
 	# Need to mount rootfs for step 15
@@ -1220,7 +1198,7 @@ if [ "$START_STEP" -le 15 ]; then
 	safe_exec sudo losetup -d "$LOOPDEV"
 	LOOPDEV=""
 	log_info "✅ Final image created at: $IMAGE"
-	save_checkpoint 15
+	
 else
 	log_info "Skipping step 15 (already completed)"
 	# Clean up any remaining mounts

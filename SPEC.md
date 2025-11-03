@@ -169,29 +169,37 @@ shimboot_config/
 │  ├─ configuration.nix             # Main entry point
 │  └─ system_modules/
 │     ├─ Core System
+│     │  ├─ audio.nix               # Audio configuration (PipeWire)
 │     │  ├─ boot.nix                # Disables standard bootloaders
 │     │  ├─ filesystems.nix         # Single ext4 partition
 │     │  ├─ hardware.nix            # Firmware enablement
 │     │  ├─ localization.nix        # Locale and timezone settings
 │     │  ├─ networking.nix          # NetworkManager + wpa_supplicant
+│     │  ├─ power-management.nix    # Power management and CPU scaling
 │     │  ├─ security.nix            # Security configurations
 │     │  ├─ services.nix            # System services
 │     │  ├─ systemd.nix             # Patched systemd + kill-frecon
 │     │  └─ users.nix               # Default user accounts
 │     ├─ Desktop Environment
-│     │  ├─ audio.nix               # Audio configuration
 │     │  ├─ display-manager.nix     # X server and LightDM
 │     │  ├─ hyprland.nix            # Hyprland window manager
-│     │  └─ xdg-portals.nix         # XDG portals and desktop integration
+│     │  ├─ xdg-portals.nix         # XDG portals and desktop integration
+│     │  └─ fonts.nix               # System fonts (Noto)
 │     ├─ User Experience
 │     │  ├─ fish.nix                # Fish shell + Starship
-│     │  ├─ fonts.nix               # System fonts
 │     │  ├─ packages.nix            # Minimal system packages
-│     │  └─ power-management.nix    # Power management settings
-│     └─ Utilities
-│        ├─ helpers/                # Helper scripts
-│        ├─ fish_functions/         # Fish shell functions
-│        └─ zram.nix                # Swap compression
+│     │  └─ zram.nix                # Swap compression
+│     ├─ fish_functions/
+│     │  ├─ fish-greeting.fish      # Context-aware shell greeting
+│     │  ├─ fix-fish-history.fish   # History corruption repair
+│     │  ├─ list-fish-helpers.fish  # Function listing utility
+│     │  ├─ nixos-flake-update.fish # Flake update with backup
+│     │  └─ nixos-rebuild-basic.fish # System rebuild utility
+│     └─ helpers/
+│        ├─ filesystem-helpers.nix  # expand_rootfs utility
+│        ├─ helpers.nix             # Helper scripts aggregator
+│        ├─ permissions-helpers.nix # Permission utilities
+│        └─ setup-helpers.nix       # setup_nixos wizard
 ```
 
 ### Build Artifacts (per board)
@@ -239,12 +247,14 @@ base_configuration/system_modules/helpers/
 │  └─ expand_rootfs
 │     ├─ Purpose: Expand root partition to full USB capacity
 │     ├─ Method: growpart + resize2fs
-│     └─ Safety: Interactive confirmation with disk info display
+│     ├─ Safety: Interactive confirmation with disk info display
+│     └─ Dependencies: cloud-utils, cryptsetup, e2fsprogs, jq
 │
 ├─ setup-helpers.nix
 │  ├─ setup_nixos_config
 │  │  ├─ Purpose: Configure /etc/nixos for nixos-rebuild
 │  │  ├─ Method: Symlink ~/nixos-config/flake.nix to /etc/nixos/
+│  │  ├─ Features: Hardware config generation, config validation
 │  │  └─ Validation: Checks for cloned repository
 │  │
 │  └─ setup_nixos
@@ -257,10 +267,11 @@ base_configuration/system_modules/helpers/
 │     │  3. Git repository update
 │     │  4. /etc/nixos configuration
 │     │  5. System rebuild (optional)
-│     └─ Safety: Backup system, dry-run support, failsafe operations
+│     ├─ Safety: Backup system, dry-run support, failsafe operations
+│     └─ Dependencies: networkmanager, git
 │
 └─ permissions-helpers.nix
-   └─ (Placeholder for future utilities)
+   └─ Purpose: Placeholder for future permission utilities
 ```
 
 ### Fish Functions
@@ -269,33 +280,38 @@ base_configuration/system_modules/fish_functions/
 ├─ fish-greeting.fish
 │  ├─ Purpose: Minimal, context-aware shell greeting
 │  ├─ Features: System info, config status, git branch
-│  └─ Caching: Uses fastfetch cache to reduce startup lag
+│  ├─ Caching: Uses fastfetch cache to reduce startup lag
+│  └─ Dependencies: fastfetch
 │
 ├─ nixos-rebuild-basic.fish
 │  ├─ Purpose: Perform basic NixOS system rebuild
 │  ├─ Abbreviation: nrb
 │  ├─ Features: Kernel version check, sandbox compatibility
-│  └─ Method: sudo nixos-rebuild switch --flake .
+│  ├─ Method: sudo nixos-rebuild switch --flake .
+│  └─ Safety: Validates NIXOS_CONFIG_DIR, handles kernel <5.6
 │
 ├─ nixos-flake-update.fish
-│  ├─ Purpose: Update NixOS flake inputs
+│  ├─ Purpose: Update NixOS flake inputs with backup
 │  ├─ Abbreviation: flup
 │  ├─ Features: Backup flake.lock, show diff, restore on failure
-│  └─ Method: nix flake update with kernel compatibility checks
+│  ├─ Method: nix flake update with kernel compatibility checks
+│  └─ Safety: Creates backup, shows diff, restores on failure
 │
 ├─ fix-fish-history.fish
 │  ├─ Purpose: Repair corrupted Fish history files
 │  ├─ Method: history merge with fallback to manual truncation
-│  └─ Safety: Creates backup before repair
+│  ├─ Safety: Creates backup before repair
+│  └─ Recovery: Truncates at safe offset if merge fails
 │
 └─ list-fish-helpers.fish
    ├─ Purpose: Display available Fish functions and abbreviations
-   └─ Output: Sorted list of custom functions and abbreviations
+   ├─ Output: Sorted list of custom functions and abbreviations
+   └─ Features: Shows usage tips and troubleshooting shortcuts
 ```
 
 ### Build System Features
 ```
-assemble-final.sh v2.0
+assemble-final.sh
 ├─ Checkpoint System
 │  ├─ Save/load build state at each step
 │  ├─ Resume from last completed step
@@ -380,10 +396,10 @@ write-shimboot-image.sh
 tools/
 ├─ check-cachix.sh
 │  ├─ Purpose: Check Cachix cache health and coverage
- │  ├─ Input: main_configuration/, home-manager
- │  ├─ Output: nixos.img (ext4 filesystem)
- │  └─ Generator: nixos-generators (raw format)
- │
+│  ├─ Usage: ./tools/check-cachix.sh [BOARD]
+│  ├─ Features: Connectivity testing, coverage verification
+│  └─ Output: Cached/MISSING status per derivation
+│
 ├─ cleanup-shimboot-rootfs.sh
 │  ├─ Purpose: Prune old shimboot rootfs generations
 │  ├─ Discovery: Nix profile, GC roots, result* symlinks
@@ -395,6 +411,11 @@ tools/
 │  ├─ Method: Mount rootfs read-only, extract logs
 │  ├─ Logs: LightDM, Xorg, journal, PAM, user configs
 │  └─ Safety: Auto-unmount, cleanup on exit
+│
+├─ compress-nix-store.sh
+│  ├─ Purpose: Compress Nix store to save space
+│  ├─ Method: Optimize store with hardlinks
+│  └─ Safety: Dry-run support
 │
 ├─ fetch-manifest.sh
 │  ├─ Purpose: Download ChromeOS recovery image manifest
@@ -445,7 +466,9 @@ main_configuration/home_modules/
 ├─ fcitx5.nix                        # Input method configuration
 ├─ fish-themes.nix                   # Fish shell themes
 ├─ screenshot.fish                   # Screenshot function
-└─ screenshot.nix                    # Screenshot configuration
+├─ screenshot.nix                    # Screenshot configuration
+└─ lib/
+   └─ theme.nix                      # Theme library functions
 ```
 
 ### Hyprland Configuration (main_configuration only)
@@ -471,7 +494,9 @@ main_configuration/hypr_config/
 │  ├─ blue-light-filter.glsl        # Blue light filter shader
 │  └─ cool-stuff.glsl               # Visual effects shader
 ├─ userprefs.conf                    # User preferences
-└─ wallpaper.nix                     # Wallpaper management
+├─ wallpaper.nix                     # Wallpaper management
+└─ micro_config/
+   └─ rose-pine.micro               # Micro editor theme
 ```
 
 ### Configuration Variants
@@ -481,7 +506,7 @@ base_configuration/
 ├─ Size Target: <8GB
 ├─ Display: LightDM + Hyprland (standalone)
 ├─ Users: root + nixos-user (initial password: nixos-shimboot)
-└─ Features: NetworkManager, Fish shell, system helpers
+└─ Features: NetworkManager, Fish shell, system helpers, zram swap
 
 main_configuration/
 ├─ Purpose: Full desktop environment
@@ -489,7 +514,112 @@ main_configuration/
 ├─ Display: LightDM + Hyprland + HyprPanel
 ├─ Extends: base_configuration
 ├─ Adds: Home Manager, user applications, theming
-└─ Features: Rose Pine theme, Zen browser, KDE apps
+└─ Features: Rose Pine theme, Zen browser, KDE apps, screenshot tools
+```
+
+### System Modules Details
+```
+Audio Module (audio.nix)
+├─ Purpose: Configure audio services for ChromeOS compatibility
+├─ Dependencies: pipewire, alsa-utils
+├─ Features: PipeWire for modern audio routing
+└─ Related: hardware.nix, services.nix
+
+Boot Module (boot.nix)
+├─ Purpose: Configure bootloader and kernel settings for shimboot
+├─ Dependencies: systemd-boot, kernel modules
+├─ Features: Disables standard bootloaders, configures initramfs
+└─ Related: hardware.nix, filesystem.nix
+
+Display Manager Module (display-manager.nix)
+├─ Purpose: Configure X server and LightDM display manager
+├─ Dependencies: lightdm
+├─ Features: X server, LightDM, Hyprland session configuration
+└─ Related: hyprland.nix, hardware.nix
+
+Filesystem Module (filesystems.nix)
+├─ Purpose: Configure filesystems for single-partition ChromeOS setup
+├─ Dependencies: systemd, util-linux
+├─ Features: Single ext4 partition, tmpfs configuration
+└─ Related: boot.nix, hardware.nix
+
+Fish Module (fish.nix)
+├─ Purpose: Configure Fish shell with functions, abbreviations, Starship prompt
+├─ Dependencies: fish, starship, eza
+├─ Features: Default shell, custom functions, abbreviations, Starship prompt
+└─ Related: packages.nix, users.nix
+
+Fonts Module (fonts.nix)
+├─ Purpose: Configure system fonts for optimal display and compatibility
+├─ Dependencies: noto-fonts, noto-fonts-emoji, fontconfig
+├─ Features: Noto fonts, fontconfig defaults, emoji support
+└─ Related: display.nix
+
+Hardware Module (hardware.nix)
+├─ Purpose: Configure hardware settings for ChromeOS devices
+├─ Dependencies: linux-firmware, mesa, brightnessctl
+├─ Features: Graphics drivers, Bluetooth, brightness control
+└─ Related: boot.nix, display.nix
+
+Localization Module (localization.nix)
+├─ Purpose: Configure system locale and timezone settings
+├─ Dependencies: glibc, user-config.nix
+├─ Features: Timezone and locale from user-config.nix
+└─ Related: services.nix, user-config.nix
+
+Networking Module (networking.nix)
+├─ Purpose: Configure network services for ChromeOS compatibility
+├─ Dependencies: networkmanager, wpa_supplicant
+├─ Features: NetworkManager, firewall, WiFi modules, rfkill
+└─ Related: hardware.nix, services.nix
+
+Packages Module (packages.nix)
+├─ Purpose: Install absolutely minimal essential system packages
+├─ Dependencies: Various system utilities
+├─ Features: Essential utilities only, documentation disabled
+└─ Related: fish.nix, services.nix, display.nix
+
+Power Management Module (power-management.nix)
+├─ Purpose: Configure system power management and optimization
+├─ Dependencies: auto-cpufreq, upower, networkmanager
+├─ Features: CPU scaling, battery monitoring, WiFi power saving
+└─ Related: hardware.nix, services.nix
+
+Security Module (security.nix)
+├─ Purpose: Configure system security and authorization
+├─ Dependencies: polkit, rtkit
+├─ Features: PolicyKit, realtime scheduling, privilege escalation
+└─ Related: services.nix, users.nix
+
+Services Module (services.nix)
+├─ Purpose: Configure essential system services
+├─ Dependencies: systemd, dbus, polkit
+├─ Features: Journald, libinput, udisks2, D-Bus
+└─ Related: hardware.nix, security.nix
+
+Systemd Module (systemd.nix)
+├─ Purpose: Configure systemd services and patches for shimboot
+├─ Dependencies: systemd
+├─ Features: Patched systemd with mount_nofollow patch, kill-frecon service
+└─ Related: boot.nix, services.nix
+
+Users Module (users.nix)
+├─ Purpose: Configure system users for shimboot
+├─ Dependencies: fish, user-config.nix
+├─ Features: Mutable users, root and user accounts, initial passwords
+└─ Related: security.nix, services.nix, user-config.nix
+
+XDG Portals Module (xdg-portals.nix)
+├─ Purpose: Configure XDG portals and desktop integration
+├─ Dependencies: xdg-desktop-portal
+├─ Features: XDG portals, MIME types, desktop integration
+└─ Related: hyprland.nix, display-manager.nix
+
+ZRAM Module (zram.nix)
+├─ Purpose: Configure zram swap for ChromeOS compatibility
+├─ Dependencies: kernel modules
+├─ Features: ZRAM swap, lzo compression, kernel parameters
+└─ Related: boot.nix, power-management.nix
 ```
 
 ---
@@ -588,6 +718,7 @@ shimboot_config/user-config.nix
 ├─ user.username        - Primary user account name
 ├─ user.shellPackage    - Default shell (fish)
 ├─ user.extraGroups     - System groups
+├─ user.initialPassword - Default initial password
 ├─ defaultApps.*        - MIME handlers and launchers
 ├─ timezone             - System timezone
 ├─ locale               - System locale
@@ -614,7 +745,7 @@ shimboot_config/
 ├─ base_configuration/
 │  ├─ configuration.nix             - Main entry point
 │  └─ system_modules/
-│     ├─ audio.nix                  - Audio configuration
+│     ├─ audio.nix                  - Audio configuration (PipeWire)
 │     ├─ boot.nix                   - Disables standard bootloaders
 │     ├─ display-manager.nix        - X server and LightDM
 │     ├─ filesystems.nix            - Single ext4 partition
@@ -695,6 +826,10 @@ shimboot_config/
 │  │  │  └─ cool-stuff.glsl        - Visual effects shader
 │  │  ├─ userprefs.conf             - User preferences
 │  │  └─ wallpaper.nix              - Wallpaper management
+│  ├─ system_modules/
+│  │  ├─ fonts.nix                  - System fonts configuration
+│  │  ├─ packages.nix               - Additional system packages
+│  │  └─ services.nix               - Additional system services
 │  └─ wallpaper/
 │     └─ kasane_teto_utau_drawn_by_yananami_numata220.jpg
 └─ fish_themes/

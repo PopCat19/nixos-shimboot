@@ -36,11 +36,6 @@ on:
         required: false
         default: false
         type: boolean
-      fresh_start:
-        description: 'Ignore build checkpoints and start fresh'
-        required: false
-        default: false
-        type: boolean
       push_to_cachix:
         description: 'Push to Cachix'
         required: false
@@ -52,6 +47,11 @@ on:
         default: 'ubuntu-latest'
         type: choice
         options: [ubuntu-latest, popcat19-nixos0]
+      include_checksum:
+        description: 'Include SHA256 checksum in packaged artifact'
+        required: false
+        default: true
+        type: boolean
 
 env:
   NIXPKGS_ALLOW_UNFREE: 1
@@ -168,11 +168,6 @@ jobs:
             ASSEMBLE_CMD+=(--prewarm-cache)
           fi
 
-          # Add fresh start flag
-          if [ "${{ github.event.inputs.fresh_start }}" = "true" ]; then
-            ASSEMBLE_CMD+=(--fresh)
-          fi
-
           echo "🚀 Running: ${ASSEMBLE_CMD[*]}"
           sudo -E env "PATH=$PATH" "NIX_PATH=$NIX_PATH" \
             BOARD="${{ matrix.board }}" \
@@ -184,6 +179,8 @@ jobs:
       - name: Compress and rename
         run: |
           set -e
+
+          # Detect working directory where shimboot.img is located
           if [ -f "/nix/work/shimboot.img" ]; then
             WORKDIR="/nix/work"
           elif [ -f "work/shimboot.img" ]; then
@@ -199,40 +196,35 @@ jobs:
             exit 1
           fi
 
-          if [ "$WORKDIR" = "/nix/work" ]; then
-            sudo chown -R $(whoami):$(whoami) "$WORKDIR"
-          fi
-
+          sudo chown -R $(whoami):$(whoami) "$WORKDIR"
           cd "$WORKDIR"
-          ARTIFACT_TAG="${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}"
-          ARTIFACT_DIR="${ARTIFACT_TAG}"
-          mkdir -p "$ARTIFACT_DIR"
 
-          echo "📦 Compressing image for ${ARTIFACT_TAG}..."
-          pv shimboot.img | zstd -19 --long -T0 -o "$ARTIFACT_DIR/${ARTIFACT_TAG}.img.zst"
+          ARTIFACT_NAME="${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}"
 
-          echo "🔐 Generating SHA256 checksum..."
-          (
-            cd "$ARTIFACT_DIR"
-            sha256sum "${ARTIFACT_TAG}.img.zst" > "${ARTIFACT_TAG}.img.zst.sha256"
-            du -h "${ARTIFACT_TAG}.img.zst" >> "${ARTIFACT_TAG}.img.zst.sha256"
-          )
+          echo "📦 Compressing ${ARTIFACT_NAME}.img.zst (this may take a while)..."
+          stdbuf -oL pv -p -t -e -r -a shimboot.img | \
+            stdbuf -oL zstd -19 --long --verbose -T0 -o "${ARTIFACT_NAME}.img.zst" | \
+            tee compression.log
 
-          SIZE_MB=$(du -m "$ARTIFACT_DIR/${ARTIFACT_TAG}.img.zst" | cut -f1)
-          ORIG_SIZE_MB=$(du -m "shimboot.img" | cut -f1)
-          COMPRESSION_RATIO=$((100 - (SIZE_MB * 100 / ORIG_SIZE_MB)))
+          echo ""
+          echo "✅ Compression completed."
+          echo "📄 Compression stats summary:"
+          tail -n 10 compression.log || true
 
-          echo "📊 Compression stats:"
-          echo "  Original: ${ORIG_SIZE_MB}MB"
-          echo "  Compressed: ${SIZE_MB}MB (${COMPRESSION_RATIO}% reduction)"
+          echo "🔐 Calculating checksum (printed only):"
+          sha256sum "${ARTIFACT_NAME}.img.zst"
 
-          rm -f shimboot.img
+          rm -f shimboot.img compression.log
+          mv "${ARTIFACT_NAME}.img.zst" ..
+          cd ..
+
+          echo "✅ Artifact ready: $(pwd)/${ARTIFACT_NAME}.img.zst"
+
+          # Cleanup extraneous temporary work files
+          sudo rm -rf "$WORKDIR"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}
-          path: |
-            /nix/work/${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}/
-            work/${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}/
-          retention-days: 30
+          path: ${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}.img.zst

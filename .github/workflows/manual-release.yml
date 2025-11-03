@@ -20,6 +20,11 @@ on:
         default: 'ubuntu-latest'
         type: choice
         options: [ubuntu-latest, popcat19-nixos0]
+      include_checksum:
+        description: 'Include SHA256 checksum in packaged artifact'
+        required: false
+        default: true
+        type: boolean
 
 env:
   NIXPKGS_ALLOW_UNFREE: 1
@@ -125,6 +130,7 @@ jobs:
         run: |
           set -e
 
+          # Detect working directory where shimboot.img is located
           if [ -f "/nix/work/shimboot.img" ]; then
             WORKDIR="/nix/work"
           elif [ -f "work/shimboot.img" ]; then
@@ -140,44 +146,34 @@ jobs:
             exit 1
           fi
 
-          if [ "$WORKDIR" = "/nix/work" ]; then
-            sudo chown -R $(whoami):$(whoami) "$WORKDIR"
-          fi
-
+          sudo chown -R $(whoami):$(whoami) "$WORKDIR"
           cd "$WORKDIR"
 
           ARTIFACT_NAME="${{ matrix.board }}-shimboot-minimal"
-          
-          echo "📦 Compressing ${ARTIFACT_NAME}..."
-          pv shimboot.img | zstd -19 --long -T0 -o "${ARTIFACT_NAME}.img.zst"
 
-          echo "🔐 Generating checksums..."
-          sha256sum "${ARTIFACT_NAME}.img.zst" > "${ARTIFACT_NAME}.img.zst.sha256"
-          du -h "${ARTIFACT_NAME}.img.zst" >> "${ARTIFACT_NAME}.img.zst.sha256"
+          echo "📦 Compressing ${ARTIFACT_NAME}.img.zst (this may take a while)..."
+          stdbuf -oL pv -p -t -e -r -a shimboot.img | \
+            stdbuf -oL zstd -19 --long --verbose -T0 -o "${ARTIFACT_NAME}.img.zst" | tee compression.log
 
-          SIZE_MB=$(du -m "${ARTIFACT_NAME}.img.zst" | cut -f1)
-          ORIG_SIZE_MB=$(du -m "shimboot.img" | cut -f1)
-          COMPRESSION_RATIO=$((100 - (SIZE_MB * 100 / ORIG_SIZE_MB)))
+          echo ""
+          echo "✅ Compression completed."
+          echo "📄 Compression stats summary:"
+          tail -n 10 compression.log || true
 
-          echo "📊 Compression stats for ${{ matrix.board }}:"
-          echo "  Original: ${ORIG_SIZE_MB}MB"
-          echo "  Compressed: ${SIZE_MB}MB (${COMPRESSION_RATIO}% reduction)"
-          
-          echo "📦 Zipping ${ARTIFACT_NAME}.zip ..."
-          zip -9 "${ARTIFACT_NAME}.zip" "${ARTIFACT_NAME}.img.zst" "${ARTIFACT_NAME}.img.zst.sha256"
+          echo "🔐 Calculating checksum (printed only):"
+          sha256sum "${ARTIFACT_NAME}.img.zst"
 
-          unzip -l "${ARTIFACT_NAME}.zip"
+          rm -f shimboot.img compression.log
+          mv "${ARTIFACT_NAME}.img.zst" ..
+          cd ..
 
-          rm -f shimboot.img "${ARTIFACT_NAME}.img.zst" "${ARTIFACT_NAME}.img.zst.sha256"
+          echo "✅ Artifact ready: $(pwd)/${ARTIFACT_NAME}.img.zst"
 
       - name: Upload zipped artifact for release
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.board }}-shimboot-minimal
-          path: |
-            /nix/work/${{ matrix.board }}-shimboot-minimal.zip
-            work/${{ matrix.board }}-shimboot-minimal.zip
-          retention-days: 1
+          path: ${{ matrix.board }}-shimboot-minimal.img.zst
 
   create-release:
     needs: build-all
@@ -254,7 +250,7 @@ jobs:
           tag_name: ${{ steps.metadata.outputs.timestamp }}
           name: ${{ steps.metadata.outputs.title }}
           body: ${{ steps.metadata.outputs.body }}
-          draft: false
+          draft: true
           prerelease: false
           files: |
-            release-artifacts/**/*.zip
+            release-artifacts/**/*.img.zst
