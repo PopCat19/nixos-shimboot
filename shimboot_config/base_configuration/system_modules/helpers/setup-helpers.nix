@@ -452,7 +452,7 @@ raw-efi-system"
           echo
 
           # Handle Ctrl+C / SIGINT cleanly
-          trap 'echo; echo -e "\n${YELLOW}Aborted by user (Ctrl+C).${NC}"; exit 130' INT
+          trap 'echo; echo -e "\n\033[1;33mAborted by user (Ctrl+C).\033[0m"; exit 130' INT
 
           # Numerical selection instead of name input
           echo "Select configuration to build (1-$(echo "$CONFIGS" | wc -l)):"
@@ -461,14 +461,14 @@ raw-efi-system"
           # Read user input safely
           if ! read -r SELECTION; then
             echo
-            echo -e "${YELLOW}Input interrupted or cancelled.${NC}"
+            echo -e "''${YELLOW}Input interrupted or cancelled.''${NC}"
             exit 130
           fi
 
           if [ -z "$SELECTION" ]; then
             TARGET="$DEFAULT_HOST"
           else
-            TARGET="$(echo "$CONFIGS" | sed -n "${SELECTION}p")"
+            TARGET="$(echo "$CONFIGS" | sed -n "''${SELECTION}p")"
           fi
 
           echo
