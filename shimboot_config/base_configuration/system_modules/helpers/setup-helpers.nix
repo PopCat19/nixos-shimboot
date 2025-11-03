@@ -475,34 +475,8 @@ raw-efi-system"
           echo "Building configuration: $TARGET"
           echo
 
-          # Validate that target exists in flake outputs (if possible)
-          echo "Validating configuration '$TARGET' in flake..."
-
-          VALID_TARGET=false
-          if command -v nix >/dev/null 2>&1; then
-            if command -v jq >/dev/null 2>&1; then
-              if nix flake show --json 2>/dev/null | jq -e ".\"nixosConfigurations\".\"$TARGET\"" >/dev/null; then
-                VALID_TARGET=true
-              fi
-            else
-              # Fallback if jq not installed: rough text match
-              if nix flake show 2>/dev/null | grep -q "nixosConfigurations.$TARGET"; then
-                VALID_TARGET=true
-              fi
-            fi
-          fi
-
-          if [ "$VALID_TARGET" = false ]; then
-            echo
-            echo "⚠️  Configuration '$TARGET' not found in this flake."
-            echo "Available configurations might include:"
-            nix flake show | grep -A1 "nixosConfigurations" 2>/dev/null | sed 's/^/  /'
-            echo
-            if ! prompt_yes_no "Continue anyway (may fail during build)?" n; then
-              log_warn "Aborted before rebuild (invalid configuration)."
-              exit 0
-            fi
-          fi
+          # NOTE: Validation skipped — configurations are listed explicitly above.
+          # Supports targets like 'nixos-user' without needing 'nixosConfigurations.' prefix.
 
           export NIX_CONFIG="accept-flake-config = true"
 
