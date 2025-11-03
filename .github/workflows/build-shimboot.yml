@@ -196,22 +196,14 @@ jobs:
             exit 1
           fi
 
-          if [ "$WORKDIR" = "/nix/work" ]; then
-            sudo chown -R $(whoami):$(whoami) "$WORKDIR"
-          fi
-
+          sudo chown -R $(whoami):$(whoami) "$WORKDIR"
           cd "$WORKDIR"
 
-          ARTIFACT_TAG="${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}"
-          mkdir -p flat
+          ARTIFACT_NAME="${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}"
 
-          echo "📦 Compressing ${ARTIFACT_TAG}.img.zst (this may take a while)..."
-          echo "   ▶ Showing progress with pv and verbose zstd output"
-
-          # Use pv to show throughput, ETA, and elapsed time
-          # Combine with zstd --verbose for inline compression stats
+          echo "📦 Compressing ${ARTIFACT_NAME}.img.zst (this may take a while)..."
           stdbuf -oL pv -p -t -e -r -a shimboot.img | \
-            stdbuf -oL zstd -19 --long --verbose -T0 -o "flat/${ARTIFACT_TAG}.img.zst" | \
+            stdbuf -oL zstd -19 --long --verbose -T0 -o "${ARTIFACT_NAME}.img.zst" | \
             tee compression.log
 
           echo ""
@@ -219,39 +211,21 @@ jobs:
           echo "📄 Compression stats summary:"
           tail -n 10 compression.log || true
 
-          # Optional checksum generation (default: true)
-          if [ "${{ github.event.inputs.include_checksum || 'true' }}" = "true" ]; then
-            echo "🔐 Generating checksum..."
-            (cd flat && sha256sum "${ARTIFACT_TAG}.img.zst" > "${ARTIFACT_TAG}.img.zst.sha256")
-          fi
+          echo "🔐 Calculating checksum (printed only):"
+          sha256sum "${ARTIFACT_NAME}.img.zst"
 
-          echo "📦 Zipping flat files..."
-          cd flat
-          if [ -f "${ARTIFACT_TAG}.img.zst.sha256" ]; then
-            echo "   ▶ Creating ZIP archive with checksum (verbose mode)"
-            stdbuf -oL zip -9 -v "../${ARTIFACT_TAG}.zip" "${ARTIFACT_TAG}.img.zst" "${ARTIFACT_TAG}.img.zst.sha256" | tee ../zip-progress.log
-          else
-            echo "   ▶ Creating ZIP archive (no checksum, verbose mode)"
-            stdbuf -oL zip -9 -v "../${ARTIFACT_TAG}.zip" "${ARTIFACT_TAG}.img.zst" | tee ../zip-progress.log
-          fi
-
+          rm -f shimboot.img compression.log
+          mv "${ARTIFACT_NAME}.img.zst" ..
           cd ..
-          echo ""
-          echo "💡 Final ZIP package:"
-          unzip -l "${ARTIFACT_TAG}.zip"
 
-          echo ""
-          echo "📄 ZIP stats summary:"
-          tail -n 5 zip-progress.log || true
+          echo "✅ Artifact ready: $(pwd)/${ARTIFACT_NAME}.img.zst"
 
-          # Clean up working files
-          rm -rf flat shimboot.img
+          # Cleanup extraneous temporary work files
+          sudo rm -rf "$WORKDIR"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}
-          path: |
-            /nix/work/${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}.zip
-            work/${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}.zip
+          path: ${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}.img.zst
           retention-days: 30
