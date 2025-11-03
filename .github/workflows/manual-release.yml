@@ -175,6 +175,18 @@ jobs:
           cd "$OUTPUT_DIR"
           echo "✅ Artifact ready: $(pwd)/${ARTIFACT_NAME}.img.zst"
 
+          # Move into GitHub workspace so upload-artifact can see it
+          echo "📦 Copying artifact into workflow workspace (${GITHUB_WORKSPACE})"
+          cp "${ARTIFACT_NAME}.img.zst" "${GITHUB_WORKSPACE}/"
+
+          if [ "${{ github.event.inputs.include_checksum }}" = "true" ]; then
+            sha256sum "${ARTIFACT_NAME}.img.zst" > "${GITHUB_WORKSPACE}/${ARTIFACT_NAME}.img.zst.sha256"
+            echo "✅ Checksum saved to ${GITHUB_WORKSPACE}/${ARTIFACT_NAME}.img.zst.sha256"
+          fi
+
+          # Cleanup safely
+          sudo rm -rf "$WORKDIR"
+
       - name: Upload zipped artifact for release
         uses: actions/upload-artifact@v4
         with:
