@@ -164,9 +164,15 @@ jobs:
           sha256sum "${ARTIFACT_NAME}.img.zst"
 
           rm -f shimboot.img compression.log
-          mv "${ARTIFACT_NAME}.img.zst" ..
-          cd ..
+          OUTPUT_DIR=$(dirname "$WORKDIR")
+          echo "📁 Preparing output directory: $OUTPUT_DIR"
+          sudo mkdir -p "$OUTPUT_DIR"
+          sudo chown -R $(whoami):$(whoami) "$OUTPUT_DIR"
 
+          echo "📦 Moving artifact to $OUTPUT_DIR/${ARTIFACT_NAME}.img.zst"
+          sudo mv "${ARTIFACT_NAME}.img.zst" "$OUTPUT_DIR/"
+
+          cd "$OUTPUT_DIR"
           echo "✅ Artifact ready: $(pwd)/${ARTIFACT_NAME}.img.zst"
 
       - name: Upload zipped artifact for release
