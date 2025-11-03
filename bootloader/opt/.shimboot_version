@@ -1,1 +1,7 @@
-v1.4.0-nixos
+# Shimboot Version Marker
+#
+# This file contains the current Shimboot version string displayed during bootloader
+# initialization and used for version identification in the boot process.
+# Format: v{major}.{minor}-{distribution}
+
+v0.2.0-nixos
