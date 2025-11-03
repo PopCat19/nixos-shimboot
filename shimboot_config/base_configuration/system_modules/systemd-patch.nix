@@ -1,18 +1,17 @@
-# Systemd Configuration Module
+# Systemd Patch Module
 #
-# Purpose: Configure systemd services and patches for shimboot
+# Purpose: Apply patches to systemd for ChromeOS compatibility
 # Dependencies: systemd
-# Related: boot.nix, services.nix
+# Related: kill-frecon.nix, display-manager.nix
 #
 # This module:
 # - Provides systemd tools system-wide
-# - Applies patches to systemd for ChromeOS compatibility
-# - Configures services for display management and login
+# - Applies mountpoint-util.patch for ChromeOS compatibility
+# - Prepares systemd for shimboot environment
 {
   config,
   pkgs,
   lib,
-  self,
   ...
 }: {
   environment.systemPackages = with pkgs; [
@@ -54,34 +53,10 @@
             -        return mount_fd(source, fd, filesystemtype, mountflags, data);
             +        return RET_NERRNO(mount(source, target, filesystemtype, mountflags, data));
              }
-
+ 
              const char* mount_propagation_flag_to_string(unsigned long flags) {
-          '')
+           '')
         ];
     });
-    services.kill-frecon = {
-      description = "Kill frecon to allow X11 to start";
-      wantedBy = ["graphical.target"];
-      before = ["display-manager.service"];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStart = pkgs.writeShellScript "kill-frecon" ''
-          ${pkgs.util-linux}/bin/umount -l /dev/console 2>/dev/null || true
-          ${pkgs.procps}/bin/pkill frecon-lite 2>/dev/null || true
-        '';
-      };
-    };
-  };
-
-  services.logind = {
-    settings = {
-      Login = {
-        HandleLidSwitch = "ignore";
-        HandlePowerKey = "ignore";
-        HandleSuspendKey = "ignore";
-        HandleHibernateKey = "ignore";
-      };
-    };
   };
 }
