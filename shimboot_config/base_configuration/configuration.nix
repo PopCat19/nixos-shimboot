@@ -42,6 +42,7 @@ in {
   _module.args.userConfig = userConfig;
 
   nix.settings = {
+    experimental-features = ["nix-command" "flakes"];
     trusted-users = lib.mkAfter ["root" "${userConfig.user.username}"];
     substituters = lib.mkAfter ["https://shimboot-systemd-nixos.cachix.org"];
     trusted-public-keys = lib.mkAfter ["shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA="];
