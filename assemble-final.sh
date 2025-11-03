@@ -556,7 +556,26 @@ cleanup() {
     
     set -e
 }
-trap cleanup EXIT INT TERM
+# Handle user keyboard interrupt gracefully
+handle_interrupt() {
+    echo
+    log_warn "Keyboard interrupt detected (Ctrl+C)"
+    log_warn "Cleaning up in-progress mounts and loop devices..."
+
+    # Prevent recursive triggers while cleaning up
+    trap - INT
+
+    # Attempt graceful cleanup
+    cleanup
+
+    log_error "Assembly interrupted by user."
+    exit 130   # 130 = 128 + SIGINT
+}
+
+# Normal cleanup on script exit or termination
+trap cleanup EXIT TERM
+# Handle manual user interrupt
+trap handle_interrupt INT
 
 # === Retry Logic ===
 retry_command() {
