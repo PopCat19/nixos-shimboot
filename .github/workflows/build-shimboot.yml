@@ -215,8 +215,19 @@ jobs:
           ARTIFACT_TAG="${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs || 'minimal' }}"
           mkdir -p flat
 
-          echo "📦 Compressing ${ARTIFACT_TAG}.img.zst ..."
-          pv shimboot.img | zstd -19 --long -T0 -o "flat/${ARTIFACT_TAG}.img.zst"
+          echo "📦 Compressing ${ARTIFACT_TAG}.img.zst (this may take a while)..."
+          echo "   ▶ Showing progress with pv and verbose zstd output"
+
+          # Use pv to show throughput, ETA, and elapsed time
+          # Combine with zstd --verbose for inline compression stats
+          stdbuf -oL pv -p -t -e -r -a shimboot.img | \
+            stdbuf -oL zstd -19 --long --verbose -T0 -o "flat/${ARTIFACT_TAG}.img.zst" | \
+            tee compression.log
+
+          echo ""
+          echo "✅ Compression completed."
+          echo "📄 Compression stats summary:"
+          tail -n 10 compression.log || true
 
           # Optional checksum generation (default: true)
           if [ "${{ github.event.inputs.include_checksum || 'true' }}" = "true" ]; then
@@ -227,14 +238,21 @@ jobs:
           echo "📦 Zipping flat files..."
           cd flat
           if [ -f "${ARTIFACT_TAG}.img.zst.sha256" ]; then
-            zip -9 "../${ARTIFACT_TAG}.zip" "${ARTIFACT_TAG}.img.zst" "${ARTIFACT_TAG}.img.zst.sha256"
+            echo "   ▶ Creating ZIP archive with checksum (verbose mode)"
+            stdbuf -oL zip -9 -v "../${ARTIFACT_TAG}.zip" "${ARTIFACT_TAG}.img.zst" "${ARTIFACT_TAG}.img.zst.sha256" | tee ../zip-progress.log
           else
-            zip -9 "../${ARTIFACT_TAG}.zip" "${ARTIFACT_TAG}.img.zst"
+            echo "   ▶ Creating ZIP archive (no checksum, verbose mode)"
+            stdbuf -oL zip -9 -v "../${ARTIFACT_TAG}.zip" "${ARTIFACT_TAG}.img.zst" | tee ../zip-progress.log
           fi
 
           cd ..
-          echo "💡 Final zip package:"
+          echo ""
+          echo "💡 Final ZIP package:"
           unzip -l "${ARTIFACT_TAG}.zip"
+
+          echo ""
+          echo "📄 ZIP stats summary:"
+          tail -n 5 zip-progress.log || true
 
           # Clean up working files
           rm -rf flat shimboot.img
