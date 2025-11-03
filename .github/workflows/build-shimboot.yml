@@ -36,11 +36,6 @@ on:
         required: false
         default: false
         type: boolean
-      fresh_start:
-        description: 'Ignore build checkpoints and start fresh'
-        required: false
-        default: false
-        type: boolean
       push_to_cachix:
         description: 'Push to Cachix'
         required: false
@@ -171,11 +166,6 @@ jobs:
           # Add prewarm cache flag
           if [ "${{ github.event.inputs.prewarm_cache }}" = "true" ]; then
             ASSEMBLE_CMD+=(--prewarm-cache)
-          fi
-
-          # Add fresh start flag
-          if [ "${{ github.event.inputs.fresh_start }}" = "true" ]; then
-            ASSEMBLE_CMD+=(--fresh)
           fi
 
           echo "🚀 Running: ${ASSEMBLE_CMD[*]}"
