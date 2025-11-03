@@ -82,13 +82,26 @@ in {
       echo "Decompressing second layer if present..."
       decompress_layer work/decompressed1.bin work/decompressed2.bin
 
-      echo "Searching for CPIO archive..."
-      CPIO_OFFSET=$(binwalk work/decompressed2.bin | awk '/CPIO ASCII archive/ {print $1; exit}')
+      echo "Searching for CPIO archive with retry handling (binwalk sometimes panics)..."
+      BINWALK_ATTEMPTS=3
+      for attempt in $(seq 1 "$BINWALK_ATTEMPTS"); do
+        set +e
+        CPIO_OFFSET=$(binwalk work/decompressed2.bin 2>/dev/null | awk '/CPIO ASCII archive/ {print $1; exit}')
+        status=$?
+        set -e
+        if [ "$status" -eq 0 ] && [ -n "$CPIO_OFFSET" ]; then
+          echo "Found CPIO archive at offset $CPIO_OFFSET (attempt $attempt)"
+          break
+        else
+          echo "binwalk attempt $attempt failed or panic detected; retrying..."
+          sleep 2
+        fi
+      done
+
       if [ -z "$CPIO_OFFSET" ]; then
         echo "ERROR: No CPIO archive found after decompression"
         exit 1
       fi
-      echo "Found CPIO archive at offset $CPIO_OFFSET"
 
       dd if=work/decompressed2.bin of=work/initramfs.cpio bs=1 skip="$CPIO_OFFSET" status=none
 

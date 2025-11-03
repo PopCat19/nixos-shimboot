@@ -77,8 +77,19 @@ in {
 
       # --- Step 3: Search for CHROMEOS magic ---
       echo "Searching for CHROMEOS magic..."
-      MAGIC_OFFSET=$(grep -aob 'CHROMEOS' "$WORKDIR/p2.bin" | head -n1 | cut -d: -f1 || true)
+      # binwalk-based detection sometimes panics under concurrent I/O; add retry loop
+      BINWALK_ATTEMPTS=3
+      for attempt in $(seq 1 "$BINWALK_ATTEMPTS"); do
+        MAGIC_OFFSET=$(grep -aob 'CHROMEOS' "$WORKDIR/p2.bin" | head -n1 | cut -d: -f1 || true)
+        if [ -n "$MAGIC_OFFSET" ]; then
+          echo "Found CHROMEOS magic on attempt $attempt"
+          break
+        fi
+        echo "binwalk/grep attempt $attempt failed; retrying..."
+        sleep 2
+      done
 
+      # Fallback if still empty after retries
       if [ -z "$MAGIC_OFFSET" ]; then
         echo "ERROR: Could not find CHROMEOS magic in KERN-A"
         exit 1
