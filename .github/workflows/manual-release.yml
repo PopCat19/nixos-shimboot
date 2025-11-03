@@ -20,6 +20,11 @@ on:
         default: 'ubuntu-latest'
         type: choice
         options: [ubuntu-latest, popcat19-nixos0]
+      include_checksum:
+        description: 'Include SHA256 checksum in packaged artifact'
+        required: false
+        default: true
+        type: boolean
 
 env:
   NIXPKGS_ALLOW_UNFREE: 1
@@ -125,6 +130,7 @@ jobs:
         run: |
           set -e
 
+          # Detect working directory where shimboot.img is located
           if [ -f "/nix/work/shimboot.img" ]; then
             WORKDIR="/nix/work"
           elif [ -f "work/shimboot.img" ]; then
@@ -147,28 +153,31 @@ jobs:
           cd "$WORKDIR"
 
           ARTIFACT_NAME="${{ matrix.board }}-shimboot-minimal"
-          
-          echo "📦 Compressing ${ARTIFACT_NAME}..."
-          pv shimboot.img | zstd -19 --long -T0 -o "${ARTIFACT_NAME}.img.zst"
+          mkdir -p flat
 
-          echo "🔐 Generating checksums..."
-          sha256sum "${ARTIFACT_NAME}.img.zst" > "${ARTIFACT_NAME}.img.zst.sha256"
-          du -h "${ARTIFACT_NAME}.img.zst" >> "${ARTIFACT_NAME}.img.zst.sha256"
+          echo "📦 Compressing ${ARTIFACT_NAME}.img.zst ..."
+          pv shimboot.img | zstd -19 --long -T0 -o "flat/${ARTIFACT_NAME}.img.zst"
 
-          SIZE_MB=$(du -m "${ARTIFACT_NAME}.img.zst" | cut -f1)
-          ORIG_SIZE_MB=$(du -m "shimboot.img" | cut -f1)
-          COMPRESSION_RATIO=$((100 - (SIZE_MB * 100 / ORIG_SIZE_MB)))
+          # Optional checksum generation (default: true)
+          if [ "${{ github.event.inputs.include_checksum || 'true' }}" = "true" ]; then
+            echo "🔐 Generating checksum..."
+            (cd flat && sha256sum "${ARTIFACT_NAME}.img.zst" > "${ARTIFACT_NAME}.img.zst.sha256")
+          fi
 
-          echo "📊 Compression stats for ${{ matrix.board }}:"
-          echo "  Original: ${ORIG_SIZE_MB}MB"
-          echo "  Compressed: ${SIZE_MB}MB (${COMPRESSION_RATIO}% reduction)"
-          
-          echo "📦 Zipping ${ARTIFACT_NAME}.zip ..."
-          zip -9 "${ARTIFACT_NAME}.zip" "${ARTIFACT_NAME}.img.zst" "${ARTIFACT_NAME}.img.zst.sha256"
+          echo "📦 Zipping flat files..."
+          cd flat
+          if [ -f "${ARTIFACT_NAME}.img.zst.sha256" ]; then
+            zip -9 "../${ARTIFACT_NAME}.zip" "${ARTIFACT_NAME}.img.zst" "${ARTIFACT_NAME}.img.zst.sha256"
+          else
+            zip -9 "../${ARTIFACT_NAME}.zip" "${ARTIFACT_NAME}.img.zst"
+          fi
 
+          cd ..
+          echo "💡 Final zip package:"
           unzip -l "${ARTIFACT_NAME}.zip"
 
-          rm -f shimboot.img "${ARTIFACT_NAME}.img.zst" "${ARTIFACT_NAME}.img.zst.sha256"
+          # Clean up working files
+          rm -rf flat shimboot.img
 
       - name: Upload zipped artifact for release
         uses: actions/upload-artifact@v4
