@@ -217,6 +217,8 @@ verify_cachix_config() {
 export NIXPKGS_ALLOW_UNFREE="${NIXPKGS_ALLOW_UNFREE:-1}"
 
 # === Config ===
+# shellcheck disable=SC2034
+# SYSTEM: Nix system type for builds (not directly used in this script)
 SYSTEM="x86_64-linux"
 
 # Detect if we're in CI with Nothing but Nix (large /nix mount)
@@ -393,7 +395,8 @@ mkdir -p "$WORKDIR" "$WORKDIR/mnt_src_rootfs" "$WORKDIR/mnt_bootloader" "$WORKDI
 check_disk_space() {
     local required_gb="${1:-30}"
     local path="${2:-.}"
-    local available_gb=$(df -BG "$path" | awk 'NR==2 {print $4}' | sed 's/G//')
+    local available_gb
+    available_gb=$(df -BG "$path" | awk 'NR==2 {print $4}' | sed 's/G//')
     
     if [ "${available_gb:-0}" -lt "$required_gb" ]; then
         log_error "Insufficient disk space: ${available_gb}GB available, ${required_gb}GB required"
@@ -510,7 +513,7 @@ cleanup() {
     		for i in {1..3}; do
     			safe_exec sudo umount "$mnt" 2>/dev/null && break
     			sleep 0.5
-    			[ $i -eq 3 ] && safe_exec sudo umount -l "$mnt" 2>/dev/null
+    			[ "$i" -eq 3 ] && safe_exec sudo umount -l "$mnt" 2>/dev/null
     		done
     	fi
     done
@@ -550,14 +553,14 @@ retry_command() {
     shift 2
     local attempt=1
     
-    while [ $attempt -le $max_attempts ]; do
+    while [ "$attempt" -le "$max_attempts" ]; do
         log_info "Attempt $attempt/$max_attempts: $*"
         if "$@"; then
             return 0
         fi
         
         local exit_code=$?
-        if [ $attempt -lt $max_attempts ]; then
+        if [ "$attempt" -lt "$max_attempts" ]; then
             log_warn "Command failed with exit code $exit_code, retrying in ${wait_time}s..."
             sleep "$wait_time"
         else
@@ -597,9 +600,9 @@ if [ "$PREWARM_CACHE" -eq 1 ]; then
     
     # Try to substitute without building
     nix build --dry-run \
-        .#extracted-kernel-${BOARD} \
-        .#initramfs-patching-${BOARD} \
-        .#${RAW_ROOTFS_ATTR} \
+        ".#extracted-kernel-${BOARD}" \
+        ".#initramfs-patching-${BOARD}" \
+        ".#${RAW_ROOTFS_ATTR}" \
         2>&1 | grep "will be fetched" || log_info "Nothing to fetch"
 fi
 
@@ -640,11 +643,11 @@ if [ "$START_STEP" -le 1 ]; then
     log_step "$CURRENT_STEP" "Building Nix outputs (parallel)"
 
     # Build all in parallel, capture PIDs
-    nix build "${NIX_BUILD_FLAGS[@]}" .#extracted-kernel-${BOARD} &
+    nix build "${NIX_BUILD_FLAGS[@]}" ".#extracted-kernel-${BOARD}" &
     KERNEL_PID=$!
-    nix build "${NIX_BUILD_FLAGS[@]}" .#initramfs-patching-${BOARD} &
+    nix build "${NIX_BUILD_FLAGS[@]}" ".#initramfs-patching-${BOARD}" &
     INITRAMFS_PID=$!
-    nix build "${NIX_BUILD_FLAGS[@]}" .#${RAW_ROOTFS_ATTR} &
+    nix build "${NIX_BUILD_FLAGS[@]}" ".#${RAW_ROOTFS_ATTR}" &
     ROOTFS_PID=$!
 
     # Wait and check each
@@ -675,13 +678,13 @@ log_info "Patched initramfs dir: $PATCHED_INITRAMFS"
 log_info "Raw rootfs: $RAW_ROOTFS_IMG"
 
 # Build ChromeOS SHIM and determine RECOVERY per policy
-SHIM_BIN="$(nix build "${NIX_BUILD_FLAGS[@]}" .#chromeos-shim-${BOARD} --print-out-paths)"
+SHIM_BIN="$(nix build "${NIX_BUILD_FLAGS[@]}" ".#chromeos-shim-${BOARD}" --print-out-paths)"
 RECOVERY_PATH=""
 if [ "${SKIP_RECOVERY:-0}" != "1" ]; then
 	if [ -n "${RECOVERY_BIN:-}" ]; then
 		RECOVERY_PATH="$RECOVERY_BIN"
 	else
-		RECOVERY_PATH="$(nix build "${NIX_BUILD_FLAGS[@]}" .#chromeos-recovery-${BOARD} --print-out-paths)/recovery.bin"
+		RECOVERY_PATH="$(nix build "${NIX_BUILD_FLAGS[@]}" ".#chromeos-recovery-${BOARD}" --print-out-paths)/recovery.bin"
 	fi
 fi
 log_info "ChromeOS shim: $SHIM_BIN"
@@ -738,6 +741,7 @@ if [ "$START_STEP" -le 4 ]; then
 		# More robust path resolution
 		SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 		if [ -f "$SCRIPT_DIR/tools/harvest-drivers.sh" ]; then
+			# shellcheck disable=SC1091
 			source "$SCRIPT_DIR/tools/harvest-drivers.sh"
 			prune_unused_firmware "$HARVEST_OUT/lib/firmware"
 		else
@@ -1217,7 +1221,8 @@ show_cache_stats() {
 	   log_step "Stats" "Build cache statistics"
 	   
 	   if [ -f /nix/var/log/nix/drvs ]; then
-	       local total_derivations=$(find /nix/var/log/nix/drvs -type f | wc -l)
+	       local total_derivations
+	       total_derivations=$(find /nix/var/log/nix/drvs -type f | wc -l)
 	       log_info "Total derivations built: $total_derivations"
 	   fi
 	   
