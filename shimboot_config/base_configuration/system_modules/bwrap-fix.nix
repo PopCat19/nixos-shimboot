@@ -32,13 +32,13 @@
   system.activationScripts.fix-steam-bwrap = {
     text = ''
       echo "Checking for Steam bwrap copies..."
-      
+
       # Get actual user's home (not root's)
       USER_HOME="/home/${userConfig.user.username}"
-      
+
       if [ -d "$USER_HOME/.steam" ]; then
         echo "Fixing Steam bwrap copies for ${userConfig.user.username}..."
-        
+
         # Find and fix all srt-bwrap binaries
         find "$USER_HOME/.steam" -name 'srt-bwrap' -type f 2>/dev/null | while read -r bwrap; do
           if [ -f "$bwrap" ]; then

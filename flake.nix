@@ -140,25 +140,28 @@
     # Integrate static checks under the 'checks' output so `nix flake check`
     # will automatically verify Nix code style and hygiene.
     checks.${system} = {
-      alejandra-formatting = nixpkgs.legacyPackages.${system}.runCommand
+      alejandra-formatting =
+        nixpkgs.legacyPackages.${system}.runCommand
         "alejandra-check"
-        { buildInputs = [ nixpkgs.legacyPackages.${system}.alejandra ]; }
+        {buildInputs = [nixpkgs.legacyPackages.${system}.alejandra];}
         ''
           alejandra --check .
           touch $out
         '';
 
-      deadnix-check = nixpkgs.legacyPackages.${system}.runCommand
+      deadnix-check =
+        nixpkgs.legacyPackages.${system}.runCommand
         "deadnix-check"
-        { buildInputs = [ nixpkgs.legacyPackages.${system}.deadnix ]; }
+        {buildInputs = [nixpkgs.legacyPackages.${system}.deadnix];}
         ''
           deadnix .
           touch $out
         '';
 
-      statix-check = nixpkgs.legacyPackages.${system}.runCommand
+      statix-check =
+        nixpkgs.legacyPackages.${system}.runCommand
         "statix-check"
-        { buildInputs = [ nixpkgs.legacyPackages.${system}.statix ]; }
+        {buildInputs = [nixpkgs.legacyPackages.${system}.statix];}
         ''
           statix check
           touch $out
