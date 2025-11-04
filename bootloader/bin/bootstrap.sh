@@ -38,7 +38,7 @@ invoke_terminal() {
 	shift
 	shift
 	# Copied from factory_installer/factory_shim_service.sh.
-	echo "${title}" >>${tty}
+	echo "${title}" >>"${tty}"
 	setsid sh -c "exec script -afqc '$*' /dev/null <${tty} >>${tty} 2>&1 &"
 }
 
@@ -54,7 +54,9 @@ get_part_dev() {
 	local partition="$2"
 
 	#disk paths ending with a number will have a "p" before the partition number
+	local last_char
 	last_char="$(echo -n "$disk" | tail -c 1)"
+
 	if [ "$last_char" -eq "$last_char" ] 2>/dev/null; then
 		echo "${disk}p${partition}"
 	else
@@ -63,25 +65,31 @@ get_part_dev() {
 }
 
 find_rootfs_partitions() {
-	local disks=$(fdisk -l | sed -n "s/Disk \(\/dev\/.*\):.*/\1/p")
+	local disks
+	disks=$(fdisk -l | sed -n "s/Disk \(\/dev\/.*\):.*/\1/p")
 	if [ ! "${disks}" ]; then
 		return 1
 	fi
 
 	for disk in $disks; do
-		local partitions=$(fdisk -l $disk | sed -n "s/^[ ]\+\([0-9]\+\).*shimboot_rootfs:\(.*\)$/\1:\2/p")
+		local partitions
+		partitions=$(fdisk -l "$disk" | sed -n "s/^[ ]\+\([0-9]\+\).*shimboot_rootfs:\(.*\)$/\1:\2/p")
 		if [ ! "${partitions}" ]; then
 			continue
 		fi
 		for partition in $partitions; do
-			get_part_dev "$disk" "$partition"
+			local device
+			device="$(get_part_dev "$disk" "$partition")"
+			echo "$device"
 		done
 	done
 }
 
 find_chromeos_partitions() {
-	local roota_partitions="$(cgpt find -l ROOT-A)"
-	local rootb_partitions="$(cgpt find -l ROOT-B)"
+	local roota_partitions
+	roota_partitions="$(cgpt find -l ROOT-A)"
+	local rootb_partitions
+	rootb_partitions="$(cgpt find -l ROOT-B)"
 
 	if [ "$roota_partitions" ]; then
 		for partition in $roota_partitions; do
@@ -97,8 +105,8 @@ find_chromeos_partitions() {
 }
 
 find_all_partitions() {
-	echo "$(find_chromeos_partitions)"
-	echo "$(find_rootfs_partitions)"
+	find_chromeos_partitions
+	find_rootfs_partitions
 }
 
 # locate the vendor helper partition (shimboot_rootfs:vendor or FS label shimboot_vendor)
@@ -113,14 +121,16 @@ find_vendor_partition() {
 
 	# Guard blkid usage - not all busybox builds have full blkid support
 	if command -v blkid >/dev/null 2>&1; then
-		local dev_from_label="$(blkid -L shimboot_vendor 2>/dev/null || true)"
+		local dev_from_label
+		dev_from_label="$(blkid -L shimboot_vendor 2>/dev/null || true)"
 		if [ -n "$dev_from_label" ]; then
 			echo "$dev_from_label"
 			return 0
 		fi
 
 		# Try PARTLABEL via blkid (GPT partition name) - may not work in busybox
-		local dev_from_partlabel="$(blkid -t PARTLABEL='shimboot_rootfs:vendor' -o device 2>/dev/null | head -n1 || true)"
+		local dev_from_partlabel
+		dev_from_partlabel="$(blkid -t PARTLABEL='shimboot_rootfs:vendor' -o device 2>/dev/null | head -n1 || true)"
 		if [ -n "$dev_from_partlabel" ]; then
 			echo "$dev_from_partlabel"
 			return 0
@@ -129,7 +139,8 @@ find_vendor_partition() {
 
 	# cgpt label fallback (preferred on ChromeOS devices)
 	if command -v cgpt >/dev/null 2>&1; then
-		local p="$(cgpt find -l 'shimboot_rootfs:vendor' 2>/dev/null | head -n1)"
+		local p
+		p="$(cgpt find -l 'shimboot_rootfs:vendor' 2>/dev/null | head -n1)"
 		if [ -n "$p" ]; then
 			echo "$p"
 			return 0
@@ -157,7 +168,8 @@ find_vendor_partition() {
 # mount vendor and bind its modules/firmware into the target root (no tmpfs staging)
 bind_vendor_into() {
 	local target_root="/newroot"
-	local vendor_part="$(find_vendor_partition)"
+	local vendor_part
+	vendor_part="$(find_vendor_partition)"
 	if [ ! "$vendor_part" ]; then
 		echo "vendor: not found"
 		return 0
@@ -215,9 +227,11 @@ move_mounts() {
 }
 
 print_license() {
-	local shimboot_version="$(cat /opt/.shimboot_version)"
+	local shimboot_version
+	shimboot_version="$(cat /opt/.shimboot_version)"
 	if [ -f "/opt/.shimboot_version_dev" ]; then
-		local git_hash="$(cat /opt/.shimboot_version_dev)"
+		local git_hash
+		git_hash="$(cat /opt/.shimboot_version_dev)"
 		local suffix="-dev-$git_hash"
 	fi
 	cat <<EOF
@@ -252,9 +266,12 @@ print_selector() {
 	if [ "${rootfs_partitions}" ]; then
 		for rootfs_partition in $rootfs_partitions; do
 			#i don't know of a better way to split a string in the busybox shell
-			local part_path=$(echo $rootfs_partition | cut -d ":" -f 1)
-			local part_name=$(echo $rootfs_partition | cut -d ":" -f 2)
-			local part_flags=$(echo $rootfs_partition | cut -d ":" -f 3)
+			local part_path
+			local part_name
+			local part_flags
+			part_path=$(echo "$rootfs_partition" | cut -d ":" -f 1)
+			part_name=$(echo "$rootfs_partition" | cut -d ":" -f 2)
+			part_flags=$(echo "$rootfs_partition" | cut -d ":" -f 3)
 			# hide vendor helper partition from menu
 			if [ "$part_name" = "vendor" ]; then
 				continue
@@ -275,7 +292,7 @@ get_selection() {
 	local rootfs_partitions="$1"
 	local i=1
 
-	read -p "Your selection: " selection
+	read -r -p "Your selection: " selection
 	if [ "$selection" = "q" ]; then
 		echo "rebooting now."
 		reboot -f
@@ -287,22 +304,26 @@ get_selection() {
 		clear
 		print_license
 		echo
-		read -p "press [enter] to return to the bootloader menu"
+		read -r -p "press [enter] to return to the bootloader menu"
 		return 1
-	fi
-
-	local selection_cmd="$(echo "$selection" | cut -d' ' -f1)"
-	if [ "$selection_cmd" = "rescue" ]; then
-		selection="$(echo "$selection" | cut -d' ' -f2-)"
-		rescue_mode="1"
+		fi
+	
+		local selection_cmd
+		selection_cmd="$(echo "$selection" | cut -d' ' -f1)"
+		if [ "$selection_cmd" = "rescue" ]; then
+			selection="$(echo "$selection" | cut -d' ' -f2-)"
+			rescue_mode="1"
 	else
 		rescue_mode=""
 	fi
 
 	for rootfs_partition in $rootfs_partitions; do
-		local part_path=$(echo $rootfs_partition | cut -d ":" -f 1)
-		local part_name=$(echo $rootfs_partition | cut -d ":" -f 2)
-		local part_flags=$(echo $rootfs_partition | cut -d ":" -f 3)
+		local part_path
+		local part_name
+		local part_flags
+		part_path=$(echo "$rootfs_partition" | cut -d ":" -f 1)
+		part_name=$(echo "$rootfs_partition" | cut -d ":" -f 2)
+		part_flags=$(echo "$rootfs_partition" | cut -d ":" -f 3)
 
 		# skip vendor helper partition from selection indices
 		if [ "$part_name" = "vendor" ]; then
@@ -344,11 +365,13 @@ copy_progress() {
 debug_dir() {
 	local path="$1"
 	if [ -d "$path" ]; then
-		local files="$(find "$path" -type f 2>/dev/null | wc -l)"
-		local size_k="$(du -sk "$path" 2>/dev/null | awk '{print $1}')"
+		local files
+		local size_k
+		files="$(find "$path" -type f 2>/dev/null | wc -l)"
+		size_k="$(du -sk "$path" 2>/dev/null | awk '{print $1}')"
 		echo "DEBUG: $path -> files=${files} size=${size_k}K"
 		# list top-level entries for quick sanity
-		ls -la "$path" 2>/dev/null | head -n 20 || true
+		find "$path" -maxdepth 1 -ls 2>/dev/null | head -n 20 || true
 	else
 		echo "DEBUG: $path (missing)"
 	fi
@@ -361,9 +384,12 @@ print_donor_selector() {
 	echo "Choose a partition to copy firmware and modules from:"
 
 	for rootfs_partition in $rootfs_partitions; do
-		local part_path=$(echo $rootfs_partition | cut -d ":" -f 1)
-		local part_name=$(echo $rootfs_partition | cut -d ":" -f 2)
-		local part_flags=$(echo $rootfs_partition | cut -d ":" -f 3)
+		local part_path
+		local part_name
+		local part_flags
+		part_path=$(echo "$rootfs_partition" | cut -d ":" -f 1)
+		part_name=$(echo "$rootfs_partition" | cut -d ":" -f 2)
+		part_flags=$(echo "$rootfs_partition" | cut -d ":" -f 3)
 
 		if [ "$part_flags" = "CrOS" ]; then
 			continue
@@ -379,7 +405,9 @@ yes_no_prompt() {
 	local var_name="$2"
 
 	while true; do
-		read -p "$prompt" temp_result
+		# avoid mangling backslashes with read
+		read -r -p "$prompt" temp_result
+
 
 		if [ "$temp_result" = "y" ] || [ "$temp_result" = "n" ]; then
 			#the busybox shell has no other way to declare a variable from a string
@@ -396,12 +424,16 @@ get_donor_selection() {
 	local rootfs_partitions="$1"
 	local target="$2"
 	local i=1
-	read -p "Your selection: " selection
+	# use -r to avoid misinterpreting backslashes
+	read -r -p "Your selection: " selection
 
 	for rootfs_partition in $rootfs_partitions; do
-		local part_path=$(echo $rootfs_partition | cut -d ":" -f 1)
-		local part_name=$(echo $rootfs_partition | cut -d ":" -f 2)
-		local part_flags=$(echo $rootfs_partition | cut -d ":" -f 3)
+		local part_path
+		local part_name
+		local part_flags
+		part_path=$(echo "$rootfs_partition" | cut -d ":" -f 1)
+		part_name=$(echo "$rootfs_partition" | cut -d ":" -f 2)
+		part_flags=$(echo "$rootfs_partition" | cut -d ":" -f 3)
 
 		if [ "$part_flags" = "CrOS" ]; then
 			continue
@@ -428,12 +460,12 @@ exec_init() {
 		echo "once you are done fixing whatever is broken, run 'exec /sbin/init' to continue booting the system normally"
 
 		if [ -f "/bin/bash" ]; then
-			exec /bin/bash <"$TTY1" >>"$TTY1" 2>&1
+			exec /bin/bash </dev/null >/dev/null 2>&1
 		else
-			exec /bin/sh <"$TTY1" >>"$TTY1" 2>&1
+			exec /bin/sh </dev/null >/dev/null 2>&1
 		fi
 	else
-		exec /sbin/init <"$TTY1" >>"$TTY1" 2>&1
+		exec /sbin/init </dev/null >/dev/null 2>&1
 	fi
 }
 
@@ -444,7 +476,7 @@ boot_target() {
 	mkdir /newroot
 	#use cryptsetup to check if the rootfs is encrypted
 	if [ -x "$(command -v cryptsetup)" ] && cryptsetup luksDump "$target" >/dev/null 2>&1; then
-		cryptsetup open $target rootfs
+		cryptsetup open "$target" rootfs
 		# Prefer explicit filesystem type to avoid EINVAL when fs module isn't autoloaded
 		if ! mount -t ext4 /dev/mapper/rootfs /newroot 2>/dev/null; then
 			# Fallback to autodetect and emit diagnostics
@@ -459,14 +491,14 @@ boot_target() {
 		fi
 	else
 		# Non-encrypted rootfs; try ext4 explicitly first
-		if ! mount -t ext4 $target /newroot 2>/dev/null; then
+		if ! mount -t ext4 "$target" /newroot 2>/dev/null; then
 			# Fallback to autodetect and emit diagnostics on failure
-			if ! mount $target /newroot; then
+			if ! mount "$target" /newroot; then
 				echo "mount failed for $target"
 				echo "Available filesystems in initramfs:"
 				cat /proc/filesystems || true
 				echo "blkid $target:"
-				blkid $target || true
+				blkid "$target" || true
 				return 1
 			fi
 		fi
@@ -495,12 +527,13 @@ boot_chromeos() {
 
 	echo "mounting target"
 	mkdir /newroot
-	mount -o ro $target /newroot
+	mount -o ro "$target" /newroot
 
 	echo "mounting tmpfs"
 	mount -t tmpfs -o mode=1777 none /newroot/tmp
 	mount -t tmpfs -o mode=0555 run /newroot/run
-	mkdir -p -m 0755 /newroot/run/lock
+	mkdir -p /newroot/run/lock
+	chmod 0755 /newroot/run/lock
 
 	echo "mounting donor partition: $donor"
 	local donor_mount="/newroot/tmp/donor_mnt"
@@ -508,7 +541,7 @@ boot_chromeos() {
 	mkdir -p $donor_mount
 	donor_label="$(blkid -o value -s LABEL "$donor" 2>/dev/null || true)"
 	echo "donor: device=$donor label=${donor_label:-N/A}"
-	mount -o ro $donor $donor_mount
+	mount -o ro "$donor" $donor_mount
 	echo "donor: mounted at $donor_mount"
 	debug_dir "$donor_mount/lib/modules"
 	debug_dir "$donor_mount/lib/firmware"
@@ -520,7 +553,7 @@ boot_chromeos() {
 	mkdir -p "$donor_files/lib/modules" "$donor_files/lib/firmware"
 	
 	# Copy modules if they exist
-	if [ -d "$donor_mount/lib/modules" ] && ls -1 "$donor_mount/lib/modules" 2>/dev/null | grep -q .; then
+	if [ -d "$donor_mount/lib/modules" ] && find "$donor_mount/lib/modules" -mindepth 1 -print -quit 2>/dev/null | grep -q .; then
 		echo "copying modules to tmpfs (may take a while)"
 		debug_dir "$donor_mount/lib/modules"
 		if ! copy_progress "$donor_mount/lib/modules" "$donor_files/lib/modules" 2>/dev/null; then
@@ -532,9 +565,9 @@ boot_chromeos() {
 	else
 		echo "note: no modules found in donor"
 	fi
-	
+
 	# Copy firmware if it exists
-	if [ -d "$donor_mount/lib/firmware" ] && ls -1 "$donor_mount/lib/firmware" 2>/dev/null | grep -q .; then
+	if [ -d "$donor_mount/lib/firmware" ] && find "$donor_mount/lib/firmware" -mindepth 1 -print -quit 2>/dev/null | grep -q .; then
 		echo "copying firmware to tmpfs (may take a while)"
 		debug_dir "$donor_mount/lib/firmware"
 		if ! copy_progress "$donor_mount/lib/firmware" "$donor_files/lib/firmware" 2>/dev/null; then
@@ -548,12 +581,12 @@ boot_chromeos() {
 	fi
 	
 	# Now bind from tmpfs (not from donor device)
-	if [ -d "$donor_files/lib/modules" ] && ls -1 "$donor_files/lib/modules" 2>/dev/null | grep -q .; then
+	if [ -d "$donor_files/lib/modules" ] && [ -n "$(find "$donor_files/lib/modules" -mindepth 1 -print -quit 2>/dev/null)" ]; then
 		echo "binding tmpfs modules to /newroot/lib/modules"
 		mkdir -p /newroot/lib/modules
 		mount -o bind "$donor_files/lib/modules" /newroot/lib/modules
 	fi
-	if [ -d "$donor_files/lib/firmware" ] && ls -1 "$donor_files/lib/firmware" 2>/dev/null | grep -q .; then
+	if [ -d "$donor_files/lib/firmware" ] && [ -n "$(find "$donor_files/lib/firmware" -mindepth 1 -print -quit 2>/dev/null)" ]; then
 		echo "binding tmpfs firmware to /newroot/lib/firmware"
 		mkdir -p /newroot/lib/firmware
 		mount -o bind "$donor_files/lib/firmware" /newroot/lib/firmware
@@ -569,7 +602,8 @@ boot_chromeos() {
 		mkdir -p /newroot/tmp/empty
 		mount -o bind /newroot/tmp/empty /sys/class/tpm
 
-		cat /newroot/etc/lsb-release | sed "s/DEVICETYPE=OTHER/DEVICETYPE=CHROMEBOOK/" >/newroot/tmp/lsb-release
+		# avoid reading and writing to same file in pipeline
+		sed "s/DEVICETYPE=OTHER/DEVICETYPE=CHROMEBOOK/" </newroot/etc/lsb-release >/newroot/tmp/lsb-release
 		mount -o bind /newroot/tmp/lsb-release /newroot/etc/lsb-release
 	fi
 
@@ -611,7 +645,8 @@ main() {
 
 	enable_debug_console "$TTY2"
 
-	local valid_partitions="$(find_all_partitions)"
+	local valid_partitions
+	valid_partitions="$(find_all_partitions)"
 
 	while true; do
 		clear
