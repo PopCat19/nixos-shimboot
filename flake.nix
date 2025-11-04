@@ -110,10 +110,20 @@
     # Set default package to dedede raw-rootfs
     defaultPackage.${system} = packages.${system}.raw-rootfs-dedede or packages.${system}.raw-rootfs;
 
-    # Merge devShells from all modules
+    # Merge devShells from all modules and add default development shell
     devShells = {
       ${system} =
-        developmentEnvironmentOutputs.devShells.${system} or {};
+        (developmentEnvironmentOutputs.devShells.${system} or {})
+        // {
+          # Add default development shell with linting tools
+          default = nixpkgs.legacyPackages.${system}.mkShell {
+            buildInputs = with nixpkgs.legacyPackages.${system}; [
+              alejandra
+              deadnix
+              statix
+            ];
+          };
+        };
     };
 
     # Merge nixosConfigurations from all modules
@@ -125,6 +135,36 @@
   in {
     # Export all merged outputs
     formatter.${system} = nixpkgs.legacyPackages.${system}.alejandra;
+
+    # --- CI / Automated linting checks ---
+    # Integrate static checks under the 'checks' output so `nix flake check`
+    # will automatically verify Nix code style and hygiene.
+    checks.${system} = {
+      alejandra-formatting = nixpkgs.legacyPackages.${system}.runCommand
+        "alejandra-check"
+        { buildInputs = [ nixpkgs.legacyPackages.${system}.alejandra ]; }
+        ''
+          alejandra --check .
+          touch $out
+        '';
+
+      deadnix-check = nixpkgs.legacyPackages.${system}.runCommand
+        "deadnix-check"
+        { buildInputs = [ nixpkgs.legacyPackages.${system}.deadnix ]; }
+        ''
+          deadnix .
+          touch $out
+        '';
+
+      statix-check = nixpkgs.legacyPackages.${system}.runCommand
+        "statix-check"
+        { buildInputs = [ nixpkgs.legacyPackages.${system}.statix ]; }
+        ''
+          statix check
+          touch $out
+        '';
+    };
+
     inherit packages devShells nixosConfigurations nixosModules;
   };
 }
