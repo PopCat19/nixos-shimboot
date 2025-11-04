@@ -840,8 +840,9 @@ main() {
 	action "Syncing buffers..."
 	sync
 
-	success "Completed writing image to ${OUTPUT_DEVICE}."
-	note "You may now remove the device safely after ensuring all activity LEDs are idle."
+	# After sync
+	udisksctl power-off -b "$OUTPUT_DEVICE" || true
+	success "Device powered off; safe to remove."
 }
 
 main "$@"
