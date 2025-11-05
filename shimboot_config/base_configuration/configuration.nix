@@ -56,7 +56,5 @@ in {
 
   nixpkgs.config.allowUnfree = true;
 
-  services.envfs.enable = true;
-
   system.stateVersion = "24.11";
 }
