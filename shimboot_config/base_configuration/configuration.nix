@@ -18,7 +18,7 @@
   userConfig = import ../user-config.nix {};
 in {
   imports = [
-    ./environment.nix
+    ./system_modules/environment.nix
     ./system_modules/boot.nix
     ./system_modules/networking.nix
     ./system_modules/filesystems.nix
