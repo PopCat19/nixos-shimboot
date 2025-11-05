@@ -15,5 +15,8 @@
   environment.variables = {
     NIXOS_CONFIG_DIR = "$HOME/nixos-config";
     NIXOS_FLAKE_HOSTNAME = userConfig.host.hostname;
+    EDITOR = userConfig.defaultApps.editor.command;
+    VISUAL = "$EDITOR";
+    PATH = "$HOME/bin:$HOME/.npm-global/bin:$PATH";
   };
 }

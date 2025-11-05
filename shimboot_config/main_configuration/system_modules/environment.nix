@@ -13,8 +13,6 @@
   ...
 }: {
   environment.variables = {
-    EDITOR = userConfig.defaultApps.editor.command;
-    VISUAL = "$EDITOR";
     BROWSER = userConfig.defaultApps.browser.package;
     TERMINAL = userConfig.defaultApps.terminal.command;
     FILE_MANAGER = userConfig.defaultApps.fileManager.package;
