@@ -46,6 +46,7 @@ function nixos-rebuild-basic
         echo "🔐 Kernel $kver detected (>= 5.6). Using default sandboxed build."
     end
 
+    echo "Command: sudo nixos-rebuild $nix_args"
     echo "🚀 Running NixOS rebuild..."
     if sudo nixos-rebuild $nix_args
         echo "✅ Build succeeded"

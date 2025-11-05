@@ -54,6 +54,7 @@ function nixos-flake-update
     end
 
     # Perform flake update
+    echo "Command: nix flake update $nix_update_args"
     echo "📦 Running nix flake update..."
     if nix flake update $nix_update_args
         echo "✅ Flake update completed successfully"
@@ -71,8 +72,10 @@ function nixos-flake-update
 
                 # Show diff if available
                 if command -v diff >/dev/null
+                    echo "Command: diff --unified=3 --color=always flake.lock.bak flake.lock"
                     diff --unified=3 --color=always flake.lock.bak flake.lock 2>/dev/null; or begin
                         echo "📝 Detailed diff:"
+                        echo "Command: diff --unified=3 flake.lock.bak flake.lock"
                         diff --unified=3 flake.lock.bak flake.lock 2>/dev/null; or echo "   (diff command failed, but changes were detected)"
                     end
                 else
@@ -85,6 +88,7 @@ function nixos-flake-update
                 # Show summary of what inputs were updated
                 echo "🔍 Analyzing updated inputs..."
                 if command -v jq >/dev/null
+                    echo "Command: jq -r '.nodes | to_entries[] | select(.value.locked) | .key' flake.lock"
                     set -l updated_inputs (jq -r '.nodes | to_entries[] | select(.value.locked) | .key' flake.lock 2>/dev/null | head -10)
                     if test -n "$updated_inputs"
                         echo "📋 Updated inputs:"
@@ -110,6 +114,7 @@ function nixos-flake-update
 
         if test -f flake.lock.bak
             echo "🔄 Restoring backup..."
+            echo "Command: mv flake.lock.bak flake.lock"
             mv flake.lock.bak flake.lock
             echo "✅ Backup restored"
         end

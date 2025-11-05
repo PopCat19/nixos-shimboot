@@ -34,6 +34,7 @@ in {
       # Generate hardware config if missing
       if [ ! -f /etc/nixos/hardware-configuration.nix ]; then
         echo "[setup_nixos_config] Generating hardware-configuration.nix..."
+        echo "Command: nixos-generate-config --show-hardware-config > /etc/nixos/hardware-configuration.nix"
         nixos-generate-config --show-hardware-config > /etc/nixos/hardware-configuration.nix
       fi
 
@@ -45,11 +46,13 @@ in {
         for file in configuration.nix flake.nix; do
           if [ -f "/etc/nixos/$file" ] && [ ! -L "/etc/nixos/$file" ]; then
             echo "[setup_nixos_config] Backing up /etc/nixos/$file → $file.bak"
+            echo "Command: mv \"/etc/nixos/$file\" \"/etc/nixos/$file.bak\""
             mv "/etc/nixos/$file" "/etc/nixos/$file.bak"
           fi
         done
 
         # Create symlink to user's flake
+        echo "Command: ln -sf \"$NIXOS_CONFIG_PATH/flake.nix\" /etc/nixos/flake.nix"
         ln -sf "$NIXOS_CONFIG_PATH/flake.nix" /etc/nixos/flake.nix
 
         echo
@@ -299,6 +302,7 @@ in {
         else
           # Check if already connected to Wi-Fi
           # Avoid abort when no active Wi-Fi is found (pipefail-safe)
+          echo "Command: nmcli -t -f active,ssid dev wifi | grep \"^yes:\" | cut -d: -f2-"
           CURRENT_CONNECTION=$(nmcli -t -f active,ssid dev wifi | grep "^yes:" | cut -d: -f2- || true)
 
           if [ -n "$CURRENT_CONNECTION" ]; then
@@ -306,10 +310,12 @@ in {
             echo "Skipping network scan since connection is active."
           else
             echo "Scanning networks..."
+            echo "Command: nmcli dev wifi rescan"
             nmcli dev wifi rescan 2>/dev/null || true
             sleep 1
 
             echo
+            echo "Command: nmcli -f SSID,SECURITY,SIGNAL,CHAN dev wifi list | head -15"
             nmcli -f SSID,SECURITY,SIGNAL,CHAN dev wifi list | head -15
             echo
 
@@ -319,13 +325,16 @@ in {
               read -r -s -p "Password: " PSK
               echo
 
+              echo "Command: nmcli dev wifi connect '$SSID' password '***'"
               if failsafe "Wi-Fi connection" "nmcli dev wifi connect '$SSID' password '$PSK'"; then
                 log_ok "Connected to '$SSID'"
 
                 # Enable autoconnect
+                echo "Command: nmcli -t -f NAME,TYPE connection show | awk -F: -v ssid=\"$SSID\" '\$1 == ssid && \$2 == \"802-11-wireless\" {print \$1; exit}'"
                 CONN_NAME="$(nmcli -t -f NAME,TYPE connection show | \
                              awk -F: -v ssid="$SSID" '$1 == ssid && $2 == "802-11-wireless" {print $1; exit}')"
                 if [ -n "$CONN_NAME" ]; then
+                  echo "Command: nmcli connection modify \"$CONN_NAME\" connection.autoconnect yes"
                   nmcli connection modify "$CONN_NAME" connection.autoconnect yes 2>/dev/null || true
                   log_ok "Enabled autoconnect for '$SSID'"
                 fi
@@ -346,15 +355,18 @@ in {
         log_step "Step 2: Expand Root Filesystem"
 
         echo "Current disk usage:"
+        echo "Command: df -h / | tail -1"
         df -h / | tail -1
         echo
 
         if prompt_yes_no "Expand root partition to full USB capacity?"; then
           if command -v expand_rootfs >/dev/null 2>&1; then
+            echo "Command: sudo expand_rootfs"
             if failsafe "Root filesystem expansion" "sudo expand_rootfs"; then
               log_ok "Root filesystem expanded"
               echo
               echo "New disk usage:"
+              echo "Command: df -h / | tail -1"
               df -h / | tail -1
             else
               log_error "Expansion failed (see errors above)"
@@ -383,23 +395,28 @@ in {
         fi
 
         cd "$CONFIG_DIR"
+        echo "Command: git rev-parse --abbrev-ref HEAD"
         CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "detached")"
+        echo "Command: git rev-parse --short HEAD"
         CURRENT_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")"
         echo
         echo "Current: $CURRENT_BRANCH @ $CURRENT_COMMIT"
 
         if prompt_yes_no "Update from git remote?" n; then
+          echo "Command: git fetch origin"
           if failsafe "Git fetch" "git fetch origin"; then
             log_ok "Fetched updates"
 
             read -r -p "Switch to branch (Enter to stay on $CURRENT_BRANCH): " NEW_BRANCH
             if [ -n "$NEW_BRANCH" ] && [ "$NEW_BRANCH" != "$CURRENT_BRANCH" ]; then
+              echo "Command: git checkout '$NEW_BRANCH' || git checkout -B '$NEW_BRANCH' 'origin/$NEW_BRANCH'"
               if failsafe "Git checkout" "git checkout '$NEW_BRANCH' || git checkout -B '$NEW_BRANCH' 'origin/$NEW_BRANCH'"; then
                 log_ok "Switched to $NEW_BRANCH"
               else
                 log_error "Branch '$NEW_BRANCH' not found"
               fi
             elif prompt_yes_no "Pull latest commits on $CURRENT_BRANCH?" Y; then
+              echo "Command: git pull"
               failsafe "Git pull" "git pull" || log_warn "Pull failed (check for conflicts)"
             fi
           else
@@ -418,6 +435,7 @@ in {
 
         if prompt_yes_no "Run setup_nixos_config?" Y; then
           if command -v setup_nixos_config >/dev/null 2>&1; then
+            echo "Command: sudo setup_nixos_config"
             failsafe "Setup nixos config" "sudo setup_nixos_config"
           else
             log_error "setup_nixos_config command not found"
@@ -446,6 +464,7 @@ raw-efi-system"
 
           echo
           echo "Available:"
+          echo "Command: echo \"$CONFIGS\" | nl -w2 -s') '"
           echo "$CONFIGS" | nl -w2 -s') '
           echo "Default: $DEFAULT_HOST"
           echo "Note: 'minimal' variant uses only base modules (no desktop environment)"
@@ -468,6 +487,7 @@ raw-efi-system"
           if [ -z "$SELECTION" ]; then
             TARGET="$DEFAULT_HOST"
           else
+            echo "Command: echo \"$CONFIGS\" | sed -n \"''${SELECTION}p\""
             TARGET="$(echo "$CONFIGS" | sed -n "''${SELECTION}p")"
           fi
 
@@ -481,6 +501,7 @@ raw-efi-system"
           export NIX_CONFIG="accept-flake-config = true"
 
           # Check kernel version for sandbox compatibility
+          echo "Command: uname -r"
           KVER="$(uname -r)"
           NIX_REBUILD_ARGS="switch --flake .#$TARGET --option accept-flake-config true"
 
@@ -493,6 +514,7 @@ raw-efi-system"
             fi
           fi
 
+          echo "Command: sudo NIX_CONFIG='$NIX_CONFIG' nixos-rebuild $NIX_REBUILD_ARGS"
           if failsafe "NixOS rebuild" "sudo NIX_CONFIG='$NIX_CONFIG' nixos-rebuild $NIX_REBUILD_ARGS"; then
             log_ok "Rebuild successful!"
             echo
@@ -521,11 +543,14 @@ raw-efi-system"
 
       # Display fish greeting if available
       if command -v fish >/dev/null 2>&1; then
+        echo "Command: fish -c \"source $CONFIG_DIR/shimboot_config/base_configuration/system_modules/fish_functions/fish-greeting.fish; fish_greeting\""
         fish -c "source $CONFIG_DIR/shimboot_config/base_configuration/system_modules/fish_functions/fish-greeting.fish; fish_greeting" 2>/dev/null || true
       else
         if command -v fastfetch >/dev/null 2>&1; then
+          echo "Command: fastfetch"
           fastfetch
         elif command -v neofetch >/dev/null 2>&1; then
+          echo "Command: neofetch"
           neofetch
         else
           echo "System:   $(uname -s) $(uname -r)"

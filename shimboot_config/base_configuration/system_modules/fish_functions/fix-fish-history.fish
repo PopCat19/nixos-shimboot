@@ -20,11 +20,12 @@ function fix-fish-history
     end
 
     set -l backup_file "$history_file.bak"
+    echo "Command: cp \"$history_file\" \"$backup_file\""
     cp "$history_file" "$backup_file"
     echo "💾 Created backup at: $backup_file"
 
     echo "🔄 Attempting to repair history file..."
-
+    echo "Command: history merge"
     history merge
 
     if test $status -ne 0
@@ -32,7 +33,9 @@ function fix-fish-history
 
         set -l offset 2800
 
+        echo "Command: head -n $offset \"$history_file\" > \"$history_file.tmp\""
         head -n $offset "$history_file" > "$history_file.tmp"
+        echo "Command: mv \"$history_file.tmp\" \"$history_file\""
         mv "$history_file.tmp" "$history_file"
 
         echo "✅ History file truncated before corruption point"
