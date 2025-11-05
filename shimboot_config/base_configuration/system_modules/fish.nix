@@ -35,8 +35,6 @@
     # Global env setup
     "fish/conf.d/00-shimboot.fish".text = ''
       # NixOS Shimboot system-wide setup
-      set -Ux NIXOS_CONFIG_DIR $HOME/nixos-config
-      set -Ux NIXOS_FLAKE_HOSTNAME ${userConfig.host.hostname}
       set -Ux EDITOR ${userConfig.defaultApps.editor.command}
 
       # Add common paths
