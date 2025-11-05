@@ -53,9 +53,9 @@
             -        return mount_fd(source, fd, filesystemtype, mountflags, data);
             +        return RET_NERRNO(mount(source, target, filesystemtype, mountflags, data));
              }
- 
+
              const char* mount_propagation_flag_to_string(unsigned long flags) {
-           '')
+          '')
         ];
     });
   };
