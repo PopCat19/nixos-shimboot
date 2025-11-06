@@ -23,7 +23,6 @@ in {
     ./system_modules/networking.nix
     ./system_modules/filesystems.nix
     ./system_modules/packages.nix
-    ./system_modules/bwrap-fix.nix
     ./system_modules/helpers/helpers.nix
     ./system_modules/security.nix
     ./system_modules/systemd-patch.nix
