@@ -41,8 +41,36 @@ log_success() {
 }
 
 # === Configuration ===
-TARGET_PARTITION="${1:-/dev/sdd5}"
+TARGET_PARTITION="${1:-}"
 MOUNTPOINT="/mnt/nixos-rollback"
+
+# Auto-detect partition if not provided
+if [ -z "$TARGET_PARTITION" ]; then
+	log_info "Auto-detecting NixOS partitions..."
+	# Look for common NixOS partition patterns
+	for part in /dev/sd[a-z]5 /dev/sd[a-z]4 /dev/nvme[0-9]n1p5 /dev/nvme[0-9]n1p4; do
+		if [ -b "$part" ] && mountpoint -q "$part" 2>/dev/null; then
+			# Skip if already mounted
+			continue
+		fi
+		# Try to mount and check if it looks like NixOS
+		if mkdir -p "$MOUNTPOINT" && mount "$part" "$MOUNTPOINT" 2>/dev/null; then
+			if [ -d "$MOUNTPOINT/nix" ] && [ -d "$MOUNTPOINT/etc/nixos" ]; then
+				TARGET_PARTITION="$part"
+				umount "$MOUNTPOINT" 2>/dev/null
+				break
+			fi
+			umount "$MOUNTPOINT" 2>/dev/null
+		fi
+	done
+	
+	if [ -z "$TARGET_PARTITION" ]; then
+		log_error "Could not auto-detect NixOS partition"
+		log_info "Available partitions:"
+		lsblk | grep -E "disk|part" || true
+		exit 1
+	fi
+fi
 
 # Check if running as root
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
@@ -239,12 +267,20 @@ fi
 
 # Copy init from selected generation to rootfs
 cp -a "$INIT_PATH" "$MOUNTPOINT/init"
+
+# Update the systemConfig path in the init script to point to the selected generation
+sed -i "s|^systemConfig=.*|systemConfig=$SELECTED_TARGET|" "$MOUNTPOINT/init"
+
+# Also update the systemd path to use the selected generation
+sed -i "s|/run/current-system/systemd/|$SELECTED_TARGET/|" "$MOUNTPOINT/init"
+
 log_success "Updated init script from generation $SELECTED_GEN"
 
-# Verify init was copied
+# Verify init was copied and updated
 if [ -f "$MOUNTPOINT/init" ]; then
 	log_info "Init script successfully updated"
 	log_info "New init size: $(stat -c%s "$MOUNTPOINT/init" 2>/dev/null || echo "unknown") bytes"
+	log_info "System config now points to: $SELECTED_TARGET"
 else
 	log_error "Failed to copy init script"
 	exit 1
