@@ -38,10 +38,18 @@ ANSI_MAGENTA='\033[1;35m'
 
 log_step() { printf "${ANSI_BOLD}${ANSI_BLUE}[%s] %s${ANSI_CLEAR}\n" "$1" "$2"; }
 log_info() { printf "${ANSI_GREEN}  → %s${ANSI_CLEAR}\n" "$1"; }
-log_warn() { printf "${ANSI_YELLOW}  ! %s${ANSI_CLEAR}\n" "$1"; }
+log_warn() {
+  # Use yellow triangle for better visibility and consistency
+  printf "${ANSI_YELLOW}  ⚠ %s${ANSI_CLEAR}\n" "$1"
+}
 log_error() { printf "${ANSI_RED}  ✗ %s${ANSI_CLEAR}\n" "$1"; }
 log_success() { printf "${ANSI_GREEN}  ✓ %s${ANSI_CLEAR}\n" "$1"; }
-log_section() { printf "\n${ANSI_BOLD}${ANSI_CYAN}=== %s ===${ANSI_CLEAR}\n" "$1"; }
+log_section() {
+  printf "\n${ANSI_BOLD}${ANSI_CYAN}─── %s ───${ANSI_CLEAR}\n" "$1"
+}
+
+# Unified confirmation prompt helper for UX consistency
+confirm_action() { read -rp "→ Confirm action? [y/N]: " _ans; [[ "${_ans,,}" == "y" ]]; }
 
 # === Configuration ===
 TARGET_PARTITION="${1:-}"
@@ -270,8 +278,7 @@ rollback_generation() {
   log_warn "This will switch the system profile to generation $gen_num"
   log_info "Target: $target_path"
   
-  read -rp "Confirm rollback? [y/N]: " confirm
-  if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+  if ! confirm_action; then
     log_info "Rollback cancelled"
     return 0
   fi
@@ -314,9 +321,7 @@ delete_generations() {
   fi
   
   log_warn "Will delete $delete_count generation(s), keeping newest $keep_count"
-  read -rp "Proceed? [y/N]: " confirm
-  
-  if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+  if ! confirm_action; then
     log_info "Deletion cancelled"
     return 0
   fi
@@ -404,18 +409,31 @@ filesystem_menu() {
         if [[ "$MOUNTED" -eq 0 ]]; then
           mount_system "rw"
         fi
-        
         log_info "Entering chroot environment..."
-        log_warn "Type 'exit' to return to rescue helper"
-        
-        # Mount necessary filesystems
+        log_warn "Type 'exit' to return to rescue helper (if /bin/bash missing, try /run/current-system/sw/bin/bash)"
+
+        # Detect suitable shell path in rootfs
+        local bash_path=""
+        if [[ -x "$MOUNTPOINT/bin/bash" ]]; then
+          bash_path="/bin/bash"
+        elif [[ -x "$MOUNTPOINT/run/current-system/sw/bin/bash" ]]; then
+          bash_path="/run/current-system/sw/bin/bash"
+        elif [[ -x "$MOUNTPOINT/bin/sh" ]]; then
+          bash_path="/bin/sh"
+        else
+          log_error "No shell found inside rootfs (bash or sh)."
+          return 1
+        fi
+
+        # Bind essential filesystems for chroot
         mount --bind /dev "$MOUNTPOINT/dev"
         mount --bind /proc "$MOUNTPOINT/proc"
         mount --bind /sys "$MOUNTPOINT/sys"
-        
-        chroot "$MOUNTPOINT" /bin/bash || true
-        
-        # Unmount
+
+        # Enter chroot
+        chroot "$MOUNTPOINT" "$bash_path" || true
+
+        # Cleanly unmount
         umount "$MOUNTPOINT/sys" "$MOUNTPOINT/proc" "$MOUNTPOINT/dev" || true
         ;;
       "Check disk usage")
@@ -539,9 +557,7 @@ EOF
         fi
         
         log_warn "This will overwrite existing home directory contents!"
-        read -rp "Proceed? [y/N]: " confirm
-        
-        if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+        if ! confirm_action; then
           log_info "Import cancelled"
           continue
         fi
@@ -591,7 +607,9 @@ call_bootloader_backup_restore() {
     "Backup bootloader files" \
     "Restore from backup" \
     "Back to bootstrap menu (0)"; do
-    [[ "$REPLY" == "0" ]] && break
+    if [[ "$REPLY" == "0" || "$action" == "Back to bootstrap menu (0)" ]]; then
+      break
+    fi
     case "$action" in
       "Backup bootloader files")
         mkdir -p "$backup_dir"
@@ -702,13 +720,19 @@ bootstrap_menu() {
     "Inspect kernel/initramfs" \
     "Check ChromeOS GPT flags" \
     "Unmount and return (0)"; do
-    [[ "$REPLY" == "0" ]] && break
+    if [[ "$REPLY" == "0" || "$action" == "Unmount and return (0)" ]]; then
+      break
+    fi
     case "$action" in
       "List bootloader layout")
         find "$bootloader_dir" -maxdepth 2 -type f -exec ls -lah {} \; | head -n 25
         ;;
       "View bootstrap.sh")
-        [[ -f "$bootloader_dir/bin/bootstrap.sh" ]] && less "$bootloader_dir/bin/bootstrap.sh" || log_error "bootstrap.sh missing"
+        if [[ -f "$bootloader_dir/bin/bootstrap.sh" ]]; then
+          less "$bootloader_dir/bin/bootstrap.sh"
+        else
+          log_error "bootstrap.sh not found in $bootloader_dir/bin"
+        fi
         ;;
       "Edit bootstrap.sh")
         log_info "Mount temporarily RW and open with $EDITOR..."
@@ -723,7 +747,18 @@ bootstrap_menu() {
         display_bootloader_kernel_info "$device"
         ;;
       "Check ChromeOS GPT flags")
-        command -v cgpt >/dev/null && cgpt show "$bootloader_dev" || log_warn "cgpt not available"
+        if command -v cgpt >/dev/null; then
+          local disk_dev
+          disk_dev="/dev/$(lsblk -no PKNAME "$TARGET_PARTITION" 2>/dev/null)"
+          if [[ -b "$disk_dev" ]]; then
+            log_info "Inspecting GPT of $disk_dev"
+            cgpt show "$disk_dev" || log_warn "cgpt show failed (non‑ChromeOS GPT?)"
+          else
+            log_warn "Could not determine parent disk for $TARGET_PARTITION"
+          fi
+        else
+          log_warn "cgpt not available"
+        fi
         ;;
     esac
   done
@@ -750,7 +785,9 @@ main_menu() {
       "Home Directory Management" \
       "Stage-2 Activation Script (legacy)" \
       "Exit (0)"; do
-      [[ "$REPLY" == "0" ]] && { log_info "Goodbye!"; exit 0; }
+      if [[ "$REPLY" == "0" || "$category" == "Exit (0)" ]]; then
+        log_info "Goodbye!"; exit 0
+      fi
       case "$category" in
         "Generation Management")
           if [[ "$MOUNTED" -eq 0 ]]; then
@@ -764,6 +801,9 @@ main_menu() {
             "Delete old generations" \
             "View generation diff" \
             "Back to main menu"; do
+            if [[ "$REPLY" == "0" || "$opt" == "Back to main menu" ]]; then
+              break
+            fi
             case "$opt" in
               "List generations")
                 list_generations
@@ -828,6 +868,9 @@ main_menu() {
             "Search (custom grep pattern)" \
             "Edit activation script" \
             "Back"; do
+            if [[ "$REPLY" == "0" || "$opt" == "Back" ]]; then
+              break
+            fi
             case "$opt" in
               "List first 40 lines")
                 head -n 40 "$activate_path" | less
@@ -851,7 +894,11 @@ main_menu() {
             esac
           done
           ;;
-        "Exit")
+        "Exit"|"Exit (0)")
+          log_info "Goodbye!"
+          exit 0
+          ;;
+        0)
           log_info "Goodbye!"
           exit 0
           ;;
@@ -916,7 +963,12 @@ main() {
   fi
   
   log_info "Target partition: $TARGET_PARTITION"
-  
+  echo
+  log_section "Rescue Environment Ready"
+  log_info "Use menu prompts below for recovery operations."
+  log_info "Press Ctrl+C anytime for safe cleanup."
+  echo
+
   # Mount system initially (read-only)
   mount_system "ro"
   
