@@ -1,45 +1,52 @@
-# Fonts Module
+# Fonts Configuration Module
 #
-# Purpose: Configure system fonts and font rendering
-# Dependencies: None
-# Related: theme.nix
+# Purpose: Configure custom fonts and font rendering for main configuration
+# Dependencies: noto-fonts, google-fonts, jetbrains-mono, nerd-fonts, fontconfig
+# Related: packages.nix, theme.nix
 #
 # This module:
-# - Disables default font packages
-# - Installs Noto fonts, Google fonts, and JetBrains Mono
-# - Configures fontconfig with default font families
+# - Overrides base configuration fonts with custom font selection
+# - Installs comprehensive font set including Noto, Google fonts, and JetBrains Mono
+# - Configures fontconfig with optimized font family preferences
 {pkgs, ...}: {
-  fonts.enableDefaultPackages = false;
+  fonts = {
+    # Override base configuration to disable default packages
+    enableDefaultPackages = false;
 
-  fonts.packages = with pkgs; [
-    noto-fonts
-    noto-fonts-cjk-sans
-    noto-fonts-cjk-serif
-    noto-fonts-emoji
-    noto-fonts-extra
+    packages = with pkgs; [
+      # Noto fonts for comprehensive coverage
+      noto-fonts
+      noto-fonts-cjk-sans
+      noto-fonts-cjk-serif
+      noto-fonts-emoji
+      noto-fonts-extra
 
-    google-fonts
-    mplus-outline-fonts.githubRelease
-    jetbrains-mono
-    nerd-fonts.jetbrains-mono
-  ];
+      # Google fonts and alternatives
+      google-fonts
+      mplus-outline-fonts.githubRelease
+      
+      # Programming fonts
+      jetbrains-mono
+      nerd-fonts.jetbrains-mono
+    ];
 
-  fonts.fontconfig = {
-    enable = true;
-    defaultFonts = {
-      serif = [
-        "Rounded Mplus 1c Medium"
-        "Noto Serif"
-      ];
-      sansSerif = [
-        "Rounded Mplus 1c Medium"
-        "Noto Sans"
-      ];
-      monospace = [
-        "JetBrainsMono Nerd Font"
-        "Noto Sans Mono"
-      ];
-      emoji = ["Noto Color Emoji"];
+    fontconfig = {
+      enable = true;
+      defaultFonts = {
+        serif = [
+          "Rounded Mplus 1c Medium"
+          "Noto Serif"
+        ];
+        sansSerif = [
+          "Rounded Mplus 1c Medium"
+          "Noto Sans"
+        ];
+        monospace = [
+          "JetBrainsMono Nerd Font"
+          "Noto Sans Mono"
+        ];
+        emoji = ["Noto Color Emoji"];
+      };
     };
   };
 }

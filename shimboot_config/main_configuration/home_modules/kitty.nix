@@ -1,17 +1,22 @@
 # Kitty Terminal Module
 #
 # Purpose: Configure Kitty terminal emulator with Rose Pine theme
-# Dependencies: None
+# Dependencies: theme.nix fonts
 # Related: theme.nix
 #
 # This module:
 # - Enables Kitty with Fish shell integration
 # - Configures Rose Pine color scheme
 # - Sets up terminal behavior and appearance
-{pkgs, ...}: {
+# - Applies JetBrains Mono Nerd Font from theme configuration
+{lib, pkgs, config, inputs, ...}: let
+  fonts = (import ./lib/theme.nix {inherit lib pkgs config inputs;}).fonts;
+in {
   programs.kitty = {
     enable = true;
     settings = {
+      font_family = fonts.mono;
+      font_size = toString fonts.sizes.kitty;
       shell = "fish";
       shell_integration = "enabled";
       confirm_os_window_close = -1;

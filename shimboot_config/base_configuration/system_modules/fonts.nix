@@ -1,13 +1,13 @@
 # Fonts Configuration Module
 #
-# Purpose: Configure system fonts for optimal display and compatibility
+# Purpose: Configure minimal base fonts for system compatibility
 # Dependencies: noto-fonts, noto-fonts-emoji, fontconfig
 # Related: display.nix
 #
 # This module:
-# - Disables default font packages to reduce system size
-# - Installs essential Noto fonts for Latin/CJK and emoji support
-# - Configures default font families for serif, sans-serif, monospace, and emoji
+# - Provides minimal font configuration for base system
+# - Installs essential Noto fonts for basic display needs
+# - Uses mkDefault to allow override by main configuration
 {
   pkgs,
   lib,
@@ -16,12 +16,12 @@
   fonts = {
     enableDefaultPackages = lib.mkDefault true;
 
-    packages = with pkgs; [
+    packages = lib.mkDefault (with pkgs; [
       noto-fonts # Basic Latin/CJK (essential)
       noto-fonts-emoji # Emoji support
-    ];
+    ]);
 
-    fontconfig.defaultFonts = {
+    fontconfig.defaultFonts = lib.mkDefault {
       serif = ["Noto Serif"];
       sansSerif = ["Noto Sans"];
       monospace = ["Noto Sans Mono"];
