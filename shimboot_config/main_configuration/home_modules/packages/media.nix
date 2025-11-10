@@ -13,5 +13,6 @@
     audacious-plugins
     pureref
     youtube-music
+    scrcpy
   ];
 }
