@@ -32,17 +32,8 @@
   '';
 
   environment.etc = {
-    # Global env setup
+    # Fish-specific configuration
     "fish/conf.d/00-shimboot.fish".text = ''
-      # NixOS Shimboot system-wide setup
-      set -Ux NIXOS_CONFIG_DIR $HOME/nixos-config
-      set -Ux NIXOS_FLAKE_HOSTNAME ${userConfig.host.hostname}
-      set -Ux EDITOR ${userConfig.defaultApps.editor.command}
-
-      # Add common paths
-      fish_add_path $HOME/bin
-      fish_add_path $HOME/.npm-global/bin
-
       if status is-interactive
         starship init fish | source
       end

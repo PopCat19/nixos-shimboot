@@ -1,18 +1,24 @@
 # Fuzzel Launcher Module
 #
 # Purpose: Configure Fuzzel application launcher with Rose Pine theme
-# Dependencies: userConfig
-# Related: keybinds.nix
+# Dependencies: userConfig, theme fonts
+# Related: keybinds.nix, ../../home_modules/lib/theme.nix
 #
 # This module:
 # - Enables Fuzzel with overlay display mode
 # - Configures Rose Pine color scheme
 # - Sets up keyboard shortcuts and appearance
+# - Applies theme font configuration
 {
+  lib,
   pkgs,
+  config,
+  inputs,
   userConfig,
   ...
-}: {
+}: let
+  fonts = (import ../../home_modules/lib/theme.nix {inherit lib pkgs config inputs;}).fonts;
+in {
   programs.fuzzel = {
     enable = true;
     settings = {
@@ -32,6 +38,7 @@
         icons-enabled = true;
         password-character = "*";
         list-executables-in-path = false;
+        font = "${fonts.main}:size=${toString fonts.sizes.fuzzel}";
       };
       colors = {
         background = "191724f0";

@@ -123,6 +123,9 @@
     # Merge nixosModules from all modules
     nixosModules = {};
   in {
+    # Apply Cachix configuration to Nix
+    nixConfig = cachixConfig.nixConfig;
+
     # Export all merged outputs
     formatter.${system} = nixpkgs.legacyPackages.${system}.alejandra;
     inherit packages devShells nixosConfigurations nixosModules;

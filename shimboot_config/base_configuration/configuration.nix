@@ -18,13 +18,15 @@
   userConfig = import ../user-config.nix {};
 in {
   imports = [
+    ./system_modules/environment.nix
     ./system_modules/boot.nix
     ./system_modules/networking.nix
     ./system_modules/filesystems.nix
     ./system_modules/packages.nix
     ./system_modules/helpers/helpers.nix
     ./system_modules/security.nix
-    ./system_modules/systemd.nix
+    ./system_modules/systemd-patch.nix
+    ./system_modules/kill-frecon.nix
     ./system_modules/localization.nix
     ./system_modules/hardware.nix
     ./system_modules/power-management.nix
@@ -42,6 +44,7 @@ in {
   _module.args.userConfig = userConfig;
 
   nix.settings = {
+    experimental-features = ["nix-command" "flakes"];
     trusted-users = lib.mkAfter ["root" "${userConfig.user.username}"];
     substituters = lib.mkAfter ["https://shimboot-systemd-nixos.cachix.org"];
     trusted-public-keys = lib.mkAfter ["shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA="];
@@ -52,8 +55,6 @@ in {
   };
 
   nixpkgs.config.allowUnfree = true;
-
-  services.envfs.enable = true;
 
   system.stateVersion = "24.11";
 }

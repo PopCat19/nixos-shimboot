@@ -1,14 +1,15 @@
 # Display Manager Module
 #
-# Purpose: Configure X server and LightDM display manager for ChromeOS devices
-# Dependencies: lightdm
-# Related: hyprland.nix, hardware.nix
+# Purpose: Configure X server, LightDM, and systemd logind for ChromeOS devices
+# Dependencies: lightdm, systemd
+# Related: hyprland.nix, hardware.nix, systemd-patch.nix, kill-frecon.nix
 #
 # This module:
 # - Enables X server with basic configuration
 # - Configures LightDM display manager without autologin
 # - Sets up Hyprland session configuration
 # - Manages default session and display settings
+# - Configures systemd logind for power management
 {
   config,
   pkgs,
@@ -39,4 +40,15 @@
   services.displayManager.defaultSession = lib.mkDefault "hyprland";
 
   programs.dconf.enable = lib.mkDefault true;
+
+  services.logind = {
+    settings = {
+      Login = {
+        HandleLidSwitch = "ignore";
+        HandlePowerKey = "ignore";
+        HandleSuspendKey = "ignore";
+        HandleHibernateKey = "ignore";
+      };
+    };
+  };
 }

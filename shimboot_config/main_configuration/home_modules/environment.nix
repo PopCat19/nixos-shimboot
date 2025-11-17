@@ -1,6 +1,6 @@
 # Environment Variables Module
 #
-# Purpose: Configure user-specific environment variables for applications
+# Purpose: Configure user-specific environment variables for input methods and themes
 # Dependencies: userConfig
 # Related: fcitx5.nix, theme.nix
 #
@@ -14,13 +14,6 @@
   ...
 }: {
   home.sessionVariables = {
-    EDITOR = userConfig.defaultApps.editor.command;
-    VISUAL = "$EDITOR";
-    BROWSER = userConfig.defaultApps.browser.package;
-    TERMINAL = userConfig.defaultApps.terminal.command;
-    FILE_MANAGER = userConfig.defaultApps.fileManager.package;
-    WEBKIT_DISABLE_COMPOSITING_MODE = "1";
-
     GTK_IM_MODULE = lib.mkForce "fcitx5";
     QT_IM_MODULE = lib.mkForce "fcitx5";
     XMODIFIERS = lib.mkForce "@im=fcitx5";

@@ -1,5 +1,21 @@
 #!/bin/bash
 
+# ChromeOS System Properties Spoofer
+#
+# Purpose: Intercept and modify ChromeOS system property queries to enable developer features.
+# Dependencies: bash, original crossystem binary
+# Related: bootloader/bin/bootstrap.sh
+#
+# This script:
+# - Intercepts crossystem calls from ChromeOS to spoof system properties
+# - Enables developer mode features by setting cros_debug=1 and block_devmode=1
+# - Maintains compatibility with original crossystem functionality for unknown properties
+# - Supports query mode with pattern matching for property validation
+# - Provides developer-friendly system property overrides during ChromeOS boot
+#
+# Integrates with ChromeOS boot process in bootloader/bin/bootstrap.sh to enable
+# developer features when shimboot is configured with spoofing enabled.
+
 #a much cleaner implemenation of fakemurk's crossystem.sh
 
 crossystem_old=/tmp/crossystem_old

@@ -1,4 +1,21 @@
 #!/bin/busybox sh
+
+# Shimboot Init Script
+#
+# Purpose: Initialize minimal boot environment and transition to main bootloader.
+# Dependencies: busybox, bootstrap.sh
+# Related: bootloader/bin/bootstrap.sh
+#
+# This script:
+# - Sets up busybox utility environment with --install for comprehensive binary access
+# - Detects display firmware (frecon-lite) and configures appropriate TTY devices
+# - Exports terminal environment variables for bootloader menu display
+# - Executes main bootstrap.sh as PID 1 with proper TTY redirection
+# - Provides fallback error handling with sleep if bootstrap fails
+#
+# Adapted from ChromiumOS factory shim init script for Shimboot bootloader functionality.
+# Runs as the initial /init in the minimal initramfs environment.
+
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.

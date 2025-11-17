@@ -1,4 +1,22 @@
 #!/bin/busybox sh
+
+# Shimboot Main Bootloader Script
+#
+# Purpose: Provide interactive bootloader menu for ChromeOS shim devices with multiple OS support.
+# Dependencies: busybox, cgpt, fdisk, blkid, cryptsetup, tar, pivot_root
+# Related: bootloader/bin/init, bootloader/opt/crossystem, bootloader/opt/mount-encrypted
+#
+# This script:
+# - Detects and displays bootable partitions from ChromeOS and other Linux distributions
+# - Provides interactive menu for OS selection with support for rescue mode
+# - Handles LUKS encrypted root filesystems with automatic detection and mounting
+# - Integrates vendor firmware and kernel modules through bind mounting
+# - Supports ChromeOS boot with firmware spoofing and donor partition selection
+# - Executes pivot_root to transition to selected operating system as PID 1
+#
+# Original implementation adapted from ChromiumOS factory shim bootstrap script.
+# Runs as PID 1 in the initramfs environment using busybox shell utilities.
+
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
