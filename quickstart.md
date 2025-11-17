@@ -1,18 +1,14 @@
 # NixOS Shimboot Quickstart Guide
 
-> **Warning**: This is a Proof-of-Concept project. It may not work reliably and is intended for experimentation only. See [README.md](README.md) for full details and caveats.
-
-## What is NixOS Shimboot?
-
-NixOS Shimboot allows you to boot a full NixOS system on enterprise-enrolled Chromebooks by repurposing a ChromeOS RMA "shim" as an initial bootloader. This lets you run Linux without unenrolling the device or modifying its firmware.
+> **Warning**: This is a Proof-of-Concept project. It may not work reliably and is intended for experimentation only. See [README.md](README.md) and [SPEC.md](SPEC.md) for more details.
 
 ## Prerequisites
 
 - A compatible Chromebook (supported boards: dedede, octopus, zork, nissa, hatch, grunt, snappy)
 - ChromeOS RMA shim image for your specific board
-- USB drive (at least 32GB recommended)
-- NixOS system for building (or any Linux with Nix installed)
-- Root access for flashing
+- USB drive with at least 16GB, recommended >=32GB
+- NixOS system or any Linux with Nix installed for building the image
+- Root/wheel access for loop mounts and imaging (could work inside docker/WSL2 container, but untested)
 
 ## Quick Build and Flash
 
@@ -25,7 +21,7 @@ cd nixos-shimboot
 
 ### 2. Build the Complete Shimboot Image
 
-Use the `assemble-final.sh` script (will require sudo/root for mount loops) to build a complete shimboot image that combines the NixOS rootfs with the ChromeOS shim. Replace `BOARD` with your Chromebook's board name:
+Use the `assemble-final.sh` script (will prompt sudo/root for mount loops and work directory) to build a complete shimboot image that combines the NixOS rootfs with the ChromeOS shim. Replace `BOARD` with your Chromebook's board name:
 
 ```bash
 # For dedede board (e.g., HP Chromebook 11 G9 EE) - full image (recommended)
@@ -59,48 +55,28 @@ The script will:
 - Harvest ChromeOS drivers and firmware with upstream augmentation
 - Create partitioned image at `work/shimboot.img`
 - Populate all partitions with bootloader, rootfs, and drivers
-- Generate build metadata at `/etc/shimboot-build.json`
-- Optionally push built derivations to Cachix cache
+- Generate build metadata within cloned repo directory (usually `/home/<user>/nixos-config`)
 
-### 3. Flash to USB Drive
+### 3. Flash to USB Drive / SD Card
 
-**⚠️ WARNING: This will overwrite the target device. Double-check your device selection!**
+**WARNING: This will overwrite the target device.*
 
-List available devices to identify your USB drive:
-
+Interactive device selection with predefined image input:
 ```bash
-sudo ./write-shimboot-image.sh --list
+sudo ./write-shimboot-image.sh
 ```
 
-Interactive device selection with safety validation:
-
-```bash
-sudo ./write-shimboot-image.sh -i "$(pwd)/work/shimboot.img"
-```
-
-Direct device targeting with safety checks:
-
-```bash
-sudo ./write-shimboot-image.sh -i "$(pwd)/work/shimboot.img" --output /dev/sdX
-```
-
-**Safety Features:**
-- Automatic system disk detection and exclusion
-- Interactive confirmation with countdown timer
-- Automatic unmounting of target device partitions
-- Size validation and large device warnings
-- Dry-run mode for testing: `--dry-run`
-
-The assembled image is ready to flash and already contains everything needed for your board.
+Afterwards, the imaged usb/sd is ready to boot.
 
 ### 4. Boot Your Chromebook
 
 1. Insert the prepared USB drive into your Chromebook
-2. Enter recovery mode (usually Esc + Refresh + Power, or check your specific model's key combination)
+2. Enter recovery mode (Esc + Refresh + Power)
+- If not already, enable Developer Mode via Ctrl+D and confirm, then enter recovery mode again
 3. Select the "shimboot" option from the recovery menu
 4. The system should boot into NixOS with the LightDM greeter
 
-## First Boot (for minimal/base configuration)
+## First Boot (assumed for minimal/base configuration)
 
 - Root user: `root` (initial password: `nixos-shimboot`)
 - Default user: `nixos-user` (initial password: `nixos-shimboot`)
@@ -115,7 +91,7 @@ The assembled image is ready to flash and already contains everything needed for
 The git remote may be pointing to the build machine's path. Fix with:
 ```bash
 cd ~/nixos-config
-git remote set-url origin https://github.com/PopCat19/nixos-shimboot.git
+git remote set-url origin https://github.com/PopCat19/nixos-shimboot.git # replace URL with your fork if utilized
 git fetch origin
 ```
 

@@ -83,20 +83,21 @@ Flake status and roadmap (not a spec) for the current branch:
 - [x] Configure base_configuration to be minimal whilst keeping lightdm and hyprland to achive lower image size
 - [x] Utilize systemd cachix store on local `nixos-rebuild` to avoid an eternal compilation on potato hardware (hardware r/w speed bottleneck)
 - [x] Functional GitHub build CI workflows with caching
+- [ ] Show battery SoC in bootstrap menu
 - [ ] SDDM greeter support
 - [ ] Apply proper recovery firmware patches on a vendor p4 partition to support ChromeOS ROOT_A/B boot; see upstream shimboot for reference
 - [ ] Utilize `nixosModules` to modularize various userland options, such as themes and WM/DE.
 - [ ] Refine main_configuration [primarily to fixup qt/gtk theme configurations, bwrap/steam, and rewrite nixos_setup for better experience]
-- [ ] Create main_configuration template for those who wish to port their own NixOS/HM configurations :3
+- [ ] Create minimal main_configuration template
 - [ ] Refine and cleanup scripts and helpers
 - [ ] Refine and cleanup base and main configurations
-- [ ] Attempt to implement NixOS generation selector within bootstrapper (if possible)
-- [ ] Build functional NixOS with LUKS2 support (never done this in my life ;-;)
+- [ ] Implement NixOS generation selector within bootstrapper
+- [ ] Build functional NixOS with LUKS2 support
 
 Current obstacles:
-- ChromeOS ROOT_A/B boot: vendor p4 fails to copy donor modules and firmware to tmpfs, causing ChromeOS init to fail. Need to understand how upstream shimboot handled this.
-- SDDM greeter support: previous attempts resulted in a blank backlit screen after kill-frecon. Need to evaluate logs and understand how SDDM can be supported declaratively.
-- bwrap/steam: NixOS doesn't follow FHS, but mainly stems from shim kernel limitations. Need to understand how and if this can be patched declaratively, or with helper scripts.
+- ChromeOS ROOT_A/B boot: vendor p4 fails to copy donor modules and firmware to tmpfs, causing ChromeOS init to fail compared to the working upstream debian shimboot. Need to understand how this needs to be handled.
+- SDDM greeter support: previous attempts resulted in a blank backlit screen after kill-frecon. Need to evaluate logs and understand if SDDM can be supported declaratively.
+- bwrap/steam: shim kernel limitations; need to understand how and if this can be patched safely.
 
 ## Binary cache
 
