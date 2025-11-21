@@ -84,6 +84,7 @@ Flake status and roadmap (not a spec) for the current branch:
 - [x] Utilize systemd cachix store on local `nixos-rebuild` to avoid an eternal compilation on potato hardware (hardware r/w speed bottleneck)
 - [x] Functional GitHub build CI workflows with caching
 - [ ] Show battery SoC in bootstrap menu
+- [ ] Fix XDG redirect issues
 - [ ] SDDM greeter support
 - [ ] test systemd watchdog compatibility
 - [ ] Apply proper recovery firmware patches on a vendor p4 partition to support ChromeOS ROOT_A/B boot; see upstream shimboot for reference
