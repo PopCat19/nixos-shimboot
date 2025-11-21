@@ -85,6 +85,7 @@ Flake status and roadmap (not a spec) for the current branch:
 - [x] Functional GitHub build CI workflows with caching
 - [ ] Show battery SoC in bootstrap menu
 - [ ] SDDM greeter support
+- [ ] test systemd watchdog compatibility
 - [ ] Apply proper recovery firmware patches on a vendor p4 partition to support ChromeOS ROOT_A/B boot; see upstream shimboot for reference
 - [ ] Utilize `nixosModules` to modularize various userland options, such as themes and WM/DE.
 - [ ] Refine main_configuration [primarily to fixup qt/gtk theme configurations, bwrap/steam, and rewrite nixos_setup for better experience]
