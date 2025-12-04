@@ -1,59 +1,47 @@
+#!/usr/bin/env fish
+
 # NixOS Rebuild Basic Function
 #
-# Purpose: Perform basic NixOS system rebuild with kernel compatibility checks
-# Dependencies: nix, sudo
-# Related: fish-functions.nix, fish.nix
+# Purpose: Simplify NixOS rebuild with kernel compatibility.
+# Dependencies: nixos-rebuild, sudo, uname
+# Related: nixos-flake-update.fish, fish.nix
 #
 # This function:
-# - Validates NIXOS_CONFIG_DIR environment variable
-# - Checks kernel version for sandbox compatibility
-# - Performs nixos-rebuild switch with appropriate options
+# - Validates NIXOS_CONFIG_DIR
+# - Checks kernel version for sandbox settings
+# - Runs nixos-rebuild switch with appropriate flags
+# - Handles directory navigation automatically
 
 function nixos-rebuild-basic
-    if not set -q NIXOS_CONFIG_DIR
-        echo "❌ Error: NIXOS_CONFIG_DIR environment variable is not set."
-        echo "   Please set it to your NixOS configuration directory (e.g., export NIXOS_CONFIG_DIR=/etc/nixos)"
-        return 1
-    end
-
-    if not test -d $NIXOS_CONFIG_DIR
-        echo "❌ Error: NIXOS_CONFIG_DIR ($NIXOS_CONFIG_DIR) is not a valid directory."
+    if not set -q NIXOS_CONFIG_DIR; or not test -d "$NIXOS_CONFIG_DIR"
+        echo "❌ Error: NIXOS_CONFIG_DIR is not set or invalid."
         return 1
     end
 
     set -l original_dir (pwd)
-    cd $NIXOS_CONFIG_DIR
+    cd "$NIXOS_CONFIG_DIR"
 
+    # Kernel Sandbox Check (Fix for older kernels < 5.6)
     set -l kver (uname -r)
-    set -l disable_sandbox 0
-
-    if string match -qr '^([0-9]+)\.([0-9]+)' $kver
-        set -l major (string split . $kver)[1]
-        set -l minor (string split . $kver)[2]
-        if test $major -lt 5 -o \( $major -eq 5 -a $minor -lt 6 \)
-            set disable_sandbox 1
-        end
+    set -l nix_args "switch" "--flake" "."
+    
+    if string match -qr '^([0-4]\.|5\.[0-5][^0-9])' "$kver"
+        echo "⚠️  Kernel $kver (< 5.6) detected. Disabling sandbox."
+        set -a nix_args "--option" "sandbox" "false"
     else
-        echo "⚠️  Warning: Could not parse kernel version $kver. Assuming sandbox is supported."
+        echo "🔐 Kernel $kver detected. Using default sandbox."
     end
 
-    set -l nix_args switch --flake .
-
-    if test $disable_sandbox -eq 1
-        echo "⚠️  Kernel $kver detected (< 5.6). Disabling nix sandbox for rebuild."
-        set nix_args $nix_args --option sandbox false
-    else
-        echo "🔐 Kernel $kver detected (>= 5.6). Using default sandboxed build."
-    end
-
-    echo "Command: sudo nixos-rebuild $nix_args"
     echo "🚀 Running NixOS rebuild..."
+    echo "Command: sudo nixos-rebuild $nix_args"
+
     if sudo nixos-rebuild $nix_args
         echo "✅ Build succeeded"
+        cd "$original_dir"
+        return 0
     else
         echo "❌ Build failed"
-        cd $original_dir
+        cd "$original_dir"
         return 1
     end
-    cd $original_dir
 end
