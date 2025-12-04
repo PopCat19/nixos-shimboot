@@ -29,7 +29,31 @@
     };
   };
 
-  services.thermald.enable = true;
+  services.thermald = {
+    enable = true;
+    configFile = pkgs.writeText "thermal-conf.xml" ''
+      <ThermalConfiguration>
+        <ThermalZones>
+          <ThermalZone>
+            <Type>x86_pkg_temp</Type>
+            <TripPoints>
+              <TripPoint>
+                <SensorType>B0D4</SensorType>
+                <Temperature>80000</Temperature>
+                <type>passive</type>
+                <CoolingDevice>
+                  <Type>processor</Type>
+                  <Path>/sys/devices/system/cpu</Path>
+                  <MinState>0</MinState>
+                  <MaxState>10</MaxState>
+                </CoolingDevice>
+              </TripPoint>
+            </TripPoints>
+          </ThermalZone>
+        </ThermalZones>
+      </ThermalConfiguration>
+    '';
+  };
 
   environment.systemPackages = [
     pkgs.brightnessctl
