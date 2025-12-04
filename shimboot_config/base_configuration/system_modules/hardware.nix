@@ -1,7 +1,7 @@
 # Hardware Configuration Module
 #
 # Purpose: Configure hardware settings for ChromeOS devices
-# Dependencies: linux-firmware, mesa, brightnessctl
+# Dependencies: linux-firmware, mesa, brightnessctl, thermald
 # Related: boot.nix, display.nix
 #
 # This module:
@@ -9,6 +9,7 @@
 # - Configures graphics drivers with 32-bit support
 # - Enables Bluetooth with power-on-boot
 # - Provides brightness control utilities
+# - Enables thermal daemon for CPU temperature management
 {
   config,
   pkgs,
@@ -27,6 +28,8 @@
       powerOnBoot = lib.mkDefault true;
     };
   };
+
+  services.thermald.enable = true;
 
   environment.systemPackages = [
     pkgs.brightnessctl
