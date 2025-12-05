@@ -1,25 +1,30 @@
+#!/usr/bin/env fish
+
 # List Fish Helpers Function
 #
-# Purpose: Display available Fish functions and abbreviations
-# Dependencies: grep, sort
-# Related: fish-functions.nix, fish.nix
+# Purpose: Display all available Fish functions and abbreviations.
+# Dependencies: fish, functions, abbr, awk, grep
+# Related: fish.nix, fish-greeting.fish
 #
 # This function:
 # - Lists all custom Fish functions
-# - Shows available shell abbreviations
-# - Provides usage tips
+# - Shows all Fish abbreviations
+# - Provides usage tips for discovery
+# - Formats output for readability
 
 function list-fish-helpers
-    echo "🐟 Available Fish Functions:"
+    echo "🐟 Fish Helpers & Shortcuts"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    functions | grep -v "^_" | grep -v "^fish_" | sort
+    
+    echo "🔧 Functions:"
+    functions | grep -vE "^_|fish_" | sort | awk '{print "   • " $0}'
+    
     echo ""
-    echo "🔤 Available Fish Abbreviations:"
+    echo "🔤 Abbreviations:"
+    abbr --list | sort | awk '{print "   • " $0}'
+    
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    abbr --list | sort
-    echo ""
-    echo "💡 Use 'type <function_name>' to see function definition"
-    echo "💡 Use 'abbr --show <abbr_name>' to see abbreviation expansion"
-    echo ""
-    echo "🔧 Quick Fix for corrupted fish history: fixhist"
+    echo "💡 Tips:"
+    echo "   Type 'type <name>' to see definition"
+    echo "   Type 'fixhist' to repair corrupt history"
 end

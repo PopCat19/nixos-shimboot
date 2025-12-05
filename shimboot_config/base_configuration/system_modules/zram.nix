@@ -6,7 +6,7 @@
 #
 # This module enables:
 # - ZRAM swap for improved memory management
-# - Fast compression using lzo algorithm
+# - Fast compression using zstd algorithm
 # - Automatic kernel module loading
 {
   config,
@@ -17,17 +17,17 @@
   # Enable zram swap
   zramSwap = {
     enable = true;
-    algorithm = "lzo"; # fastest for your scale
-    memoryPercent = 75;
+    algorithm = "lzo-rle";
+    memoryPercent = 200;
     priority = 100;
   };
 
-  # Ensure kernel module loads
-  boot.kernelModules = ["zram"];
-
   boot.kernel.sysctl = {
-    "vm.swappiness" = 45;
-    "vm.dirty_ratio" = 10;
-    "vm.dirty_background_ratio" = 3;
+    "vm.swappiness" = 25;
   };
+
+  services.journald.extraConfig = ''
+    RuntimeMaxUse=20M
+    SystemMaxUse=50M
+  '';
 }

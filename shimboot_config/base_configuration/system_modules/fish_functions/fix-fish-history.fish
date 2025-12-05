@@ -1,47 +1,42 @@
+#!/usr/bin/env fish
+
 # Fix Fish History Function
 #
-# Purpose: Repair corrupted Fish shell history files
-# Dependencies: head, cp, mv
-# Related: fish-functions.nix, fish.nix
+# Purpose: Repair corrupted Fish shell history file.
+# Dependencies: fish, history command, tail, cp
+# Related: fish.nix, list-fish-helpers.fish
 #
 # This function:
-# - Creates backup of corrupted history file
-# - Attempts automatic repair using history merge
-# - Falls back to manual truncation if needed
+# - Creates backup of history file
+# - Attempts repair via history merge
+# - Falls back to truncation if merge fails
+# - Preserves recent history entries
 
 function fix-fish-history
     echo "🔧 Fixing fish history corruption..."
 
-    set -l history_file (set -q XDG_DATA_HOME; and echo "$XDG_DATA_HOME/fish/fish_history"; or echo "$HOME/.local/share/fish/fish_history")
+    # Determine standard path
+    set -l hist_path (set -q XDG_DATA_HOME; and echo "$XDG_DATA_HOME/fish/fish_history"; or echo "$HOME/.local/share/fish/fish_history")
 
-    if not test -f "$history_file"
-        echo "⚠️  History file not found at: $history_file"
+    if not test -f "$hist_path"
+        echo "⚠️  History file not found at: $hist_path"
         return 1
     end
 
-    set -l backup_file "$history_file.bak"
-    echo "Command: cp \"$history_file\" \"$backup_file\""
-    cp "$history_file" "$backup_file"
-    echo "💾 Created backup at: $backup_file"
+    # Backup
+    cp "$hist_path" "$hist_path.bak"
+    echo "💾 Backup created at: $hist_path.bak"
 
-    echo "🔄 Attempting to repair history file..."
-    echo "Command: history merge"
-    history merge
-
-    if test $status -ne 0
-        echo "⚠️  Standard repair failed, attempting manual fix..."
-
-        set -l offset 2800
-
-        echo "Command: head -n $offset \"$history_file\" > \"$history_file.tmp\""
-        head -n $offset "$history_file" > "$history_file.tmp"
-        echo "Command: mv \"$history_file.tmp\" \"$history_file\""
-        mv "$history_file.tmp" "$history_file"
-
-        echo "✅ History file truncated before corruption point"
+    echo "🔄 Attempting repair via merge..."
+    if history merge
+        echo "✅ History merged and repaired successfully."
     else
-        echo "✅ History file repaired successfully"
+        echo "⚠️  Merge failed. Attempting truncation repair..."
+        # Fallback: keep recent 2800 lines (approx) to dump corrupt head
+        tail -n 2800 "$hist_path" > "$hist_path.tmp"
+        mv "$hist_path.tmp" "$hist_path"
+        echo "✅ History file truncated (kept last 2800 lines)."
     end
 
-    echo "💡 You may need to restart fish for changes to take effect"
+    echo "💡 Restart shell to see effects."
 end

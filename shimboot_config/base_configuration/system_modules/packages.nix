@@ -2,7 +2,7 @@
 #
 # Purpose: Install absolutely minimal essential system packages only
 # Dependencies: Various system utilities
-# Related: fish.nix, services.nix, display.nix
+# Related: fish.nix, services.nix, display.nix, security.nix
 #
 # This module installs only essential packages:
 # - Core utilities (coreutils, util-linux)

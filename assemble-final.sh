@@ -219,25 +219,10 @@ export NIXPKGS_ALLOW_UNFREE="${NIXPKGS_ALLOW_UNFREE:-1}"
 # === Config ===
 SYSTEM="x86_64-linux"
 
-# Detect if we're in CI with Nothing but Nix (large /nix mount)
-if [ -d "/nix" ] && mountpoint -q /nix 2>/dev/null; then
-    # Check if /nix has >50GB free (indicates CI environment)
-    NIX_AVAIL_GB=$(df -BG /nix | awk 'NR==2 {print $4}' | sed 's/G//')
-    if [ "${NIX_AVAIL_GB:-0}" -gt 50 ]; then
-        WORKDIR="/nix/work"
-        log_info "CI mode detected: using /nix/work (${NIX_AVAIL_GB}GB available)"
-    else
-        WORKDIR="$(pwd)/work"
-    fi
-else
-    WORKDIR="$(pwd)/work"
-fi
 
-IMAGE="$WORKDIR/shimboot.img"
 
 # Initialize BOARD_EXPLICITLY_SET before CLI parsing
 BOARD_EXPLICITLY_SET="${BOARD_EXPLICITLY_SET:-}"
-BOARD="${BOARD:-}"  # Don't set default yet
 ROOTFS_NAME="${ROOTFS_NAME:-nixos}"
 ROOTFS_FLAVOR="${ROOTFS_FLAVOR:-}"
 INSPECT_AFTER=""
@@ -273,8 +258,8 @@ while [ $# -gt 0 ]; do
 		shift 2
 		;;
 	--firmware-upstream)
-		FIRMWARE_UPSTREAM="${2:-1}"
-		shift 2
+		FIRMWARE_UPSTREAM="1"
+		shift
 		;;
 	--no-firmware-upstream)
 		FIRMWARE_UPSTREAM="0"
@@ -335,6 +320,24 @@ if [ -z "$BOARD" ]; then
     log_error "Board name cannot be empty; use --board <name>."
     exit 1
 fi
+
+# === Setup Workspace Path (Now that BOARD is known) ===
+# Detect if we're in CI with Nothing but Nix (large /nix mount)
+if [ -d "/nix" ] && mountpoint -q /nix 2>/dev/null; then
+    # Check if /nix has >50GB free (indicates CI environment)
+    NIX_AVAIL_GB=$(df -BG /nix | awk 'NR==2 {print $4}' | sed 's/G//')
+    if [ "${NIX_AVAIL_GB:-0}" -gt 50 ]; then
+        # FIX: Append BOARD to path to prevent matrix collisions
+        WORKDIR="/nix/work/${BOARD}"
+        log_info "CI mode detected: using ${WORKDIR} (${NIX_AVAIL_GB}GB available)"
+    else
+        WORKDIR="$(pwd)/work/${BOARD}"
+    fi
+else
+    WORKDIR="$(pwd)/work/${BOARD}"
+fi
+
+IMAGE="$WORKDIR/shimboot.img"
 
 # Interactive prompt if not provided, default to full
 if [ -z "${ROOTFS_FLAVOR:-}" ]; then
