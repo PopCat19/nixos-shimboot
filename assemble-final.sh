@@ -273,8 +273,8 @@ while [ $# -gt 0 ]; do
 		shift 2
 		;;
 	--firmware-upstream)
-		FIRMWARE_UPSTREAM="${2:-1}"
-		shift 2
+		FIRMWARE_UPSTREAM="1"
+		shift
 		;;
 	--no-firmware-upstream)
 		FIRMWARE_UPSTREAM="0"
