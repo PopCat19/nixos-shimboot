@@ -160,15 +160,22 @@ jobs:
       - name: Compress and prepare release artifact
         run: |
           set -e
-
-          # Detect working directory where shimboot.img is located
-          if [ -f "/nix/work/shimboot.img" ]; then
-            WORKDIR="/nix/work"
-          elif [ -f "work/shimboot.img" ]; then
-            WORKDIR="work"
+          
+          # Defined path logic matching the script's new behavior
+          # We prefer the CI path /nix/work if it exists
+          CI_WORKDIR="/nix/work/${{ matrix.board }}"
+          LOCAL_WORKDIR="work/${{ matrix.board }}"
+          
+          if [ -f "$CI_WORKDIR/shimboot.img" ]; then
+            WORKDIR="$CI_WORKDIR"
+          elif [ -f "$LOCAL_WORKDIR/shimboot.img" ]; then
+            WORKDIR="$LOCAL_WORKDIR"
           else
-            echo "❌ Error: shimboot.img not found!"
-            sudo find / -name "shimboot.img" -type f 2>/dev/null | head -10
+            echo "❌ Error: shimboot.img not found in expected paths:"
+            echo "   Checked: $CI_WORKDIR"
+            echo "   Checked: $LOCAL_WORKDIR"
+            # Debug find to see where it went
+            sudo find /nix/work -name "shimboot.img" -maxdepth 3 2>/dev/null || true
             exit 1
           fi
 
