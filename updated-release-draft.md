@@ -6,7 +6,9 @@ Built from branch **dev** at commit `7942a50`.
 - **Drivers**: vendor
 - **Firmware Upstream**: true
 
-### Usage (replace BOARD with downloaded board name)
+### Usage (replace BOARD and sdX with actual values)
+- **BOARD**: Replace with your downloaded board name (e.g., dedede, octopus, etc.)
+- **sdX**: Replace with your actual USB drive device (e.g., sdb, sdc, etc.)
 
 #### Linux/macOS
 **⚠️ Requires root privileges (sudo/su)**
