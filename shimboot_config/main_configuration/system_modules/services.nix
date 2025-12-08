@@ -2,16 +2,12 @@
 #
 # Purpose: Configure system-wide services
 # Dependencies: None
-# Related: None
+# Related: syncthing.nix
 #
 # This module:
 # - Enables Flatpak
-{pkgs, ...}: {
+{pkgs, userConfig, ...}: {
   services = {
     flatpak.enable = true;
-    syncthing = {
-      enable = true;
-      openDefaultPorts = true;
-    };
   };
 }

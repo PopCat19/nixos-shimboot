@@ -8,7 +8,7 @@
 # - Overrides base configuration fonts with custom font selection
 # - Installs comprehensive font set including Noto, Google fonts, and JetBrains Mono
 # - Configures fontconfig with optimized font family preferences
-{pkgs, ...}: {
+{pkgs, userConfig, ...}: {
   fonts = {
     # Override base configuration to disable default packages
     enableDefaultPackages = false;

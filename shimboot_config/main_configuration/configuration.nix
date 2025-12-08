@@ -12,6 +12,7 @@
   config,
   pkgs,
   lib,
+  userConfig,
   ...
 }: {
   imports = [
@@ -19,5 +20,6 @@
     ./system_modules/fonts.nix
     ./system_modules/packages.nix
     ./system_modules/services.nix
+    ./system_modules/syncthing.nix
   ];
 }

@@ -196,47 +196,39 @@ jobs:
         if: ${{ github.event.inputs.build_mode == 'full' }}
         run: |
           set -e
-          
-          # --- PATH FIX: Handle Parallel Builds ---
-          # Look for image in board-specific subdir in /nix/work or ./work
+
+          # Detect working directory
           CI_WORKDIR="/nix/work/${{ matrix.board }}"
           LOCAL_WORKDIR="work/${{ matrix.board }}"
-          
+
           if [ -f "$CI_WORKDIR/shimboot.img" ]; then
             WORKDIR="$CI_WORKDIR"
           elif [ -f "$LOCAL_WORKDIR/shimboot.img" ]; then
             WORKDIR="$LOCAL_WORKDIR"
           else
-            echo "❌ Error: shimboot.img not found."
-            sudo find /nix/work -name "shimboot.img" -maxdepth 3 2>/dev/null || true
-            exit 1
+            echo "❌ shimboot.img not found"; exit 1
           fi
 
-          if ! sudo parted -s "$WORKDIR/shimboot.img" print >/dev/null 2>&1; then
-            echo "❌ Error: Invalid disk image."
-            exit 1
-          fi
-          
-          # Take ownership and prepare
           sudo chown -R $(whoami):$(whoami) "$WORKDIR"
           cd "$WORKDIR"
 
           ARTIFACT_BASE="${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs }}"
-          
-          echo "📦 Compressing to ${ARTIFACT_BASE}.img.zst..."
-          stdbuf -oL pv -p -t -e -r -a shimboot.img | \
-            stdbuf -oL zstd -19 --long --verbose -T0 -o "${ARTIFACT_BASE}.img.zst"
 
-          # Checksum
+          echo "📦 Compressing..."
+          stdbuf -oL pv shimboot.img | stdbuf -oL zstd -19 --long -T0 -o "${ARTIFACT_BASE}.img.zst"
+
+          # Save checksum
           if [ "${{ github.event.inputs.include_checksum }}" = "true" ]; then
             sha256sum "${ARTIFACT_BASE}.img.zst" > "${ARTIFACT_BASE}.img.zst.sha256"
           fi
 
-          # Prepare Upload
-          mkdir -p ../artifacts
-          mv "${ARTIFACT_BASE}.img.zst"* ../artifacts/
-          
-          # Cleanup to save space
+          # Safe writable upload location
+          ARTIFACT_DIR="${GITHUB_WORKSPACE}/artifacts/${{ matrix.board }}"
+          mkdir -p "$ARTIFACT_DIR"
+
+          mv "${ARTIFACT_BASE}.img.zst"* "$ARTIFACT_DIR/"
+
+          # Cleanup
           sudo rm -f shimboot.img
 
       - name: Upload Artifact
@@ -244,7 +236,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs }}
-          path: work/${{ matrix.board }}/../artifacts/*
+          path: artifacts/${{ matrix.board }}/*
 
   # ==================================================================
   # JOB 2: RELEASE (Conditional)

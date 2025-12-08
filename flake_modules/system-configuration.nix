@@ -80,7 +80,7 @@ in {
             })
           ]
           ++ baseModules;
-        specialArgs = {inherit self zen-browser rose-pine-hyprcursor;};
+        specialArgs = {inherit self zen-browser rose-pine-hyprcursor userConfig;};
       };
 
       # Full target (host-qualified, preferred)
@@ -93,7 +93,7 @@ in {
             })
           ]
           ++ mainModules;
-        specialArgs = {inherit self zen-browser rose-pine-hyprcursor;};
+        specialArgs = {inherit self zen-browser rose-pine-hyprcursor userConfig;};
       };
     };
 
@@ -107,7 +107,7 @@ in {
             })
           ]
           ++ baseModules;
-        specialArgs = {inherit self zen-browser rose-pine-hyprcursor;};
+        specialArgs = {inherit self zen-browser rose-pine-hyprcursor userConfig;};
       };
     };
 
