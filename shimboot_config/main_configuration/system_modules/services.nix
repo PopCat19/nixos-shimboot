@@ -12,6 +12,10 @@
     syncthing = {
       enable = true;
       openDefaultPorts = true;
+      user = "nixos-user";
+      group = "users";
+      dataDir = "/home/nixos-user/.config/syncthing";
+      configDir = "/home/nixos-user/.config/syncthing";
     };
   };
 }
