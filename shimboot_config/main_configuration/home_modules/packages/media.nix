@@ -8,6 +8,7 @@
 # - Installs media applications
 {pkgs, ...}: {
   home.packages = with pkgs; [
+    drawpile
     mpv
     audacious
     audacious-plugins
