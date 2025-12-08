@@ -236,7 +236,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs }}
-          path: work/${{ matrix.board }}/../artifacts/*
+          path: artifacts/${{ matrix.board }}/*
 
   # ==================================================================
   # JOB 2: RELEASE (Conditional)
