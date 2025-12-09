@@ -25,7 +25,7 @@
     kdePackages.kio-extras
 
     ffmpegthumbnailer
-    poppler_utils
+    poppler-utils
     libgsf
     webp-pixbuf-loader
 
