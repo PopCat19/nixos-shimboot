@@ -2,14 +2,13 @@
 
 # Push to Cachix Script
 #
-# Purpose: Push Nix derivations and optionally final images to Cachix
-# Dependencies: cachix, nix, curl, zstd
+# Purpose: Push Nix derivations to Cachix (image upload no longer supported)
+# Dependencies: cachix, nix
 # Related: assemble-final.sh, check-cachix.sh
 #
-# This script handles all Cachix push operations:
+# This script handles Cachix push operations:
 # - Pushes Nix derivations (kernel, initramfs, rootfs)
-# - Optionally uploads final shimboot.img as a compressed artifact
-# - Generates and uploads configuration manifest for image retrieval
+# - Note: Image upload disabled due to cachix removing --file option
 #
 # Usage:
 #   ./tools/push-to-cachix.sh --board BOARD [OPTIONS]
@@ -18,16 +17,16 @@
 #   --board BOARD              Target board (required)
 #   --rootfs FLAVOR            Rootfs variant (full, minimal)
 #   --drivers MODE             Driver mode (vendor, inject, both, none)
-#   --image PATH               Path to final shimboot.img to upload
+#   --image PATH               Path to final shimboot.img (for info only, not uploaded)
 #   --skip-derivations         Skip pushing Nix derivations
-#   --skip-image               Skip uploading final image
+#   --skip-image               Skip image info display
 #   --dry-run                  Show what would be done
 #
 # Examples:
 #   # Push derivations only
 #   ./tools/push-to-cachix.sh --board dedede
 #
-#   # Push derivations and final image
+#   # Show image info (no upload)
 #   ./tools/push-to-cachix.sh --board dedede --image work/shimboot.img --rootfs full --drivers vendor
 #
 #   # Dry run
@@ -65,16 +64,16 @@ Options:
     --board BOARD              Target board (required)
     --rootfs FLAVOR            Rootfs variant (full, minimal)
     --drivers MODE             Driver mode (vendor, inject, both, none)
-    --image PATH               Path to final shimboot.img to upload
+    --image PATH               Path to final shimboot.img (for info only, not uploaded)
     --skip-derivations         Skip pushing Nix derivations
-    --skip-image               Skip uploading final image
+    --skip-image               Skip image info display
     --dry-run                  Show what would be done
 
 Examples:
     # Push derivations only
     ./push-to-cachix.sh --board dedede
 
-    # Push derivations and final image
+    # Show image info (no upload)
     ./push-to-cachix.sh --board dedede --image work/shimboot.img --rootfs full --drivers vendor
 EOF
 }
@@ -226,7 +225,7 @@ push_derivations() {
     done
 }
 
-# Upload final image
+# Upload final image (disabled - cachix no longer supports arbitrary file uploads)
 upload_image() {
     local image_path="$1"
     local board="$2"
@@ -238,7 +237,9 @@ upload_image() {
         return 1
     fi
     
-    log_info "Uploading final shimboot image to Cachix..."
+    log_warn "Image upload to Cachix is no longer supported"
+    log_warn "Cachix removed --file option in newer versions"
+    log_warn "Image remains at: $image_path"
     
     # Get git commit
     local git_commit="unknown"
@@ -246,47 +247,16 @@ upload_image() {
         git_commit=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
     fi
     
-    # Compute config hash
+    # Compute config hash for reference
     local config_hash
     config_hash=$(compute_config_hash "$board" "$rootfs" "$drivers" "$git_commit")
     
-    # Compress image
-    local compressed_name="shimboot-${board}-${rootfs}-${drivers}-${config_hash}.img.zst"
-    log_info "Compressing image as: $compressed_name"
-    
-    if [[ "$DRY_RUN" -eq 0 ]]; then
-        pv "$image_path" | zstd -T0 -19 > "/tmp/${compressed_name}"
-    fi
-    
-    # Upload to Cachix using --file flag (for arbitrary files)
-    log_info "Uploading compressed image to Cachix..."
-    safe_exec cachix push "$CACHE" --file "/tmp/${compressed_name}"
-    
-    # Create and upload manifest
-    local manifest_name="shimboot-manifest-${config_hash}.json"
-    if [[ "$DRY_RUN" -eq 0 ]]; then
-        cat > "/tmp/${manifest_name}" << EOF
-{
-    "board": "$board",
-    "rootfs": "$rootfs",
-    "drivers": "$drivers",
-    "git_commit": "$git_commit",
-    "config_hash": "$config_hash",
-    "filename": "$compressed_name",
-    "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-    "size_bytes": $(stat -c%s "$image_path" 2>/dev/null || stat -f%z "$image_path" 2>/dev/null || echo 0)
-}
-EOF
-        safe_exec cachix push "$CACHE" --file "/tmp/${manifest_name}"
-    fi
-    
-    # Cleanup
-    if [[ "$DRY_RUN" -eq 0 ]]; then
-        rm -f "/tmp/${compressed_name}" "/tmp/${manifest_name}"
-    fi
-    
-    log_success "Image uploaded: $compressed_name"
-    log_success "Manifest uploaded: $manifest_name"
+    log_info "Image info for reference:"
+    log_info "  Board: $board"
+    log_info "  Rootfs: $rootfs"
+    log_info "  Drivers: $drivers"
+    log_info "  Config hash: $config_hash"
+    log_info "  Size: $(du -h "$image_path" | cut -f1)"
 }
 
 # Main execution

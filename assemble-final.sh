@@ -25,8 +25,7 @@
 #   --dry-run              Show what would be done without executing destructive operations
 #   --prewarm-cache        Attempt to fetch from Cachix before building
 #   --pull-cached-image    Pull pre-built image from Cachix instead of building
-#   --push-to-cachix       Automatically push to Cachix after successful build
-#   --push-to-cachix       Automatically push to Cachix after successful build
+#   --push-to-cachix       Automatically push Nix derivations to Cachix after successful build (image upload no longer supported)
 #
 # Examples:
 #   # Build dedede with full rootfs
@@ -44,7 +43,7 @@
 #   # Use cached image instead of building
 #   ./assemble-final.sh --board dedede --rootfs full --pull-cached-image
 #
-#   # Build and automatically push to Cachix
+#   # Build and automatically push Nix derivations to Cachix
 #   ./assemble-final.sh --board dedede --rootfs full --push-to-cachix
 
 set -Eeuo pipefail
@@ -382,7 +381,7 @@ log_info "Board: ${BOARD}"
 DRIVERS_MODE="${DRIVERS_MODE:-vendor}"
 log_info "Drivers mode: ${DRIVERS_MODE} (vendor|inject|none)"
 log_info "Upstream firmware: ${FIRMWARE_UPSTREAM} (0=disabled, 1=enabled)"
-log_info "Push to Cachix: ${PUSH_TO_CACHIX} (0=disabled, 1=enabled)"
+log_info "Push to Cachix: ${PUSH_TO_CACHIX} (0=disabled, 1=enabled, derivations only)"
 if [ "$DRY_RUN" -eq 1 ]; then
     log_warn "DRY RUN MODE: No destructive operations will be performed"
 fi
@@ -1265,7 +1264,7 @@ show_cache_stats
 
 # === Automatic Cachix push ===
 if [ "$PUSH_TO_CACHIX" -eq 1 ]; then
-    log_step "Cachix" "Pushing to Cachix..."
+    log_step "Cachix" "Pushing Nix derivations to Cachix..."
     
     # Check if push script exists
     if [ -f "tools/push-to-cachix.sh" ]; then
@@ -1278,9 +1277,9 @@ if [ "$PUSH_TO_CACHIX" -eq 1 ]; then
             else
                 log_info "Executing: ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE --image $IMAGE"
                 if bash tools/push-to-cachix.sh --board "$BOARD" --rootfs "$ROOTFS_FLAVOR" --drivers "$DRIVERS_MODE" --image "$IMAGE"; then
-                    log_success "Successfully pushed to Cachix"
+                    log_success "Successfully pushed Nix derivations to Cachix"
                 else
-                    log_error "Failed to push to Cachix"
+                    log_error "Failed to push Nix derivations to Cachix"
                     log_error "You can manually retry with:"
                     log_error "  ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE --image $IMAGE"
                 fi
@@ -1294,7 +1293,7 @@ if [ "$PUSH_TO_CACHIX" -eq 1 ]; then
     fi
 else
     # Show manual instruction only if not auto-pushing
-    log_info "To push to Cachix, run:"
+    log_info "To push Nix derivations to Cachix, run:"
     log_info "  ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE --image $IMAGE"
 fi
 
