@@ -1,7 +1,7 @@
 # Fonts Configuration Module
 #
 # Purpose: Configure minimal base fonts for system compatibility
-# Dependencies: noto-fonts, noto-fonts-emoji, fontconfig
+# Dependencies: noto-fonts, noto-fonts-color-emoji, fontconfig
 # Related: display.nix
 #
 # This module:
@@ -18,7 +18,7 @@
 
     packages = lib.mkDefault (with pkgs; [
       noto-fonts # Basic Latin/CJK (essential)
-      noto-fonts-emoji # Emoji support
+      noto-fonts-color-emoji # Emoji support
     ]);
 
     fontconfig.defaultFonts = lib.mkDefault {
