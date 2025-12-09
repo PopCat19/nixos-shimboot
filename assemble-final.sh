@@ -25,6 +25,8 @@
 #   --dry-run              Show what would be done without executing destructive operations
 #   --prewarm-cache        Attempt to fetch from Cachix before building
 #   --pull-cached-image    Pull pre-built image from Cachix instead of building
+#   --push-to-cachix       Automatically push to Cachix after successful build
+#   --push-to-cachix       Automatically push to Cachix after successful build
 #
 # Examples:
 #   # Build dedede with full rootfs
@@ -41,6 +43,9 @@
 #
 #   # Use cached image instead of building
 #   ./assemble-final.sh --board dedede --rootfs full --pull-cached-image
+#
+#   # Build and automatically push to Cachix
+#   ./assemble-final.sh --board dedede --rootfs full --push-to-cachix
 
 set -Eeuo pipefail
 
@@ -241,6 +246,7 @@ CLEANUP_KEEP=""
 # Cache options
 PREWARM_CACHE=0
 PULL_CACHED_IMAGE=0
+PUSH_TO_CACHIX=0
 
 while [ $# -gt 0 ]; do
 	case "${1:-}" in
@@ -292,6 +298,10 @@ while [ $# -gt 0 ]; do
 		;;
 	--pull-cached-image)
 		PULL_CACHED_IMAGE=1
+		shift
+		;;
+	--push-to-cachix)
+		PUSH_TO_CACHIX=1
 		shift
 		;;
 	*)
@@ -372,6 +382,7 @@ log_info "Board: ${BOARD}"
 DRIVERS_MODE="${DRIVERS_MODE:-vendor}"
 log_info "Drivers mode: ${DRIVERS_MODE} (vendor|inject|none)"
 log_info "Upstream firmware: ${FIRMWARE_UPSTREAM} (0=disabled, 1=enabled)"
+log_info "Push to Cachix: ${PUSH_TO_CACHIX} (0=disabled, 1=enabled)"
 if [ "$DRY_RUN" -eq 1 ]; then
     log_warn "DRY RUN MODE: No destructive operations will be performed"
 fi
@@ -1252,9 +1263,40 @@ fi
 # Call at end of script
 show_cache_stats
 
-# === Final instruction for Cachix push ===
-log_info "To push to Cachix, run:"
-log_info "  ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE --image $IMAGE"
+# === Automatic Cachix push ===
+if [ "$PUSH_TO_CACHIX" -eq 1 ]; then
+    log_step "Cachix" "Pushing to Cachix..."
+    
+    # Check if push script exists
+    if [ -f "tools/push-to-cachix.sh" ]; then
+        # Check if cachix command is available
+        if command -v cachix >/dev/null 2>&1; then
+            # Check for CACHIX_AUTH_TOKEN in CI environments
+            if is_ci && [ -z "${CACHIX_AUTH_TOKEN:-}" ]; then
+                log_warn "CACHIX_AUTH_TOKEN not set in CI environment"
+                log_warn "Set it to enable automatic pushing to Cachix"
+            else
+                log_info "Executing: ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE --image $IMAGE"
+                if bash tools/push-to-cachix.sh --board "$BOARD" --rootfs "$ROOTFS_FLAVOR" --drivers "$DRIVERS_MODE" --image "$IMAGE"; then
+                    log_success "Successfully pushed to Cachix"
+                else
+                    log_error "Failed to push to Cachix"
+                    log_error "You can manually retry with:"
+                    log_error "  ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE --image $IMAGE"
+                fi
+            fi
+        else
+            log_warn "cachix command not found; skipping automatic push"
+            log_warn "Install cachix to enable automatic pushing"
+        fi
+    else
+        log_warn "push-to-cachix.sh script not found; skipping automatic push"
+    fi
+else
+    # Show manual instruction only if not auto-pushing
+    log_info "To push to Cachix, run:"
+    log_info "  ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE --image $IMAGE"
+fi
 
 # === Optional inspection ===
 if [ "$INSPECT_AFTER" = "--inspect" ]; then
