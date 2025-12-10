@@ -1,19 +1,15 @@
 # Media Packages Module
 #
-# Purpose: Install media playback and creation applications
+# Purpose: Install essential media playback and reference applications
 # Dependencies: None
 # Related: packages.nix
 #
 # This module:
-# - Installs media applications
+# - Installs essential media applications (mpv, pureref, scrcpy)
 {pkgs, ...}: {
   home.packages = with pkgs; [
-    drawpile
     mpv
-    audacious
-    audacious-plugins
     pureref
-    youtube-music
     scrcpy
   ];
 }

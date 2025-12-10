@@ -1,12 +1,12 @@
 # Fonts Configuration Module
 #
-# Purpose: Configure custom fonts and font rendering for main configuration
-# Dependencies: noto-fonts, google-fonts, jetbrains-mono, nerd-fonts, fontconfig
+# Purpose: Configure essential fonts and font rendering for main configuration
+# Dependencies: noto-fonts, mplus-outline-fonts, jetbrains-mono, nerd-fonts, fontconfig
 # Related: packages.nix, theme.nix
 #
 # This module:
-# - Overrides base configuration fonts with custom font selection
-# - Installs comprehensive font set including Noto, Google fonts, and JetBrains Mono
+# - Overrides base configuration fonts with essential font selection
+# - Installs Noto, Mplus, and JetBrains Mono fonts
 # - Configures fontconfig with optimized font family preferences
 {pkgs, userConfig, ...}: {
   fonts = {
@@ -20,8 +20,7 @@
       noto-fonts-cjk-serif
       noto-fonts-color-emoji
 
-      # Google fonts and alternatives
-      google-fonts
+      # Mplus fonts
       mplus-outline-fonts.githubRelease
       
       # Programming fonts

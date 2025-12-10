@@ -5,7 +5,7 @@
 # Related: theme.nix, qt-gtk-config.nix
 #
 # This module:
-# - Installs KDE applications (Dolphin, Gwenview, Okular)
+# - Installs KDE applications (Dolphin, Gwenview)
 # - Configures file manager bookmarks and service menus
 # - Sets up thumbnail support and theming
 {
@@ -18,7 +18,6 @@
     kdePackages.dolphin
     kdePackages.ark
     kdePackages.gwenview
-    kdePackages.okular
 
     kdePackages.kdegraphics-thumbnailers
     kdePackages.kimageformats

@@ -82,8 +82,8 @@
     };
 
     pdfViewer = {
-      desktop = "org.kde.okular.desktop";
-      package = "kdePackages.okular";
+      desktop = "zen-twilight.desktop";
+      package = "zen-browser";
     };
 
     launcher = {
