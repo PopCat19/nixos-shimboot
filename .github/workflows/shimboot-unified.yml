@@ -117,6 +117,8 @@ jobs:
         with:
           name: shimboot-systemd-nixos
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          # We manually push to control exactly what gets cached
+          skipPush: true
 
       - name: Build Nix components
         run: |
@@ -150,6 +152,19 @@ jobs:
           
           echo "🔨 Building RootFS: $ROOTFS_ATTR"
           nix build --impure --accept-flake-config ".#${ROOTFS_ATTR}" --print-out-paths
+
+      - name: Explicitly Push to Cachix
+        if: ${{ github.event.inputs.build_mode == 'cachix-only' || github.event.inputs.build_mode == 'full' }}
+        env:
+          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+        run: |
+          chmod +x tools/push-to-cachix.sh
+          echo "🚀 Pushing build artifacts to Cachix..."
+          ./tools/push-to-cachix.sh \
+            --board "${{ matrix.board }}" \
+            --rootfs "${{ github.event.inputs.rootfs || 'minimal' }}" \
+            --drivers "${{ github.event.inputs.drivers_mode || 'vendor' }}" \
+            --skip-image
 
       - name: Install Assembly Dependencies
         if: ${{ github.event.inputs.build_mode == 'full' }}

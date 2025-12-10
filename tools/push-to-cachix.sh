@@ -186,40 +186,38 @@ push_derivations() {
         
         if [[ "$DRY_RUN" -eq 1 ]]; then
             # For dry-run, just check if derivation exists without building
-            if ! nix eval --raw "$drv" >/dev/null 2>&1; then
-                log_warn "Failed to evaluate $drv, skipping push"
+            if ! nix eval --raw --impure --accept-flake-config "$drv" >/dev/null 2>&1; then
+                 log_warn "Failed to evaluate $drv, skipping push"
                 continue
             fi
-            
-            # Get store path for dry-run display
             local store_path
-            store_path=$(nix path-info "$drv" 2>/dev/null || echo "")
-            
-            if [[ -n "$store_path" ]] && [[ "$store_path" =~ (chromeos-shim|extracted-kernel|initramfs|raw-rootfs) ]]; then
-                log_info "[DRY-RUN] Would push: $store_path"
-            else
-                log_info "[DRY-RUN] Skipping nixpkgs derivation"
-            fi
+            store_path=$(nix path-info --impure --accept-flake-config "$drv" 2>/dev/null || echo "")
+            log_info "[DRY-RUN] Would push: $store_path"
         else
-            # Actually build for real runs
-            if ! nix build --quiet "$drv" 2>/dev/null; then
-                log_warn "Failed to build $drv, skipping push"
+            # Ensure it is built (should be cached from previous step)
+            if ! nix build --quiet --impure --accept-flake-config "$drv" 2>/dev/null; then
+                log_warn "Failed to resolve $drv, skipping push"
                 continue
             fi
             
             local store_path
-            store_path=$(nix path-info "$drv" 2>/dev/null || echo "")
+            store_path=$(nix path-info --impure --accept-flake-config "$drv" 2>/dev/null || echo "")
             
             if [[ -z "$store_path" ]]; then
                 log_warn "Could not get store path for $drv"
                 continue
             fi
             
-            # Only push our derivations, not nixpkgs dependencies
-            if [[ "$store_path" =~ (chromeos-shim|extracted-kernel|initramfs|raw-rootfs) ]]; then
-                safe_exec cachix push "$CACHE" "$store_path" 2>&1 | grep -v "Compressing" || true
+            # FIX: Push everything relevant. Removed overly strict regex.
+            # If the user explicitly asks to push these targets, we push them.
+            log_info "Pushing to $CACHE: $(basename "$store_path")"
+            
+            # Use authToken from env (CACHIX_AUTH_TOKEN) if set, handled by cachix CLI automatically
+            if safe_exec cachix push "$CACHE" "$store_path" 2>&1 | grep -v "Compressing"; then
+                log_success "Pushed $drv"
             else
-                log_info "Skipping nixpkgs derivation: $(basename "$store_path")"
+                log_error "Failed to push $drv"
+                # Don't exit immediately, try pushing others
             fi
         fi
     done
