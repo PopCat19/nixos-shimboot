@@ -47,7 +47,7 @@ in {
                 _module.args.userConfig = userConfig;
               })
             ];
-            home-manager.users.${userConfig.user.username} = import ../shimboot_config/main_configuration/home_modules/home.nix;
+            home-manager.users.${userConfig.user.username} = import ../shimboot_config/main_configuration/home/home.nix;
           })
 
           # Raw image specific configuration

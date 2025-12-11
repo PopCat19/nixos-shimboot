@@ -63,7 +63,7 @@
       ];
 
       # Delegate actual HM content to home.nix (split into programs.nix and packages.nix)
-      home-manager.users."${userConfig.user.username}" = import ../shimboot_config/main_configuration/home_modules/home.nix;
+      home-manager.users."${userConfig.user.username}" = import ../shimboot_config/main_configuration/home/home.nix;
     })
   ];
 in {

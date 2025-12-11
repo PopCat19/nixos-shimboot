@@ -10,10 +10,10 @@
 # - Sets Home Manager state version
 {...}: {
   imports = [
-    ../hypr_config/hyprland.nix
-    ../hypr_config/hyprpanel-common.nix
-    ../hypr_config/hyprpanel-home.nix
-    ../hypr_config/hypr_packages.nix
+    ./hypr_config/hyprland.nix
+    ./hypr_config/hyprpanel-common.nix
+    ./hypr_config/hyprpanel-home.nix
+    ./hypr_config/hypr_packages.nix
 
     ./environment.nix
     # Fish and Starship are configured in base_configuration/system_modules/
