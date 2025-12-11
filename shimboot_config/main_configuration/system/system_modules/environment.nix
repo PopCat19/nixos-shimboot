@@ -2,7 +2,7 @@
 #
 # Purpose: Configure system-wide environment variables for applications.
 # Dependencies: userConfig
-# Related: home_modules/environment.nix
+# Related: home/environment.nix
 #
 # This module:
 # - Sets environment variables for default applications

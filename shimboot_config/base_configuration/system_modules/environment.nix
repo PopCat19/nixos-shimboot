@@ -2,7 +2,7 @@
 #
 # Purpose: Set system-wide environment variables for all users
 # Dependencies: userConfig
-# Related: fish.nix, main_configuration/home_modules/environment.nix
+# Related: fish.nix, main_configuration/home/environment.nix
 #
 # This module:
 # - Sets global environment variables accessible to all processes
