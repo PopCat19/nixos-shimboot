@@ -87,11 +87,6 @@ let
             useFixedWidth = false;
             visualizerType = "linear";
           }
-          {
-            id = "NotificationHistory";
-            hideWhenZero = true;
-            showUnreadBadge = true;
-          }
         ];
         
         center = [ ];
@@ -104,6 +99,11 @@ let
             drawerEnabled = true;
             hidePassive = false;
             pinned = [ ];
+          }
+          {
+            id = "NotificationHistory";
+            hideWhenZero = true;
+            showUnreadBadge = true;
           }
           {
             id = "Battery";
