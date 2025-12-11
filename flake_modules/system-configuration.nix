@@ -4,6 +4,7 @@
   home-manager,
   zen-browser,
   rose-pine-hyprcursor,
+  noctalia,
   ...
 }: let
   system = "x86_64-linux";
@@ -80,7 +81,7 @@ in {
             })
           ]
           ++ baseModules;
-        specialArgs = {inherit self zen-browser rose-pine-hyprcursor userConfig;};
+        specialArgs = {inherit self zen-browser rose-pine-hyprcursor noctalia userConfig;};
       };
 
       # Full target (host-qualified, preferred)
@@ -93,7 +94,7 @@ in {
             })
           ]
           ++ mainModules;
-        specialArgs = {inherit self zen-browser rose-pine-hyprcursor userConfig;};
+        specialArgs = {inherit self zen-browser rose-pine-hyprcursor noctalia userConfig;};
       };
     };
 
@@ -107,7 +108,7 @@ in {
             })
           ]
           ++ baseModules;
-        specialArgs = {inherit self zen-browser rose-pine-hyprcursor userConfig;};
+        specialArgs = {inherit self zen-browser rose-pine-hyprcursor noctalia userConfig;};
       };
     };
 
