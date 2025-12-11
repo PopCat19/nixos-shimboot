@@ -3,7 +3,7 @@
 # Write Shimboot Image Script
 #
 # Purpose: Safely write shimboot image to target disk with interactive device selection and validation
-# Dependencies: sudo, dd, lsblk, findmnt, udisksctl, parted, cgpt, numfmt
+# Dependencies: sudo, dd, lsblk, findmnt, udisksctl, parted, cgpt, numfmt, curl, zstd
 # Related: assemble-final.sh, inspect-image.sh
 #
 # This script provides a safe, interactive interface for writing shimboot images to disks,
@@ -17,6 +17,7 @@ set -euo pipefail
 # ---------- Defaults ----------
 DEFAULT_IMAGE="/home/popcat19/nixos-shimboot/work/shimboot.img"
 INPUT_IMAGE="${DEFAULT_IMAGE}"
+DOWNLOAD_DIR=""
 OUTPUT_DEVICE=""
 SKIP_CONFIRM="false"
 COUNTDOWN=10
@@ -28,6 +29,10 @@ AUTO_UNMOUNT="true"
 ALLOW_LARGE="false"
 # Ignore list entries
 IGNORE_ENTRIES=()
+# Download settings
+DOWNLOADED_IMAGE=""
+EXTRACTED_IMAGE=""
+EXPECTED_SHA256=""
 
 # Derived/ephemeral
 INTERACTIVE="false"
@@ -83,6 +88,18 @@ SCRIPT_STATUS=0
 on_exit() {
 	SCRIPT_STATUS=$?
 	udevadm settle >/dev/null 2>&1 || true
+
+	# Clean up downloaded files on error
+	if [[ "${SCRIPT_STATUS}" -ne 0 ]]; then
+		if [[ -n "${DOWNLOADED_IMAGE}" && -f "${DOWNLOADED_IMAGE}" ]]; then
+			warn "Cleaning up downloaded file: ${DOWNLOADED_IMAGE}"
+			rm -f "${DOWNLOADED_IMAGE}" || true
+		fi
+		if [[ -n "${EXTRACTED_IMAGE}" && -f "${EXTRACTED_IMAGE}" ]]; then
+			warn "Cleaning up extracted file: ${EXTRACTED_IMAGE}"
+			rm -f "${EXTRACTED_IMAGE}" || true
+		fi
+	fi
 
 	if [[ "${SCRIPT_STATUS}" -ne 0 ]]; then
 		echo
@@ -150,8 +167,10 @@ Usage:
   write-shimboot-image.sh [options]
 
 Options:
-  -i, --input PATH         Input image path (default: /home/popcat19/nixos-shimboot/work/shimboot.img)
+  -i, --input PATH         Input image path or URL (default: /home/popcat19/nixos-shimboot/work/shimboot.img)
   -o, --output DEVICE      Output block device (e.g., /dev/sdX or /dev/mmcblkX)
+  --download-dir DIR       Directory to store downloaded images (default: /tmp)
+  --sha256 HASH            Expected SHA256 checksum for verification
   --yes                    Skip countdown confirmation (DANGEROUS; still prints warning)
   --countdown N            Confirmation countdown seconds (default: 10)
   --dry-run                Show what would happen without writing
@@ -718,6 +737,14 @@ parse_args() {
 			ALLOW_LARGE="true"
 			shift
 			;;
+		--download-dir)
+			DOWNLOAD_DIR="${2:-}"
+			shift 2
+			;;
+		--sha256)
+			EXPECTED_SHA256="${2:-}"
+			shift 2
+			;;
 		-h | --help)
 			print_help
 			exit 0
@@ -750,9 +777,315 @@ main() {
 		exit 2
 	fi
 
-	if [[ ! -f "${INPUT_IMAGE}" ]]; then
-		error "Input image not found: ${INPUT_IMAGE}"
-		exit 5
+	# Handle HTTP/HTTPS URLs by downloading the image first
+	if [[ "${INPUT_IMAGE}" =~ ^https?:// ]]; then
+		info "Detected URL input. Downloading image..."
+		
+		# Set download directory if not specified
+		if [[ -z "${DOWNLOAD_DIR}" ]]; then
+			DOWNLOAD_DIR="/tmp"
+		fi
+		
+		# Create download directory if it doesn't exist
+		if [[ ! -d "${DOWNLOAD_DIR}" ]]; then
+			if ! mkdir -p "${DOWNLOAD_DIR}"; then
+				error "Failed to create download directory: ${DOWNLOAD_DIR}"
+				exit 5
+			fi
+		fi
+		
+		# Extract filename from URL or generate one
+		local filename
+		filename="$(basename "${INPUT_IMAGE}")"
+		if [[ -z "${filename}" || "${filename}" == "/" ]]; then
+			# Generate a filename based on timestamp if we can't extract one
+			filename="shimboot-$(date +%Y%m%d%H%M%S).img"
+		fi
+		
+		DOWNLOADED_IMAGE="${DOWNLOAD_DIR}/${filename}"
+		
+		# Check if file already exists
+		if [[ -f "${DOWNLOADED_IMAGE}" ]]; then
+			# Verify the existing file
+			local img_size_bytes
+			img_size_bytes="$(bytes_of_file "${DOWNLOADED_IMAGE}")"
+			if [[ "${img_size_bytes}" -eq 0 ]]; then
+				warn "Existing file is empty. Will re-download."
+			else
+				if [[ "${INTERACTIVE}" == "true" ]]; then
+					local ans
+					ans="$(prompt_yes_no "File ${DOWNLOADED_IMAGE} already exists. Use existing file?" "y")"
+					if [[ "$ans" == "yes" ]]; then
+						success "Using existing file: ${DOWNLOADED_IMAGE}"
+					else
+						ans="$(prompt_yes_no "Re-download the file?" "n")"
+						if [[ "$ans" != "yes" ]]; then
+							error "Download aborted by user."
+							exit 5
+						fi
+						# Download the file
+						action "Re-downloading image from ${INPUT_IMAGE}..."
+						if ! curl -L --progress-bar --fail -o "${DOWNLOADED_IMAGE}" "${INPUT_IMAGE}"; then
+							error "Failed to download image from ${INPUT_IMAGE}"
+							exit 5
+						fi
+					fi
+				else
+					warn "File ${DOWNLOADED_IMAGE} already exists. Using existing file."
+				fi
+			fi
+		else
+			# Download the file
+			action "Downloading image from ${INPUT_IMAGE}..."
+			if ! curl -L --progress-bar --fail -o "${DOWNLOADED_IMAGE}" "${INPUT_IMAGE}"; then
+				error "Failed to download image from ${INPUT_IMAGE}"
+				exit 5
+			fi
+		fi
+		
+		# Verify the downloaded file
+		if [[ ! -f "${DOWNLOADED_IMAGE}" ]]; then
+			error "Downloaded file not found: ${DOWNLOADED_IMAGE}"
+			exit 5
+		fi
+		
+		local img_size_bytes
+		img_size_bytes="$(bytes_of_file "${DOWNLOADED_IMAGE}")"
+		if [[ "${img_size_bytes}" -eq 0 ]]; then
+			error "Downloaded file is empty: ${DOWNLOADED_IMAGE}"
+			exit 5
+		fi
+		
+		success "Using file: ${DOWNLOADED_IMAGE}"
+		
+		# Check if the downloaded file is a zstd compressed archive
+		if [[ "${filename}" == *.zst ]]; then
+			info "Detected zstd compressed archive. Extracting..."
+			
+			# Check for zstd command
+			if ! has_command zstd; then
+				error "zstd command not found. Please install zstd to extract compressed images."
+				exit 5
+			fi
+			
+			# Determine the output filename (remove .zst extension)
+			local extracted_filename="${filename%.zst}"
+			EXTRACTED_IMAGE="${DOWNLOAD_DIR}/${extracted_filename}"
+			local continue_extraction=true
+			
+			# Check if extracted file already exists
+			if [[ -f "${EXTRACTED_IMAGE}" ]]; then
+				if [[ "${INTERACTIVE}" == "true" ]]; then
+					local ans
+					ans="$(prompt_yes_no "Extracted file ${EXTRACTED_IMAGE} already exists. Use existing file?" "y")"
+					if [[ "$ans" == "yes" ]]; then
+						success "Using existing extracted file: ${EXTRACTED_IMAGE}"
+						INPUT_IMAGE="${EXTRACTED_IMAGE}"
+						# Skip extraction since we're using the existing file
+						continue_extraction=false
+					else
+						ans="$(prompt_yes_no "Re-extract the file?" "n")"
+						if [[ "$ans" != "yes" ]]; then
+							error "Extraction aborted by user."
+							exit 5
+						fi
+						# Continue with extraction (will overwrite)
+					fi
+				else
+					warn "Extracted file ${EXTRACTED_IMAGE} already exists. Using existing file."
+					INPUT_IMAGE="${EXTRACTED_IMAGE}"
+					# Skip extraction since we're using the existing file
+					continue_extraction=false
+				fi
+			else
+				continue_extraction=true
+			fi
+			
+			# Verify checksum if provided or if .sha256 file exists
+			local sha256_file="${DOWNLOADED_IMAGE}.sha256"
+			local expected_sha256="${EXPECTED_SHA256}"
+			local checksum_found=false
+			
+			# If checksum was provided via command line, use it
+			if [[ -n "${expected_sha256}" ]]; then
+				# Strip "sha256:" prefix if present
+				expected_sha256="${expected_sha256#sha256:}"
+				checksum_found=true
+			# Otherwise try to get checksum from local .sha256 file
+			elif [[ -f "${sha256_file}" ]]; then
+				expected_sha256="$(awk '{print $1}' "${sha256_file}")"
+				if [[ -n "${expected_sha256}" ]]; then
+					checksum_found=true
+				fi
+			# If no valid checksum from file, try to download it
+			elif [[ "${checksum_found}" == "false" ]]; then
+				local sha256_url="${INPUT_IMAGE}.sha256"
+				action "Attempting to download checksum file..."
+				if curl -sf --fail -o "${sha256_file}" "${sha256_url}"; then
+					expected_sha256="$(awk '{print $1}' "${sha256_file}")"
+					if [[ -n "${expected_sha256}" ]]; then
+						checksum_found=true
+					fi
+				fi
+			fi
+			
+			# If we have a valid checksum, verify it
+			if [[ "${checksum_found}" == "true" && -n "${expected_sha256}" ]]; then
+				info "Verifying checksum..."
+				local actual_sha256
+				actual_sha256="$(sha256sum "${DOWNLOADED_IMAGE}" | awk '{print $1}')"
+				
+				if [[ "${expected_sha256}" != "${actual_sha256}" ]]; then
+					error "Checksum verification failed. Expected: ${expected_sha256}, Actual: ${actual_sha256}"
+					exit 5
+				fi
+				success "Checksum verified successfully."
+			else
+				warn "Could not find valid checksum. Proceeding without verification."
+			fi
+			
+			# Only extract if we need to
+			if [[ "${continue_extraction}" == "true" ]]; then
+				# Extract the zstd file
+				action "Extracting compressed image..."
+				if ! zstd -d --long -T0 -f "${DOWNLOADED_IMAGE}" -o "${EXTRACTED_IMAGE}"; then
+					error "Failed to extract compressed image."
+					exit 5
+				fi
+				
+				# Verify the extracted file
+				if [[ ! -f "${EXTRACTED_IMAGE}" ]]; then
+					error "Extracted image not found: ${EXTRACTED_IMAGE}"
+					exit 5
+				fi
+				
+				local extracted_size_bytes
+				extracted_size_bytes="$(bytes_of_file "${EXTRACTED_IMAGE}")"
+				if [[ "${extracted_size_bytes}" -eq 0 ]]; then
+					error "Extracted image is empty: ${EXTRACTED_IMAGE}"
+					exit 5
+				fi
+				
+				success "Image extracted successfully to ${EXTRACTED_IMAGE}"
+				INPUT_IMAGE="${EXTRACTED_IMAGE}"
+			fi
+		else
+			# Use the downloaded file directly if it's not compressed
+			INPUT_IMAGE="${DOWNLOADED_IMAGE}"
+		fi
+	else
+		# Handle local file paths
+		if [[ ! -f "${INPUT_IMAGE}" ]]; then
+			error "Input image not found: ${INPUT_IMAGE}"
+			exit 5
+		fi
+		
+		# Check if local file is a zstd compressed archive
+		if [[ "${INPUT_IMAGE}" == *.zst ]]; then
+			info "Detected local zstd compressed archive. Extracting..."
+			
+			# Check for zstd command
+			if ! has_command zstd; then
+				error "zstd command not found. Please install zstd to extract compressed images."
+				exit 5
+			fi
+			
+			# Determine the output filename (remove .zst extension)
+			local filename
+			filename="$(basename "${INPUT_IMAGE}")"
+			local extracted_filename="${filename%.zst}"
+			local dir
+			dir="$(dirname "${INPUT_IMAGE}")"
+			EXTRACTED_IMAGE="${dir}/${extracted_filename}"
+			local continue_extraction=true
+			
+			# Check if extracted file already exists
+			if [[ -f "${EXTRACTED_IMAGE}" ]]; then
+				if [[ "${INTERACTIVE}" == "true" ]]; then
+					local ans
+					ans="$(prompt_yes_no "Extracted file ${EXTRACTED_IMAGE} already exists. Use existing file?" "y")"
+					if [[ "$ans" == "yes" ]]; then
+						success "Using existing extracted file: ${EXTRACTED_IMAGE}"
+						INPUT_IMAGE="${EXTRACTED_IMAGE}"
+						# Skip extraction since we're using the existing file
+						continue_extraction=false
+					else
+						ans="$(prompt_yes_no "Re-extract the file?" "n")"
+						if [[ "$ans" != "yes" ]]; then
+							error "Extraction aborted by user."
+							exit 5
+						fi
+						# Continue with extraction (will overwrite)
+					fi
+				else
+					warn "Extracted file ${EXTRACTED_IMAGE} already exists. Using existing file."
+					INPUT_IMAGE="${EXTRACTED_IMAGE}"
+					# Skip extraction since we're using the existing file
+					continue_extraction=false
+				fi
+			else
+				continue_extraction=true
+			fi
+			
+			# Verify checksum if provided or if .sha256 file exists
+			local sha256_file="${INPUT_IMAGE}.sha256"
+			local expected_sha256="${EXPECTED_SHA256}"
+			local checksum_found=false
+			
+			# If checksum was provided via command line, use it
+			if [[ -n "${expected_sha256}" ]]; then
+				# Strip "sha256:" prefix if present
+				expected_sha256="${expected_sha256#sha256:}"
+				checksum_found=true
+			# Otherwise try to get checksum from local .sha256 file
+			elif [[ -f "${sha256_file}" ]]; then
+				expected_sha256="$(awk '{print $1}' "${sha256_file}")"
+				if [[ -n "${expected_sha256}" ]]; then
+					checksum_found=true
+				fi
+			fi
+			
+			# If we have a valid checksum, verify it
+			if [[ "${checksum_found}" == "true" && -n "${expected_sha256}" ]]; then
+				info "Verifying checksum..."
+				local actual_sha256
+				actual_sha256="$(sha256sum "${INPUT_IMAGE}" | awk '{print $1}')"
+				
+				if [[ "${expected_sha256}" != "${actual_sha256}" ]]; then
+					error "Checksum verification failed. Expected: ${expected_sha256}, Actual: ${actual_sha256}"
+					exit 5
+				fi
+				success "Checksum verified successfully."
+			else
+				warn "No valid checksum file found. Proceeding without verification."
+			fi
+			
+			# Only extract if we need to
+			if [[ "${continue_extraction}" == "true" ]]; then
+				# Extract the zstd file
+				action "Extracting compressed image..."
+				if ! zstd -d --long -T0 -f "${INPUT_IMAGE}" -o "${EXTRACTED_IMAGE}"; then
+					error "Failed to extract compressed image."
+					exit 5
+				fi
+				
+				# Verify the extracted file
+				if [[ ! -f "${EXTRACTED_IMAGE}" ]]; then
+					error "Extracted image not found: ${EXTRACTED_IMAGE}"
+					exit 5
+				fi
+				
+				local extracted_size_bytes
+				extracted_size_bytes="$(bytes_of_file "${EXTRACTED_IMAGE}")"
+				if [[ "${extracted_size_bytes}" -eq 0 ]]; then
+					error "Extracted image is empty: ${EXTRACTED_IMAGE}"
+					exit 5
+				fi
+				
+				success "Image extracted successfully to ${EXTRACTED_IMAGE}"
+				INPUT_IMAGE="${EXTRACTED_IMAGE}"
+			fi
+		fi
 	fi
 
 	# Prompt for device if none given
