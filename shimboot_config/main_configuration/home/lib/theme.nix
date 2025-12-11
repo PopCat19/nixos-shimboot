@@ -65,7 +65,6 @@
     qt6Packages.qt6ct
     polkit_gnome
     gsettings-desktop-schemas
-    google-fonts
     nerd-fonts.jetbrains-mono
     nerd-fonts.caskaydia-cove
     nerd-fonts.fantasque-sans-mono
