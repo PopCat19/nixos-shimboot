@@ -9,7 +9,7 @@
 # - Does NOT override base Fish configuration
 {...}: {
   home.file.".config/fish/themes" = {
-    source = ../../fish_themes;
+    source = ./fish_themes;
     recursive = true;
   };
 }

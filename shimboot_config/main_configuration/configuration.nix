@@ -1,8 +1,8 @@
 # Main Configuration Module
 #
-# Purpose: Main system configuration combining base and user modules
-# Dependencies: base_configuration, user system modules
-# Related: base_configuration/configuration.nix, flake.nix
+# Purpose: Main system configuration combining base, system and home modules
+# Dependencies: base_configuration, system modules, home modules
+# Related: base_configuration/configuration.nix, system/configuration.nix, home/home.nix
 #
 # This module:
 # - Imports base configuration as foundation
@@ -16,10 +16,6 @@
   ...
 }: {
   imports = [
-    ../base_configuration/configuration.nix
-    ./system_modules/fonts.nix
-    ./system_modules/packages.nix
-    ./system_modules/services.nix
-    ./system_modules/syncthing.nix
+    ./system/configuration.nix
   ];
 }

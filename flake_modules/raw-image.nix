@@ -5,6 +5,7 @@
   home-manager,
   zen-browser,
   rose-pine-hyprcursor,
+  noctalia,
   ...
 }: let
   system = "x86_64-linux";
@@ -16,7 +17,7 @@ in {
     raw-rootfs = nixos-generators.nixosGenerate {
       inherit system;
       format = "raw";
-      specialArgs = {inherit zen-browser rose-pine-hyprcursor;};
+      specialArgs = {inherit zen-browser rose-pine-hyprcursor noctalia;};
 
       modules =
         [
@@ -47,7 +48,7 @@ in {
                 _module.args.userConfig = userConfig;
               })
             ];
-            home-manager.users.${userConfig.user.username} = import ../shimboot_config/main_configuration/home_modules/home.nix;
+            home-manager.users.${userConfig.user.username} = import ../shimboot_config/main_configuration/home/home.nix;
           })
 
           # Raw image specific configuration
@@ -76,7 +77,7 @@ in {
     raw-rootfs-minimal = nixos-generators.nixosGenerate {
       inherit system;
       format = "raw";
-      specialArgs = {inherit zen-browser rose-pine-hyprcursor;};
+      specialArgs = {inherit zen-browser rose-pine-hyprcursor noctalia;};
 
       modules = [
         # Base-only configuration (standalone Hyprland via greetd)

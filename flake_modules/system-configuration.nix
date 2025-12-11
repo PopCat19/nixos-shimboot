@@ -4,6 +4,7 @@
   home-manager,
   zen-browser,
   rose-pine-hyprcursor,
+  noctalia,
   ...
 }: let
   system = "x86_64-linux";
@@ -63,7 +64,7 @@
       ];
 
       # Delegate actual HM content to home.nix (split into programs.nix and packages.nix)
-      home-manager.users."${userConfig.user.username}" = import ../shimboot_config/main_configuration/home_modules/home.nix;
+      home-manager.users."${userConfig.user.username}" = import ../shimboot_config/main_configuration/home/home.nix;
     })
   ];
 in {
@@ -80,7 +81,7 @@ in {
             })
           ]
           ++ baseModules;
-        specialArgs = {inherit self zen-browser rose-pine-hyprcursor userConfig;};
+        specialArgs = {inherit self zen-browser rose-pine-hyprcursor noctalia userConfig;};
       };
 
       # Full target (host-qualified, preferred)
@@ -93,7 +94,7 @@ in {
             })
           ]
           ++ mainModules;
-        specialArgs = {inherit self zen-browser rose-pine-hyprcursor userConfig;};
+        specialArgs = {inherit self zen-browser rose-pine-hyprcursor noctalia userConfig;};
       };
     };
 
@@ -107,7 +108,7 @@ in {
             })
           ]
           ++ baseModules;
-        specialArgs = {inherit self zen-browser rose-pine-hyprcursor userConfig;};
+        specialArgs = {inherit self zen-browser rose-pine-hyprcursor noctalia userConfig;};
       };
     };
 
