@@ -32,4 +32,14 @@ in {
 
     settings = settings;
   };
+
+  # Configure wallpaper files for noctalia
+  home.file = {
+    ".cache/noctalia/wallpapers.json".text = builtins.toJSON {
+      defaultWallpaper = ../wallpaper/wallpaper0.png;
+      wallpapers = {
+        "*" = ../wallpaper/wallpaper0.png;
+      };
+    };
+  };
 }

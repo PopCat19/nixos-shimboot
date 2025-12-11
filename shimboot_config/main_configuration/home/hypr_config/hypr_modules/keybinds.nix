@@ -40,12 +40,16 @@
       "$mainMod, E, exec, $file"
       "$mainMod, C, exec, $editor"
       "$mainMod, F, exec, $browser"
-      "$mainMod, A, exec, $launcher"
+      # Noctalia launcher with Mod+A (fuzzel fallback on Mod+Shift+A)
+      "$mainMod, A, exec, noctalia-shell ipc call launcher toggle"
+      "$mainMod+Shift, A, exec, $launcher"
 
       "$mainMod+Shift, C, exec, hyprpicker -a"
-      "$mainMod, V, exec, bash -lc \"cliphist list | fuzzel --dmenu --with-nth 2 | cliphist decode | wl-copy && sleep 0.05 && wtype -M ctrl -k v\""
-      "$mainMod+Shift, V, exec, bash -lc 'cliphist list | head -n1 | cliphist decode | wl-copy && sleep 0.05 && wtype -M ctrl -k v'"
-      "Ctrl+Alt, W, exec, systemctl --user restart hyprpanel.service"
+      # Clipboard: Noctalia launcher clipboard
+      "$mainMod, V, exec, noctalia-shell ipc call launcher clipboard"
+      # Clipboard: fuzzel picker (fallback)
+      "$mainMod+Shift, V, exec, bash -lc \"cliphist list | fuzzel --dmenu --with-nth 2 | cliphist decode | wl-copy && sleep 0.05 && wtype -M ctrl -k v\""
+      "Ctrl+Alt, W, exec, systemctl --user restart noctalia-shell.service"
 
       "$mainMod, P, exec, ${config.home.homeDirectory}/.local/bin/screenshot monitor"
 

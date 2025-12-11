@@ -261,6 +261,8 @@ let
       wallhavenResolutionHeight = "";
     };
     
+
+    
     # App launcher settings
     appLauncher = {
       enableClipboardHistory = true;
