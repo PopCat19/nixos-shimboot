@@ -1,13 +1,13 @@
 # Hyprland Theme Module
 #
 # Purpose: Configure Hyprland window manager with Rose Pine theme
-# Dependencies: theme_config/colors.nix
+# Dependencies: theme_config/colors.nix, theme_config/visual.nix
 # Related: theme.nix
 #
 # This module:
 # - Defines Rose Pine color variables for Hyprland
 # - Configures Hyprland appearance and theming
-# - Integrates with centralized theme color system
+# - Integrates with centralized theme color and visual systems
 {
   lib,
   pkgs,
@@ -16,37 +16,44 @@
   ...
 }: let
   inherit (import ./colors.nix {inherit pkgs config inputs;}) getColor getColorWithOpacity;
+  inherit (import ./visual.nix {inherit pkgs config inputs;}) alpha shadows blur gaps radius borders opacity helpers;
 in {
   wayland.windowManager.hyprland.settings = {
     # Rose Pine color variables with alpha channel for Hyprland
-    "$base" = "0xff${getColor "background"}";
-    "$surface" = "0xff${getColor "surface"}";
-    "$overlay" = "0xff${getColor "surface-variant"}";
-    "$muted" = "0xff${getColor "text-muted"}";
-    "$subtle" = "0xff${getColor "text-secondary"}";
-    "$text" = "0xff${getColor "text"}";
-    "$love" = "0xff${getColor "error"}";
-    "$gold" = "0xff${getColor "warning"}";
-    "$rose" = "0xff${getColor "accent"}";
-    "$pine" = "0xff${getColor "info"}";
-    "$foam" = "0xff${getColor "success"}";
-    "$iris" = "0xff${getColor "accent-hover"}";
-    "$highlightLow" = "0xff${getColor "shadow"}";
-    "$highlightMed" = "0xff${getColor "selected"}";
-    "$highlightHigh" = "0xff${getColor "focus"}";
+    "$base" = helpers.hexWithAlpha "background" alpha.full;
+    "$surface" = helpers.hexWithAlpha "surface" alpha.full;
+    "$overlay" = helpers.hexWithAlpha "surface-variant" alpha.full;
+    "$muted" = helpers.hexWithAlpha "text-muted" alpha.full;
+    "$subtle" = helpers.hexWithAlpha "text-secondary" alpha.full;
+    "$text" = helpers.hexWithAlpha "text" alpha.full;
+    "$love" = helpers.hexWithAlpha "error" alpha.full;
+    "$gold" = helpers.hexWithAlpha "warning" alpha.full;
+    "$rose" = helpers.hexWithAlpha "accent" alpha.full;
+    "$pine" = helpers.hexWithAlpha "info" alpha.full;
+    "$foam" = helpers.hexWithAlpha "success" alpha.full;
+    "$iris" = helpers.hexWithAlpha "accent-hover" alpha.full;
+    "$highlightLow" = helpers.hexWithAlpha "shadow" alpha.full;
+    "$highlightMed" = helpers.hexWithAlpha "selected" alpha.full;
+    "$highlightHigh" = helpers.hexWithAlpha "focus" alpha.full;
 
-    # Window decoration theming
+    # Window decoration theming using centralized visual properties
     decoration = {
-      rounding = 12;
-      active_opacity = 1.0;
-      inactive_opacity = 1.0;
+      rounding = radius.window;
+      active_opacity = opacity.active;
+      inactive_opacity = opacity.inactive;
 
-      blur = {
-        enabled = true;
-        size = 2;
-        passes = 2;
-        vibrancy = 0.1696;
-      };
+      shadow = shadows;
+
+      blur = blur;
+    };
+
+    # Layout gaps using centralized values
+    general = {
+      gaps_in = gaps.window;
+      gaps_out = gaps.workspace;
+      border_size = borders.width.small;
+      "col.active_border" = "$rose";
+      "col.inactive_border" = "$muted";
     };
 
     # Layer rules for theme consistency

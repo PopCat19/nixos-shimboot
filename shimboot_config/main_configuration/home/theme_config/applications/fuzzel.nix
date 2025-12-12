@@ -1,7 +1,7 @@
 # Fuzzel Launcher Theme Module
 #
 # Purpose: Configure Fuzzel application launcher with Rose Pine theme
-# Dependencies: userConfig, theme_config/theme_fonts.nix, theme_config/colors.nix
+# Dependencies: userConfig, theme_config/theme_fonts.nix, theme_config/colors.nix, theme_config/visual.nix
 # Related: fuzzel.nix
 #
 # This module:
@@ -17,6 +17,7 @@
   ...
 }: let
   inherit (import ../colors.nix {inherit pkgs config inputs;}) getColor getColorWithOpacity;
+  inherit (import ../visual.nix {inherit pkgs config inputs;}) alpha radius borders helpers;
   inherit (import ../theme_fonts.nix {inherit pkgs config inputs;}) fonts;
 in {
   programs.fuzzel.settings = {
@@ -39,18 +40,18 @@ in {
       font = "${fonts.main}:size=${toString fonts.sizes.fuzzel}";
     };
     colors = {
-      background = getColorWithOpacity "background" "f0";
-      text = getColorWithOpacity "text" "ff";
-      match = getColorWithOpacity "accent-active" "ff";
-      selection = getColorWithOpacity "selected" "ff";
-      selection-text = getColorWithOpacity "text" "ff";
-      selection-match = getColorWithOpacity "accent-hover" "ff";
-      border = getColorWithOpacity "accent" "ff";
-      placeholder = getColorWithOpacity "text-secondary" "ff";
+      background = getColorWithOpacity "background" alpha.high;
+      text = getColorWithOpacity "text" alpha.full;
+      match = getColorWithOpacity "accent-active" alpha.full;
+      selection = getColorWithOpacity "selected" alpha.full;
+      selection-text = getColorWithOpacity "text" alpha.full;
+      selection-match = getColorWithOpacity "accent-hover" alpha.full;
+      border = getColorWithOpacity "accent" alpha.full;
+      placeholder = getColorWithOpacity "text-secondary" alpha.full;
     };
     border = {
-      radius = 12;
-      width = 2;
+      radius = radius.medium;
+      width = borders.width.small;
     };
     key-bindings = {
       cancel = "Escape Control+c Control+g";
