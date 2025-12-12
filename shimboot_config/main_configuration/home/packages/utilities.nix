@@ -15,5 +15,6 @@
     localsend
     keepassxc
     vscodium
+    zenity
   ];
 }
