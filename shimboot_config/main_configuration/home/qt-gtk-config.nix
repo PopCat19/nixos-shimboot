@@ -2,11 +2,11 @@
 #
 # Purpose: Configure MIME applications, desktop integration, and file manager settings
 # Dependencies: userConfig
-# Related: theme.nix, kde.nix, dolphin.nix
+# Related: theme.nix, kde.nix, dolphin.nix, bookmarks.nix
 #
 # This module:
 # - Sets up XDG MIME type associations
-# - Configures GTK bookmarks and desktop files
+# - Configures desktop application files
 # - Handles file manager integration settings
 {
   pkgs,
@@ -65,17 +65,6 @@
       "x-scheme-handler/terminal" = [userConfig.defaultApps.terminal.desktop];
     };
   };
-
-  home.file.".config/gtk-3.0/bookmarks".text = ''
-    file://${userConfig.directories.documents} Documents
-    file://${userConfig.directories.downloads} Downloads
-    file://${userConfig.directories.pictures} Pictures
-    file://${userConfig.directories.videos} Videos
-    file://${userConfig.directories.music} Music
-    file://${userConfig.directories.desktop} Desktop
-    file://${userConfig.directories.home}/nixos-config nixos-config
-    trash:/// Trash
-  '';
 
   home.file.".local/share/applications/${userConfig.defaultApps.terminal.package}.desktop".text = ''
     [Desktop Entry]
