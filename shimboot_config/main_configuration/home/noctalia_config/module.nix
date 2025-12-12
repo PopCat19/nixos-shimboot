@@ -27,7 +27,6 @@ in {
 
   programs.noctalia-shell = {
     enable = true;
-    # Enable systemd service through home manager
     systemd.enable = true;
 
     settings = settings;

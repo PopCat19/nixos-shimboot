@@ -23,6 +23,9 @@
 
       # HyprPanel is started via systemd service (see hyprpanel-home.nix)
       # This provides automatic restart on failure
+
+      # Start Noctalia Shell after graphical session is ready
+      "sleep 2 && systemctl --user start noctalia-shell.service"
     ];
   };
 }
