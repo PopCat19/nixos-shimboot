@@ -103,6 +103,7 @@ trap 'handle_error "${CURRENT_STEP:-unknown}"' ERR
 # Use -H to set HOME to /root to avoid "$HOME is not owned by you" warnings under sudo.
 if [ "${EUID:-$(id -u)}" -ne 0 ]; then
 	echo "[assemble-final] Re-executing with sudo -H..."
+	echo "[assemble-final] Please enter your sudo password when prompted..."
 	SUDO_ENV=()
 	for var in BOARD BOARD_EXPLICITLY_SET CACHIX_AUTH_TOKEN; do
 		if [ -n "${!var:-}" ]; then SUDO_ENV+=("$var=${!var}"); fi
@@ -942,6 +943,22 @@ if [ "$START_STEP" -le 11 ]; then
 	log_step "$CURRENT_STEP" "Setup loop device"
 	LOOPDEV=$(sudo losetup --show -fP "$IMAGE") || { log_error "Failed to setup loop device for $IMAGE"; handle_error "$CURRENT_STEP"; }
 	log_info "Loop device: $LOOPDEV"
+
+	# Ensure cgpt is available
+	if ! command -v cgpt >/dev/null 2>&1; then
+		log_info "cgpt not found in PATH, searching in Nix store..."
+		# Find cgpt in Nix store
+		CGPT_PATH=$(find /nix/store -name "cgpt" -type f -executable 2>/dev/null | grep vboot_reference | head -n1)
+		if [ -n "$CGPT_PATH" ]; then
+			log_info "Found cgpt at: $CGPT_PATH"
+			# Create a temporary wrapper to ensure cgpt is available
+			export PATH="$(dirname "$CGPT_PATH"):''${PATH}"
+		else
+			log_error "cgpt not found in Nix store. Please ensure vboot_reference is installed."
+			log_error "Try running: nix develop"
+			handle_error "$CURRENT_STEP"
+		fi
+	fi
 
 	# Set ChromeOS boot flags on p2
 	log_info "Setting ChromeOS boot flags on KERNEL partition..."

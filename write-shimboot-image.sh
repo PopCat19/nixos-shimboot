@@ -15,8 +15,31 @@
 set -euo pipefail
 
 # ---------- Defaults ----------
-DEFAULT_IMAGE="/home/popcat19/nixos-shimboot/work/shimboot.img"
-INPUT_IMAGE="${DEFAULT_IMAGE}"
+# Auto-detect board from work directory or use first available board
+detect_default_board() {
+	local work_dir="/home/popcat19/nixos-shimboot/work"
+	if [[ -d "$work_dir" ]]; then
+		# Find first board directory with a shimboot.img
+		for board_dir in "$work_dir"/*/; do
+			if [[ -f "${board_dir}shimboot.img" ]]; then
+				basename "$board_dir"
+				return 0
+			fi
+		done
+		# If no images found, check if any board directories exist
+		for board_dir in "$work_dir"/*/; do
+			if [[ -d "$board_dir" ]]; then
+				basename "$board_dir"
+				return 0
+			fi
+		done
+	fi
+	echo "dedede"  # fallback to default board
+}
+
+DEFAULT_BOARD="${DEFAULT_BOARD:-$(detect_default_board)}"
+DEFAULT_IMAGE="/home/popcat19/nixos-shimboot/work/${DEFAULT_BOARD}/shimboot.img"
+INPUT_IMAGE="${INPUT_IMAGE:-${DEFAULT_IMAGE}}"
 DOWNLOAD_DIR=""
 OUTPUT_DEVICE=""
 SKIP_CONFIRM="false"
@@ -27,6 +50,8 @@ LIST_ALL="false"
 ALLOW_PARTITION="false"
 AUTO_UNMOUNT="true"
 ALLOW_LARGE="false"
+# Board selection
+BOARD="${BOARD:-${DEFAULT_BOARD}}"
 # Ignore list entries
 IGNORE_ENTRIES=()
 # Download settings
@@ -167,8 +192,9 @@ Usage:
   write-shimboot-image.sh [options]
 
 Options:
-  -i, --input PATH         Input image path or URL (default: /home/popcat19/nixos-shimboot/work/shimboot.img)
+  -i, --input PATH         Input image path or URL (default: auto-detects from work/<board>/shimboot.img)
   -o, --output DEVICE      Output block device (e.g., /dev/sdX or /dev/mmcblkX)
+  --board BOARD            Board name to auto-select image (e.g., dedede, octopus). Default: auto-detect
   --download-dir DIR       Directory to store downloaded images (default: /tmp)
   --sha256 HASH            Expected SHA256 checksum for verification
   --yes                    Skip countdown confirmation (DANGEROUS; still prints warning)
@@ -183,6 +209,16 @@ Options:
   --ignore-file PATH       File with one entry per line (device name or /dev path); lines starting with # are ignored
   --allow-large            Allow targets > 128GiB without extra confirmation (non-interactive)
   -h, --help               Show this help
+
+Examples:
+  # Auto-detect board and write to device
+  sudo ./write-shimboot-image.sh -o /dev/sdd
+
+  # Specify board to use work/dedede/shimboot.img
+  sudo ./write-shimboot-image.sh --board dedede -o /dev/sdd
+
+  # Use custom image path
+  sudo ./write-shimboot-image.sh -i /path/to/shimboot.img -o /dev/sdd
 EOF
 }
 
@@ -692,6 +728,10 @@ parse_args() {
 			OUTPUT_DEVICE="${2:-}"
 			shift 2
 			;;
+		--board)
+			BOARD="${2:-}"
+			shift 2
+			;;
 		--yes)
 			SKIP_CONFIRM="true"
 			shift
@@ -764,6 +804,30 @@ main() {
 
 	# Parse command-line arguments
 	parse_args "$@"
+
+	# Update INPUT_IMAGE based on BOARD if not explicitly provided
+	if [[ -z "${INPUT_IMAGE:-}" || "${INPUT_IMAGE}" == "/home/popcat19/nixos-shimboot/work/${DEFAULT_BOARD}/shimboot.img" ]]; then
+		# If BOARD was explicitly set or we're using the default, update the path
+		INPUT_IMAGE="/home/popcat19/nixos-shimboot/work/${BOARD}/shimboot.img"
+		if [[ ! -f "${INPUT_IMAGE}" ]]; then
+			warn "Image not found for board '${BOARD}': ${INPUT_IMAGE}"
+			# Try to auto-detect available boards
+			local work_dir="/home/popcat19/nixos-shimboot/work"
+			if [[ -d "$work_dir" ]]; then
+				local available_boards=()
+				for board_dir in "$work_dir"/*/; do
+					if [[ -f "${board_dir}shimboot.img" ]]; then
+						available_boards+=("$(basename "$board_dir")")
+					fi
+				done
+				if [[ ${#available_boards[@]} -gt 0 ]]; then
+					note "Available boards with images: ${available_boards[*]}"
+					note "Use --board <name> to select a board, or -i to specify a custom image path."
+				fi
+			fi
+			exit 2
+		fi
+	fi
 
 	# Collect system disk names to avoid overwriting them
 	collect_system_pknames
