@@ -17,7 +17,7 @@ let
     # Bar configuration with simplified layout
     bar = {
       position = "top";
-      backgroundOpacity = 0.4;
+      backgroundOpacity = 0.64;
       monitors = [ ];
       density = "default";
       showCapsule = true;
