@@ -1,7 +1,7 @@
 # Theme Session Module
 #
 # Purpose: Configure session variables and utilities
-# Dependencies: theme colors, fonts
+# Dependencies: theme colors, theme_fonts
 # Related: theme.nix
 #
 # This module:
@@ -15,7 +15,7 @@
   ...
 }: let
   inherit (import ./colors.nix {inherit pkgs config inputs;}) defaultVariant;
-  inherit (import ./fonts.nix {inherit pkgs config inputs;}) fonts;
+  inherit (import ./theme_fonts.nix {inherit pkgs config inputs;}) fonts;
 
   mkSessionVariables = variant: sizes: {
     QT_STYLE_OVERRIDE = "kvantum";

@@ -19,7 +19,7 @@
 }: {
   imports = [
     ./theme_config/colors.nix
-    ./theme_config/fonts.nix
+    ./theme_config/theme_fonts.nix
     ./theme_config/packages.nix
     ./theme_config/session.nix
     ./theme_config/gtk.nix

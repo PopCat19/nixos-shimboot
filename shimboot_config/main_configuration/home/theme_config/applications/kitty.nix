@@ -1,7 +1,7 @@
 # Kitty Terminal Theme Module
 #
 # Purpose: Configure Kitty terminal with Rose Pine theme
-# Dependencies: theme_config/colors.nix, theme_config/fonts.nix
+# Dependencies: theme_config/colors.nix, theme_config/theme_fonts.nix
 # Related: kitty.nix
 #
 # This module:
@@ -16,7 +16,7 @@
   ...
 }: let
   inherit (import ../colors.nix {inherit pkgs config inputs;}) rosePineColors;
-  inherit (import ../fonts.nix {inherit pkgs config inputs;}) fonts;
+  inherit (import ../theme_fonts.nix {inherit pkgs config inputs;}) fonts;
 in {
   programs.kitty.settings = {
     font_family = fonts.mono;
