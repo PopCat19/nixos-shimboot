@@ -1,7 +1,7 @@
 # Fuzzel Launcher Theme Module
 #
 # Purpose: Configure Fuzzel application launcher with Rose Pine theme
-# Dependencies: userConfig, theme_config/theme_fonts.nix
+# Dependencies: userConfig, theme_config/theme_fonts.nix, theme_config/colors.nix
 # Related: fuzzel.nix
 #
 # This module:
@@ -16,7 +16,8 @@
   userConfig,
   ...
 }: let
-  fonts = (import ../theme_fonts.nix {inherit lib pkgs config inputs;}).fonts;
+  inherit (import ../colors.nix {inherit pkgs config inputs;}) getColor getColorWithOpacity;
+  inherit (import ../theme_fonts.nix {inherit pkgs config inputs;}) fonts;
 in {
   programs.fuzzel.settings = {
     main = {
@@ -38,14 +39,14 @@ in {
       font = "${fonts.main}:size=${toString fonts.sizes.fuzzel}";
     };
     colors = {
-      background = "191724f0";
-      text = "e0def4ff";
-      match = "eb6f92ff";
-      selection = "403d52ff";
-      selection-text = "e0def4ff";
-      selection-match = "f6c177ff";
-      border = "ebbcbaff";
-      placeholder = "908caaff";
+      background = getColorWithOpacity "background" "f0";
+      text = getColorWithOpacity "text" "ff";
+      match = getColorWithOpacity "accent-active" "ff";
+      selection = getColorWithOpacity "selected" "ff";
+      selection-text = getColorWithOpacity "text" "ff";
+      selection-match = getColorWithOpacity "accent-hover" "ff";
+      border = getColorWithOpacity "accent" "ff";
+      placeholder = getColorWithOpacity "text-secondary" "ff";
     };
     border = {
       radius = 12;
