@@ -21,10 +21,5 @@
     poppler-utils
     libgsf
     webp-pixbuf-loader
-
-    qt6Packages.qtstyleplugin-kvantum
-    libsForQt5.qtstyleplugin-kvantum
-
-    papirus-icon-theme
   ];
 }
