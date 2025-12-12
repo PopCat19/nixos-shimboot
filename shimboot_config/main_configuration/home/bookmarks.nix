@@ -2,7 +2,7 @@
 #
 # Purpose: Configure file manager bookmarks for GTK and Dolphin
 # Dependencies: userConfig
-# Related: qt-gtk-config.nix, dolphin.nix
+# Related: dolphin.nix
 #
 # This module:
 # - Configures GTK bookmarks for file dialogs

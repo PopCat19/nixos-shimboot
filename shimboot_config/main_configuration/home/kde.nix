@@ -2,7 +2,7 @@
 #
 # Purpose: Configure KDE applications and utilities
 # Dependencies: KDE packages, userConfig
-# Related: dolphin.nix, theme.nix, qt-gtk-config.nix
+# Related: dolphin.nix, theme.nix
 #
 # This module:
 # - Installs KDE applications (Gwenview)

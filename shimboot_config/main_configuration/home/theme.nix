@@ -2,7 +2,7 @@
 #
 # Purpose: Configure Rose Pine theme across GTK, Qt, and desktop environments
 # Dependencies: lib/theme.nix, rose-pine packages
-# Related: environment.nix, qt-gtk-config.nix
+# Related: environment.nix
 #
 # This module:
 # - Sets up Rose Pine color scheme for GTK and Qt applications
@@ -95,30 +95,28 @@ in {
     };
   };
 
-  home.file.".config/qt5ct/qt5ct.conf" = {
-    text = ''
-      [Appearance]
-      color_scheme_path=
-      custom_palette=false
-      icon_theme=${iconTheme}
-      style=kvantum
+  home.file.".config/qt5ct/qt5ct.conf".text = ''
+    [Appearance]
+    color_scheme_path=
+    custom_palette=false
+    icon_theme=${iconTheme}
+    style=kvantum
 
-      [Interface]
-      activate_item_on_single_click=1
-      buttonbox_layout=0
-      cursor_flash_time=1000
-      dialog_buttons_have_icons=1
-      double_click_interval=400
-      gui_effects=@Invalid()
-      keyboard_scheme=2
-      menus_have_icons=true
-      show_shortcuts_in_context_menus=true
-      stylesheets=@Invalid()
-      toolbutton_style=4
-      underline_shortcut=1
-      wheel_scroll_lines=3
-    '';
-  };
+    [Interface]
+    activate_item_on_single_click=1
+    buttonbox_layout=0
+    cursor_flash_time=1000
+    dialog_buttons_have_icons=1
+    double_click_interval=400
+    gui_effects=@Invalid()
+    keyboard_scheme=2
+    menus_have_icons=true
+    show_shortcuts_in_context_menus=true
+    stylesheets=@Invalid()
+    toolbutton_style=4
+    underline_shortcut=1
+    wheel_scroll_lines=3
+  '';
 
   home.file.".config/kdeglobals".text = ''
     [Icons]
