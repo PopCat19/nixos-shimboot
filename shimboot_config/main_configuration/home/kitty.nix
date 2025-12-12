@@ -1,7 +1,7 @@
 # Kitty Terminal Module
 #
 # Purpose: Configure Kitty terminal emulator with Rose Pine theme
-# Dependencies: theme.nix fonts
+# Dependencies: theme_config/fonts.nix
 # Related: theme.nix
 #
 # This module:
@@ -10,7 +10,7 @@
 # - Sets up terminal behavior and appearance
 # - Applies JetBrains Mono Nerd Font from theme configuration
 {lib, pkgs, config, inputs, ...}: let
-  fonts = (import ./lib/theme.nix {inherit lib pkgs config inputs;}).fonts;
+  fonts = (import ./theme_config/fonts.nix {inherit lib pkgs config inputs;}).fonts;
 in {
   programs.kitty = {
     enable = true;
