@@ -26,6 +26,7 @@
     ./theme_config/qt.nix
     ./theme_config/dconf.nix
     ./theme_config/files.nix
+    ./theme_config/hyprland.nix
 
     # Application-specific themes
     ./theme_config/applications/kitty.nix

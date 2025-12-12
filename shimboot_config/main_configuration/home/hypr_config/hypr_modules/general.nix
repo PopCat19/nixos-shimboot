@@ -1,13 +1,14 @@
 # Hyprland General Settings Module
 #
-# Purpose: Configure general Hyprland settings and appearance
-# Dependencies: colors.nix
+# Purpose: Configure general Hyprland functional settings and appearance
+# Dependencies: colors.nix (for theme compatibility)
 # Related: animations.nix, window-rules.nix
 #
 # This module:
 # - Sets monitor configuration and gaps
 # - Configures window borders and decoration
 # - Defines layout and rendering settings
+# - References theme colors from centralized configuration
 {
   wayland.windowManager.hyprland.settings = {
     general = {
@@ -32,13 +33,6 @@
         render_power = 3;
         color = "rgba(1a1a1aee)";
       };
-
-      blur = {
-        enabled = true;
-        size = 2;
-        passes = 2;
-        vibrancy = 0.1696;
-      };
     };
 
     dwindle = {
@@ -59,12 +53,5 @@
     debug = {
       damage_tracking = 0;
     };
-
-    layerrule = [
-      "blur,bar-0"
-      "blur,bar-1"
-      "blur,fuzzel"
-      "ignorezero,fuzzel"
-    ];
   };
 }
