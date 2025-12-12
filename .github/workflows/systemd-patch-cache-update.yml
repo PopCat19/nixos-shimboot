@@ -1,0 +1,108 @@
+name: Systemd Patch Cache Update
+
+on:
+  workflow_dispatch:
+    inputs:
+      # --- Targeting and Build Configuration ---
+      board:
+        description: 'Target Board (used to find the patched systemd dependency in a full config)'
+        required: true
+        default: 'dedede'
+        type: choice
+        options: [dedede, octopus, zork, nissa, hatch, grunt, snappy]
+      rootfs:
+        description: 'Rootfs Variant (minimal or full, used to form the config name)'
+        required: true
+        default: 'minimal'
+        type: choice
+        options: [minimal, full]
+      cache_name:
+        description: 'Cachix Cache Name to push to'
+        required: true
+        default: 'shimboot-systemd-nixos'
+        type: string
+      # --- Runner Configuration ---
+      runner_type:
+        description: 'Runner'
+        required: true
+        default: 'ubuntu-latest'
+        type: choice
+        options: [ubuntu-latest, popcat19-nixos0]
+
+jobs:
+  build-and-cache-systemd:
+    runs-on: ${{ github.event.inputs.runner_type }}
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix and Setup Caching
+        uses: cachix/install-nix-action@v27
+        with:
+          extra_nix_config: |
+            # Enable Nix Flakes
+            experimental-features = nix-command flakes
+            # Add the target cache to the substituters list
+            substituters = https://${{ github.event.inputs.cache_name }}.cachix.org
+            # NOTE: Replace 'XXXXXXXXXXXXXXXX...' with the actual public key for the cache
+            trusted-public-keys = ${{ github.event.inputs.cache_name }}.cachix.org-1:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=
+
+      - name: Set up Cachix
+        uses: cachix/cachix-action@v12
+        # The CACHIX_AUTH_TOKEN secret is required to push to the cache.
+        with:
+          name: ${{ github.event.inputs.cache_name }}
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          
+      - name: Determine Patched Systemd Derivation Path
+        id: determine_path
+        shell: bash
+        run: |
+          # The NixOS configuration name is inferred from the inputs (e.g., 'shimboot-dedede-minimal').
+          NIXOS_CONFIG_PATH=".#nixosConfigurations.shimboot-${{ github.event.inputs.board }}-${{ github.event.inputs.rootfs }}"
+          
+          echo "1. Getting full system closure derivation path..."
+          # Use --dry-run and --json to avoid a full build while finding the system derivation's path.
+          FULL_CLOSURE_DRV=$(nix build --dry-run --no-link \
+            "$NIXOS_CONFIG_PATH.config.system.build.toplevel" \
+            --json | jq -r '.[0].outputs.out')
+          
+          if [ -z "$FULL_CLOSURE_DRV" ] || [ "$FULL_CLOSURE_DRV" == "null" ]; then
+              echo "Error: Could not get full system closure DRV path for $NIXOS_CONFIG_PATH."
+              exit 1
+          fi
+
+          echo "Full System Closure DRV: $FULL_CLOSURE_DRV"
+          
+          # 2. Find the store path for the patched systemd (version 258.2 as per systemd-patch.nix) 
+          # within the dependencies of the full system closure. This ensures we get the *pinned* version.
+          echo "2. Searching for systemd-258.2 store path in dependencies..."
+          SYSTEMD_STORE_PATH=$(nix-store -qR "$FULL_CLOSURE_DRV" | grep -E 'systemd-258.2' | head -n 1)
+          
+          if [ -z "$SYSTEMD_STORE_PATH" ]; then
+              echo "Error: Could not find systemd-258.2 store path in closure dependencies. Check systemd-patch.nix and flake.nix."
+              exit 1
+          fi
+
+          echo "Systemd Store Path: $SYSTEMD_STORE_PATH"
+          echo "SYSTEMD_STORE_PATH=$SYSTEMD_STORE_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Compile and Push Patched Systemd to Cachix
+        shell: bash
+        # Only run this step if the previous step successfully found the path
+        if: steps.determine_path.outputs.SYSTEMD_STORE_PATH
+        run: |
+          SYSTEMD_PATH="${{ steps.determine_path.outputs.SYSTEMD_STORE_PATH }}"
+          CACHE_NAME="${{ github.event.inputs.cache_name }}"
+          
+          echo "3. Compiling patched systemd (if not in any cache)..."
+          # The -r flag (realize) builds the derivation if it's not present locally or in any configured cache.
+          nix-store -r "$SYSTEMD_PATH"
+          
+          echo "4. Pushing patched systemd and its dependencies to $CACHE_NAME..."
+          # The -R flag recursively pushes the derivation and all its inputs (e.g., the patch file).
+          cachix push -R "$CACHE_NAME" "$SYSTEMD_PATH"
+          
+          echo "Successfully pushed $SYSTEMD_PATH and its dependencies to Cachix."
