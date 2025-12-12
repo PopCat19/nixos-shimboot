@@ -12,4 +12,6 @@
   imports = [
     ./theme_config/applications/micro.nix
   ];
+
+  programs.micro.enable = true;
 }

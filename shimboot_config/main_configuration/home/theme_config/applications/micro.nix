@@ -6,30 +6,11 @@
 #
 # This module:
 # - Configures Micro with Rose Pine color scheme
-# - Provides editor settings and appearance
+# - Provides editor theme settings and appearance
 # - Manages Micro theme files
 {...}: {
-  programs.micro = {
-    enable = true;
-    settings = {
-      colorscheme = "rose-pine";
-      mkparents = true;
-      softwrap = true;
-      wordwrap = true;
-      tabsize = 4;
-      autoclose = true;
-      autoindent = true;
-      autosave = 5;
-      clipboard = "terminal";
-      cursorline = true;
-      diffgutter = true;
-      ignorecase = true;
-      scrollbar = true;
-      smartpaste = true;
-      statusline = true;
-      syntax = true;
-      tabstospaces = true;
-    };
+  programs.micro.settings = {
+    colorscheme = "rose-pine";
   };
 
   home.file.".config/micro/colorschemes/rose-pine.micro".text = ''

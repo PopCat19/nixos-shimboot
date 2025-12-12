@@ -12,4 +12,6 @@
   imports = [
     ./theme_config/applications/fuzzel.nix
   ];
+
+  programs.fuzzel.enable = true;
 }
