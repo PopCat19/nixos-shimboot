@@ -28,6 +28,7 @@
     ./theme_config/dconf.nix
     ./theme_config/files.nix
     ./theme_config/hyprland.nix
+    ./theme_config/window-rules.nix
 
     # Application-specific themes
     ./theme_config/applications/kitty.nix
