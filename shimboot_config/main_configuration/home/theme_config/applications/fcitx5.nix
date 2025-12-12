@@ -22,9 +22,9 @@ in {
     Vertical Candidate List=False
     PerScreenDPI=True
     WheelForPaging=True
-    Font="${fonts.main} 11"
-    MenuFont="${fonts.main} 11"
-    TrayFont="${fonts.main} 11"
+    Font="${fonts.main} ${toString fonts.sizes.fcitx5}"
+    MenuFont="${fonts.main} ${toString fonts.sizes.fcitx5}"
+    TrayFont="${fonts.main} ${toString fonts.sizes.fcitx5}"
     TrayOutlineColor=#000000
     TrayTextColor=#ffffff
     PreferTextIcon=False

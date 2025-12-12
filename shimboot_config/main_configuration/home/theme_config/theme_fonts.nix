@@ -17,6 +17,7 @@
       fuzzel = 10;
       kitty = 10;
       gtk = 10;
+      fcitx5 = 10;
     };
   };
 
