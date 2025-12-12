@@ -11,7 +11,7 @@
 {...}: {
   imports = [
     ./hypr_config/hyprland.nix
-    ./noctalia.nix
+    ./noctalia_config/noctalia.nix
     ./hypr_config/hypr_packages.nix
 
     ./environment.nix

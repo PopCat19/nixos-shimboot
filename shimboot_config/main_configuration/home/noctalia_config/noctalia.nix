@@ -19,6 +19,6 @@
   ...
 }: {
   imports = [
-    ./noctalia_config/module.nix
+    ./module.nix
   ];
 }
