@@ -24,6 +24,7 @@
 
     ./fcitx5.nix
     ./dolphin.nix
+    ./fuzzel.nix
     ./bookmarks.nix
     ./kde.nix
     ./kitty.nix
