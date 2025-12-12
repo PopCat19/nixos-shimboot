@@ -76,9 +76,6 @@ in {
     };
   };
 
-  xdg.configFile."Kvantum/rose-pine-rose".source = "${rosePineKvantum}/share/Kvantum/rose-pine-rose";
-  xdg.configFile."Kvantum/rose-pine-moon".source = "${rosePineKvantum}/share/Kvantum/rose-pine-moon";
-
   home.file.".config/Kvantum/kvantum.kvconfig".text = ''
     [General]
     theme=${selectedVariant.kvantumTheme}
