@@ -15,8 +15,15 @@
   inputs,
   ...
 }: let
-  inherit (import ./colors.nix {inherit pkgs config inputs;}) defaultVariant;
-  inherit (import ./packages.nix {inherit lib pkgs config inputs;}) commonPackages;
+  # Define default variant directly since colors.nix is now a module
+  defaultVariant = {
+    name = "rose-pine-main";
+    gtkThemeName = "Rose-Pine-Main-BL";
+    iconTheme = "Rose-Pine";
+    cursorTheme = "rose-pine-hyprcursor";
+    kvantumTheme = "rose-pine-rose";
+  };
+  
   iconTheme = "Papirus-Dark";
   cursorSize = 24;
   cursorPackage = inputs.rose-pine-hyprcursor.packages.${pkgs.system}.default;

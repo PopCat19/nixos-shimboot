@@ -16,7 +16,6 @@
   ...
 }: let
   system = "x86_64-linux";
-in {
   commonPackages = with pkgs; [
     inputs.rose-pine-hyprcursor.packages.${system}.default
     rose-pine-gtk-theme-full
@@ -28,7 +27,7 @@ in {
     polkit_gnome
     gsettings-desktop-schemas
   ];
-
+in {
   home.packages = with pkgs;
     commonPackages
     ++ [

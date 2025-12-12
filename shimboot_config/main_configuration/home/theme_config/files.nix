@@ -9,13 +9,21 @@
 # - Sets up Qt5CT configuration
 # - Manages KDE global settings
 {
+  lib,
   pkgs,
   config,
   inputs,
   ...
 }: let
-  inherit (import ./colors.nix {inherit pkgs config inputs;}) defaultVariant;
-  inherit (import ./gtk.nix {inherit lib pkgs config inputs;}) gtk;
+  # Define default variant directly since colors.nix is now a module
+  defaultVariant = {
+    name = "rose-pine-main";
+    gtkThemeName = "Rose-Pine-Main-BL";
+    iconTheme = "Rose-Pine";
+    cursorTheme = "rose-pine-hyprcursor";
+    kvantumTheme = "rose-pine-rose";
+  };
+  
   iconTheme = "Papirus-Dark";
 in {
   home.file = {

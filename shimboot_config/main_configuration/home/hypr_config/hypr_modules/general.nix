@@ -10,6 +10,9 @@
 # - Defines layout and rendering settings
 # - References theme colors from centralized configuration
 {
+  lib,
+  ...
+}: {
   wayland.windowManager.hyprland.settings = {
     general = {
       gaps_in = 4;
@@ -27,7 +30,7 @@
       active_opacity = 1.0;
       inactive_opacity = 1.0;
 
-      shadow = {
+      shadow = lib.mkDefault {
         enabled = false;
         range = 4;
         render_power = 3;

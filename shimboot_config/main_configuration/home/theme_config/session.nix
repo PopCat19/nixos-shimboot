@@ -14,8 +14,26 @@
   inputs,
   ...
 }: let
-  inherit (import ./colors.nix {inherit pkgs config inputs;}) defaultVariant;
-  inherit (import ./theme_fonts.nix {inherit pkgs config inputs;}) fonts;
+  # Define default variant directly since colors.nix is now a module
+  defaultVariant = {
+    name = "rose-pine-main";
+    gtkThemeName = "Rose-Pine-Main-BL";
+    iconTheme = "Rose-Pine";
+    cursorTheme = "rose-pine-hyprcursor";
+    kvantumTheme = "rose-pine-rose";
+  };
+
+  # Define fonts directly since theme_fonts.nix is now a module
+  fonts = {
+    main = "Rounded Mplus 1c Medium";
+    mono = "JetBrainsMono Nerd Font";
+    sizes = {
+      fuzzel = 10;
+      kitty = 10;
+      gtk = 10;
+      fcitx5 = 10;
+    };
+  };
 
   mkSessionVariables = variant: sizes: {
     QT_STYLE_OVERRIDE = "kvantum";

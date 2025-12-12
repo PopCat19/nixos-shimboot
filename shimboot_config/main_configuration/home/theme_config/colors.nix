@@ -9,9 +9,14 @@
 # - Provides theme variants and configuration
 # - Exports color definitions for other theme components
 # - Follows DRY principle by centralizing all color definitions
-{...}: let
+{
+  lib,
+  pkgs,
+  config,
+  inputs,
+  ...
+}: let
   # Matugen-compatible color palette
-  # Format: { name = "hex-color"; description = "..."; }
   rosePineColors = {
     # Base colors
     primary = { name = "191724"; description = "Main background"; };
@@ -54,53 +59,6 @@
     scrim = { name = "000000"; description = "Scrim/overlay"; };
   };
 
-  # Matugen variable format for easy parsing
-  # This structure is optimized for matugen's expected input format
-  matugenVariables = {
-    # Core palette (matugen expects these specific names)
-    background = rosePineColors.background.name;
-    foreground = rosePineColors.text.name;
-    primary = rosePineColors.primary.name;
-    on-primary = rosePineColors.text.name;
-    secondary = rosePineColors.secondary.name;
-    on-secondary = rosePineColors.text.name;
-    tertiary = rosePineColors.tertiary.name;
-    on-tertiary = rosePineColors.text.name;
-    
-    # Surface colors
-    surface = rosePineColors.surface.name;
-    on-surface = rosePineColors.text.name;
-    surface-variant = rosePineColors.surface-variant.name;
-    on-surface-variant = rosePineColors.text-secondary.name;
-    
-    # Interactive colors
-    outline = rosePineColors.outline.name;
-    outline-variant = rosePineColors.outline-variant.name;
-    
-    # Semantic colors
-    error = rosePineColors.error.name;
-    on-error = rosePineColors.text.name;
-    success = rosePineColors.success.name;
-    on-success = rosePineColors.text.name;
-    warning = rosePineColors.warning.name;
-    on-warning = rosePineColors.text.name;
-    info = rosePineColors.info.name;
-    on-info = rosePineColors.text.name;
-    
-    # Special states
-    hover = rosePineColors.hover.name;
-    focus = rosePineColors.focus.name;
-    selected = rosePineColors.selected.name;
-    disabled = rosePineColors.disabled.name;
-    
-    # Extended palette (for advanced theming)
-    accent = rosePineColors.accent.name;
-    accent-hover = rosePineColors.accent-hover.name;
-    accent-active = rosePineColors.accent-active.name;
-    shadow = rosePineColors.shadow.name;
-    scrim = rosePineColors.scrim.name;
-  };
-
   # Theme variants with matugen compatibility
   variants = {
     main = {
@@ -109,8 +67,6 @@
       iconTheme = "Rose-Pine";
       cursorTheme = "rose-pine-hyprcursor";
       kvantumTheme = "rose-pine-rose";
-      colors = matugenVariables;
-      palette = rosePineColors;
     };
     
     moon = {
@@ -119,8 +75,6 @@
       iconTheme = "Rose-Pine";
       cursorTheme = "rose-pine-hyprcursor";
       kvantumTheme = "rose-pine-moon";
-      colors = matugenVariables;
-      palette = rosePineColors;
     };
     
     dawn = {
@@ -129,8 +83,6 @@
       iconTheme = "Rose-Pine";
       cursorTheme = "rose-pine-hyprcursor";
       kvantumTheme = "rose-pine-dawn";
-      colors = matugenVariables;
-      palette = rosePineColors;
     };
   };
 
@@ -138,12 +90,30 @@
   
   # Helper function to get color by semantic name
   getColor = name: (rosePineColors.${name} or { name = "000000"; }).name;
-  
-  # Helper function to get color with opacity
-  getColorWithOpacity = name: opacity: let
-    color = getColor name;
-  in "${color}${opacity}";
-
 in {
-  inherit rosePineColors matugenVariables variants defaultVariant getColor getColorWithOpacity;
+  options = {
+    theme.colors = lib.mkOption {
+      type = lib.types.attrs;
+      default = rosePineColors;
+      description = "Rose Pine color palette";
+    };
+
+    theme.getColor = lib.mkOption {
+      type = lib.types.functionTo lib.types.str;
+      default = getColor;
+      description = "Helper function to get color by semantic name";
+    };
+
+    theme.defaultVariant = lib.mkOption {
+      type = lib.types.attrs;
+      default = defaultVariant;
+      description = "Default theme variant";
+    };
+  };
+
+  config = {
+    theme.colors = rosePineColors;
+    theme.getColor = getColor;
+    theme.defaultVariant = defaultVariant;
+  };
 }
