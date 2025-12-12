@@ -23,6 +23,7 @@
     ./zen-browser.nix
 
     ./fcitx5.nix
+    ./dolphin.nix
     ./kde.nix
     ./kitty.nix
     ./micro.nix

@@ -2,12 +2,12 @@
 #
 # Purpose: Configure MIME applications, desktop integration, and file manager settings
 # Dependencies: userConfig
-# Related: theme.nix, kde.nix
+# Related: theme.nix, kde.nix, dolphin.nix
 #
 # This module:
 # - Sets up XDG MIME type associations
 # - Configures GTK bookmarks and desktop files
-# - Sets up file manager integration (Dolphin service menus)
+# - Handles file manager integration settings
 {
   pkgs,
   config,
