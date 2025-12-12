@@ -8,6 +8,7 @@
 # - Imports all theme configuration modules
 # - Combines theme components into unified configuration
 # - Provides centralized theme management
+# - Includes application-specific themes
 {
   lib,
   pkgs,
@@ -25,5 +26,10 @@
     ./theme_config/qt.nix
     ./theme_config/dconf.nix
     ./theme_config/files.nix
+
+    # Application-specific themes
+    ./theme_config/applications/kitty.nix
+    ./theme_config/applications/micro.nix
+    ./theme_config/applications/fish.nix
   ];
 }

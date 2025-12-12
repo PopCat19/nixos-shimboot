@@ -1,96 +1,15 @@
 # Micro Text Editor Module
 #
-# Purpose: Configure Micro text editor with Rose Pine theme
-# Dependencies: None
-# Related: None
+# Purpose: Configure Micro text editor
+# Dependencies: theme_config/applications/micro.nix
+# Related: theme.nix
 #
 # This module:
-# - Enables Micro with custom settings
-# - Installs Rose Pine color scheme
-# - Configures editor behavior and appearance
-{
-  pkgs,
-  config,
-  ...
-}: {
-  programs.micro = {
-    enable = true;
-    settings = {
-      colorscheme = "rose-pine";
-      mkparents = true;
-      softwrap = true;
-      wordwrap = true;
-      tabsize = 4;
-      autoclose = true;
-      autoindent = true;
-      autosave = 5;
-      clipboard = "terminal";
-      cursorline = true;
-      diffgutter = true;
-      ignorecase = true;
-      scrollbar = true;
-      smartpaste = true;
-      statusline = true;
-      syntax = true;
-      tabstospaces = true;
-    };
-  };
-
-  home.file.".config/micro/colorschemes/rose-pine.micro".text = ''
-    # Rosé Pine colorscheme for micro editor
-    # Based on the Rosé Pine theme: https://rosepinetheme.com
-    # Colors adapted from the official Rose Pine palette
-
-    color-link default "#e0def4,#191724"
-    color-link comment "#6e6a86"
-
-    color-link identifier "#9ccfd8"
-    color-link identifier.class "#c4a7e7"
-    color-link identifier.var "#9ccfd8"
-
-    color-link constant "#f6c177"
-    color-link constant.number "#f6c177"
-    color-link constant.string "#a6da95"
-
-    color-link symbol "#eb6f92"
-    color-link symbol.brackets "#908caa"
-    color-link symbol.tag "#c4a7e7"
-
-    color-link type "#31748f"
-    color-link type.keyword "#eb6f92"
-
-    color-link special "#ebbcba"
-    color-link statement "#c4a7e7"
-    color-link preproc "#eb6f92"
-
-    color-link underlined "#9ccfd8"
-    color-link error "bold #eb6f92"
-    color-link todo "bold #f6c177"
-
-    color-link diff-added "#a6da95"
-    color-link diff-modified "#f6c177"
-    color-link diff-deleted "#eb6f92"
-
-    color-link gutter-error "#eb6f92"
-    color-link gutter-warning "#f6c177"
-
-    color-link statusline "#e0def4,#1f1d2e"
-    color-link tabbar "#e0def4,#26233a"
-    color-link indent-char "#403d52"
-    color-link line-number "#6e6a86"
-    color-link current-line-number "#c4a7e7"
-
-    color-link cursor-line "#26233a"
-    color-link color-column "#403d52"
-    color-link type.extended "default"
-
-    # Additional Rose Pine specific colors
-    color-link keyword "#eb6f92"
-    color-link function "#9ccfd8"
-    color-link string "#a6da95"
-    color-link number "#f6c177"
-    color-link boolean "#f6c177"
-    color-link operator "#908caa"
-    color-link punctuation "#908caa"
-  '';
+# - Imports Micro theme configuration from theme_config
+# - Enables Micro editor
+# - Provides editor configuration
+{...}: {
+  imports = [
+    ./theme_config/applications/micro.nix
+  ];
 }
