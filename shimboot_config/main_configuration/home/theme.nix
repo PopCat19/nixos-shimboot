@@ -31,5 +31,7 @@
     ./theme_config/applications/kitty.nix
     ./theme_config/applications/micro.nix
     ./theme_config/applications/fish.nix
+    ./theme_config/applications/fuzzel.nix
+    ./theme_config/applications/fcitx5.nix
   ];
 }

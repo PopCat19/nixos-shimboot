@@ -1,14 +1,19 @@
 # Fcitx5 Input Method Module
 #
 # Purpose: Configure Fcitx5 for input methods with full Wayland support
-# Dependencies: fcitx5 packages
-# Related: environment.nix
+# Dependencies: fcitx5 packages, theme_config/applications/fcitx5.nix
+# Related: environment.nix, theme.nix
 #
 # This module:
+# - Imports Fcitx5 theme configuration from theme_config
 # - Enables Fcitx5 with Japanese input support
-# - Configures Rose Pine theme
 # - Sets up Wayland input method integration
+# - Configures input method packages and session variables
 {pkgs, ...}: {
+  imports = [
+    ./theme_config/applications/fcitx5.nix
+  ];
+
   i18n.inputMethod = {
     type = "fcitx5";
     enable = true;
@@ -19,30 +24,6 @@
       fcitx5-rose-pine
     ];
   };
-
-  home.file.".config/fcitx5/conf/classicui.conf".text = ''
-    Vertical Candidate List=False
-    PerScreenDPI=True
-    WheelForPaging=True
-    Font="Rounded Mplus 1c Medium 11"
-    MenuFont="Rounded Mplus 1c Medium 11"
-    TrayFont="Rounded Mplus 1c Medium 11"
-    TrayOutlineColor=#000000
-    TrayTextColor=#ffffff
-    PreferTextIcon=False
-    ShowLayoutNameInIcon=True
-    UseInputMethodLangaugeToDisplayText=True
-    Theme=rose-pine
-    DarkTheme=rose-pine
-    UseDarkTheme=True
-    UseAccentColor=True
-    EnableTray=True
-    ShowPreeditInApplication=False
-  '';
-
-  home.file.".local/share/fcitx5/themes/rose-pine".source = "${pkgs.fcitx5-rose-pine}/share/fcitx5/themes/rose-pine";
-  home.file.".local/share/fcitx5/themes/rose-pine-dawn".source = "${pkgs.fcitx5-rose-pine}/share/fcitx5/themes/rose-pine-dawn";
-  home.file.".local/share/fcitx5/themes/rose-pine-moon".source = "${pkgs.fcitx5-rose-pine}/share/fcitx5/themes/rose-pine-moon";
 
   home.sessionVariables = {
     GTK_IM_MODULE = "fcitx5";
