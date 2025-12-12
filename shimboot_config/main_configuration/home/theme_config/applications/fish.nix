@@ -2,7 +2,7 @@
 #
 # Purpose: Configure Fish shell themes for Rose Pine
 # Dependencies: None
-# Related: fish-themes.nix
+# Related: home.nix
 #
 # This module:
 # - Provides Rose Pine Fish shell themes
