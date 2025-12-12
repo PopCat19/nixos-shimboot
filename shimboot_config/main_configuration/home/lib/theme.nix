@@ -49,9 +49,9 @@
     main = "Rounded Mplus 1c Medium";
     mono = "JetBrainsMono Nerd Font";
     sizes = {
-      fuzzel = 14;
-      kitty = 11;
-      gtk = 11;
+      fuzzel = 10;
+      kitty = 10;
+      gtk = 10;
     };
   };
 
@@ -66,8 +66,6 @@
     polkit_gnome
     gsettings-desktop-schemas
     nerd-fonts.jetbrains-mono
-    nerd-fonts.caskaydia-cove
-    nerd-fonts.fantasque-sans-mono
     noto-fonts
     noto-fonts-cjk-sans
     noto-fonts-color-emoji
