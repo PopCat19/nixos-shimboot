@@ -67,12 +67,6 @@
     qt6Packages.qt6ct
     polkit_gnome
     gsettings-desktop-schemas
-    nerd-fonts.jetbrains-mono
-    noto-fonts
-    noto-fonts-cjk-sans
-    noto-fonts-color-emoji
-    google-fonts
-    font-awesome
   ];
 
   mkGtkCss = fontMain: ''
