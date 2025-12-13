@@ -51,7 +51,7 @@ let
             diskPath = "/";
             showCpuTemp = true;
             showCpuUsage = false;
-            showDiskUsage = false;
+            showDiskUsage = true;
             showMemoryAsPercent = false;
             showMemoryUsage = true;
             showNetworkStats = false;
@@ -79,7 +79,7 @@ let
             id = "Tray";
             blacklist = [ ];
             colorizeIcons = false;
-            drawerEnabled = true;
+            drawerEnabled = false;
             hidePassive = false;
             pinned = [ ];
           }
