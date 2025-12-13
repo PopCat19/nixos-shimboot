@@ -31,30 +31,13 @@ let
       widgets = {
         left = [
           {
-            icon = "rocket";
-            id = "CustomButton";
-            leftClickExec = "noctalia-shell ipc call launcher toggle";
-            hideMode = "alwaysExpanded";
-            showIcon = true;
-            textCollapse = "";
-            textCommand = "";
-            textIntervalMs = 3000;
-            textStream = false;
-            maxTextLength.horizontal = 10;
-            maxTextLength.vertical = 10;
-            leftClickUpdateText = false;
-            middleClickExec = "";
-            middleClickUpdateText = false;
-            parseJson = false;
-            rightClickExec = "";
-            rightClickUpdateText = false;
-            wheelDownExec = "";
-            wheelDownUpdateText = false;
-            wheelExec = "";
-            wheelMode = "unified";
-            wheelUpExec = "";
-            wheelUpUpdateText = false;
-            wheelUpdateText = false;
+            id = "ControlCenter";
+            icon = "noctalia";
+            colorizeDistroLogo = false;
+            colorizeSystemIcon = "none";
+            customIconPath = "";
+            enableColorization = false;
+            useDistroLogo = true;
           }
           {
             id = "Workspace";
@@ -101,11 +84,6 @@ let
             pinned = [ ];
           }
           {
-            id = "NotificationHistory";
-            hideWhenZero = true;
-            showUnreadBadge = true;
-          }
-          {
             id = "Battery";
             displayMode = "alwaysShow";
             showNoctaliaPerformance = false;
@@ -133,13 +111,9 @@ let
             usePrimaryColor = false;
           }
           {
-            id = "ControlCenter";
-            icon = "noctalia";
-            colorizeDistroLogo = false;
-            colorizeSystemIcon = "none";
-            customIconPath = "";
-            enableColorization = false;
-            useDistroLogo = false;
+            id = "NotificationHistory";
+            hideWhenZero = true;
+            showUnreadBadge = true;
           }
         ];
       };
