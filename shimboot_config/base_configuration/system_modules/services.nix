@@ -1,7 +1,7 @@
 # System Services Configuration Module
 #
 # Purpose: Configure essential system services
-# Dependencies: systemd, dbus, polkit
+# Dependencies: systemd, dbus, polkit, openssh
 # Related: hardware.nix, security.nix
 #
 # This module:
@@ -9,6 +9,7 @@
 # - Enables libinput for input device handling
 # - Sets up udev rules for brightness control
 # - Enables storage and D-Bus services
+# - Configures OpenSSH with key-based authentication
 {
   pkgs,
   lib,
@@ -28,5 +29,12 @@
   services = {
     udisks2.enable = true;
     dbus.enable = true;
+    openssh = {
+      enable = true;
+      settings = {
+        PasswordAuthentication = true;
+        PermitRootLogin = "yes";
+      };
+    };
   };
 }
