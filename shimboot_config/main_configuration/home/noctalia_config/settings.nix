@@ -7,7 +7,7 @@
 # - Provides complete Noctalia settings as Nix attribute set
 # - Simplified configuration for shimboot environment
 # - Can be imported by the main Noctalia home manager module
-{ pkgs, ... }:
+{ pkgs, config, ... }:
 
 let
   # Complete Noctalia settings based on user's configuration
