@@ -38,6 +38,7 @@ in {
     ./system_modules/audio.nix
     ./system_modules/fish.nix
     ./system_modules/services.nix
+    ./system_modules/ssh.nix
     ./system_modules/zram.nix
   ];
 
