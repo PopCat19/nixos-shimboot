@@ -50,7 +50,7 @@ jobs:
             trusted-public-keys = ${{ github.event.inputs.cache_name }}.cachix.org-1:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=
 
       - name: Set up Cachix
-        uses: cachix/cachix-action@v12
+        uses: cachix/cachix-action@v14
         # The CACHIX_AUTH_TOKEN secret is required to push to the cache.
         with:
           name: ${{ github.event.inputs.cache_name }}
