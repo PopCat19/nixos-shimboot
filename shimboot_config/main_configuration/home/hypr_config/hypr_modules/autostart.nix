@@ -12,20 +12,17 @@
 {
   wayland.windowManager.hyprland.settings = {
     "exec-once" = [
-      "hyprpaper -c ~/.config/hypr/hyprpaper.conf"
       "/run/current-system/sw/libexec/polkit-gnome-authentication-agent-1"
 
       "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP"
       "dbus-update-activation-environment --systemd --all"
       "systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP"
 
-      "openrgb -p orang-full"
-
       # HyprPanel is started via systemd service (see hyprpanel-home.nix)
       # This provides automatic restart on failure
 
       # Start Noctalia Shell after graphical session is ready
-      "sleep 2 && systemctl --user start noctalia-shell.service"
+      "sleep 3 && systemctl --user start noctalia-shell.service"
     ];
   };
 }
