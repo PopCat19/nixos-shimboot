@@ -51,10 +51,10 @@ let
             diskPath = "/";
             showCpuTemp = true;
             showCpuUsage = false;
-            showDiskUsage = true;
+            showDiskUsage = false;
             showMemoryAsPercent = false;
             showMemoryUsage = true;
-            showNetworkStats = false;
+            showNetworkStats = true;
             usePrimaryColor = false;
           }
           {
