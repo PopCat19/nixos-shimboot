@@ -16,6 +16,5 @@
     keepassxc
     vscodium
     zenity
-    papirus-icon-theme
   ];
 }
