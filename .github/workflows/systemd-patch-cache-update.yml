@@ -59,12 +59,7 @@ jobs:
         id: determine_path
         shell: bash
         run: |
-          ROOTFS="${{ github.event.inputs.rootfs }}"
-
-          SUFFIX=""
-          [ "$ROOTFS" = "minimal" ] && SUFFIX="-minimal"
-
-          NIXOS_CONFIG_PATH=".#nixosConfigurations.nixos-shimboot${SUFFIX}"
+          NIXOS_CONFIG_PATH=".#nixosConfigurations.nixos-shimboot"
           
           echo "1. Getting full system closure derivation path..."
           # Use --dry-run and --json to avoid a full build while finding the system derivation's path.
