@@ -60,6 +60,11 @@ on:
         required: false
         default: false
         type: boolean
+      push_cachix_only:
+        description: 'Only push Nix derivations to Cachix (skip image build)'
+        required: false
+        default: false
+        type: boolean
 
 env:
   NIXPKGS_ALLOW_UNFREE: 1
@@ -167,13 +172,13 @@ jobs:
             --skip-image
 
       - name: Install Assembly Dependencies
-        if: ${{ github.event.inputs.build_mode == 'full' }}
+        if: ${{ github.event.inputs.build_mode == 'full' && github.event.inputs.push_cachix_only != 'true' }}
         run: |
           sudo apt-get update
           sudo apt-get install -y parted gdisk e2fsprogs util-linux pv zstd vboot-utils
 
       - name: Assemble Image
-        if: ${{ github.event.inputs.build_mode == 'full' }}
+        if: ${{ github.event.inputs.build_mode == 'full' && github.event.inputs.push_cachix_only != 'true' }}
         run: |
           # Load Nix environment
           if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
@@ -208,7 +213,7 @@ jobs:
           if [ "$success" = "false" ]; then echo "❌ Assembly failed."; exit 1; fi
 
       - name: Compress and Artifact
-        if: ${{ github.event.inputs.build_mode == 'full' }}
+        if: ${{ github.event.inputs.build_mode == 'full' && github.event.inputs.push_cachix_only != 'true' }}
         run: |
           set -e
 
@@ -247,18 +252,33 @@ jobs:
           sudo rm -f shimboot.img
 
       - name: Upload Artifact
-        if: ${{ github.event.inputs.build_mode == 'full' }}
+        if: ${{ github.event.inputs.build_mode == 'full' && github.event.inputs.push_cachix_only != 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs }}
           path: artifacts/${{ matrix.board }}/*
+
+      - name: Push Derivations to Cachix (Derivation-only)
+        if: ${{ github.event.inputs.push_cachix_only == 'true' }}
+        env:
+          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+        run: |
+          chmod +x tools/push-to-cachix.sh
+          echo "🚀 Pushing derivations to Cachix (no image build)..."
+          ./tools/push-to-cachix.sh \
+            --board "${{ matrix.board }}" \
+            --rootfs "${{ github.event.inputs.rootfs || 'minimal' }}" \
+            --drivers "${{ github.event.inputs.drivers_mode || 'vendor' }}" \
+            --skip-image
 
   # ==================================================================
   # JOB 2: RELEASE (Conditional)
   # ==================================================================
   create-release:
     needs: build
-    if: ${{ github.event.inputs.create_release == 'true' && github.event.inputs.build_mode == 'full' }}
+    if: ${{ github.event.inputs.create_release == 'true' &&
+            github.event.inputs.build_mode == 'full' &&
+            github.event.inputs.push_cachix_only != 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
