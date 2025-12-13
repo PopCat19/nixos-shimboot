@@ -158,6 +158,16 @@ jobs:
           echo "🔨 Building RootFS: $ROOTFS_ATTR"
           nix build --impure --accept-flake-config ".#${ROOTFS_ATTR}" --print-out-paths
 
+      - name: Prewarm Cachix (cache-first, no build)
+        run: |
+          echo "🔍 Pre-warming Cachix (no builds)..."
+          nix build --dry-run --impure --accept-flake-config \
+            .#chromeos-shim-${{ matrix.board }} \
+            .#extracted-kernel-${{ matrix.board }} \
+            .#initramfs-patching-${{ matrix.board }} \
+            .#raw-rootfs \
+            2>&1 | grep -E "will be fetched|will be built" || true
+
       - name: Explicitly Push to Cachix
         if: ${{ github.event.inputs.build_mode == 'cachix-only' || github.event.inputs.build_mode == 'full' }}
         env:
