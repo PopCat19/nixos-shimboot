@@ -128,8 +128,8 @@ let
             id = "Clock";
             formatHorizontal = "HH:mm ddd, MMM dd";
             formatVertical = "HH mm - dd MM";
-            useCustomFont = false;
-            customFont = "";
+            useCustomFont = true;
+            customFont = fonts.mono;
             usePrimaryColor = false;
           }
           {
