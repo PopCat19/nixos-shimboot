@@ -6,7 +6,7 @@ varying vec2 v_texcoord;
 uniform sampler2D tex;
 
 // Color temperature settings
-const float TEMPERATURE = 3200.0;
+const float TEMPERATURE = 2800.0;
 const float TEMPERATURE_STRENGTH = 1.0;
 
 // Luminance preservation
