@@ -10,11 +10,11 @@
 { pkgs, ... }:
 
 let
-  # Complete Noctalia settings adapted for shimboot
+  # Complete Noctalia settings based on user's configuration
   settings = {
     settingsVersion = 26;
     
-    # Bar configuration with simplified layout
+    # Bar configuration with user's custom layout
     bar = {
       position = "top";
       backgroundOpacity = 0.64;
@@ -107,7 +107,6 @@ let
           }
           {
             id = "Battery";
-            deviceNativePath = "";
             displayMode = "alwaysShow";
             showNoctaliaPerformance = false;
             showPowerProfiles = false;
@@ -236,7 +235,7 @@ let
     wallpaper = {
       enabled = true;
       overviewEnabled = false;
-      directory = "";
+      directory = "${config.home.homeDirectory}/wallpaper";
       monitorDirectories = [ ];
       enableMultiMonitorDirectories = false;
       recursiveSearch = false;
@@ -246,7 +245,7 @@ let
       randomEnabled = false;
       randomIntervalSec = 300;
       transitionDuration = 1500;
-      transitionType = "random";
+      transitionType = "fade";
       transitionEdgeSmoothness = 0.05;
       panelPosition = "follow_bar";
       hideWallpaperFilenames = false;
@@ -260,8 +259,6 @@ let
       wallhavenResolutionWidth = "";
       wallhavenResolutionHeight = "";
     };
-    
-
     
     # App launcher settings
     appLauncher = {
@@ -396,12 +393,6 @@ let
           countdownEnabled = true;
         }
         {
-          action = "hibernate";
-          enabled = true;
-          command = "";
-          countdownEnabled = true;
-        }
-        {
           action = "reboot";
           enabled = true;
           command = "";
@@ -428,7 +419,7 @@ let
       monitors = [ ];
       location = "top_right";
       overlayLayer = true;
-      backgroundOpacity = 1;
+      backgroundOpacity = 0.8;
       respectExpireTimeout = false;
       lowUrgencyDuration = 3;
       normalUrgencyDuration = 8;
@@ -458,8 +449,8 @@ let
     
     # Audio settings
     audio = {
-      volumeStep = 5;
-      volumeOverdrive = false;
+      volumeStep = 4;
+      volumeOverdrive = true;
       cavaFrameRate = 30;
       visualizerType = "linear";
       visualizerQuality = "high";
@@ -515,7 +506,7 @@ let
     nightLight = {
       enabled = false;
       forced = false;
-      autoSchedule = true;
+      autoSchedule = false;
       nightTemp = "4000";
       dayTemp = "6500";
       manualSunrise = "06:30";
