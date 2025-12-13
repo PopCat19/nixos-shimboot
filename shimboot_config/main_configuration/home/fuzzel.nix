@@ -17,7 +17,7 @@
   userConfig,
   ...
 }: let
-  fonts = (import ./theme.nix {inherit lib pkgs config inputs;}).fonts;
+  fonts = (import ./fonts.nix {inherit userConfig;}).fonts;
 in {
   programs.fuzzel = {
     enable = true;

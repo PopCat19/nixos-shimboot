@@ -9,8 +9,8 @@
 # - Configures Rose Pine color scheme
 # - Sets up terminal behavior and appearance
 # - Applies JetBrains Mono Nerd Font from theme configuration
-{lib, pkgs, config, inputs, ...}: let
-  fonts = (import ./lib/theme.nix {inherit lib pkgs config inputs;}).fonts;
+{lib, pkgs, config, inputs, userConfig, ...}: let
+  fonts = (import ./fonts.nix {inherit userConfig;}).fonts;
 in {
   programs.kitty = {
     enable = true;
