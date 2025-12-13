@@ -7,7 +7,7 @@
 # - Provides complete Noctalia settings as Nix attribute set
 # - Simplified configuration for shimboot environment
 # - Can be imported by the main Noctalia home manager module
-{ pkgs, config, ... }:
+{ pkgs, ... }:
 
 let
   # Complete Noctalia settings based on user's configuration
@@ -235,7 +235,7 @@ let
     wallpaper = {
       enabled = true;
       overviewEnabled = false;
-      directory = "${config.home.homeDirectory}/wallpaper";
+      directory = "\${home.homeDirectory}/wallpaper";
       monitorDirectories = [ ];
       enableMultiMonitorDirectories = false;
       recursiveSearch = false;
