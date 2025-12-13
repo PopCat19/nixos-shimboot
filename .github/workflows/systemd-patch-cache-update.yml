@@ -60,28 +60,27 @@ jobs:
         shell: bash
         run: |
           NIXOS_CONFIG_PATH=".#nixosConfigurations.nixos-shimboot"
-          
+
           echo "1. Getting full system closure derivation path..."
-          # Use --dry-run and --json to avoid a full build while finding the system derivation's path.
           FULL_CLOSURE_DRV=$(nix build --dry-run --no-link \
             "$NIXOS_CONFIG_PATH.config.system.build.toplevel" \
             --json | jq -r '.[0].outputs.out')
-          
-          if [ -z "$FULL_CLOSURE_DRV" ] || [ "$FULL_CLOSURE_DRV" == "null" ]; then
-              echo "Error: Could not get full system closure DRV path for $NIXOS_CONFIG_PATH."
-              exit 1
+
+          if [ -z "$FULL_CLOSURE_DRV" ] || [ "$FULL_CLOSURE_DRV" = "null" ]; then
+            echo "Error: Could not get system closure path"
+            exit 1
           fi
 
           echo "Full System Closure DRV: $FULL_CLOSURE_DRV"
-          
-          # 2. Find the store path for the patched systemd (version 258.2 as per systemd-patch.nix) 
-          # within the dependencies of the full system closure. This ensures we get the *pinned* version.
+
           echo "2. Searching for systemd-258.2 store path in dependencies..."
-          SYSTEMD_STORE_PATH=$(nix-store -qR "$FULL_CLOSURE_DRV" | grep -E 'systemd-258.2' | head -n 1)
-          
+          SYSTEMD_STORE_PATH=$(nix path-info -r "$FULL_CLOSURE_DRV" \
+            | grep -E 'systemd-258.2' \
+            | head -n 1)
+
           if [ -z "$SYSTEMD_STORE_PATH" ]; then
-              echo "Error: Could not find systemd-258.2 store path in closure dependencies. Check systemd-patch.nix and flake.nix."
-              exit 1
+            echo "Error: systemd-258.2 not found in closure"
+            exit 1
           fi
 
           echo "Systemd Store Path: $SYSTEMD_STORE_PATH"
