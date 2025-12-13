@@ -47,7 +47,7 @@ jobs:
             # Add the target cache to the substituters list
             substituters = https://${{ github.event.inputs.cache_name }}.cachix.org
             # NOTE: Replace 'XXXXXXXXXXXXXXXX...' with the actual public key for the cache
-            trusted-public-keys = ${{ github.event.inputs.cache_name }}.cachix.org-1:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX=
+            trusted-public-keys = ${{ github.event.inputs.cache_name }}.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA=
 
       - name: Set up Cachix
         uses: cachix/cachix-action@v14
