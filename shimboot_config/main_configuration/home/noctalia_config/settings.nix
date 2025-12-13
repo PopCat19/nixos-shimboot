@@ -7,7 +7,7 @@
 # - Provides complete Noctalia settings as Nix attribute set
 # - Simplified configuration for shimboot environment
 # - Can be imported by the main Noctalia home manager module
-{ pkgs, ... }:
+{ pkgs, fonts, ... }:
 
 let
   # Complete Noctalia settings based on user's configuration
@@ -172,8 +172,8 @@ let
     
     # UI settings
     ui = {
-      fontDefault = "Rounded Mplus 1c Medium";
-      fontFixed = "Fira Mono";
+      fontDefault = fonts.main;
+      fontFixed = fonts.mono;
       fontDefaultScale = 1;
       fontFixedScale = 1;
       tooltipsEnabled = true;
