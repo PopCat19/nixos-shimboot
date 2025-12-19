@@ -32,6 +32,9 @@ function nixos-rebuild-basic
         echo "🔐 Kernel $kver detected. Using default sandbox."
     end
 
+    # Pass additional arguments from caller
+    set -a nix_args $argv
+
     echo "🚀 Running NixOS rebuild..."
     echo "Command: sudo nixos-rebuild $nix_args"
 
