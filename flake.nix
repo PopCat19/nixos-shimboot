@@ -83,7 +83,7 @@
       import ./flake_modules/raw-image.nix {
         inherit self nixpkgs nixos-generators home-manager zen-browser rose-pine-hyprcursor noctalia board;
       };
-    systemConfigurationOutputs = import ./flake_modules/system-configuration.nix {inherit self nixpkgs home-manager zen-browser rose-pine-hyprcursor noctalia;};
+    systemConfigurationOutputs = import ./flake_modules/system-configuration.nix {inherit self nixpkgs home-manager zen-browser rose-pine-hyprcursor noctalia stylix;};
     developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix {inherit self nixpkgs;};
 
     # ChromeOS and patch_initramfs modules

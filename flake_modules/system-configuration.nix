@@ -5,6 +5,7 @@
   zen-browser,
   rose-pine-hyprcursor,
   noctalia,
+  stylix,
   ...
 }: let
   system = "x86_64-linux";
