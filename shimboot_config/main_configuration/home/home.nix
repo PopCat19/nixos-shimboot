@@ -31,7 +31,7 @@
     ./micro.nix
     ./privacy.nix
     ./screenshot.nix
-    ./theme.nix
+    ./stylix.nix
   ];
 
   home.stateVersion = "24.11";

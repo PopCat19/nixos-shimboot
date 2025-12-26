@@ -1,8 +1,8 @@
 # Noctalia Configuration Module
 #
-# Purpose: Main module for Noctalia configuration replacing HyprPanel
+# Purpose: Main module for Noctalia configuration
 # Dependencies: inputs.noctalia (flake input), home-manager
-# Related: home/home.nix
+# Related: home_modules/noctalia.nix
 #
 # This module:
 # - Imports Noctalia home manager module
@@ -13,14 +13,14 @@
   lib,
   pkgs,
   config,
-  system,
+  hostPlatform,
   inputs,
   userConfig,
   ...
 }: let
-  inherit (import ../fonts.nix {inherit userConfig;}) fonts;
-  inherit (import ./settings.nix {inherit pkgs fonts;}) settings;
+  inherit (import ./settings.nix {inherit pkgs config hostname;}) settings;
   username = userConfig.user.username;
+  hostname = config.networking.hostName or userConfig.host.hostname;
 in {
   imports = [
     inputs.noctalia.homeModules.default
@@ -28,18 +28,9 @@ in {
 
   programs.noctalia-shell = {
     enable = true;
+    # Enable systemd service through home manager
     systemd.enable = true;
 
-    settings = settings;
-  };
-
-  # Configure wallpaper files for noctalia
-  home.file = {
-    ".cache/noctalia/wallpapers.json".text = builtins.toJSON {
-      defaultWallpaper = ../wallpaper/wallpaper0.png;
-      wallpapers = {
-        "*" = ../wallpaper/wallpaper0.png;
-      };
-    };
+    settings = (import ./settings.nix {inherit pkgs config hostname;}).settings;
   };
 }

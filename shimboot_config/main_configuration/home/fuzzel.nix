@@ -1,58 +1,31 @@
-# Fuzzel Launcher Module
-#
-# Purpose: Configure Fuzzel application launcher with Rose Pine theme
-# Dependencies: userConfig, theme fonts
-# Related: theme.nix
-#
-# This module:
-# - Enables Fuzzel with overlay display mode
-# - Configures Rose Pine color scheme
-# - Sets up keyboard shortcuts and appearance
-# - Applies theme font configuration
 {
-  lib,
   pkgs,
-  config,
-  inputs,
   userConfig,
   ...
-}: let
-  fonts = (import ./fonts.nix {inherit userConfig;}).fonts;
-in {
+}: {
+  # Fuzzel Launcher Configuration - Enhanced with Rose Pine theme and QoL features.
   programs.fuzzel = {
     enable = true;
     settings = {
       main = {
-        layer = "overlay";
+        layer = "overlay"; # Display as an overlay.
         placeholder = "Search applications...";
-        width = 50;
-        lines = 12;
-        horizontal-pad = 20;
-        vertical-pad = 12;
-        inner-pad = 8;
-        image-size-ratio = 0.8;
-        show-actions = true;
-        terminal = userConfig.defaultApps.terminal.command;
-        filter-desktop = true;
-        icon-theme = "Papirus-Dark";
-        icons-enabled = true;
-        password-character = "*";
-        list-executables-in-path = false;
-        font = "${fonts.main}:size=${toString fonts.sizes.fuzzel}";
-      };
-      colors = {
-        background = "191724f0";
-        text = "e0def4ff";
-        match = "eb6f92ff";
-        selection = "403d52ff";
-        selection-text = "e0def4ff";
-        selection-match = "f6c177ff";
-        border = "ebbcbaff";
-        placeholder = "908caaff";
+        width = 50; # Width in characters.
+        lines = 12; # Number of lines to display.
+        horizontal-pad = 20; # Horizontal padding.
+        vertical-pad = 12; # Vertical padding.
+        inner-pad = 8; # Padding between border and content.
+        image-size-ratio = 0.8; # Size ratio for application icons.
+        show-actions = true; # Show application actions.
+        terminal = userConfig.defaultApps.terminal.command; # Terminal for launching terminal applications.
+        filter-desktop = true; # Filter desktop files.
+        icons-enabled = true; # Enable application icons.
+        password-character = "*"; # Character for password fields.
+        list-executables-in-path = false; # Don't list PATH executables.
       };
       border = {
-        radius = 12;
-        width = 2;
+        radius = 12; # Rounded corners.
+        width = 2; # Border width.
       };
       key-bindings = {
         cancel = "Escape Control+c Control+g";

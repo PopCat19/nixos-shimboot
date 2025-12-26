@@ -81,7 +81,7 @@ in {
             })
           ]
           ++ baseModules;
-        specialArgs = {inherit self zen-browser rose-pine-hyprcursor noctalia userConfig;};
+        specialArgs = {inherit self zen-browser rose-pine-hyprcursor noctalia stylix userConfig;};
       };
 
       # Full target (host-qualified, preferred)
@@ -94,7 +94,7 @@ in {
             })
           ]
           ++ mainModules;
-        specialArgs = {inherit self zen-browser rose-pine-hyprcursor noctalia userConfig;};
+        specialArgs = {inherit self zen-browser rose-pine-hyprcursor noctalia stylix userConfig;};
       };
     };
 
@@ -108,7 +108,7 @@ in {
             })
           ]
           ++ baseModules;
-        specialArgs = {inherit self zen-browser rose-pine-hyprcursor noctalia userConfig;};
+        specialArgs = {inherit self zen-browser rose-pine-hyprcursor noctalia stylix userConfig;};
       };
     };
 
@@ -122,7 +122,7 @@ in {
             })
           ]
           ++ mainModules;
-        specialArgs = {inherit self zen-browser rose-pine-hyprcursor;};
+        specialArgs = {inherit self zen-browser rose-pine-hyprcursor stylix;};
       };
     };
   in

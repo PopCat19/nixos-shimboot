@@ -1,15 +1,22 @@
 # Noctalia Settings Configuration
 #
 # Purpose: Contains the complete Noctalia settings configuration
-# Source: Adapted from user's personalized settings for shimboot
+# Source: User's personalized settings from syncthing-shared
 #
 # This module:
 # - Provides complete Noctalia settings as Nix attribute set
-# - Simplified configuration for shimboot environment
+# - Matches user's personalized configuration from JSON
 # - Can be imported by the main Noctalia home manager module
-{ pkgs, fonts, ... }:
+{ pkgs, config, hostname ? null, ... }:
 
 let
+  # Determine if host has battery based on hostname
+  hasBattery = 
+    if hostname != null then
+      hostname == "popcat19-surface0" || hostname == "popcat19-thinkpad0"
+    else
+      false;
+  
   # Complete Noctalia settings based on user's configuration
   settings = {
     settingsVersion = 26;
@@ -17,11 +24,9 @@ let
     # Bar configuration with user's custom layout
     bar = {
       position = "top";
-      backgroundOpacity = 0.64;
       monitors = [ ];
       density = "default";
-      showCapsule = true;
-      capsuleOpacity = 1;
+      showCapsule = false;
       floating = true;
       marginVertical = 0.25;
       marginHorizontal = 0.25;
@@ -83,13 +88,19 @@ let
             hidePassive = false;
             pinned = [ ];
           }
-          {
-            id = "Battery";
-            displayMode = "alwaysShow";
-            showNoctaliaPerformance = false;
-            showPowerProfiles = false;
-            warningThreshold = 20;
-          }
+        ]
+        ++ (
+          if hasBattery then [
+            {
+              id = "Battery";
+              displayMode = "alwaysShow";
+              showNoctaliaPerformance = false;
+              showPowerProfiles = false;
+              warningThreshold = 20;
+            }
+          ] else []
+        )
+        ++ [
           {
             id = "Volume";
             displayMode = "alwaysShow";
@@ -107,7 +118,7 @@ let
             formatHorizontal = "HH:mm ddd, MMM dd";
             formatVertical = "HH mm - dd MM";
             useCustomFont = true;
-            customFont = fonts.mono;
+            customFont = "JetBrainsMono Nerd Font";
             usePrimaryColor = false;
           }
           {
@@ -146,12 +157,9 @@ let
     
     # UI settings
     ui = {
-      fontDefault = fonts.main;
-      fontFixed = fonts.mono;
       fontDefaultScale = 1;
       fontFixedScale = 1;
       tooltipsEnabled = true;
-      panelBackgroundOpacity = 1;
       panelsAttachedToBar = true;
       settingsPanelAttachToBar = false;
     };
@@ -209,7 +217,7 @@ let
     wallpaper = {
       enabled = true;
       overviewEnabled = false;
-      directory = "\${home.homeDirectory}/wallpaper";
+      directory = "${config.home.homeDirectory}/wallpaper";
       monitorDirectories = [ ];
       enableMultiMonitorDirectories = false;
       recursiveSearch = false;
@@ -322,15 +330,11 @@ let
       diskPollingInterval = 3000;
       networkPollingInterval = 3000;
       useCustomColors = false;
-      warningColor = "#31748f";
-      criticalColor = "#eb6f92";
     };
     
-    # Dock configuration (disabled)
     dock = {
       enabled = false;
       displayMode = "auto_hide";
-      backgroundOpacity = 1;
       floatingRatio = 1;
       size = 1;
       onlySameOutput = true;
@@ -339,7 +343,7 @@ let
       colorizeIcons = false;
       pinnedStatic = false;
       inactiveIndicators = false;
-      deadOpacity = 0.6;
+      animationSpeed = 1;
     };
     
     # Network configuration
@@ -393,7 +397,6 @@ let
       monitors = [ ];
       location = "top_right";
       overlayLayer = true;
-      backgroundOpacity = 0.8;
       respectExpireTimeout = false;
       lowUrgencyDuration = 3;
       normalUrgencyDuration = 8;
@@ -416,7 +419,6 @@ let
       location = "top";
       autoHideMs = 2000;
       overlayLayer = true;
-      backgroundOpacity = 0.8;
       enabledTypes = [ 0 1 2 ];
       monitors = [ ];
     };
@@ -443,12 +445,10 @@ let
     # Color schemes
     colorSchemes = {
       useWallpaperColors = false;
-      predefinedScheme = "Rose Pine";
       darkMode = true;
       schedulingMode = "off";
       manualSunrise = "06:30";
       manualSunset = "18:30";
-      matugenSchemeType = "scheme-fruit-salad";
       generateTemplatesForPredefined = true;
     };
     

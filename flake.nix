@@ -33,6 +33,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Stylix theming framework
+    stylix = {
+      url = "github:nix-community/stylix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -48,6 +54,7 @@
     zen-browser,
     rose-pine-hyprcursor,
     noctalia,
+    stylix,
     ...
   }: let
     # Import Cachix configuration
