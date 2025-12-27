@@ -12,7 +12,7 @@
 
 trap 'echo -e "\nStopped."; exit 0' INT
 
-echo "Starting git intent-to-add watcher with PID $"
+echo "Starting git intent-to-add watcher with PID $$"
 
 while true; do
   git add --intent-to-add .
