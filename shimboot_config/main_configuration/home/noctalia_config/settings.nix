@@ -10,17 +10,9 @@
 { pkgs, config, hostname ? null, ... }:
 
 let
-  # Determine if host has battery based on hostname
-  hasBattery = 
-    if hostname != null then
-      hostname == "popcat19-surface0" || hostname == "popcat19-thinkpad0"
-    else
-      false;
-  
   # Complete Noctalia settings based on user's configuration
   settings = {
     settingsVersion = 26;
-    
     # Bar configuration with user's custom layout
     bar = {
       position = "top";
@@ -88,19 +80,14 @@ let
             hidePassive = false;
             pinned = [ ];
           }
-        ]
-        ++ (
-          if hasBattery then [
-            {
+          {
               id = "Battery";
               displayMode = "alwaysShow";
               showNoctaliaPerformance = false;
               showPowerProfiles = false;
               warningThreshold = 20;
-            }
-          ] else []
-        )
-        ++ [
+              hasBattery = true; 
+          }
           {
             id = "Volume";
             displayMode = "alwaysShow";
