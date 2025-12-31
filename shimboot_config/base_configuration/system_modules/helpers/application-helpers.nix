@@ -17,7 +17,7 @@
     (writeShellScriptBin "fix-steam-bwrap" ''
       echo "Searching for Steam directories..."
       HOME_DIR="$HOME"
-      
+
       if [ ! -d "$HOME_DIR/.steam" ]; then
         echo "Steam directory not found at $HOME_DIR/.steam"
         exit 1

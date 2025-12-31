@@ -32,24 +32,23 @@
     package = pkgs.google-fonts;
     name = "Rounded Mplus 1c Medium";
   };
-  
+
   stylix.fonts.monospace = {
     package = pkgs.nerd-fonts.fira-code;
     name = "FiraCode Nerd Font";
   };
-  
+
   # Font sizes for specific contexts
   stylix.fonts.sizes = {
-    applications = 10;  # For applications like fuzzel
-    terminal = 10;      # For terminal applications like kitty
-    popups = 10;        # For popup dialogs
-    desktop = 10;       # For desktop applications
+    applications = 10; # For applications like fuzzel
+    terminal = 10; # For terminal applications like kitty
+    popups = 10; # For popup dialogs
+    desktop = 10; # For desktop applications
   };
 
   # Enable theming targets for comprehensive coverage
   stylix.targets.zen-browser.enable = true;
   stylix.targets.zen-browser.profileNames = ["default"];
-
 
   # Cursor theme configuration
   home.pointerCursor = {

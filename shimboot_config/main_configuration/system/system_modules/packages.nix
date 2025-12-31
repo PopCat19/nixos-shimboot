@@ -6,7 +6,11 @@
 #
 # This module:
 # - Provides placeholder for system packages
-{pkgs, userConfig, ...}: {
+{
+  pkgs,
+  userConfig,
+  ...
+}: {
   environment.systemPackages = with pkgs; [
     gh
     ranger
