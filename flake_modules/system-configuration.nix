@@ -75,26 +75,14 @@ in {
       # Minimal/base-only target (host-qualified)
       "${hn}-minimal" = nixpkgs.lib.nixosSystem {
         inherit system;
-        modules =
-          [
-            ({config, ...}: {
-              nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
-            })
-          ]
-          ++ baseModules;
+        modules = baseModules;
         specialArgs = {inherit self zen-browser rose-pine-hyprcursor noctalia stylix userConfig;};
       };
 
       # Full target (host-qualified, preferred)
       "${hn}" = nixpkgs.lib.nixosSystem {
         inherit system;
-        modules =
-          [
-            ({config, ...}: {
-              nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
-            })
-          ]
-          ++ mainModules;
+        modules = mainModules;
         specialArgs = {inherit self zen-browser rose-pine-hyprcursor noctalia stylix userConfig;};
       };
     };
@@ -102,13 +90,7 @@ in {
     compatRaw = lib.optionalAttrs (hn != "raw-efi-system") {
       raw-efi-system = nixpkgs.lib.nixosSystem {
         inherit system;
-        modules =
-          [
-            ({config, ...}: {
-              nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
-            })
-          ]
-          ++ baseModules;
+        modules = baseModules;
         specialArgs = {inherit self zen-browser rose-pine-hyprcursor noctalia stylix userConfig;};
       };
     };
@@ -116,13 +98,7 @@ in {
     compatShimboot = lib.optionalAttrs (hn != "nixos-shimboot") {
       nixos-shimboot = nixpkgs.lib.nixosSystem {
         inherit system;
-        modules =
-          [
-            ({config, ...}: {
-              nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
-            })
-          ]
-          ++ mainModules;
+        modules = mainModules;
         specialArgs = {inherit self zen-browser rose-pine-hyprcursor stylix;};
       };
     };

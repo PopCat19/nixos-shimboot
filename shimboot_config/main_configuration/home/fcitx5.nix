@@ -16,7 +16,6 @@
       libsForQt5.fcitx5-qt
       fcitx5-gtk
       fcitx5-mozc
-      fcitx5-rose-pine
     ];
   };
 
@@ -32,17 +31,11 @@
     PreferTextIcon=False
     ShowLayoutNameInIcon=True
     UseInputMethodLangaugeToDisplayText=True
-    Theme=rose-pine
-    DarkTheme=rose-pine
     UseDarkTheme=True
     UseAccentColor=True
     EnableTray=True
     ShowPreeditInApplication=False
   '';
-
-  home.file.".local/share/fcitx5/themes/rose-pine".source = "${pkgs.fcitx5-rose-pine}/share/fcitx5/themes/rose-pine";
-  home.file.".local/share/fcitx5/themes/rose-pine-dawn".source = "${pkgs.fcitx5-rose-pine}/share/fcitx5/themes/rose-pine-dawn";
-  home.file.".local/share/fcitx5/themes/rose-pine-moon".source = "${pkgs.fcitx5-rose-pine}/share/fcitx5/themes/rose-pine-moon";
 
   home.sessionVariables = {
     GTK_IM_MODULE = "fcitx5";

@@ -108,4 +108,10 @@
     music = "${home}/Music";
     desktop = "${home}/Desktop";
   };
+
+  # Theme configuration for PMD
+  theme = {
+    hue = 60;
+    variant = "dark"; # "dark" or "light"
+  };
 }

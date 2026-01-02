@@ -43,6 +43,18 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Personal Material Design (PMD) theme system
+    pmd = {
+      url = "github:popcat19/project-minimalist-design/dev";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Alejandra Nix formatter
+    alejandra = {
+      url = "github:kamadorueda/alejandra/4.0.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   # Combine all outputs from modules
@@ -55,6 +67,8 @@
     rose-pine-hyprcursor,
     noctalia,
     stylix,
+    pmd,
+    alejandra,
     ...
   }: let
     # Import Cachix configuration
@@ -136,11 +150,8 @@
     # Merge nixosModules from all modules
     nixosModules = {};
   in {
-    # Apply Cachix configuration to Nix
-    nixConfig = cachixConfig.nixConfig;
-
     # Export all merged outputs
-    formatter.${system} = nixpkgs.legacyPackages.${system}.alejandra;
+    formatter.${system} = alejandra.defaultPackage.${system};
     inherit packages devShells nixosConfigurations nixosModules;
   };
 }

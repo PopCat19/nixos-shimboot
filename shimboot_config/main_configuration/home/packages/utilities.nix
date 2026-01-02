@@ -16,5 +16,6 @@
     keepassxc
     vscodium
     zenity
+    alejandra
   ];
 }
