@@ -50,7 +50,7 @@
       pkgs,
       ...
     }: {
-      home-manager.useGlobalPkgs = true;
+      home-manager.useGlobalPkgs = false;
       home-manager.useUserPackages = true;
       home-manager.extraSpecialArgs = {
         inherit zen-browser rose-pine-hyprcursor userConfig;
@@ -59,7 +59,9 @@
 
       # Make userConfig available to home modules
       home-manager.sharedModules = [
-        ({config, ...}: {
+        ({...}: {
+          nixpkgs.config.allowUnfree = true;
+          nixpkgs.overlays = import ../overlays/overlays.nix pkgs.system;
           _module.args.userConfig = userConfig;
         })
       ];
