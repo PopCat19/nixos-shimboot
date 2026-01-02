@@ -6,7 +6,7 @@
 #
 # This module:
 # - Enables Flatpak
-{...}: {
+_: {
   services = {
     flatpak.enable = true;
   };

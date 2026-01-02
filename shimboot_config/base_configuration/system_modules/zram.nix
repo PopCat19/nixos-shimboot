@@ -8,7 +8,7 @@
 # - ZRAM swap for improved memory management
 # - Fast compression using zstd algorithm
 # - Automatic kernel module loading
-{...}: {
+_: {
   # Enable zram swap
   zramSwap = {
     enable = true;

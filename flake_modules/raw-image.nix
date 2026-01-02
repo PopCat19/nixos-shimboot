@@ -1,6 +1,5 @@
 {
   self,
-  nixpkgs,
   nixos-generators,
   home-manager,
   zen-browser,
@@ -49,7 +48,7 @@ in {
           })
 
           # Raw image specific configuration
-          ({...}: {
+          (_: {
             # Enable serial console logging
             boot.kernelParams = ["console=ttyS0,115200"];
 
@@ -77,7 +76,7 @@ in {
         ../shimboot_config/base_configuration/configuration.nix
 
         # Raw image specific configuration
-        ({...}: {
+        (_: {
           # Enable serial console logging
           boot.kernelParams = ["console=ttyS0,115200"];
 

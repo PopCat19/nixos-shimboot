@@ -8,7 +8,7 @@
 # - Configures Nix substituters for binary cache access
 # - Sets up trusted public keys for cache verification
 # - Enables faster builds through cache reuse
-{...}: {
+_: {
   # Cachix configuration for all builds
   nixConfig = {
     extra-substituters = [

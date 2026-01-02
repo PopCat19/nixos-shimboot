@@ -21,7 +21,7 @@
     ../shimboot_config/base_configuration/configuration.nix
 
     # Base-level defaults/tuning common to all variants
-    ({...}: {
+    (_: {
       # Enable Nix flakes
       nix.settings.experimental-features = ["nix-command" "flakes"];
 

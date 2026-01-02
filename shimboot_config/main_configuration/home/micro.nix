@@ -1,4 +1,4 @@
-{...}: {
+_: {
   # Micro text editor configuration
   programs.micro = {
     enable = true;

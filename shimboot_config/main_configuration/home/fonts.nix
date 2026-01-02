@@ -7,7 +7,7 @@
 # This module:
 # - Provides font configuration for terminal applications
 # - Extracts fonts from theme configuration
-{...}: {
+_: {
   fonts = {
     main = "Rounded Mplus 1c Medium";
     mono = "JetBrainsMono Nerd Font";
