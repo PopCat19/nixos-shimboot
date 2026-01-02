@@ -34,7 +34,7 @@ detect_default_board() {
 			fi
 		done
 	fi
-	echo "dedede"  # fallback to default board
+	echo "dedede" # fallback to default board
 }
 
 DEFAULT_BOARD="${DEFAULT_BOARD:-$(detect_default_board)}"
@@ -844,12 +844,12 @@ main() {
 	# Handle HTTP/HTTPS URLs by downloading the image first
 	if [[ "${INPUT_IMAGE}" =~ ^https?:// ]]; then
 		info "Detected URL input. Downloading image..."
-		
+
 		# Set download directory if not specified
 		if [[ -z "${DOWNLOAD_DIR}" ]]; then
 			DOWNLOAD_DIR="/tmp"
 		fi
-		
+
 		# Create download directory if it doesn't exist
 		if [[ ! -d "${DOWNLOAD_DIR}" ]]; then
 			if ! mkdir -p "${DOWNLOAD_DIR}"; then
@@ -857,7 +857,7 @@ main() {
 				exit 5
 			fi
 		fi
-		
+
 		# Extract filename from URL or generate one
 		local filename
 		filename="$(basename "${INPUT_IMAGE}")"
@@ -865,9 +865,9 @@ main() {
 			# Generate a filename based on timestamp if we can't extract one
 			filename="shimboot-$(date +%Y%m%d%H%M%S).img"
 		fi
-		
+
 		DOWNLOADED_IMAGE="${DOWNLOAD_DIR}/${filename}"
-		
+
 		# Check if file already exists
 		if [[ -f "${DOWNLOADED_IMAGE}" ]]; then
 			# Verify the existing file
@@ -906,37 +906,37 @@ main() {
 				exit 5
 			fi
 		fi
-		
+
 		# Verify the downloaded file
 		if [[ ! -f "${DOWNLOADED_IMAGE}" ]]; then
 			error "Downloaded file not found: ${DOWNLOADED_IMAGE}"
 			exit 5
 		fi
-		
+
 		local img_size_bytes
 		img_size_bytes="$(bytes_of_file "${DOWNLOADED_IMAGE}")"
 		if [[ "${img_size_bytes}" -eq 0 ]]; then
 			error "Downloaded file is empty: ${DOWNLOADED_IMAGE}"
 			exit 5
 		fi
-		
+
 		success "Using file: ${DOWNLOADED_IMAGE}"
-		
+
 		# Check if the downloaded file is a zstd compressed archive
 		if [[ "${filename}" == *.zst ]]; then
 			info "Detected zstd compressed archive. Extracting..."
-			
+
 			# Check for zstd command
 			if ! has_command zstd; then
 				error "zstd command not found. Please install zstd to extract compressed images."
 				exit 5
 			fi
-			
+
 			# Determine the output filename (remove .zst extension)
 			local extracted_filename="${filename%.zst}"
 			EXTRACTED_IMAGE="${DOWNLOAD_DIR}/${extracted_filename}"
 			local continue_extraction=true
-			
+
 			# Check if extracted file already exists
 			if [[ -f "${EXTRACTED_IMAGE}" ]]; then
 				if [[ "${INTERACTIVE}" == "true" ]]; then
@@ -964,12 +964,12 @@ main() {
 			else
 				continue_extraction=true
 			fi
-			
+
 			# Verify checksum if provided or if .sha256 file exists
 			local sha256_file="${DOWNLOADED_IMAGE}.sha256"
 			local expected_sha256="${EXPECTED_SHA256}"
 			local checksum_found=false
-			
+
 			# If checksum was provided via command line, use it
 			if [[ -n "${expected_sha256}" ]]; then
 				# Strip "sha256:" prefix if present
@@ -992,13 +992,13 @@ main() {
 					fi
 				fi
 			fi
-			
+
 			# If we have a valid checksum, verify it
 			if [[ "${checksum_found}" == "true" && -n "${expected_sha256}" ]]; then
 				info "Verifying checksum..."
 				local actual_sha256
 				actual_sha256="$(sha256sum "${DOWNLOADED_IMAGE}" | awk '{print $1}')"
-				
+
 				if [[ "${expected_sha256}" != "${actual_sha256}" ]]; then
 					error "Checksum verification failed. Expected: ${expected_sha256}, Actual: ${actual_sha256}"
 					exit 5
@@ -1007,7 +1007,7 @@ main() {
 			else
 				warn "Could not find valid checksum. Proceeding without verification."
 			fi
-			
+
 			# Only extract if we need to
 			if [[ "${continue_extraction}" == "true" ]]; then
 				# Extract the zstd file
@@ -1016,20 +1016,20 @@ main() {
 					error "Failed to extract compressed image."
 					exit 5
 				fi
-				
+
 				# Verify the extracted file
 				if [[ ! -f "${EXTRACTED_IMAGE}" ]]; then
 					error "Extracted image not found: ${EXTRACTED_IMAGE}"
 					exit 5
 				fi
-				
+
 				local extracted_size_bytes
 				extracted_size_bytes="$(bytes_of_file "${EXTRACTED_IMAGE}")"
 				if [[ "${extracted_size_bytes}" -eq 0 ]]; then
 					error "Extracted image is empty: ${EXTRACTED_IMAGE}"
 					exit 5
 				fi
-				
+
 				success "Image extracted successfully to ${EXTRACTED_IMAGE}"
 				INPUT_IMAGE="${EXTRACTED_IMAGE}"
 			fi
@@ -1043,17 +1043,17 @@ main() {
 			error "Input image not found: ${INPUT_IMAGE}"
 			exit 5
 		fi
-		
+
 		# Check if local file is a zstd compressed archive
 		if [[ "${INPUT_IMAGE}" == *.zst ]]; then
 			info "Detected local zstd compressed archive. Extracting..."
-			
+
 			# Check for zstd command
 			if ! has_command zstd; then
 				error "zstd command not found. Please install zstd to extract compressed images."
 				exit 5
 			fi
-			
+
 			# Determine the output filename (remove .zst extension)
 			local filename
 			filename="$(basename "${INPUT_IMAGE}")"
@@ -1062,7 +1062,7 @@ main() {
 			dir="$(dirname "${INPUT_IMAGE}")"
 			EXTRACTED_IMAGE="${dir}/${extracted_filename}"
 			local continue_extraction=true
-			
+
 			# Check if extracted file already exists
 			if [[ -f "${EXTRACTED_IMAGE}" ]]; then
 				if [[ "${INTERACTIVE}" == "true" ]]; then
@@ -1090,12 +1090,12 @@ main() {
 			else
 				continue_extraction=true
 			fi
-			
+
 			# Verify checksum if provided or if .sha256 file exists
 			local sha256_file="${INPUT_IMAGE}.sha256"
 			local expected_sha256="${EXPECTED_SHA256}"
 			local checksum_found=false
-			
+
 			# If checksum was provided via command line, use it
 			if [[ -n "${expected_sha256}" ]]; then
 				# Strip "sha256:" prefix if present
@@ -1108,13 +1108,13 @@ main() {
 					checksum_found=true
 				fi
 			fi
-			
+
 			# If we have a valid checksum, verify it
 			if [[ "${checksum_found}" == "true" && -n "${expected_sha256}" ]]; then
 				info "Verifying checksum..."
 				local actual_sha256
 				actual_sha256="$(sha256sum "${INPUT_IMAGE}" | awk '{print $1}')"
-				
+
 				if [[ "${expected_sha256}" != "${actual_sha256}" ]]; then
 					error "Checksum verification failed. Expected: ${expected_sha256}, Actual: ${actual_sha256}"
 					exit 5
@@ -1123,7 +1123,7 @@ main() {
 			else
 				warn "No valid checksum file found. Proceeding without verification."
 			fi
-			
+
 			# Only extract if we need to
 			if [[ "${continue_extraction}" == "true" ]]; then
 				# Extract the zstd file
@@ -1132,20 +1132,20 @@ main() {
 					error "Failed to extract compressed image."
 					exit 5
 				fi
-				
+
 				# Verify the extracted file
 				if [[ ! -f "${EXTRACTED_IMAGE}" ]]; then
 					error "Extracted image not found: ${EXTRACTED_IMAGE}"
 					exit 5
 				fi
-				
+
 				local extracted_size_bytes
 				extracted_size_bytes="$(bytes_of_file "${EXTRACTED_IMAGE}")"
 				if [[ "${extracted_size_bytes}" -eq 0 ]]; then
 					error "Extracted image is empty: ${EXTRACTED_IMAGE}"
 					exit 5
 				fi
-				
+
 				success "Image extracted successfully to ${EXTRACTED_IMAGE}"
 				INPUT_IMAGE="${EXTRACTED_IMAGE}"
 			fi

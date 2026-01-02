@@ -37,31 +37,31 @@ log_error() {
 # Prune unused firmware files to reduce size
 prune_unused_firmware() {
 	local fw_dir="$1"
-	
+
 	# Safety check: verify we're in the right directory
-	if [[ ! "$fw_dir" =~ /harvested/lib/firmware$ ]] && \
-	   [[ ! "$fw_dir" =~ /work/harvested/lib/firmware$ ]]; then
+	if [[ ! "$fw_dir" =~ /harvested/lib/firmware$ ]] &&
+		[[ ! "$fw_dir" =~ /work/harvested/lib/firmware$ ]]; then
 		log_error "Refusing to prune firmware: unsafe path $fw_dir"
 		return 1
 	fi
-	
+
 	# Backup firmware list before pruning
 	log_info "Creating firmware backup manifest..."
-	find "$fw_dir" -type f > "$fw_dir/../firmware-manifest.txt"
+	find "$fw_dir" -type f >"$fw_dir/../firmware-manifest.txt"
 
 	log_step "Prune" "Conservatively pruning firmware..."
 
 	# Keep common Chromebook firmware families (board-agnostic)
 	local keep_families=(
-		"intel"             # Intel WiFi/BT/GPU (most Chromebooks)
-		"iwlwifi"           # Intel WiFi (standalone files)
-		"rtw88"             # Realtek WiFi (newer)
-		"rtw89"             # Realtek WiFi (newest)
-		"brcm"              # Broadcom WiFi/BT
-		"ath10k"            # Atheros WiFi
-		"mediatek"          # MediaTek (new Chromebooks)
-		"regulatory.db"     # Required for WiFi
-		"*.ucode"           # CPU microcode
+		"intel"         # Intel WiFi/BT/GPU (most Chromebooks)
+		"iwlwifi"       # Intel WiFi (standalone files)
+		"rtw88"         # Realtek WiFi (newer)
+		"rtw89"         # Realtek WiFi (newest)
+		"brcm"          # Broadcom WiFi/BT
+		"ath10k"        # Atheros WiFi
+		"mediatek"      # MediaTek (new Chromebooks)
+		"regulatory.db" # Required for WiFi
+		"*.ucode"       # CPU microcode
 	)
 
 	log_info "Keeping essential Chromebook firmware families..."

@@ -4,8 +4,8 @@ set -euo pipefail
 ROOTFS_DIR="$1"
 
 if [ ! -d "$ROOTFS_DIR/nix/store" ]; then
-  echo "Error: $ROOTFS_DIR/nix/store not found"
-  exit 1
+	echo "Error: $ROOTFS_DIR/nix/store not found"
+	exit 1
 fi
 
 echo "Compressing /nix/store with squashfs..."
@@ -25,10 +25,10 @@ SQUASHFS_FILE="$TEMP_DIR/store.squashfs"
 # Create squashfs with zstd compression in temporary location
 echo "Creating squashfs with zstd compression..."
 mksquashfs "$ROOTFS_DIR/nix/store" \
-  "$SQUASHFS_FILE" \
-  -comp zstd \
-  -Xcompression-level 15 \
-  -noappend
+	"$SQUASHFS_FILE" \
+	-comp zstd \
+	-Xcompression-level 15 \
+	-noappend
 
 COMPRESSED_SIZE=$(du -sm "$SQUASHFS_FILE" | cut -f1)
 REDUCTION=$((ORIGINAL_SIZE - COMPRESSED_SIZE))
