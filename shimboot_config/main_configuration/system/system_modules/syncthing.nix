@@ -8,13 +8,7 @@
 # - Enables Syncthing service
 # - Configures user and data directories from user-config
 # - Opens default firewall ports
-{
-  config,
-  pkgs,
-  lib,
-  userConfig,
-  ...
-}: {
+{userConfig, ...}: {
   services.syncthing = {
     enable = true;
     openDefaultPorts = true;

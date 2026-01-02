@@ -8,12 +8,7 @@
 # - Installs KDE applications (Gwenview)
 # - Configures thumbnail support and theming
 # - Provides shared KDE application settings
-{
-  pkgs,
-  config,
-  userConfig,
-  ...
-}: {
+{pkgs, ...}: {
   home.packages = with pkgs; [
     kdePackages.gwenview
 

@@ -11,9 +11,7 @@
 {
   lib,
   pkgs,
-  config,
   inputs,
-  userConfig,
   ...
 }: let
   system = "x86_64-linux";
@@ -69,13 +67,7 @@
     gsettings-desktop-schemas
   ];
 
-  mkGtkCss = fontMain: ''
-    * {
-      font-family: "${fontMain}";
-    }
-  '';
-
-  mkSessionVariables = variant: sizes: {
+  mkSessionVariables = variant: _sizes: {
     QT_STYLE_OVERRIDE = "kvantum";
     QT_QPA_PLATFORM = "wayland;xcb";
     GTK_THEME = variant.gtkThemeName;
@@ -93,7 +85,6 @@
 
   cursorPackage = inputs.rose-pine-hyprcursor.packages.${pkgs.system}.default;
   kvantumPkg = pkgs.kdePackages.qtstyleplugin-kvantum;
-  rosePineKvantum = pkgs.rose-pine-kvantum;
   rosePineGtk =
     if builtins.hasAttr "rose-pine-gtk-theme-full" pkgs
     then pkgs.rose-pine-gtk-theme-full

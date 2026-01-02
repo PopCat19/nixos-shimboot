@@ -1,5 +1,4 @@
 {
-  self,
   nixpkgs,
   board ? "dedede",
   ...
@@ -28,7 +27,7 @@
       chunk:
         pkgs.fetchurl {
           url = "${chunkBaseUrl}/${chunk.name}";
-          sha256 = chunk.sha256;
+          inherit (chunk) sha256;
           curlOpts = "--retry-delay 10";
         }
     )

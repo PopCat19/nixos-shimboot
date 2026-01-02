@@ -11,10 +11,8 @@
 # - Provides brightness control utilities
 # - Enables thermal daemon for CPU temperature management
 {
-  config,
   pkgs,
   lib,
-  userConfig,
   ...
 }: {
   hardware = {

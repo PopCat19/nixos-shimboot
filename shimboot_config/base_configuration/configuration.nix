@@ -9,12 +9,7 @@
 # - Configures Nix settings and binary caches
 # - Enables Fish shell and unfree packages
 # - Sets system state version
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}: let
+{lib, ...}: let
   userConfig = import ../user-config.nix {};
 in {
   imports = [

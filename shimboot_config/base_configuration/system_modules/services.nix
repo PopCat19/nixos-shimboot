@@ -9,11 +9,7 @@
 # - Enables libinput for input device handling
 # - Sets up udev rules for brightness control
 # - Enables storage and D-Bus services
-{
-  pkgs,
-  lib,
-  ...
-}: {
+{...}: {
   services.journald.extraConfig = ''
     MaxRetentionSec=3day
     SystemMaxUse=500M

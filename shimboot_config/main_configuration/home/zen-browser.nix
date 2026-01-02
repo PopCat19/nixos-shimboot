@@ -11,10 +11,7 @@
 # - Enables PWA support
 {
   pkgs,
-  config,
-  lib,
   zen-browser,
-  userConfig,
   ...
 }: {
   imports = [zen-browser.homeModules.twilight];

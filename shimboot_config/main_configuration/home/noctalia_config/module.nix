@@ -10,16 +10,13 @@
 # - Configures systemd service for autostart
 # - Integrates with the centralized configuration
 {
-  lib,
   pkgs,
   config,
-  hostPlatform,
   inputs,
   userConfig,
   ...
 }: let
   inherit (import ./settings.nix {inherit pkgs config hostname;}) settings;
-  username = userConfig.user.username;
   hostname = config.networking.hostName or userConfig.host.hostname;
 in {
   imports = [
@@ -31,6 +28,6 @@ in {
     # Enable systemd service through home manager
     systemd.enable = true;
 
-    settings = (import ./settings.nix {inherit pkgs config hostname;}).settings;
+    inherit ((import ./settings.nix {inherit pkgs config hostname;})) settings;
   };
 }

@@ -9,15 +9,7 @@
 # - Applies user's personalized settings
 # - Configures systemd service for autostart
 # - Provides centralized Noctalia configuration management
-{
-  lib,
-  pkgs,
-  config,
-  system,
-  inputs,
-  userConfig,
-  ...
-}: {
+{...}: {
   imports = [
     ./module.nix
   ];

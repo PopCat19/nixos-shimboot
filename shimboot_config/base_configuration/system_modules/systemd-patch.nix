@@ -8,12 +8,7 @@
 # - Provides systemd tools system-wide
 # - Applies mountpoint-util.patch for ChromeOS compatibility
 # - Prepares systemd for shimboot environment
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}: {
+{pkgs, ...}: {
   environment.systemPackages = with pkgs; [
     systemd
   ];

@@ -6,11 +6,7 @@
 #
 # This module:
 # - Enables Flatpak
-{
-  pkgs,
-  userConfig,
-  ...
-}: {
+{...}: {
   services = {
     flatpak.enable = true;
   };

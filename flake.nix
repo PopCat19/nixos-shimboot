@@ -67,12 +67,10 @@
     rose-pine-hyprcursor,
     noctalia,
     stylix,
-    pmd,
     alejandra,
     ...
   }: let
     # Import Cachix configuration
-    cachixConfig = import ./flake_modules/cachix-config.nix {inherit self nixpkgs;};
     system = "x86_64-linux";
 
     # Supported ChromeOS boards
@@ -87,9 +85,7 @@
     ];
 
     # Import user configuration
-    userConfig = import ./shimboot_config/user-config.nix {};
     # Extract username for easier access
-    username = userConfig.user.username;
 
     # Import module outputs
     # Core system and development modules
@@ -132,10 +128,8 @@
     };
 
     # Import overlays
-    overlays = import ./overlays/overlays.nix;
 
     # Set default package to dedede raw-rootfs
-    defaultPackage.${system} = packages.${system}.raw-rootfs-dedede or packages.${system}.raw-rootfs;
 
     # Merge devShells from all modules
     devShells = {

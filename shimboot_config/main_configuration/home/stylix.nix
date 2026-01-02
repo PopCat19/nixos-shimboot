@@ -12,11 +12,8 @@
 # - Handles browser theming targets (Firefox-based browsers)
 # - Applies system-wide theming across all applications
 {
-  lib,
   pkgs,
-  config,
   inputs,
-  userConfig,
   ...
 }: {
   imports = [

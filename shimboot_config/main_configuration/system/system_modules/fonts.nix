@@ -9,11 +9,7 @@
 # - Installs Noto, Mplus, and JetBrains Mono fonts
 # - Configures fontconfig with optimized font family preferences
 # - Provides comprehensive font coverage for Rose Pine theme
-{
-  pkgs,
-  userConfig,
-  ...
-}: {
+{pkgs, ...}: {
   fonts = {
     # Override base configuration to disable default packages
     enableDefaultPackages = false;

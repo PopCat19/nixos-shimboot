@@ -8,13 +8,11 @@
 # - setup_nixos_config: Configure /etc/nixos for nixos-rebuild
 # - setup_nixos: Interactive post-install setup script
 {
-  config,
   pkgs,
-  lib,
   userConfig,
   ...
 }: let
-  username = userConfig.user.username;
+  inherit (userConfig.user) username;
 in {
   environment.systemPackages = with pkgs; [
     (writeShellScriptBin "setup_nixos_config" ''

@@ -9,7 +9,7 @@
   ...
 }: let
   system = "x86_64-linux";
-  lib = nixpkgs.lib;
+  inherit (nixpkgs) lib;
 
   # Import user configuration
   userConfig = import ../shimboot_config/user-config.nix {};
@@ -21,11 +21,7 @@
     ../shimboot_config/base_configuration/configuration.nix
 
     # Base-level defaults/tuning common to all variants
-    ({
-      config,
-      pkgs,
-      ...
-    }: {
+    ({...}: {
       # Enable Nix flakes
       nix.settings.experimental-features = ["nix-command" "flakes"];
 
@@ -45,21 +41,17 @@
     # Integrate Home Manager for user-level config
     home-manager.nixosModules.home-manager
 
-    ({
-      config,
-      pkgs,
-      ...
-    }: {
+    ({pkgs, ...}: {
       home-manager.useGlobalPkgs = false;
       home-manager.useUserPackages = true;
       home-manager.extraSpecialArgs = {
         inherit zen-browser rose-pine-hyprcursor userConfig;
-        inputs = self.inputs;
+        inherit (self) inputs;
       };
 
       # Make userConfig available to home modules
       home-manager.sharedModules = [
-        ({...}: {
+        (_: {
           nixpkgs.config.allowUnfree = true;
           nixpkgs.overlays = import ../overlays/overlays.nix pkgs.system;
           _module.args.userConfig = userConfig;

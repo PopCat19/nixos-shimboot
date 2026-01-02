@@ -9,12 +9,7 @@
 # - Configures application preferences and appearance
 # - Sets up Vencord integration and plugins
 # - Integrates with Stylix for automatic theming
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}: {
+{...}: {
   # Enable Vesktop with custom settings
   programs.vesktop = {
     enable = true;

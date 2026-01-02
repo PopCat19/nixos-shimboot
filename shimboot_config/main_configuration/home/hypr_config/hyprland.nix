@@ -9,12 +9,7 @@
 # - Sets up configuration files and shaders
 # - Configures monitors and user preferences
 # - Wallpaper handled by noctalia-shell
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}: {
+{pkgs, ...}: {
   imports = [
     ./hypr_modules/colors.nix
     ./hypr_modules/environment.nix

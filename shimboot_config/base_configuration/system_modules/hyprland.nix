@@ -8,7 +8,6 @@
 # - Enables Hyprland window manager with XWayland support
 # - Configures basic window manager behavior
 {
-  config,
   pkgs,
   lib,
   ...

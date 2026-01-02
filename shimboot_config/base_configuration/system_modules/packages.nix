@@ -11,12 +11,7 @@
 # - System tools (git, btop, file)
 # - Documentation disabled to save space
 # - Only English locale to reduce size
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}: {
+{pkgs, ...}: {
   # Minimal system packages
   environment.systemPackages = with pkgs; [
     # Text editors

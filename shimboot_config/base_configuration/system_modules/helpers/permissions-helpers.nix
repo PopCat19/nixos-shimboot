@@ -6,13 +6,7 @@
 #
 # This module provides:
 # - Basic permission fixing utilities
-{
-  config,
-  pkgs,
-  lib,
-  userConfig,
-  ...
-}: {
+{pkgs, ...}: {
   environment.systemPackages = with pkgs; [
     # Placeholder for future permission utilities
     # bwrap functionality will be handled by steamFHS in main_configuration

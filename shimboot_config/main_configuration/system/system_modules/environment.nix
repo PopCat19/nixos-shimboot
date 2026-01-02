@@ -7,11 +7,7 @@
 # This module:
 # - Sets environment variables for default applications
 # - Configures WebKit compositing mode
-{
-  config,
-  userConfig,
-  ...
-}: {
+{userConfig, ...}: {
   environment.variables = {
     BROWSER = userConfig.defaultApps.browser.package;
     TERMINAL = userConfig.defaultApps.terminal.command;

@@ -9,12 +9,7 @@
 # - Removes separate /boot partition (not needed in shimboot)
 # - Configures tmpfs for /tmp with size limits
 # - Sets up additional tmpfs mounts for volatile directories
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}: {
+{lib, ...}: {
   # Root filesystem configuration with proper mount options
   fileSystems."/" = lib.mkForce {
     device = "/dev/disk/by-label/nixos";

@@ -6,5 +6,5 @@
 #
 # This module:
 # - Placeholder for home-manager programs configuration
-{pkgs, ...}: {
+{...}: {
 }

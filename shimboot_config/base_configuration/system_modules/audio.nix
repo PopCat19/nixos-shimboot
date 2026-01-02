@@ -6,11 +6,7 @@
 #
 # This module enables:
 # - PipeWire for modern audio routing
-{
-  lib,
-  config,
-  ...
-}: {
+{lib, ...}: {
   services.pipewire = {
     enable = lib.mkDefault true;
   };

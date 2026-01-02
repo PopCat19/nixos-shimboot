@@ -10,7 +10,6 @@
 # - Loads WiFi kernel modules for ChromeOS devices
 # - Handles rfkill unblocking for WLAN
 {
-  config,
   pkgs,
   lib,
   userConfig,

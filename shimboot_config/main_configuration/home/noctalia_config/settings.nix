@@ -10,7 +10,6 @@
 {
   pkgs,
   config,
-  hostname ? null,
   ...
 }: let
   # Complete Noctalia settings based on user's configuration

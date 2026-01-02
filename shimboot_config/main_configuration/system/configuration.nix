@@ -8,13 +8,7 @@
 # - Imports base configuration as foundation
 # - Adds user-specific system modules
 # - Provides extension point for additional system modules
-{
-  config,
-  pkgs,
-  lib,
-  userConfig,
-  ...
-}: {
+{...}: {
   imports = [
     ../../base_configuration/configuration.nix
     ./system_modules/fonts.nix

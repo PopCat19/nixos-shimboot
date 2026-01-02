@@ -9,7 +9,6 @@
 # - Sets up MIME and desktop integration
 # - Ensures proper portal service management
 {
-  config,
   pkgs,
   lib,
   ...

@@ -10,7 +10,6 @@
 # - Ensures passwords directory exists
 {
   pkgs,
-  config,
   lib,
   userConfig,
   ...

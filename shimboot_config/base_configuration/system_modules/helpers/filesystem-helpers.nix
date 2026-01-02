@@ -6,13 +6,7 @@
 #
 # This module provides:
 # - expand_rootfs: Script to expand root partition to full disk capacity
-{
-  config,
-  pkgs,
-  lib,
-  userConfig,
-  ...
-}: {
+{pkgs, ...}: {
   environment.systemPackages = with pkgs; [
     (writeShellScriptBin "expand_rootfs" ''
       set -e

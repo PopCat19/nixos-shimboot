@@ -7,7 +7,7 @@
 # This module:
 # - Adds custom Fish themes to user configuration
 # - Does NOT override base Fish configuration
-{...}: {
+_: {
   home.file.".config/fish/themes" = {
     source = ./fish_themes;
     recursive = true;

@@ -1,8 +1,4 @@
-{
-  pkgs,
-  userConfig,
-  ...
-}: {
+{userConfig, ...}: {
   # Fuzzel Launcher Configuration - Enhanced with Rose Pine theme and QoL features.
   programs.fuzzel = {
     enable = true;

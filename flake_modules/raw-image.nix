@@ -9,7 +9,6 @@
   ...
 }: let
   system = "x86_64-linux";
-  pkgs = nixpkgs.legacyPackages.${system};
   userConfig = import ../shimboot_config/user-config.nix {};
 in {
   packages.${system} = {
@@ -32,19 +31,15 @@ in {
 
           # Integrate Home Manager for user-level configuration like the full system build
           home-manager.nixosModules.home-manager
-          ({
-            config,
-            pkgs,
-            ...
-          }: {
+          ({pkgs, ...}: {
             home-manager.useGlobalPkgs = false;
             home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = {
               inherit zen-browser rose-pine-hyprcursor userConfig;
-              inputs = self.inputs;
+              inherit (self) inputs;
             };
             home-manager.sharedModules = [
-              ({...}: {
+              (_: {
                 nixpkgs.config.allowUnfree = true;
                 nixpkgs.overlays = import ../overlays/overlays.nix pkgs.system;
                 _module.args.userConfig = userConfig;
@@ -54,11 +49,7 @@ in {
           })
 
           # Raw image specific configuration
-          ({
-            config,
-            pkgs,
-            ...
-          }: {
+          ({...}: {
             # Enable serial console logging
             boot.kernelParams = ["console=ttyS0,115200"];
 
@@ -86,11 +77,7 @@ in {
         ../shimboot_config/base_configuration/configuration.nix
 
         # Raw image specific configuration
-        ({
-          config,
-          pkgs,
-          ...
-        }: {
+        ({...}: {
           # Enable serial console logging
           boot.kernelParams = ["console=ttyS0,115200"];
 

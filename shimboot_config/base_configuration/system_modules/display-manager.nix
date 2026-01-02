@@ -11,7 +11,6 @@
 # - Manages default session and display settings
 # - Configures systemd logind for power management
 {
-  config,
   pkgs,
   lib,
   ...

@@ -9,12 +9,7 @@
 # - Configures auto-cpufreq for dynamic CPU scaling
 # - Enables battery monitoring via upower
 # - Configures WiFi power saving through NetworkManager
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}: {
+{lib, ...}: {
   powerManagement = {
     enable = true;
     cpuFreqGovernor = lib.mkDefault "userspace";

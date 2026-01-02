@@ -6,12 +6,7 @@
 #
 # This module provides:
 # - fix-steam-bwrap: Patch Steam's internal bwrap with SUID wrapper
-{
-  config,
-  pkgs,
-  lib,
-  ...
-}: {
+{pkgs, ...}: {
   environment.systemPackages = with pkgs; [
     # Script to overwrite Steam's internal bwrap with our SUID system wrapper
     (writeShellScriptBin "fix-steam-bwrap" ''

@@ -13,7 +13,6 @@
 {
   lib,
   pkgs,
-  userConfig,
   ...
 }: {
   programs.fish.enable = lib.mkDefault true;

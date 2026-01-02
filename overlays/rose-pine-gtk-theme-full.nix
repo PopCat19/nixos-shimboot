@@ -1,14 +1,14 @@
 # Overlay wrapper that exposes rose-pine-gtk-theme-full as pkgs.rose-pine-gtk-theme-full
-final: prev: let
-  lib = prev.lib;
-  stdenvNoCC = prev.stdenvNoCC;
-  fetchFromGitHub = prev.fetchFromGitHub;
-  gtk3 = prev.gtk3;
-  gtk4 = prev.gtk4;
-  gnome-themes-extra = prev.gnome-themes-extra;
-  gtk_engines = prev.gtk_engines;
-  gtk-engine-murrine = prev.gtk-engine-murrine;
-  sassc = prev.sassc;
+_final: prev: let
+  inherit (prev) lib;
+  inherit (prev) stdenvNoCC;
+  inherit (prev) fetchFromGitHub;
+  inherit (prev) gtk3;
+  inherit (prev) gtk4;
+  inherit (prev) gnome-themes-extra;
+  inherit (prev) gtk_engines;
+  inherit (prev) gtk-engine-murrine;
+  inherit (prev) sassc;
 in {
   rose-pine-gtk-theme-full = stdenvNoCC.mkDerivation rec {
     pname = "rose-pine-gtk-theme-full";

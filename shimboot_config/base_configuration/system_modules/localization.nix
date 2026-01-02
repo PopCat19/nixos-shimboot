@@ -8,8 +8,6 @@
 # - Uses timezone and locale from user-config.nix
 # - Allows user customization of localization settings
 {
-  config,
-  pkgs,
   lib,
   userConfig,
   ...

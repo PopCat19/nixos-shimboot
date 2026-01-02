@@ -7,11 +7,7 @@
 # This module:
 # - Sets global environment variables accessible to all processes
 # - Configures NixOS-specific paths and host information
-{
-  config,
-  userConfig,
-  ...
-}: {
+{userConfig, ...}: {
   environment.variables = {
     NIXOS_CONFIG_DIR = "$HOME/nixos-config";
     NIXOS_FLAKE_HOSTNAME = userConfig.host.hostname;
