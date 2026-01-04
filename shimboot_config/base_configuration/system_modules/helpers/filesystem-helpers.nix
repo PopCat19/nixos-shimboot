@@ -27,7 +27,7 @@
       fi
 
       if [ "$EUID" -ne 0 ]; then
-        echo -e "${RED}[ERROR]${NC} This needs to be run as root."
+        echo -e "''${RED}[ERROR]''${NC} This needs to be run as root."
         exit 1
       fi
 
@@ -35,7 +35,7 @@
       luks="$(echo "$root_dev" | grep "/dev/mapper" || true)"
 
       if [ "$luks" ]; then
-        echo -e "${YELLOW}[WARN]${NC} Note: Root partition is encrypted."
+        echo -e "''${YELLOW}[WARN]''${NC} Note: Root partition is encrypted."
         kname_dev="$(lsblk --list --noheadings --paths --output KNAME "$root_dev")"
         kname="$(basename "$kname_dev")"
         part_dev="/dev/$(basename "/sys/class/block/$kname/slaves/"*)"
@@ -58,38 +58,38 @@
       threshold=$(( disk_size / 100 ))
 
       if [ "$size_diff" -lt "$threshold" ]; then
-        echo -e "${GREEN}[INFO]${NC} Root partition already uses the full disk space. Nothing to do."
+        echo -e "''${GREEN}[INFO]''${NC} Root partition already uses the full disk space. Nothing to do."
         exit 0
       fi
 
-      echo -e "${BLUE}[INFO]${NC} Automatically detected root filesystem:"
+      echo -e "''${BLUE}[INFO]''${NC} Automatically detected root filesystem:"
       fdisk -l "$disk_dev" 2>/dev/null | grep "''${disk_dev}:" -A 1
       echo
-      echo -e "${BLUE}[INFO]${NC} Automatically detected root partition:"
+      echo -e "''${BLUE}[INFO]''${NC} Automatically detected root partition:"
       fdisk -l "$disk_dev" 2>/dev/null | grep "''${part_dev}"
       echo
       read -p "Press enter to continue, or ctrl+c to cancel. "
 
       echo
-      echo -e "${BLUE}[INFO]${NC} Before:"
+      echo -e "''${BLUE}[INFO]''${NC} Before:"
       df -h /
 
       echo
-      echo -e "${BLUE}[STEP]${NC} Expanding the partition and filesystem..."
+      echo -e "''${BLUE}[STEP]''${NC} Expanding the partition and filesystem..."
       ${cloud-utils}/bin/growpart "$disk_dev" "$part_num" || true
       if [ "$luks" ]; then
-        echo -e "${BLUE}[STEP]${NC} Resizing encrypted filesystem..."
+        echo -e "''${BLUE}[STEP]''${NC} Resizing encrypted filesystem..."
         ${cryptsetup}/bin/cryptsetup resize "$root_dev" || true
       fi
-      echo -e "${BLUE}[STEP]${NC} Resizing filesystem..."
+      echo -e "''${BLUE}[STEP]''${NC} Resizing filesystem..."
       ${e2fsprogs}/bin/resize2fs "$root_dev" || true
 
       echo
-      echo -e "${BLUE}[INFO]${NC} After:"
+      echo -e "''${BLUE}[INFO]''${NC} After:"
       df -h /
 
       echo
-      echo -e "${GREEN}[SUCCESS]${NC} Done expanding the root filesystem."
+      echo -e "''${GREEN}[SUCCESS]''${NC} Done expanding the root filesystem."
     '')
   ];
 }
