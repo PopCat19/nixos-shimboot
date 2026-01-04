@@ -15,6 +15,7 @@
   # Complete Noctalia settings based on user's configuration
   settings = {
     settingsVersion = 26;
+
     # Bar configuration with user's custom layout
     bar = {
       position = "top";
@@ -48,12 +49,12 @@
           {
             id = "SystemMonitor";
             diskPath = "/";
+            showCpuUsage = true;
             showCpuTemp = true;
-            showCpuUsage = false;
-            showDiskUsage = false;
             showMemoryAsPercent = false;
             showMemoryUsage = true;
-            showNetworkStats = true;
+            showNetworkStats = false;
+            showDiskUsage = true;
             usePrimaryColor = false;
           }
           {
@@ -240,8 +241,8 @@
       useApp2Unit = false;
       sortByMostUsed = true;
       terminalCommand = "xterm -e";
-      customLaunchPrefixEnabled = false;
-      customLaunchPrefix = "";
+      customLaunchPrefixEnabled = true;
+      customLaunchPrefix = "uwsm app --";
       viewMode = "list";
       showCategories = true;
     };
