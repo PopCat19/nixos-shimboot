@@ -24,9 +24,29 @@ in {
 
   programs.noctalia-shell = {
     enable = true;
-    # Enable systemd service through home manager
-    systemd.enable = true;
+    systemd.enable = false;
 
     inherit ((import ./settings.nix {inherit pkgs config userConfig;})) settings;
+  };
+
+  # Custom systemd service with 10-second delay
+  systemd.user.services.noctalia-shell = {
+    Unit = {
+      Description = "Noctalia Shell (with delay)";
+      After = ["graphical-session.target"];
+      PartOf = ["graphical-session.target"];
+    };
+
+    Service = {
+      Type = "simple";
+      ExecStartPre = "${pkgs.coreutils}/bin/sleep 10";
+      ExecStart = "${pkgs.noctalia-shell}/bin/noctalia-shell";
+      Restart = "on-failure";
+      RestartSec = "5s";
+    };
+
+    Install = {
+      WantedBy = ["graphical-session.target"];
+    };
   };
 }
