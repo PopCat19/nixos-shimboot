@@ -99,13 +99,5 @@
       "float,class:^(org.keepassxc.KeePassXC)$,title:^(Password Generator)$"
       "float,class:^(keepassxc)$,title:^(Password Generator)$"
     ];
-
-    windowrule = [
-      "float,title:^(Open)$"
-      "float,title:^(Choose Files)$"
-      "float,title:^(Save As)$"
-      "float,title:^(Confirm to replace files)$"
-      "float,title:^(File Operation Progress)$"
-    ];
   };
 }

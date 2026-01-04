@@ -24,7 +24,6 @@
     networkmanager = {
       enable = true;
     };
-    wireless.enable = lib.mkForce false;
   };
 
   boot.kernelModules = ["iwlmvm" "ccm"];
