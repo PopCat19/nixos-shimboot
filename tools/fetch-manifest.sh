@@ -14,6 +14,19 @@
 
 set -euo pipefail
 
+# Colors & Logging
+ANSI_CLEAR='\033[0m'
+ANSI_BOLD='\033[1m'
+ANSI_GREEN='\033[1;32m'
+ANSI_BLUE='\033[1;34m'
+ANSI_YELLOW='\033[1;33m'
+ANSI_RED='\033[1;31m'
+
+log_info() { printf "${ANSI_BLUE}[INFO]${ANSI_CLEAR} %s\n" "$*" >&2; }
+log_success() { printf "${ANSI_GREEN}[SUCCESS]${ANSI_CLEAR} %s\n" "$*" >&2; }
+log_warn() { printf "${ANSI_YELLOW}[WARN]${ANSI_CLEAR} %s\n" "$*" >&2; }
+log_error() { printf "${ANSI_RED}[ERROR]${ANSI_CLEAR} %s\n" "$*" >&2; }
+
 # Defaults
 PARALLEL_JOBS=2
 OUT_PATH=""
@@ -72,10 +85,10 @@ mkdir -p manifests
 # --fixup mode: sort and clean manifest
 if $FIXUP; then
 	if [ ! -f "$OUT_PATH" ]; then
-		echo "[!] Manifest file $OUT_PATH not found" >&2
+		log_error "Manifest file $OUT_PATH not found" >&2
 		exit 1
 	fi
-	echo "[*] Fixing up manifest $OUT_PATH..." >&2
+	log_info "Fixing up manifest $OUT_PATH..." >&2
 	header=$(sed -n '1,/chunks = \[/p' "$OUT_PATH")
 	entries=$(grep '^[[:space:]]*{ name = "' "$OUT_PATH" | sort -t. -k3,3n)
 	{
@@ -85,7 +98,7 @@ if $FIXUP; then
 		echo "}"
 	} >"${OUT_PATH}.fixed"
 	mv "${OUT_PATH}.fixed" "$OUT_PATH"
-	echo "[+] Manifest fixup complete: $OUT_PATH" >&2
+	log_success "Manifest fixup complete: $OUT_PATH" >&2
 	exit 0
 fi
 
@@ -97,7 +110,7 @@ TIMEOUT_SECS="${TIMEOUT_SECS:-60}"
 SLEEP_BETWEEN="${SLEEP_BETWEEN:-2}"
 
 # Fetch manifest JSON
-echo "[*] Fetching manifest for $BOARD..." >&2
+log_info "Fetching manifest for $BOARD..." >&2
 manifest=$(curl -s --fail --connect-timeout 10 "$MANIFEST_URL")
 zip_hash=$(echo "$manifest" | jq -r '.hash')
 chunks=($(echo "$manifest" | jq -r '.chunks[]'))
@@ -106,13 +119,13 @@ chunks=($(echo "$manifest" | jq -r '.chunks[]'))
 start_index=0
 if [ -f "$OUT_PATH" ]; then
 	cp "$OUT_PATH" "$OUT_PATH.bak"
-	echo "[*] Found existing manifest at $OUT_PATH (backup saved to $OUT_PATH.bak)" >&2
+	log_info "Found existing manifest at $OUT_PATH (backup saved to $OUT_PATH.bak)" >&2
 
 	existing_count=$(grep -c 'name = "' "$OUT_PATH" || true)
 	total_count=${#chunks[@]}
 
 	if [ "$existing_count" -ge "$total_count" ] && ! $REGENERATE; then
-		echo "[+] Manifest already complete ($existing_count / $total_count chunks)" >&2
+		log_success "Manifest already complete ($existing_count / $total_count chunks)" >&2
 		exit 0
 	fi
 
@@ -161,12 +174,12 @@ download_chunk() {
 	url="$BASE_URL/$chunk"
 
 	for attempt in $(seq 1 "$RETRY_COUNT"); do
-		echo "[${idx}] Downloading $chunk (attempt $attempt/$RETRY_COUNT)..." >&2
+		log_info "[${idx}] Downloading $chunk (attempt $attempt/$RETRY_COUNT)..." >&2
 		if curl -s --fail --connect-timeout "$TIMEOUT_SECS" --max-time "$TIMEOUT_SECS" \
 			--progress-bar -o "$chunk" "$url" >&2; then
 			break
 		else
-			echo "[${idx}] Failed to download $chunk, retrying..." >&2
+			log_warn "[${idx}] Failed to download $chunk, retrying..." >&2
 			sleep 2
 		fi
 	done
@@ -195,7 +208,7 @@ shim_hash=$(nix hash file --type sha256 "${BOARD}.bin")
 rm -f "${BOARD}.zip" "${BOARD}.bin" "${BOARD}".zip.* 2>/dev/null || true
 
 # Fix-up sort at the end and insert correct hash
-echo "[*] Sorting manifest entries..." >&2
+log_info "Sorting manifest entries..." >&2
 header=$(sed -n '1,/chunks = \[/p' "$OUT_PATH" | sed "s|hash = \"\";|hash = \"${shim_hash}\";|")
 entries=$(grep '^[[:space:]]*{ name = "' "$OUT_PATH" | sort -t. -k3,3n)
 
@@ -208,4 +221,4 @@ entries=$(grep '^[[:space:]]*{ name = "' "$OUT_PATH" | sort -t. -k3,3n)
 
 mv "${OUT_PATH}.sorted" "$OUT_PATH"
 
-echo "[+] Manifest written to $OUT_PATH with shim.bin hash: $shim_hash" >&2
+log_success "Manifest written to $OUT_PATH with shim.bin hash: $shim_hash" >&2

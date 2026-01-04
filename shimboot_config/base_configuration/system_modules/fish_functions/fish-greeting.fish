@@ -18,7 +18,7 @@ function fish_greeting
     set -l host (hostname)
     set -l user (whoami)
     set -l cache_file "/tmp/.fastfetch_cache_$user"
-    
+
     # 1. Header
     set_color brgreen; echo -n "$user"
     set_color normal; echo -n "@"
@@ -51,7 +51,7 @@ function fish_greeting
     # 4. Config & Git Status
     if test -d "$config_dir"
         set_color brcyan; echo "Config: $config_dir"
-        
+
         if test -d "$config_dir/.git"
             set -l branch (git -C $config_dir rev-parse --abbrev-ref HEAD 2>/dev/null)
             set -l commit (git -C $config_dir rev-parse --short HEAD 2>/dev/null)
@@ -59,10 +59,32 @@ function fish_greeting
                 set_color normal; echo "Git: $branch @ $commit"
             end
         end
+
+        # Dynamically discover and display helper functions
+        set -l helper_functions
+        set -l helper_patterns "nixos-" "setup_" "shimboot_" "fix" "list" "harvest"
         
-        set_color brwhite; echo "Helpers: nrb • flup • cdn • setup_nixos • list-fish-helpers"
+        for pattern in $helper_patterns
+            set -l matches (functions | grep "$pattern" | head -3)
+            if test -n "$matches"
+                for match in $matches
+                    if not contains "$match" $helper_functions
+                        set helper_functions $helper_functions "$match"
+                    end
+                end
+            end
+        end
+        
+        # If we found helper functions, display them
+        if test -n "$helper_functions"
+            set -l helper_list (string join " • " $helper_functions)
+            set_color brwhite; echo "Helpers: $helper_list"
+        else
+            # Fallback to common helpers if none found
+            set_color brwhite; echo "Helpers: nrb • flup • setup_nixos • list-fish-helpers"
+        end
     else
-        set_color bryellow; echo "⚠️  No nixos-config detected."
+        set_color bryellow; echo "[WARN] No nixos-config detected."
         set_color normal; echo "Run: setup_nixos to initialize"
     end
 

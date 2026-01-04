@@ -4,9 +4,11 @@
 # Dependencies: networkmanager, git
 # Related: helpers.nix, networking.nix
 #
-# This module provides:
-# - setup_nixos_config: Configure /etc/nixos for nixos-rebuild
-# - setup_nixos: Interactive post-install setup script
+# This module:
+# - Configures /etc/nixos for nixos-rebuild operations
+# - Provides interactive post-install setup wizard
+# - Handles Wi-Fi, filesystem, and configuration setup
+# - Automates system initialization and rebuild processes
 {
   pkgs,
   userConfig,

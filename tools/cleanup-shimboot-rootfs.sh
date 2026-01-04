@@ -19,6 +19,19 @@
 
 set -euo pipefail
 
+# Colors & Logging
+ANSI_CLEAR='\033[0m'
+ANSI_BOLD='\033[1m'
+ANSI_GREEN='\033[1;32m'
+ANSI_BLUE='\033[1;34m'
+ANSI_YELLOW='\033[1;33m'
+ANSI_RED='\033[1;31m'
+
+log_info() { printf "${ANSI_BLUE}[INFO]${ANSI_CLEAR} %s\n" "$*" >&2; }
+log_warn() { printf "${ANSI_YELLOW}[WARN]${ANSI_CLEAR} %s\n" "$*" >&2; }
+log_error() { printf "${ANSI_RED}[ERROR]${ANSI_CLEAR} %s\n" "$*" >&2; }
+log_success() { printf "${ANSI_GREEN}[SUCCESS]${ANSI_CLEAR} %s\n" "$*" >&2; }
+
 KEEP=1
 DRY_RUN=1
 PROFILE=""
@@ -315,7 +328,7 @@ declare -A ORIGIN_BY_PATH
 declare -A GENIDX_BY_PATH
 
 if [[ -n "$PROFILE" ]]; then
-	log "Discovering via profile: $PROFILE"
+	log_info "Discovering via profile: $PROFILE"
 	profile_output=$(discover_via_profile "$PROFILE")
 	while IFS=$'\t' read -r gen path; do
 		[[ -n "$path" ]] || continue
@@ -329,7 +342,7 @@ fi
 
 # With set -u, guard for unset arrays using ${ORDERED+x} and ${#ORDERED[@]-0}
 if [[ (-z ${ORDERED+x} || ${#ORDERED[@]} -eq 0) && -n "$GCROOTS" ]]; then
-	log "Discovering via GC roots: $GCROOTS"
+	log_info "Discovering via GC roots: $GCROOTS"
 	local_rank=0
 	gcroots_output=$(discover_via_gcroots "$GCROOTS")
 	while IFS=$'\t' read -r key path root; do
@@ -344,7 +357,7 @@ if [[ (-z ${ORDERED+x} || ${#ORDERED[@]} -eq 0) && -n "$GCROOTS" ]]; then
 fi
 
 if [[ -z ${ORDERED+x} || ${#ORDERED[@]} -eq 0 ]]; then
-	log "Discovering via repo results: $RESULTS_DIR"
+	log_info "Discovering via repo results: $RESULTS_DIR"
 	results_output=$(discover_via_results "$RESULTS_DIR")
 	while IFS=$'\t' read -r idx path link; do
 		[[ -n "$path" ]] || continue
@@ -375,7 +388,7 @@ fi
 
 # If still nothing, exit cleanly
 if [[ -z ${ORDERED+x} || ${#ORDERED[@]} -eq 0 ]]; then
-	warn "No rootfs candidates discovered. Nothing to do."
+	log_warn "No rootfs candidates discovered. Nothing to do."
 	exit 0
 fi
 
@@ -396,10 +409,10 @@ for row in "${SORTED[@]}"; do
 	ORDERED+=("$path")
 done
 
-log "Discovered ${#ORDERED[@]} rootfs candidates:"
+log_info "Discovered ${#ORDERED[@]} rootfs candidates:"
 for i in "${!ORDERED[@]}"; do
 	p="${ORDERED[$i]}"
-	log "  [$i] keep-order=${GENIDX_BY_PATH[$p]} path=$p origin=${ORIGIN_BY_PATH[$p]}"
+	log_info "  [$i] keep-order=${GENIDX_BY_PATH[$p]} path=$p origin=${ORIGIN_BY_PATH[$p]}"
 done
 
 # Partition into keep and delete
@@ -411,18 +424,18 @@ KEEP_SET=("${ORDERED[@]:0:KEEP_N}")
 DEL_SET=("${ORDERED[@]:KEEP_N}")
 
 if ((${#DEL_SET[@]} == 0)); then
-	log "Nothing to delete. Already within retention (keep=$KEEP)."
+	log_info "Nothing to delete. Already within retention (keep=$KEEP)."
 	exit 0
 fi
 
-log "Plan:"
-log "  Keep (${#KEEP_SET[@]}):"
+log_info "Plan:"
+log_info "  Keep (${#KEEP_SET[@]}):"
 for p in "${KEEP_SET[@]}"; do
-	log "    $p"
+	log_info "    $p"
 done
-log "  Delete (${#DEL_SET[@]}):"
+log_info "  Delete (${#DEL_SET[@]}):"
 for p in "${DEL_SET[@]}"; do
-	log "    $p"
+	log_info "    $p"
 done
 
 # Compute closure sizes for reporting
@@ -468,13 +481,13 @@ for p in "${DEL_SET[@]}"; do
 done
 
 if ((DRY_RUN)); then
-	log "[DRY-RUN] Would delete ${#DEL_SET[@]} store paths, approx total closure $(human_size "$TOTAL_BYTES")"
+	log_info "[DRY-RUN] Would delete ${#DEL_SET[@]} store paths, approx total closure $(human_size "$TOTAL_BYTES")"
 else
-	log "Deleting ${#DEL_SET[@]} store paths, approx total closure $(human_size "$TOTAL_BYTES")"
+	log_info "Deleting ${#DEL_SET[@]} store paths, approx total closure $(human_size "$TOTAL_BYTES")"
 	for p in "${DEL_SET[@]}"; do
-		log "Deleting: $p"
+		log_info "Deleting: $p"
 		if ! nix-store --delete "$p"; then
-			warn "Failed to delete $p (may still be referenced); continuing"
+			log_warn "Failed to delete $p (may still be referenced); continuing"
 		fi
 	done
 fi
@@ -490,10 +503,10 @@ if ((REMOVE_STALE_SYMLINKS)); then
 			for dp in "${DEL_SET[@]}"; do
 				if [[ "$sd" == "$dp" ]]; then
 					if ((DRY_RUN)); then
-						log "[DRY-RUN] Would remove stale symlink: $r"
+						log_info "[DRY-RUN] Would remove stale symlink: $r"
 					else
-						log "Removing stale symlink: $r"
-						rm -f -- "$r" || warn "Failed to remove $r"
+						log_info "Removing stale symlink: $r"
+						rm -f -- "$r" || log_warn "Failed to remove $r"
 					fi
 					break
 				fi
@@ -503,4 +516,4 @@ if ((REMOVE_STALE_SYMLINKS)); then
 	fi
 fi
 
-log "Done."
+log_success "Cleanup complete."

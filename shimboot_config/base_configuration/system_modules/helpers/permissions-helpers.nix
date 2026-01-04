@@ -4,8 +4,10 @@
 # Dependencies: util-linux
 # Related: helpers.nix, security.nix
 #
-# This module provides:
-# - Basic permission fixing utilities
+# This module:
+# - Provides permission fixing utilities
+# - Handles security wrapper configurations
+# - Maintains proper access controls
 {pkgs, ...}: {
   environment.systemPackages = with pkgs; [
     # Placeholder for future permission utilities

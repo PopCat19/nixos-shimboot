@@ -21,6 +21,20 @@ SECTION() {
 	echo "========== $* =========="
 }
 
+# Colors & Logging
+ANSI_CLEAR='\033[0m'
+ANSI_BOLD='\033[1m'
+ANSI_GREEN='\033[1;32m'
+ANSI_BLUE='\033[1;34m'
+ANSI_YELLOW='\033[1;33m'
+ANSI_RED='\033[1;31m'
+
+log_info() { printf "${ANSI_BLUE}[INFO]${ANSI_CLEAR} %s\n" "$*" >&2; }
+log_warn() { printf "${ANSI_YELLOW}[WARN]${ANSI_CLEAR} %s\n" "$*" >&2; }
+log_error() { printf "${ANSI_RED}[ERROR]${ANSI_CLEAR} %s\n" "$*" >&2; }
+log_success() { printf "${ANSI_GREEN}[SUCCESS]${ANSI_CLEAR} %s\n" "$*" >&2; }
+
+# Legacy compatibility
 info() { printf "[INFO] %s\n" "$*" >&2; }
 warn() { printf "[WARN] %s\n" "$*" >&2; }
 err() { printf "[ERR ] %s\n" "$*" >&2; }
@@ -30,7 +44,7 @@ ensure_mountpoint() {
 }
 
 detect_from_lsblk() {
-	info "Enumerating block devices (sudo lsblk)..."
+	log_info "Enumerating block devices (sudo lsblk)..."
 	# NAME,SIZE,FSTYPE,MOUNTPOINT,TYPE,RM,HOTPLUG,MODEL
 	sudo lsblk -p -o NAME,SIZE,FSTYPE,MOUNTPOINT,TYPE,RM,HOTPLUG,MODEL >&2
 	echo >&2
@@ -38,7 +52,7 @@ detect_from_lsblk() {
 	read -rp "Device path [/dev/sdc4]: " DEV
 	DEV="${DEV:-/dev/sdc4}"
 	if [[ ! -e "$DEV" ]]; then
-		err "Device does not exist: $DEV"
+		log_error "Device does not exist: $DEV"
 		exit 2
 	fi
 	echo "$DEV"
@@ -58,18 +72,18 @@ mount_ro_if_needed() {
 		if [[ -n "$mps" ]]; then
 			while IFS= read -r mp; do
 				[[ -z "$mp" ]] && continue
-				warn "Device $WHAT currently mounted at $mp; unmounting..."
+				log_warn "Device $WHAT currently mounted at $mp; unmounting..."
 				sudo umount "$mp" || true
 			done <<<"$mps"
 		fi
 
 		# If our inspect mountpoint is in use, unmount it
 		if mountpoint -q /mnt/inspect_rootfs; then
-			warn "/mnt/inspect_rootfs already mounted; unmounting first..."
+			log_warn "/mnt/inspect_rootfs already mounted; unmounting first..."
 			sudo umount /mnt/inspect_rootfs || true
 		fi
 
-		info "Mounting $WHAT read-only at /mnt/inspect_rootfs"
+		log_info "Mounting $WHAT read-only at /mnt/inspect_rootfs"
 		if ! sudo mount -o ro "$WHAT" /mnt/inspect_rootfs 2>/dev/null; then
 			# Retry once after a short delay in case an automounter races
 			sleep 0.5
@@ -79,11 +93,11 @@ mount_ro_if_needed() {
 			if [[ -n "$mps" ]]; then
 				while IFS= read -r mp; do
 					[[ -z "$mp" ]] && continue
-					warn "Retry: unmounting $mp..."
+					log_warn "Retry: unmounting $mp..."
 					sudo umount "$mp" || true
 				done <<<"$mps"
 			fi
-			info "Retry mounting $WHAT read-only at /mnt/inspect_rootfs"
+			log_info "Retry mounting $WHAT read-only at /mnt/inspect_rootfs"
 			sudo mount -o ro "$WHAT" /mnt/inspect_rootfs
 		fi
 
@@ -98,7 +112,7 @@ mount_ro_if_needed() {
 		return 0
 	fi
 
-	err "Not a block device or directory: $WHAT"
+	log_error "Not a block device or directory: $WHAT"
 	exit 3
 }
 
@@ -126,7 +140,7 @@ cleanup() {
 trap 'cleanup' EXIT INT TERM
 print_basic() {
 	local MNT="$1"
-	info "Using mount: $MNT"
+	log_info "Using mount: $MNT"
 
 	SECTION "Listing $MNT/var/log"
 	sudo ls -la "$MNT/var/log" || true
@@ -267,7 +281,7 @@ main() {
 	print_pam_and_users "$MNT"
 
 	echo
-	info "Diagnostics complete."
+	log_success "Diagnostics complete."
 }
 
 main "$@"

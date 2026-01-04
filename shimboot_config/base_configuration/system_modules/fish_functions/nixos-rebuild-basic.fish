@@ -14,8 +14,8 @@
 
 function nixos-rebuild-basic
     if not set -q NIXOS_CONFIG_DIR; or not test -d "$NIXOS_CONFIG_DIR"
-        echo "❌ Error: NIXOS_CONFIG_DIR is not set or invalid."
-        return 1
+    set_color red; echo "[ERROR] Error: NIXOS_CONFIG_DIR is not set or invalid."; set_color normal
+    return 1
     end
 
     set -l original_dir (pwd)
@@ -26,25 +26,25 @@ function nixos-rebuild-basic
     set -l nix_args "switch" "--flake" "."
     
     if string match -qr '^([0-4]\.|5\.[0-5][^0-9])' "$kver"
-        echo "⚠️  Kernel $kver (< 5.6) detected. Disabling sandbox."
-        set -a nix_args "--option" "sandbox" "false"
+    set_color yellow; echo "[WARN] Kernel $kver (< 5.6) detected. Disabling sandbox."; set_color normal
+    set -a nix_args "--option" "sandbox" "false"
     else
-        echo "🔐 Kernel $kver detected. Using default sandbox."
+    set_color green; echo "[INFO] Kernel $kver detected. Using default sandbox."; set_color normal
     end
 
     # Pass additional arguments from caller
     set -a nix_args $argv
 
-    echo "🚀 Running NixOS rebuild..."
-    echo "Command: sudo nixos-rebuild $nix_args"
+    set_color blue; echo "[STEP] Running NixOS rebuild..."; set_color normal
+    set_color cyan; echo "Command: sudo nixos-rebuild $nix_args"; set_color normal
 
     if sudo nixos-rebuild $nix_args
-        echo "✅ Build succeeded"
-        cd "$original_dir"
-        return 0
+    set_color green; echo "[SUCCESS] Build succeeded"; set_color normal
+    cd "$original_dir"
+    return 0
     else
-        echo "❌ Build failed"
-        cd "$original_dir"
-        return 1
+    set_color red; echo "[ERROR] Build failed"; set_color normal
+    cd "$original_dir"
+    return 1
     end
 end

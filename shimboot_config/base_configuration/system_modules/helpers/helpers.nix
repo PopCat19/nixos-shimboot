@@ -4,11 +4,10 @@
 # Dependencies: Various helper modules
 # Related: system modules
 #
-# This module aggregates all helper functionality:
-# - Filesystem helpers
-# - Permissions helpers
-# - Setup helpers
-# - Application helpers
+# This module:
+# - Imports all helper functionality
+# - Provides unified access to helper scripts
+# - Manages helper module dependencies
 {
   imports = [
     ./filesystem-helpers.nix
