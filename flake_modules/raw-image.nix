@@ -5,6 +5,7 @@
   zen-browser,
   rose-pine-hyprcursor,
   noctalia,
+  stylix,
   ...
 }: let
   system = "x86_64-linux";
@@ -15,7 +16,7 @@ in {
     raw-rootfs = nixos-generators.nixosGenerate {
       inherit system;
       format = "raw";
-      specialArgs = {inherit zen-browser rose-pine-hyprcursor noctalia;};
+      specialArgs = {inherit zen-browser rose-pine-hyprcursor noctalia stylix;};
 
       modules =
         [
@@ -69,7 +70,7 @@ in {
     raw-rootfs-minimal = nixos-generators.nixosGenerate {
       inherit system;
       format = "raw";
-      specialArgs = {inherit zen-browser rose-pine-hyprcursor noctalia;};
+      specialArgs = {inherit zen-browser rose-pine-hyprcursor noctalia stylix;};
 
       modules = [
         # Base-only configuration (standalone Hyprland via greetd)

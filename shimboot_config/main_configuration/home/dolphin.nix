@@ -2,7 +2,7 @@
 #
 # Purpose: Configure Dolphin file manager with essential dependencies
 # Dependencies: kdePackages.dolphin, userConfig
-# Related: kde.nix, theme.nix, bookmarks.nix
+# Related: kde.nix, stylix.nix, bookmarks.nix
 #
 # This module:
 # - Installs Dolphin file manager

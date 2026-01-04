@@ -2,7 +2,7 @@
 #
 # Purpose: Configure essential fonts and font rendering for main configuration
 # Dependencies: noto-fonts, mplus-outline-fonts, jetbrains-mono, nerd-fonts, fontconfig
-# Related: packages.nix, theme.nix
+# Related: packages.nix, stylix.nix
 #
 # This module:
 # - Overrides base configuration fonts with essential font selection

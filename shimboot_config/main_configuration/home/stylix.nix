@@ -2,7 +2,7 @@
 #
 # Purpose: Configure comprehensive theming using Stylix framework with Rose Pine color scheme
 # Dependencies: stylix, base16-schemes, nerd-fonts, google-fonts, papirus-icon-theme
-# Related: fonts.nix, display.nix, greeter.nix
+# Related: ../system/system_modules/fonts.nix, ../system/system_modules/greeter.nix
 #
 # This module:
 # - Sets up Rose Pine Base16 color scheme via Stylix
@@ -14,18 +14,31 @@
 {
   pkgs,
   inputs,
+  userConfig,
   ...
 }: {
   imports = [
     inputs.stylix.homeModules.stylix
+    inputs.pmd.homeManagerModules.pmd
   ];
 
   # Enable Stylix with auto-enable for better compatibility
   stylix.enable = true;
   stylix.autoEnable = true;
+  stylix.polarity = "dark";
 
-  # Use Rose Pine Base16 color scheme
-  stylix.base16Scheme = "${pkgs.base16-schemes}/share/themes/rose-pine.yaml";
+  # PMD Theme Configuration
+  # Uses centralized theme configuration from userConfig
+  stylix.pmd = {
+    enable = true;
+    inherit (userConfig.theme) hue;
+    inherit (userConfig.theme) variant;
+
+    # DISABLE PMD Wallpaper generation here
+    wallpaper.enable = false;
+  };
+
+  # stylix.base16Scheme = "${pkgs.base16-schemes}/share/themes/rose-pine.yaml";
 
   # Enhanced font configuration with all font types
   stylix.fonts = {
@@ -58,12 +71,19 @@
     desktop = 10; # For desktop applications
   };
 
+  # Optional: Align Stylix targets with PMD Effects System
+  # PMD recommends no shadows/gradients, focus on borders
+  # Note: 1rem at 16px base = 16px
+  stylix.opacity.applications = 1.0;
+
   # Enable theming targets for comprehensive coverage
   stylix.targets.zen-browser.enable = true;
   stylix.targets.zen-browser.profileNames = ["default"];
   stylix.targets.vesktop.enable = true;
   stylix.targets.vencord.enable = true;
   stylix.targets.nixcord.enable = true;
+  stylix.targets.zed.enable = true;
+  stylix.targets.vscode.enable = true;
 
   # Cursor theme configuration using Stylix native option
   stylix.cursor = {
@@ -84,6 +104,7 @@
     papirus-icon-theme
     # Fallback icon themes for missing icons
     adwaita-icon-theme
+    hicolor-icon-theme
     # Qt styling tools for platform theme support
     kdePackages.qt6ct
   ];

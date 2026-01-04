@@ -15,11 +15,8 @@
     ./hypr_config/hypr_packages.nix
 
     ./environment.nix
-    # Fish and Starship are configured in base_configuration/system_modules/
-    ./fish-themes.nix
     ./packages.nix
     ./services.nix
-    # Starship is configured in base_configuration/system_modules/fish.nix
     ./zen-browser.nix
 
     ./fcitx5.nix
@@ -27,7 +24,6 @@
     ./fuzzel.nix
     ./bookmarks.nix
     ./kde.nix
-    ./kitty.nix
     ./micro.nix
     ./privacy.nix
     ./screenshot.nix
