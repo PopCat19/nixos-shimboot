@@ -1,66 +1,20 @@
-# Hyprland Window Rules Module
+# Window Rules Configuration
 #
-# Purpose: Define window behavior rules for specific applications in Hyprland
+# Purpose: Configure window behavior rules for specific applications
 # Dependencies: None
-# Related: general.nix
+# Related: keybinds.nix, general.nix
 #
 # This module:
-# - Sets opacity levels for various applications
-# - Defines floating windows for dialogs and utilities
-# - Configures window sizes and positioning
+# - Suppresses maximize events globally
+# - Defines floating rules for specific applications
+# - Sets minimum window sizes
+# - Configures focus behavior for special windows
 {
   wayland.windowManager.hyprland.settings = {
     windowrulev2 = [
       "suppressevent maximize, class:.*"
       "nofocus,class:^$,title:^$,xwayland:1,floating:1,fullscreen:0,pinned:0"
       "minsize 1024 600,class:^(org.pulseaudio.pavucontrol)$"
-
-      "opacity 0.85 0.85,class:^(code-oss)$"
-      "opacity 0.85 0.85,class:^([Cc]ode)$"
-      "opacity 0.85 0.85,class:^(code-url-handler)$"
-      "opacity 0.85 0.85,class:^(code-insiders-url-handler)$"
-      "opacity 0.85 0.85,class:^(kitty)$"
-      "opacity 0.85 0.85,class:^(org.kde.dolphin)$"
-      "opacity 0.85 0.85,class:^(org.kde.ark)$"
-      "opacity 0.85 0.85,class:^(nemo)$"
-      "opacity 0.85 0.85,class:^(nautilus)$"
-      "opacity 0.85 0.85,class:^(nwg-look)$"
-      "opacity 0.85 0.85,class:^(qt5ct)$"
-      "opacity 0.85 0.85,class:^(qt6ct)$"
-      "opacity 0.85 0.85,class:^(kvantummanager)$"
-      "opacity 0.85 0.75,class:^(org.pulseaudio.pavucontrol)$"
-      "opacity 0.85 0.75,class:^(blueman-manager)$"
-      "opacity 0.85 0.75,class:^(nm-applet)$"
-      "opacity 0.85 0.75,class:^(nm-connection-editor)$"
-      "opacity 0.85 0.75,class:^(org.kde.polkit-kde-authentication-agent-1)$"
-      "opacity 0.85 0.75,class:^(polkit-gnome-authentication-agent-1)$"
-      "opacity 0.85 0.75,class:^(org.freedesktop.impl.portal.desktop.gtk)$"
-      "opacity 0.85 0.75,class:^(org.freedesktop.impl.portal.desktop.hyprland)$"
-      "opacity 0.75 0.75,class:^([Ss]team)$"
-      "opacity 0.75 0.75,class:^(steamwebhelper)$"
-      "opacity 0.75 0.75,class:^([Ss]potify)$"
-      "opacity 0.75 0.75,initialTitle:^(Spotify Free)$"
-      "opacity 0.75 0.75,initialTitle:^(Spotify Premium)$"
-      "opacity 0.90 0.90,class:^(com.github.rafostar.Clapper)$"
-      "opacity 0.85 0.85,class:^(com.github.tchx84.Flatseal)$"
-      "opacity 0.85 0.85,class:^(hu.kramo.Cartridges)$"
-      "opacity 0.85 0.85,class:^(com.obsproject.Studio)$"
-      "opacity 0.85 0.85,class:^(gnome-boxes)$"
-      "opacity 0.85 0.85,class:^(vesktop)$"
-      "opacity 0.85 0.85,class:^(discord)$"
-      "opacity 0.85 0.85,class:^(WebCord)$"
-      "opacity 0.85 0.85,class:^(ArmCord)$"
-      "opacity 0.85 0.85,class:^(app.drey.Warp)$"
-      "opacity 0.85 0.85,class:^(net.davidotek.pupgui2)$"
-      "opacity 0.85 0.85,class:^(yad)$"
-      "opacity 0.85 0.85,class:^(Signal)$"
-      "opacity 0.85 0.85,class:^(io.github.alainm23.planify)$"
-      "opacity 0.85 0.85,class:^(io.gitlab.theevilskeleton.Upscaler)$"
-      "opacity 0.85 0.85,class:^(com.github.unrud.VideoDownloader)$"
-      "opacity 0.85 0.85,class:^(io.gitlab.adhami3310.Impression)$"
-      "opacity 0.85 0.85,class:^(io.missioncenter.MissionCenter)$"
-      "opacity 0.85 0.85,class:^(io.github.flattool.Warehouse)$"
-      "opacity 0.88 0.76,class:^(steam_app_1920960)$,title:^(MainWindow)$,xwayland:1"
 
       "float,class:^(org.kde.dolphin)$,title:^(Progress Dialog — Dolphin)$"
       "float,class:^(org.kde.dolphin)$,title:^(Copying — Dolphin)$"
@@ -98,6 +52,12 @@
       "float,class:^(xdg-desktop-portal-gtk)$"
       "float,class:^(org.keepassxc.KeePassXC)$,title:^(Password Generator)$"
       "float,class:^(keepassxc)$,title:^(Password Generator)$"
+
+      "float, title:^(Open)$"
+      "float, title:^(Choose Files)$"
+      "float, title:^(Save As)$"
+      "float, title:^(Confirm to replace files)$"
+      "float, title:^(File Operation Progress)$"
     ];
   };
 }

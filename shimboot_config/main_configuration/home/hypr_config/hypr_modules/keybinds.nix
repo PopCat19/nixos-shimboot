@@ -1,22 +1,17 @@
-# Hyprland Keybindings Module
+# Key Bindings Configuration
 #
 # Purpose: Configure keyboard shortcuts and mouse bindings for Hyprland
-# Dependencies: userConfig
-# Related: fuzzel.nix, hyprlock.nix
+# Dependencies: userConfig.defaultApps
+# Related: window-rules.nix
 #
 # This module:
-# - Defines window management shortcuts
-# - Sets up application launchers
-# - Configures media controls and utilities
-# - Defines workspace switching and mouse bindings
-{
-  config,
-  userConfig,
-  ...
-}: {
+# - Defines modifier keys and application variables
+# - Configures system and window management shortcuts
+# - Sets up application launchers and utilities
+# - Binds media, volume, and brightness controls
+{userConfig, ...}: {
   wayland.windowManager.hyprland.settings = {
     "$mainMod" = "SUPER";
-
     "$term" = userConfig.defaultApps.terminal.command;
     "$editor" = userConfig.defaultApps.editor.command;
     "$file" = userConfig.defaultApps.fileManager.command;
@@ -40,21 +35,17 @@
       "$mainMod, E, exec, $file"
       "$mainMod, C, exec, $editor"
       "$mainMod, F, exec, $browser"
-      # Noctalia launcher with Mod+A (fuzzel fallback on Mod+Shift+A)
       "$mainMod, A, exec, noctalia-shell ipc call launcher toggle"
       "$mainMod+Shift, A, exec, $launcher"
-
       "$mainMod+Shift, C, exec, hyprpicker -a"
-      # Clipboard: Noctalia launcher clipboard
       "$mainMod, V, exec, noctalia-shell ipc call launcher clipboard"
-      # Clipboard: fuzzel picker (fallback)
       "$mainMod+Shift, V, exec, bash -lc \"cliphist list | fuzzel --dmenu --with-nth 2 | cliphist decode | wl-copy && sleep 0.05 && wtype -M ctrl -k v\""
-      "Ctrl+Alt, W, exec, systemctl --user restart noctalia-shell.service"
+      "Ctrl+Alt, W, exec, systemctl --user restart hyprpanel.service"
 
-      "$mainMod, P, exec, ${config.home.homeDirectory}/.local/bin/screenshot monitor"
-
-      "$mainMod+Shift, P, exec, ${config.home.homeDirectory}/.local/bin/screenshot region"
-
+      "$mainMod, P, exec, ~/.local/bin/screenshot monitor"
+      "$mainMod+Ctrl, P, exec, ~/.local/bin/screenshot monitor --keep-shader"
+      "$mainMod+Shift, P, exec, ~/.local/bin/screenshot region"
+      "$mainMod+Shift+Ctrl, P, exec, ~/.local/bin/screenshot region --keep-shader"
       ",XF86AudioPlay, exec, playerctl play-pause"
       ",XF86AudioPause, exec, playerctl play-pause"
       ",XF86AudioNext, exec, playerctl next"
