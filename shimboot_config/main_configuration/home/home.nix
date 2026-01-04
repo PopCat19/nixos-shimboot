@@ -13,6 +13,7 @@
     ./hypr_config/hyprland.nix
     ./noctalia_config/noctalia.nix
     ./hypr_config/hypr_packages.nix
+    ./kitty.nix
 
     ./environment.nix
     ./packages.nix
