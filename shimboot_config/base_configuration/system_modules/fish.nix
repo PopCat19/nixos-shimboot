@@ -53,6 +53,19 @@
 
     "fish/functions/list-fish-helpers.fish".text =
       builtins.readFile ./fish_functions/list-fish-helpers.fish;
+
+    # Helper functions from helpers directory
+    "fish/functions/expand_rootfs.fish".text =
+      builtins.readFile ./helpers/expand_rootfs.fish;
+
+    "fish/functions/fix-steam-bwrap.fish".text =
+      builtins.readFile ./helpers/fix-steam-bwrap.fish;
+
+    "fish/functions/setup_nixos.fish".text =
+      builtins.readFile ./helpers/setup_nixos.fish;
+
+    "fish/functions/setup_nixos_config.fish".text =
+      builtins.readFile ./helpers/setup_nixos_config.fish;
   };
 
   # You can still provide helpful CLI wrappers as actual binaries if needed

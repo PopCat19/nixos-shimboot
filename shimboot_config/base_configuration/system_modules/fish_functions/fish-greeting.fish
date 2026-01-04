@@ -62,8 +62,8 @@ function fish_greeting
 
         # Dynamically discover and display helper functions
         set -l helper_functions
-        set -l helper_patterns "nixos-" "setup_" "shimboot_" "fix" "list" "harvest"
-        
+        set -l helper_patterns "expand_rootfs" "fix-steam-bwrap" "setup_nixos" "setup_nixos_config" "nixos-" "setup_" "shimboot_" "fix" "list" "harvest"
+
         for pattern in $helper_patterns
             set -l matches (functions | grep "$pattern" | head -3)
             if test -n "$matches"
@@ -74,14 +74,14 @@ function fish_greeting
                 end
             end
         end
-        
+
         # If we found helper functions, display them
         if test -n "$helper_functions"
             set -l helper_list (string join " • " $helper_functions)
             set_color brwhite; echo "Helpers: $helper_list"
         else
             # Fallback to common helpers if none found
-            set_color brwhite; echo "Helpers: nrb • flup • setup_nixos • list-fish-helpers"
+            set_color brwhite; echo "Helpers: expand_rootfs • fix-steam-bwrap • setup_nixos • setup_nixos_config"
         end
     else
         set_color bryellow; echo "[WARN] No nixos-config detected."
