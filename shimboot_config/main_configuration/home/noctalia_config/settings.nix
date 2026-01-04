@@ -2,6 +2,8 @@
 #
 # Purpose: Contains the complete Noctalia settings configuration
 # Source: User's personalized settings from syncthing-shared
+# Dependencies: None
+# Related: module.nix, noctalia.nix
 #
 # This module:
 # - Provides complete Noctalia settings as Nix attribute set
@@ -9,7 +11,7 @@
 # - Can be imported by the main Noctalia home manager module
 {
   pkgs,
-  config,
+  userConfig,
   ...
 }: let
   # Complete Noctalia settings based on user's configuration
@@ -207,7 +209,7 @@
     wallpaper = {
       enabled = true;
       overviewEnabled = false;
-      directory = "${config.home.homeDirectory}/wallpaper";
+      directory = "${userConfig.directories.home}/wallpaper";
       monitorDirectories = [];
       enableMultiMonitorDirectories = false;
       recursiveSearch = false;

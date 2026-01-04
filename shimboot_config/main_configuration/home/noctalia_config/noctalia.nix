@@ -1,16 +1,32 @@
-# Noctalia Home Manager Configuration Module
+# Noctalia Configuration Module
 #
-# Purpose: Import and apply Noctalia configuration from dedicated config directory
+# Purpose: Main module for Noctalia configuration
 # Dependencies: inputs.noctalia (flake input), home-manager
-# Related: noctalia_config/module.nix
+# Related: home_modules/noctalia.nix
 #
 # This module:
-# - Imports Noctalia home manager module from dedicated config
+# - Imports Noctalia home manager module
 # - Applies user's personalized settings
 # - Configures systemd service for autostart
-# - Provides centralized Noctalia configuration management
-{...}: {
+# - Integrates with the centralized configuration
+{
+  pkgs,
+  config,
+  inputs,
+  userConfig,
+  ...
+}: let
+  inherit (import ./settings.nix {inherit pkgs config userConfig;}) settings;
+in {
   imports = [
-    ./module.nix
+    inputs.noctalia.homeModules.default
   ];
+
+  programs.noctalia-shell = {
+    enable = true;
+    # Enable systemd service through home manager
+    systemd.enable = true;
+
+    inherit ((import ./settings.nix {inherit pkgs config userConfig;})) settings;
+  };
 }

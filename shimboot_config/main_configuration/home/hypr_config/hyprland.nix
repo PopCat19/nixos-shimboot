@@ -1,14 +1,14 @@
-# Hyprland Configuration Module
+# Hyprland Window Manager
 #
-# Purpose: Configure Hyprland window manager and related settings
-# Dependencies: hypr_modules
-# Related: hypr_packages.nix, display.nix
+# Purpose: Configure Hyprland Wayland compositor with modular settings
+# Dependencies: hyprland
+# Related: userprefs.conf, wallpaper.nix, modules/*
 #
 # This module:
-# - Imports all Hyprland configuration modules
-# - Sets up configuration files and shaders
-# - Configures monitors and user preferences
-# - Wallpaper handled by noctalia-shell
+# - Enables Hyprland window manager
+# - Imports modular configuration files
+# - Sources user preferences and monitor configuration
+# - Manages shader files and wallpaper directory
 {pkgs, ...}: {
   imports = [
     ./hypr_modules/colors.nix
