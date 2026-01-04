@@ -12,7 +12,6 @@
 {lib, ...}: {
   powerManagement = {
     enable = true;
-    cpuFreqGovernor = lib.mkDefault "userspace";
   };
 
   services = {
