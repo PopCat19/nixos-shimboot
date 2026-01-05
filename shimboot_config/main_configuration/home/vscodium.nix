@@ -17,8 +17,7 @@
 
     # Essential extensions for development
     profiles.default.extensions = with pkgs.vscode-extensions; [
-      # Nix language support and formatting
-      jnoortheen.nix-ide
+      # Nix formatting
       kamadorueda.alejandra
 
       # XML and YAML support
