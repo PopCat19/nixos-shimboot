@@ -24,6 +24,7 @@
     networkmanager = {
       enable = true;
     };
+    timeServers = ["pool.ntp.org"];
   };
 
   boot.kernelModules = ["iwlmvm" "ccm"];
