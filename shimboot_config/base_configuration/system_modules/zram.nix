@@ -13,7 +13,7 @@ _: {
   zramSwap = {
     enable = true;
     algorithm = "lzo-rle";
-    memoryPercent = 200;
+    memoryPercent = 100;
     priority = 100;
   };
 
