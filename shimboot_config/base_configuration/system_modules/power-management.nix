@@ -21,11 +21,11 @@
       enable = lib.mkDefault true;
       settings = {
         battery = {
-          governor = lib.mkDefault "schedutil";
+          governor = lib.mkDefault "powersave";
           turbo = lib.mkDefault "auto";
         };
         charger = {
-          governor = lib.mkDefault "schedutil";
+          governor = lib.mkDefault "performance";
           turbo = lib.mkDefault "auto";
         };
       };
