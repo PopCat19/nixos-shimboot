@@ -5,41 +5,15 @@
 # Related: environment.nix
 #
 # This module:
-# - Enables Fcitx5 with Japanese input support
-# - Configures Rose Pine theme
-# - Sets up Wayland input method integration
+# - Enables Fcitx5 with mozc input support
 {pkgs, ...}: {
   i18n.inputMethod = {
     type = "fcitx5";
     enable = true;
+    waylandFrontend = true;
     fcitx5.addons = with pkgs; [
-      libsForQt5.fcitx5-qt
       fcitx5-gtk
       fcitx5-mozc
     ];
-  };
-
-  home.file.".config/fcitx5/conf/classicui.conf".text = ''
-    Vertical Candidate List=False
-    PerScreenDPI=True
-    WheelForPaging=True
-    Font="Rounded Mplus 1c Medium 11"
-    MenuFont="Rounded Mplus 1c Medium 11"
-    TrayFont="Rounded Mplus 1c Medium 11"
-    TrayOutlineColor=#000000
-    TrayTextColor=#ffffff
-    PreferTextIcon=False
-    ShowLayoutNameInIcon=True
-    UseInputMethodLangaugeToDisplayText=True
-    UseDarkTheme=True
-    UseAccentColor=True
-    EnableTray=True
-    ShowPreeditInApplication=False
-  '';
-
-  home.sessionVariables = {
-    GTK_IM_MODULE = "fcitx5";
-    QT_IM_MODULE = "fcitx5";
-    XMODIFIERS = "@im=fcitx5";
   };
 }
