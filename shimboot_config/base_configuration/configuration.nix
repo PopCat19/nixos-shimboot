@@ -26,6 +26,7 @@ in {
     ./system_modules/hardware.nix
     ./system_modules/power-management.nix
     ./system_modules/hyprland.nix
+    ./system_modules/setup-experience.nix
     ./system_modules/display-manager.nix
     ./system_modules/xdg-portals.nix
     ./system_modules/fonts.nix
