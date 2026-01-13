@@ -1,7 +1,7 @@
 # NixOS Shimboot Technical Specification
 
-**Status:** Functional  
-**Target:** ChromeOS devices with RMA shim vulnerability  
+**Status:** Functional
+**Target:** ChromeOS devices with RMA shim vulnerability
 **License:** GPL-3.0 (code) / Unfree (ChromeOS artifacts)
 
 ---
@@ -13,7 +13,7 @@
 - **Mechanism:** Exploits the RMA shim boot path, replacing the kernel and rootfs while maintaining the verified boot chain's signature requirements via the shim's signed kernel partition.
 
 ### Hardware Support Model
-- **Limited:** Devices explicitly tested with `dedede` hardware. Boards such as `octopus` may face issues with the current shim/patch.
+- **Supported:** dedede, octopus, zork, nissa, hatch, grunt, snappy
 - **Broad:** Devices with build infrastructure (manifests/recovery URLs) present in the flake.
 - **Generic:** The architecture is x86_64 board-agnostic; support requires only a valid ChromeOS recovery image and shim for the target board.
 
@@ -117,15 +117,17 @@ The configuration is tiered to allow easy customization without touching core lo
 
 ### Shell Environment
 - **Shell**: Fish (default).
+- **Terminal**: Kitty.
 - **Prompt**: Starship.
 - **Custom Functions**:
     - `nrb`: `nixos-rebuild switch` wrapper with kernel version checks.
     - `flup`: Flake update helper with rollback capability.
+    - `cnup`: NixOS linting and formatting helper.
     - `fish_greeting`: Fastfetch-based status summary.
 
 ### Desktop Environment (Full Flavor)
 - **WM**: Hyprland.
-- **Theme**: Rose Pine (Global GTK/QT/Kitty/Fcitx5 integration).
+- **Theme**: Stylix.
 - **Browser**: Zen Browser.
 - **IME**: Fcitx5 (Mozc/Japanese support pre-configured).
 
@@ -160,19 +162,35 @@ The configuration is tiered to allow easy customization without touching core lo
 ## 9. File Structure Map
 
 ```text
+├── .backup/                # Backup files
+├── .github/                # GitHub Actions workflows
+├── .kilocode/              # LLM workspace rules and configurations
 ├── bootloader/             # BusyBox scripts for the shim partition
 ├── flake_modules/          # Nix logic (kernel extraction, raw images, sources)
+├── llm-notes/              # Development notes and conventions
 ├── manifests/              # JSON/Nix manifests for ChromeOS shims
+├── overlays/               # Nix overlays for custom packages
+├── scripts/                # Additional scripts
 ├── shimboot_config/        # User-facing configuration
 │   ├── base_configuration/ # Minimal system modules
+│   │   └── system_modules/ # System-level modules
+│   │       ├── fish_functions/ # Fish shell functions
+│   │       └── helpers/    # Helper scripts
 │   ├── main_configuration/ # Desktop/HM modules
+│   │   ├── home/           # Home Manager configurations
+│   │   │   ├── hypr_config/ # Hyprland configuration
+│   │   │   ├── noctalia_config/ # Noctalia shell config
+│   │   │   ├── packages/   # Home packages
+│   │   │   └── wallpaper/  # Wallpaper files
+│   │   └── system/         # System modules for main config
 │   └── user-config.nix     # Global variables
+├── snapshots/              # Project state snapshots
 └── tools/                  # Shell scripts (build, deploy, rescue, maintain)
 ```
 
 ---
 
-**End of Specification**  
-For implementation details, see source files.  
-For community support, see GitHub discussions.  
+**End of Specification**
+For implementation details, see source files.
+For community support, see GitHub discussions.
 For upstream documentation, see ading2210/shimboot.
