@@ -21,7 +21,7 @@
       enable = lib.mkDefault true;
       settings = {
         battery = {
-          governor = lib.mkDefault "powersave";
+          governor = lib.mkDefault "performance";
           turbo = lib.mkDefault "auto";
         };
         charger = {
