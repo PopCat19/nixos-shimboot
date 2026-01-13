@@ -4,11 +4,11 @@
 # Dependencies: None (pure configuration)
 # Related: base_configuration/configuration.nix, flake.nix
 #
-# This module defines:
-# - Host and system configuration
-# - User credentials and groups
-# - Default application preferences
-# - System directory structure
+# This module:
+# - Defines host and system configuration
+# - Defines user credentials and groups
+# - Defines default application preferences
+# - Defines system directory structure
 {
   hostname ? null,
   system ? "x86_64-linux",
