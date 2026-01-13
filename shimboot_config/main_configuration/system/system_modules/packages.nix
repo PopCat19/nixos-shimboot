@@ -15,5 +15,6 @@
     kdePackages.kio-extras
     simple-mtpfs
     usbutils
+    android-tools
   ];
 }
