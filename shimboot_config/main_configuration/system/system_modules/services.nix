@@ -5,9 +5,15 @@
 # Related: syncthing.nix
 #
 # This module:
-# - Enables Flatpak
+# - Enables Flatpak service
+# - Enables udev service
+# - Enables D-Bus service
+# - Enables GVFS service
 _: {
   services = {
     flatpak.enable = true;
+    udev.enable = true;
+    dbus.enable = true;
+    gvfs.enable = true;
   };
 }

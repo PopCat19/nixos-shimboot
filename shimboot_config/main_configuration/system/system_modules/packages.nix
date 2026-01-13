@@ -5,10 +5,15 @@
 # Related: None
 #
 # This module:
-# - Provides placeholder for system packages
+# - Installs system-wide utility packages
 {pkgs, ...}: {
   environment.systemPackages = with pkgs; [
     gh
     ranger
+    kdePackages.dolphin
+    libmtp
+    kdePackages.kio-extras
+    simple-mtpfs
+    usbutils
   ];
 }

@@ -5,7 +5,7 @@
 # Related: packages.nix
 #
 # This module:
-# - Installs utility applications
+# - Installs productivity utility packages
 {pkgs, ...}: {
   home.packages = with pkgs; [
     eza
@@ -17,5 +17,7 @@
     vscodium
     zenity
     alejandra
+    nixd
+    nil
   ];
 }
