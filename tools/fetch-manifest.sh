@@ -15,17 +15,20 @@
 set -euo pipefail
 
 # Colors & Logging
-ANSI_CLEAR='\033[0m'
-ANSI_BOLD='\033[1m'
-ANSI_GREEN='\033[1;32m'
-ANSI_BLUE='\033[1;34m'
-ANSI_YELLOW='\033[1;33m'
-ANSI_RED='\033[1;31m'
+export ANSI_CLEAR='\033[0m'
+export ANSI_BOLD='\033[1m'
+export ANSI_GREEN='\033[1;32m'
+export ANSI_BLUE='\033[1;34m'
+export ANSI_YELLOW='\033[1;33m'
+export ANSI_RED='\033[1;31m'
 
 log_info() { printf "${ANSI_BLUE}[INFO]${ANSI_CLEAR} %s\n" "$*" >&2; }
 log_success() { printf "${ANSI_GREEN}[SUCCESS]${ANSI_CLEAR} %s\n" "$*" >&2; }
 log_warn() { printf "${ANSI_YELLOW}[WARN]${ANSI_CLEAR} %s\n" "$*" >&2; }
 log_error() { printf "${ANSI_RED}[ERROR]${ANSI_CLEAR} %s\n" "$*" >&2; }
+
+# Export functions so they are available to subshells (xargs)
+export -f log_info log_success log_warn log_error
 
 # Defaults
 PARALLEL_JOBS=2
