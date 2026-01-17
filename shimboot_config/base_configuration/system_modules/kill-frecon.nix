@@ -8,11 +8,12 @@
 # - Provides systemd service to kill frecon-lite
 # - Unmounts /dev/console for X11 compatibility
 # - Ensures proper boot sequence for display manager
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   systemd.services.kill-frecon = {
     description = "Kill frecon to allow X11 to start";
-    wantedBy = ["graphical.target"];
-    before = ["display-manager.service"];
+    wantedBy = [ "graphical.target" ];
+    before = [ "display-manager.service" ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;

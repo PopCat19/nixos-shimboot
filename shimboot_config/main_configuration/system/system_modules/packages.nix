@@ -6,7 +6,8 @@
 #
 # This module:
 # - Installs system-wide utility packages
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   environment.systemPackages = with pkgs; [
     gh
     ranger

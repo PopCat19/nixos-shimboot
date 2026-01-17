@@ -9,7 +9,8 @@
 # - Integrates with Stylix for automatic theming
 # - Configures useful user settings and preferences
 # - Includes development tools and language support extensions
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   # Enable VSCodium with extensions
   programs.vscode = {
     enable = true;

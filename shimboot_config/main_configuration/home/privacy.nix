@@ -13,10 +13,12 @@
   lib,
   userConfig,
   ...
-}: let
+}:
+let
   passwordsDir = "${userConfig.directories.home}/Passwords";
   keepassDb = "${passwordsDir}/keepass.kdbx";
-in {
+in
+{
   home.packages = with pkgs; [
     keepassxc
   ];
@@ -25,7 +27,7 @@ in {
     kpxc = "keepassxc ${keepassDb}";
   };
 
-  home.activation.createPasswordsDir = lib.hm.dag.entryAfter ["writeBoundary"] ''
+  home.activation.createPasswordsDir = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     mkdir -p ${passwordsDir}
   '';
 }

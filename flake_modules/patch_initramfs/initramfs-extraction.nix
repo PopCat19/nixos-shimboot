@@ -2,12 +2,14 @@
   self,
   nixpkgs,
   board ? "dedede",
-}: let
+}:
+let
   system = "x86_64-linux";
   pkgs = import nixpkgs {
     inherit system;
     config = {
-      allowUnfreePredicate = pkg:
+      allowUnfreePredicate =
+        pkg:
         builtins.elem (nixpkgs.lib.getName pkg) [
           "extracted-kernel-${board}"
           "initramfs-extraction-${board}"
@@ -15,7 +17,8 @@
     };
   };
   extractedKernel = self.packages.${system}."extracted-kernel-${board}";
-in {
+in
+{
   # Extracted ChromeOS initramfs - derived from proprietary firmware
   # This derivation extracts initramfs from ChromeOS kernel blobs.
   # The output contains proprietary components and remains under unfree license terms.
@@ -139,7 +142,7 @@ in {
       description = "Extract initramfs from ChromeOS kernel blob using futility with multi-layer decompression";
       license = licenses.unfree;
       platforms = platforms.linux;
-      maintainers = ["shimboot developers"];
+      maintainers = [ "shimboot developers" ];
     };
   };
 }

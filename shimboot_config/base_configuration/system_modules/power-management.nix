@@ -9,7 +9,8 @@
 # - Configures auto-cpufreq for dynamic CPU scaling
 # - Enables battery monitoring via upower
 # - Configures WiFi power saving through NetworkManager
-{lib, ...}: {
+{ lib, ... }:
+{
   powerManagement = {
     enable = true;
   };

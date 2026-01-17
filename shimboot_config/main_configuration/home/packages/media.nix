@@ -6,7 +6,8 @@
 #
 # This module:
 # - Installs essential media applications (mpv, pureref, scrcpy)
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   home.packages = with pkgs; [
     mpv
     pureref

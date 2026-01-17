@@ -14,7 +14,8 @@
   pkgs,
   lib,
   ...
-}: {
+}:
+{
   hardware = {
     # enableRedistributableFirmware = true;
     graphics = {

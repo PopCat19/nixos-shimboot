@@ -8,7 +8,8 @@
 # - Imports Stylix NixOS module
 # - Provides system-level theming framework
 # - Works alongside home-level Stylix configuration
-{stylix, ...}: {
+{ stylix, ... }:
+{
   imports = [
     stylix.nixosModules.stylix
   ];

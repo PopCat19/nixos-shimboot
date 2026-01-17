@@ -14,7 +14,8 @@
   lib,
   pkgs,
   ...
-}: {
+}:
+{
   programs.fish.enable = lib.mkDefault true;
   programs.starship.enable = lib.mkDefault true;
 
@@ -39,8 +40,7 @@
     '';
 
     # Function definitions
-    "fish/functions/fish_greeting.fish".text =
-      builtins.readFile ./fish_functions/fish-greeting.fish;
+    "fish/functions/fish_greeting.fish".text = builtins.readFile ./fish_functions/fish-greeting.fish;
 
     "fish/functions/nixos-rebuild-basic.fish".text =
       builtins.readFile ./fish_functions/nixos-rebuild-basic.fish;
@@ -54,23 +54,22 @@
     "fish/functions/list-fish-helpers.fish".text =
       builtins.readFile ./fish_functions/list-fish-helpers.fish;
 
-    "fish/functions/cnup.fish".text =
-      builtins.readFile ./fish_functions/cnup.fish;
+    "fish/functions/cnup.fish".text = builtins.readFile ./fish_functions/cnup.fish;
 
     # Helper functions from helpers directory
-    "fish/functions/expand_rootfs.fish".text =
-      builtins.readFile ./helpers/expand_rootfs.fish;
+    "fish/functions/expand_rootfs.fish".text = builtins.readFile ./helpers/expand_rootfs.fish;
 
-    "fish/functions/fix-steam-bwrap.fish".text =
-      builtins.readFile ./helpers/fix-steam-bwrap.fish;
+    "fish/functions/fix-steam-bwrap.fish".text = builtins.readFile ./helpers/fix-steam-bwrap.fish;
 
-    "fish/functions/setup_nixos.fish".text =
-      builtins.readFile ./helpers/setup_nixos.fish;
+    "fish/functions/setup_nixos.fish".text = builtins.readFile ./helpers/setup_nixos.fish;
 
-    "fish/functions/setup_nixos_config.fish".text =
-      builtins.readFile ./helpers/setup_nixos_config.fish;
+    "fish/functions/setup_nixos_config.fish".text = builtins.readFile ./helpers/setup_nixos_config.fish;
   };
 
   # You can still provide helpful CLI wrappers as actual binaries if needed
-  environment.systemPackages = with pkgs; [fish starship eza];
+  environment.systemPackages = with pkgs; [
+    fish
+    starship
+    eza
+  ];
 }

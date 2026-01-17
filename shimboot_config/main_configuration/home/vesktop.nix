@@ -53,13 +53,27 @@ _: {
       # Vencord plugin configurations (from backup, filtered)
       plugins = {
         # Core APIs
-        BadgeAPI = {enabled = true;};
-        CommandsAPI = {enabled = true;};
-        ContextMenuAPI = {enabled = true;};
-        MessageAccessoriesAPI = {enabled = true;};
-        MessageEventsAPI = {enabled = true;};
-        NoticesAPI = {enabled = true;};
-        ServerListAPI = {enabled = true;};
+        BadgeAPI = {
+          enabled = true;
+        };
+        CommandsAPI = {
+          enabled = true;
+        };
+        ContextMenuAPI = {
+          enabled = true;
+        };
+        MessageAccessoriesAPI = {
+          enabled = true;
+        };
+        MessageEventsAPI = {
+          enabled = true;
+        };
+        NoticesAPI = {
+          enabled = true;
+        };
+        ServerListAPI = {
+          enabled = true;
+        };
 
         # Utility plugins
         NoTrack = {
@@ -70,14 +84,18 @@ _: {
           enabled = true;
           settingsLocation = "aboveActivity";
         };
-        CrashHandler = {enabled = true;};
+        CrashHandler = {
+          enabled = true;
+        };
         Experiments = {
           enabled = true;
           enableIsStaff = false;
           forceStagingBanner = false;
           toolbarDevMenu = false;
         };
-        SupportHelper = {enabled = true;};
+        SupportHelper = {
+          enabled = true;
+        };
 
         # Content enhancement
         BetterNotesBox = {
@@ -85,14 +103,22 @@ _: {
           hide = false;
           noSpellCheck = false;
         };
-        BiggerStreamPreview = {enabled = true;};
+        BiggerStreamPreview = {
+          enabled = true;
+        };
         BlurNSFW = {
           enabled = true;
           blurAmount = 10;
         };
-        ColorSighted = {enabled = true;};
-        ForceOwnerCrown = {enabled = true;};
-        GifPaste = {enabled = true;};
+        ColorSighted = {
+          enabled = true;
+        };
+        ForceOwnerCrown = {
+          enabled = true;
+        };
+        GifPaste = {
+          enabled = true;
+        };
         ImageZoom = {
           enabled = true;
           size = 750;
@@ -120,13 +146,23 @@ _: {
         MessageTags = {
           enabled = true;
           clyde = true;
-          tagsList = {};
+          tagsList = { };
         };
-        MoreKaomoji = {enabled = true;};
-        petpet = {enabled = true;};
-        ReadAllNotificationsButton = {enabled = true;};
-        RevealAllSpoilers = {enabled = true;};
-        ReverseImageSearch = {enabled = true;};
+        MoreKaomoji = {
+          enabled = true;
+        };
+        petpet = {
+          enabled = true;
+        };
+        ReadAllNotificationsButton = {
+          enabled = true;
+        };
+        RevealAllSpoilers = {
+          enabled = true;
+        };
+        ReverseImageSearch = {
+          enabled = true;
+        };
         ReviewDB = {
           enabled = true;
           notifyReviews = true;
@@ -167,23 +203,39 @@ _: {
           voiceBackground = true;
           nitroFirst = true;
         };
-        ValidUser = {enabled = true;};
+        ValidUser = {
+          enabled = true;
+        };
         WebContextMenus = {
           enabled = true;
           addBack = false;
         };
-        GreetStickerPicker = {enabled = true;};
-        WhoReacted = {enabled = true;};
+        GreetStickerPicker = {
+          enabled = true;
+        };
+        WhoReacted = {
+          enabled = true;
+        };
         VoiceMessages = {
           enabled = true;
           noiseSuppression = false;
           echoCancellation = false;
         };
-        PictureInPicture = {enabled = true;};
-        "AI Noise Suppression" = {enabled = true;};
-        NoTypingAnimation = {enabled = true;};
-        WebKeybinds = {enabled = true;};
-        ChatInputButtonAPI = {enabled = true;};
+        PictureInPicture = {
+          enabled = true;
+        };
+        "AI Noise Suppression" = {
+          enabled = true;
+        };
+        NoTypingAnimation = {
+          enabled = true;
+        };
+        WebKeybinds = {
+          enabled = true;
+        };
+        ChatInputButtonAPI = {
+          enabled = true;
+        };
         NewGuildSettings = {
           enabled = true;
           guild = true;
@@ -194,7 +246,9 @@ _: {
           messages = 3;
           showAllChannels = true;
         };
-        UserSettingsAPI = {enabled = true;};
+        UserSettingsAPI = {
+          enabled = true;
+        };
         UserMessagesPronouns = {
           enabled = true;
           showInMessages = true;
@@ -203,9 +257,15 @@ _: {
           showInProfile = true;
           pronounsFormat = "LOWERCASE";
         };
-        FixYoutubeEmbeds = {enabled = true;};
-        YoutubeAdblock = {enabled = true;};
-        DisableDeepLinks = {enabled = true;};
+        FixYoutubeEmbeds = {
+          enabled = true;
+        };
+        YoutubeAdblock = {
+          enabled = true;
+        };
+        DisableDeepLinks = {
+          enabled = true;
+        };
 
         # Enhanced functionality
         FakeNitro = {
@@ -227,9 +287,11 @@ _: {
           pinOrder = 0;
           dmSectionCollapsed = false;
           canCollapseDmSection = false;
-          userBasedCategoryList = {};
+          userBasedCategoryList = { };
         };
-        NoProfileThemes = {enabled = true;};
+        NoProfileThemes = {
+          enabled = true;
+        };
         NoReplyMention = {
           enabled = true;
           userList = "";

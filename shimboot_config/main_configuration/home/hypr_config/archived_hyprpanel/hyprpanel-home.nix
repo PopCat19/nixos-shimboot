@@ -13,7 +13,8 @@
   pkgs,
   lib,
   ...
-}: {
+}:
+{
   programs.hyprpanel = {
     enable = true;
     systemd.enable = true;
@@ -22,9 +23,22 @@
       # Layout configuration - Configure bar layouts for monitors
       "bar.layouts" = {
         "*" = {
-          left = ["dashboard" "workspaces" "media"];
-          middle = [];
-          right = ["cputemp" "battery" "network" "bluetooth" "volume" "systray" "clock" "notifications"];
+          left = [
+            "dashboard"
+            "workspaces"
+            "media"
+          ];
+          middle = [ ];
+          right = [
+            "cputemp"
+            "battery"
+            "network"
+            "bluetooth"
+            "volume"
+            "systray"
+            "clock"
+            "notifications"
+          ];
         };
       };
 
@@ -162,10 +176,13 @@
   systemd.user.services.hyprpanel = {
     Unit = {
       Description = "Bar/Panel for Hyprland with extensive customizability";
-      After = ["graphical-session.target" "hyprland-session.target"];
-      PartOf = ["graphical-session.target"];
+      After = [
+        "graphical-session.target"
+        "hyprland-session.target"
+      ];
+      PartOf = [ "graphical-session.target" ];
       # Remove ConditionEnvironment check; rely on After= instead
-      ConditionEnvironment = lib.mkForce [];
+      ConditionEnvironment = lib.mkForce [ ];
     };
 
     Service = {
@@ -176,6 +193,6 @@
       Environment = "PATH=/run/current-system/sw/bin";
     };
 
-    Install.WantedBy = ["hyprland-session.target"];
+    Install.WantedBy = [ "hyprland-session.target" ];
   };
 }

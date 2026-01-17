@@ -8,7 +8,8 @@
 # - Installs screenshot tools (hyprshot, gwenview, libnotify, jq)
 # - Creates Screenshots directory
 # - Installs screenshot wrapper script with hyprshade integration
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   home.packages = with pkgs; [
     hyprshot
     kdePackages.gwenview

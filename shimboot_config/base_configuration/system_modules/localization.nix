@@ -11,7 +11,8 @@
   lib,
   userConfig,
   ...
-}: {
+}:
+{
   time.timeZone = lib.mkDefault userConfig.timezone;
   i18n.defaultLocale = lib.mkDefault userConfig.locale;
 }

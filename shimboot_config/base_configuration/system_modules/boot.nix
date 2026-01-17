@@ -8,7 +8,8 @@
 # - Disables standard bootloaders in favor of shimboot init script
 # - Configures kernel modules for ChromeOS hardware compatibility
 # - Sets up initramfs with necessary modules
-{lib, ...}: {
+{ lib, ... }:
+{
   boot = {
     loader = {
       grub.enable = lib.mkForce false;
@@ -16,9 +17,9 @@
       initScript.enable = lib.mkForce true;
     };
     initrd = {
-      availableKernelModules = [];
-      kernelModules = [];
+      availableKernelModules = [ ];
+      kernelModules = [ ];
     };
-    kernelParams = [];
+    kernelParams = [ ];
   };
 }

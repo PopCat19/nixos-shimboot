@@ -8,7 +8,8 @@
 # - Imports all Home Manager modules
 # - Configures desktop environment
 # - Sets Home Manager state version
-{...}: {
+{ ... }:
+{
   imports = [
     ./hypr_config/hyprland.nix
     ./noctalia_config/noctalia.nix

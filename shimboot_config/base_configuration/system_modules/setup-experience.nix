@@ -8,7 +8,8 @@
 # - Opens terminal on Hyprland startup
 # - Uses fish-greeting for welcome message
 # - Uses mkDefault for overridable configuration
-{lib, ...}: {
+{ lib, ... }:
+{
   environment.etc = {
     "hyprland.conf".text = ''
       exec-once = kitty

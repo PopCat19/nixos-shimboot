@@ -16,7 +16,8 @@
   inputs,
   userConfig,
   ...
-}: {
+}:
+{
   imports = [
     inputs.stylix.homeModules.stylix
     inputs.pmd.homeManagerModules.pmd
@@ -78,7 +79,7 @@
 
   # Enable theming targets for comprehensive coverage
   stylix.targets.zen-browser.enable = true;
-  stylix.targets.zen-browser.profileNames = ["default"];
+  stylix.targets.zen-browser.profileNames = [ "default" ];
   stylix.targets.vesktop.enable = true;
   stylix.targets.vencord.enable = true;
   stylix.targets.nixcord.enable = true;

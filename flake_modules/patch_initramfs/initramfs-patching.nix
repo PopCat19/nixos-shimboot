@@ -2,12 +2,14 @@
   self,
   nixpkgs,
   board ? "dedede",
-}: let
+}:
+let
   system = "x86_64-linux";
   pkgs = import nixpkgs {
     inherit system;
     config = {
-      allowUnfreePredicate = pkg:
+      allowUnfreePredicate =
+        pkg:
         builtins.elem (nixpkgs.lib.getName pkg) [
           "initramfs-extraction-${board}"
           "initramfs-patching-${board}"
@@ -21,7 +23,8 @@
   # Path to your bootloader overlay in the repo
   bootloaderDir = ./../../bootloader;
   extractedKernel = self.packages.${system}."extracted-kernel-${board}";
-in {
+in
+{
   # Patched ChromeOS initramfs - mixed GPL/proprietary
   # This derivation overlays GPL-licensed bootloader scripts onto proprietary ChromeOS initramfs.
   # The combined output contains both GPL and proprietary components, marked unfree.
@@ -81,7 +84,7 @@ in {
       description = "Patch ChromeOS initramfs with custom bootloader files";
       license = licenses.unfree;
       platforms = platforms.linux;
-      maintainers = ["shimboot developers"];
+      maintainers = [ "shimboot developers" ];
     };
   };
 }

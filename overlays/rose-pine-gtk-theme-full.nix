@@ -1,5 +1,6 @@
 # Overlay wrapper that exposes rose-pine-gtk-theme-full as pkgs.rose-pine-gtk-theme-full
-_final: prev: let
+_final: prev:
+let
   inherit (prev) lib;
   inherit (prev) stdenvNoCC;
   inherit (prev) fetchFromGitHub;
@@ -9,7 +10,8 @@ _final: prev: let
   inherit (prev) gtk_engines;
   inherit (prev) gtk-engine-murrine;
   inherit (prev) sassc;
-in {
+in
+{
   rose-pine-gtk-theme-full = stdenvNoCC.mkDerivation rec {
     pname = "rose-pine-gtk-theme-full";
     version = "2024-12-21";
@@ -135,7 +137,7 @@ in {
       homepage = "https://github.com/Fausto-Korpsvart/Rose-Pine-GTK-Theme";
       license = licenses.gpl3Plus;
       platforms = platforms.linux;
-      maintainers = with maintainers; [];
+      maintainers = with maintainers; [ ];
     };
   };
 }

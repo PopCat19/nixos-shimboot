@@ -7,31 +7,44 @@
   noctalia,
   stylix,
   ...
-}: let
+}:
+let
   system = "x86_64-linux";
-  userConfig = import ../shimboot_config/user-config.nix {};
-in {
+  userConfig = import ../shimboot_config/user-config.nix { };
+in
+{
   packages.${system} = {
     # Generate a raw image that includes the main configuration (reduces on-target build)
     raw-rootfs = nixos-generators.nixosGenerate {
       inherit system;
       format = "raw";
-      specialArgs = {inherit zen-browser rose-pine-hyprcursor noctalia stylix;};
+      specialArgs = {
+        inherit
+          zen-browser
+          rose-pine-hyprcursor
+          noctalia
+          stylix
+          ;
+      };
 
-      modules =
-        [
-          # Apply overlays
-          ({config, ...}: {
+      modules = [
+        # Apply overlays
+        (
+          { config, ... }:
+          {
             nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
-          })
-        ]
-        ++ [
-          # Use the main configuration (which itself imports base)
-          ../shimboot_config/main_configuration/configuration.nix
+          }
+        )
+      ]
+      ++ [
+        # Use the main configuration (which itself imports base)
+        ../shimboot_config/main_configuration/configuration.nix
 
-          # Integrate Home Manager for user-level configuration like the full system build
-          home-manager.nixosModules.home-manager
-          ({pkgs, ...}: {
+        # Integrate Home Manager for user-level configuration like the full system build
+        home-manager.nixosModules.home-manager
+        (
+          { pkgs, ... }:
+          {
             home-manager.useGlobalPkgs = false;
             home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = {
@@ -45,32 +58,44 @@ in {
                 _module.args.userConfig = userConfig;
               })
             ];
-            home-manager.users.${userConfig.user.username} = import ../shimboot_config/main_configuration/home/home.nix;
-          })
+            home-manager.users.${userConfig.user.username} =
+              import ../shimboot_config/main_configuration/home/home.nix;
+          }
+        )
 
-          # Raw image specific configuration
-          (_: {
-            # Enable serial console logging
-            boot.kernelParams = ["console=ttyS0,115200"];
+        # Raw image specific configuration
+        (_: {
+          # Enable serial console logging
+          boot.kernelParams = [ "console=ttyS0,115200" ];
 
-            # Enable Nix flakes
-            nix.settings.experimental-features = ["nix-command" "flakes"];
+          # Enable Nix flakes
+          nix.settings.experimental-features = [
+            "nix-command"
+            "flakes"
+          ];
 
-            # Enable automatic garbage collection
-            nix.gc = {
-              automatic = true;
-              dates = "weekly";
-              options = "--delete-older-than 30d";
-            };
-          })
-        ];
+          # Enable automatic garbage collection
+          nix.gc = {
+            automatic = true;
+            dates = "weekly";
+            options = "--delete-older-than 30d";
+          };
+        })
+      ];
     };
 
     # Minimal/base-only raw image (no Home Manager, base configuration only)
     raw-rootfs-minimal = nixos-generators.nixosGenerate {
       inherit system;
       format = "raw";
-      specialArgs = {inherit zen-browser rose-pine-hyprcursor noctalia stylix;};
+      specialArgs = {
+        inherit
+          zen-browser
+          rose-pine-hyprcursor
+          noctalia
+          stylix
+          ;
+      };
 
       modules = [
         # Base-only configuration (standalone Hyprland via greetd)
@@ -79,10 +104,13 @@ in {
         # Raw image specific configuration
         (_: {
           # Enable serial console logging
-          boot.kernelParams = ["console=ttyS0,115200"];
+          boot.kernelParams = [ "console=ttyS0,115200" ];
 
           # Enable Nix flakes
-          nix.settings.experimental-features = ["nix-command" "flakes"];
+          nix.settings.experimental-features = [
+            "nix-command"
+            "flakes"
+          ];
 
           # Enable automatic garbage collection
           nix.gc = {

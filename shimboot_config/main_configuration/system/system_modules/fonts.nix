@@ -9,7 +9,8 @@
 # - Installs Noto, Mplus, and JetBrains Mono fonts
 # - Configures fontconfig with optimized font family preferences
 # - Provides comprehensive font coverage for Rose Pine theme
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   fonts = {
     # Override base configuration to disable default packages
     enableDefaultPackages = false;
@@ -47,7 +48,7 @@
           "JetBrainsMono Nerd Font"
           "Noto Sans Mono"
         ];
-        emoji = ["Noto Color Emoji"];
+        emoji = [ "Noto Color Emoji" ];
       };
     };
   };

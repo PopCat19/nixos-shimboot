@@ -12,20 +12,24 @@
   pkgs,
   lib,
   ...
-}: {
+}:
+{
   fonts = {
     enableDefaultPackages = lib.mkDefault true;
 
-    packages = lib.mkDefault (with pkgs; [
-      noto-fonts # Basic Latin/CJK (essential)
-      noto-fonts-color-emoji # Emoji support
-    ]);
+    packages = lib.mkDefault (
+      with pkgs;
+      [
+        noto-fonts # Basic Latin/CJK (essential)
+        noto-fonts-color-emoji # Emoji support
+      ]
+    );
 
     fontconfig.defaultFonts = lib.mkDefault {
-      serif = ["Noto Serif"];
-      sansSerif = ["Noto Sans"];
-      monospace = ["Noto Sans Mono"];
-      emoji = ["Noto Color Emoji"];
+      serif = [ "Noto Serif" ];
+      sansSerif = [ "Noto Sans" ];
+      monospace = [ "Noto Sans Mono" ];
+      emoji = [ "Noto Color Emoji" ];
     };
   };
 }

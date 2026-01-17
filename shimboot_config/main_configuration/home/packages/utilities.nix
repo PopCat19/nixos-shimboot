@@ -6,7 +6,8 @@
 #
 # This module:
 # - Installs productivity utility packages
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   home.packages = with pkgs; [
     eza
     wl-clipboard

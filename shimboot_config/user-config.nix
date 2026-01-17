@@ -13,14 +13,12 @@
   hostname ? null,
   system ? "x86_64-linux",
   username ? "nixos-user",
-}: rec {
+}:
+rec {
   # Host configuration
   host = {
     inherit system;
-    hostname =
-      if hostname == null
-      then username
-      else hostname;
+    hostname = if hostname == null then username else hostname;
   };
 
   # User credentials
@@ -97,17 +95,19 @@
   locale = "en_US.UTF-8";
 
   # System directories
-  directories = let
-    home = "/home/${username}";
-  in {
-    inherit home;
-    documents = "${home}/Documents";
-    downloads = "${home}/Downloads";
-    pictures = "${home}/Pictures";
-    videos = "${home}/Videos";
-    music = "${home}/Music";
-    desktop = "${home}/Desktop";
-  };
+  directories =
+    let
+      home = "/home/${username}";
+    in
+    {
+      inherit home;
+      documents = "${home}/Documents";
+      downloads = "${home}/Downloads";
+      pictures = "${home}/Pictures";
+      videos = "${home}/Videos";
+      music = "${home}/Music";
+      desktop = "${home}/Desktop";
+    };
 
   # Theme configuration for PMD
   theme = {

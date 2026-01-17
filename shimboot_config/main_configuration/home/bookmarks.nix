@@ -12,7 +12,8 @@
   config,
   userConfig,
   ...
-}: {
+}:
+{
   # GTK bookmarks for file dialogs and general file operations
   home.file.".config/gtk-3.0/bookmarks".text = ''
     file://${userConfig.directories.documents} Documents

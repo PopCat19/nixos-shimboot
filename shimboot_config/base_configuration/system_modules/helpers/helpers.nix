@@ -8,7 +8,8 @@
 # - Provides unified access to helper scripts via shell wrappers
 # - Fish functions are loaded by fish.nix via environment.etc
 # - Maintains portability by keeping logic in fish files
-{pkgs, ...}: let
+{ pkgs, ... }:
+let
   # Create shell wrapper for a fish function
   createFishWrapper = name: ''
     if command -v fish >/dev/null 2>&1; then
@@ -18,7 +19,8 @@
       exit 1
     fi
   '';
-in {
+in
+{
   environment.systemPackages = with pkgs; [
     # Shell wrappers for all fish functions in this directory
     (writeShellScriptBin "fix-steam-bwrap" (createFishWrapper "fix-steam-bwrap"))

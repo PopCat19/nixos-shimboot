@@ -8,7 +8,8 @@
 # - Installs Dolphin file manager
 # - Sets up essential KDE dependencies
 # - Provides core file manager functionality
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   home.packages = with pkgs; [
     kdePackages.dolphin
     kdePackages.ark

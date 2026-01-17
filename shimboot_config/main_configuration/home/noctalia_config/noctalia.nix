@@ -15,9 +15,11 @@
   inputs,
   userConfig,
   ...
-}: let
-  inherit (import ./settings.nix {inherit pkgs config userConfig;}) settings;
-in {
+}:
+let
+  inherit (import ./settings.nix { inherit pkgs config userConfig; }) settings;
+in
+{
   imports = [
     inputs.noctalia.homeModules.default
   ];
@@ -26,15 +28,15 @@ in {
     enable = true;
     systemd.enable = false;
 
-    inherit ((import ./settings.nix {inherit pkgs config userConfig;})) settings;
+    inherit ((import ./settings.nix { inherit pkgs config userConfig; })) settings;
   };
 
   # Custom systemd service with 10-second delay
   systemd.user.services.noctalia-shell = {
     Unit = {
       Description = "Noctalia Shell (with delay)";
-      After = ["graphical-session.target"];
-      PartOf = ["graphical-session.target"];
+      After = [ "graphical-session.target" ];
+      PartOf = [ "graphical-session.target" ];
     };
 
     Service = {
@@ -46,7 +48,7 @@ in {
     };
 
     Install = {
-      WantedBy = ["graphical-session.target"];
+      WantedBy = [ "graphical-session.target" ];
     };
   };
 }

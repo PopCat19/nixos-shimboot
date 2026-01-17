@@ -8,7 +8,8 @@
 # - Imports base configuration as foundation
 # - Adds user-specific system modules
 # - Provides extension point for additional modules
-{...}: {
+{ ... }:
+{
   imports = [
     ./system/configuration.nix
   ];

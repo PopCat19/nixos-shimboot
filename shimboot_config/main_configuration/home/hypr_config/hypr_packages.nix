@@ -6,7 +6,8 @@
 #
 # This module:
 # - Installs Hyprland, hyprshade, hyprpaper, hyprpanel, and related tools
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   home.packages = with pkgs; [
     hyprshade
     hyprpolkitagent

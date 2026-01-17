@@ -13,7 +13,8 @@
   lib,
   userConfig,
   ...
-}: {
+}:
+{
   users.mutableUsers = lib.mkDefault true;
 
   users.users = {

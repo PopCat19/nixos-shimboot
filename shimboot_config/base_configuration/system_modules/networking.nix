@@ -14,7 +14,8 @@
   lib,
   userConfig,
   ...
-}: {
+}:
+{
   networking = {
     dhcpcd.enable = lib.mkForce false;
     firewall = {
@@ -24,15 +25,18 @@
     networkmanager = {
       enable = true;
     };
-    timeServers = ["pool.ntp.org"];
+    timeServers = [ "pool.ntp.org" ];
   };
 
-  boot.kernelModules = ["iwlmvm" "ccm"];
+  boot.kernelModules = [
+    "iwlmvm"
+    "ccm"
+  ];
 
   system.activationScripts.rfkillUnblockWlan = {
     text = ''
       ${pkgs.util-linux}/bin/rfkill unblock wlan
     '';
-    deps = [];
+    deps = [ ];
   };
 }

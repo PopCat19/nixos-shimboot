@@ -2,7 +2,8 @@
   lib,
   userConfig,
   ...
-}: {
+}:
+{
   # **ENVIRONMENT VARIABLES**
   # Defines user-specific environment variables for various applications.
   home.sessionVariables = {

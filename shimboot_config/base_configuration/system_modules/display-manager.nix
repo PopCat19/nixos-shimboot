@@ -14,7 +14,8 @@
   pkgs,
   lib,
   ...
-}: {
+}:
+{
   services.xserver = {
     enable = lib.mkDefault true;
     xkb.layout = lib.mkDefault "us";

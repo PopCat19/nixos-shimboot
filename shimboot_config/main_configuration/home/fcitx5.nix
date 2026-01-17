@@ -6,7 +6,8 @@
 #
 # This module:
 # - Enables Fcitx5 with mozc input support
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   i18n.inputMethod = {
     type = "fcitx5";
     enable = true;

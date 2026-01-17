@@ -11,7 +11,8 @@
   pkgs,
   lib,
   ...
-}: {
+}:
+{
   programs.hyprland = {
     enable = lib.mkDefault true;
     xwayland.enable = lib.mkDefault true;

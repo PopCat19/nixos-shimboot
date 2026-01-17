@@ -13,13 +13,14 @@
   pkgs,
   zen-browser,
   ...
-}: {
-  imports = [zen-browser.homeModules.twilight];
+}:
+{
+  imports = [ zen-browser.homeModules.twilight ];
 
   programs.zen-browser = {
     enable = true;
 
-    nativeMessagingHosts = [pkgs.firefoxpwa];
+    nativeMessagingHosts = [ pkgs.firefoxpwa ];
 
     policies = {
       DisableAppUpdate = true;

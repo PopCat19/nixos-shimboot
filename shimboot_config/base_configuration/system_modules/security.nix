@@ -9,7 +9,8 @@
 # - Enables rtkit for realtime scheduling
 # - Provides secure privilege escalation mechanisms
 # - Creates SUID wrapper for bubblewrap to bypass ChromeOS kernel restrictions
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   security.polkit.enable = true;
   security.rtkit.enable = true;
 
