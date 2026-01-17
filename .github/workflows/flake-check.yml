@@ -83,7 +83,7 @@ jobs:
       - name: Verify formatting (sanity check)
         run: |
           echo "🔍 Verifying final formatting..."
-          nix fmt -- --check .
+          nix fmt -- --fail-on-change .
           echo "✅ Format verified."
 
       - name: Check flake
