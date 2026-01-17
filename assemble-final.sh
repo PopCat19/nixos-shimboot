@@ -694,17 +694,19 @@ log_info "Original kernel p2: $ORIGINAL_KERNEL"
 log_info "Patched initramfs dir: $PATCHED_INITRAMFS"
 log_info "Raw rootfs: $RAW_ROOTFS_IMG"
 
-# Build ChromeOS SHIM and determine RECOVERY per policy
+# Build ChromeOS SHIM and RECOVERY (always build recovery for Cachix caching)
 SHIM_BIN="$(nix build "${NIX_BUILD_FLAGS[@]}" .#chromeos-shim-${BOARD} --print-out-paths)"
+RECOVERY_BIN_PATH="$(nix build "${NIX_BUILD_FLAGS[@]}" .#chromeos-recovery-${BOARD} --print-out-paths)"
 RECOVERY_PATH=""
 if [ "${SKIP_RECOVERY:-0}" != "1" ]; then
 	if [ -n "${RECOVERY_BIN:-}" ]; then
 		RECOVERY_PATH="$RECOVERY_BIN"
 	else
-		RECOVERY_PATH="$(nix build "${NIX_BUILD_FLAGS[@]}" .#chromeos-recovery-${BOARD} --print-out-paths)/recovery.bin"
+		RECOVERY_PATH="$RECOVERY_BIN_PATH/recovery.bin"
 	fi
 fi
 log_info "ChromeOS shim: $SHIM_BIN"
+log_info "ChromeOS recovery derivation: $RECOVERY_BIN_PATH"
 if [ -n "$RECOVERY_PATH" ]; then
 	log_info "Recovery image: $RECOVERY_PATH"
 else
@@ -1309,7 +1311,7 @@ show_cache_stats
 
 # === Automatic Cachix push ===
 if [ "$PUSH_TO_CACHIX" -eq 1 ]; then
-	log_step "Cachix" "Pushing Nix derivations to Cachix..."
+	log_step "Cachix" "Pushing Nix derivations to Cachix (shim, recovery, kernel, initramfs, rootfs, chunks)..."
 
 	# Check if push script exists
 	if [ -f "tools/push-to-cachix.sh" ]; then
@@ -1338,7 +1340,7 @@ if [ "$PUSH_TO_CACHIX" -eq 1 ]; then
 	fi
 else
 	# Show manual instruction only if not auto-pushing
-	log_info "To push Nix derivations to Cachix, run:"
+	log_info "To push Nix derivations to Cachix (shim, recovery, kernel, initramfs, rootfs, chunks), run:"
 	log_info "  ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE --image $IMAGE"
 fi
 

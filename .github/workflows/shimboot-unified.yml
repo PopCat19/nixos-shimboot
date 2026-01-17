@@ -138,6 +138,7 @@ jobs:
             echo "🔄 [Attempt $i/3] Building..."
             if nix build --impure --accept-flake-config \
               .#chromeos-shim-${BOARD} \
+              .#chromeos-recovery-${BOARD} \
               .#extracted-kernel-${BOARD} \
               .#initramfs-patching-${BOARD} \
               --print-out-paths; then
@@ -163,6 +164,7 @@ jobs:
           echo "🔍 Pre-warming Cachix (no builds)..."
           nix build --dry-run --impure --accept-flake-config \
             .#chromeos-shim-${{ matrix.board }} \
+            .#chromeos-recovery-${{ matrix.board }} \
             .#extracted-kernel-${{ matrix.board }} \
             .#initramfs-patching-${{ matrix.board }} \
             .#raw-rootfs \
@@ -174,7 +176,7 @@ jobs:
           CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
         run: |
           chmod +x tools/push-to-cachix.sh
-          echo "🚀 Pushing build artifacts to Cachix..."
+          echo "🚀 Pushing build artifacts to Cachix (shim, recovery, kernel, initramfs, rootfs, chunks)..."
           ./tools/push-to-cachix.sh \
             --board "${{ matrix.board }}" \
             --rootfs "${{ github.event.inputs.rootfs || 'minimal' }}" \

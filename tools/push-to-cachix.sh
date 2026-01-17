@@ -7,7 +7,8 @@
 # Related: assemble-final.sh, check-cachix.sh
 #
 # This script handles Cachix push operations:
-# - Pushes Nix derivations (kernel, initramfs, rootfs)
+# - Pushes Nix derivations (shim, recovery, kernel, initramfs, rootfs)
+# - Optionally pushes ChromeOS chunk derivations to cache CDN pulls
 # - Note: Image upload disabled due to cachix removing --file option
 #
 # Usage:
@@ -19,11 +20,15 @@
 #   --drivers MODE             Driver mode (vendor, inject, both, none)
 #   --image PATH               Path to final shimboot.img (for info only, not uploaded)
 #   --skip-derivations         Skip pushing Nix derivations
+#   --skip-chunks              Skip pushing ChromeOS chunk derivations
 #   --skip-image               Skip image info display
 #   --dry-run                  Show what would be done
 #
 # Examples:
-#   # Push derivations only
+#   # Push all derivations (shim, recovery, kernel, initramfs, rootfs)
+#   ./tools/push-to-cachix.sh --board dedede
+#
+#   # Push derivations including ChromeOS chunks (caches CDN pulls)
 #   ./tools/push-to-cachix.sh --board dedede
 #
 #   # Show image info (no upload)
@@ -53,6 +58,7 @@ ROOTFS_FLAVOR="full"
 DRIVERS_MODE="vendor"
 IMAGE_PATH=""
 SKIP_DERIVATIONS=0
+SKIP_CHUNKS=0
 SKIP_IMAGE=0
 DRY_RUN=0
 
@@ -66,12 +72,16 @@ Options:
     --drivers MODE             Driver mode (vendor, inject, both, none)
     --image PATH               Path to final shimboot.img (for info only, not uploaded)
     --skip-derivations         Skip pushing Nix derivations
+    --skip-chunks              Skip pushing ChromeOS chunk derivations
     --skip-image               Skip image info display
     --dry-run                  Show what would be done
 
 Examples:
-    # Push derivations only
+    # Push all derivations (shim, recovery, kernel, initramfs, rootfs, chunks)
     ./push-to-cachix.sh --board dedede
+
+    # Push derivations without chunks
+    ./push-to-cachix.sh --board dedede --skip-chunks
 
     # Show image info (no upload)
     ./push-to-cachix.sh --board dedede --image work/shimboot.img --rootfs full --drivers vendor
@@ -99,6 +109,10 @@ while [[ $# -gt 0 ]]; do
 		;;
 	--skip-derivations)
 		SKIP_DERIVATIONS=1
+		shift
+		;;
+	--skip-chunks)
+		SKIP_CHUNKS=1
 		shift
 		;;
 	--skip-image)
@@ -176,6 +190,7 @@ push_derivations() {
 
 	local derivations=(
 		".#chromeos-shim-${board}"
+		".#chromeos-recovery-${board}"
 		".#extracted-kernel-${board}"
 		".#initramfs-patching-${board}"
 		".#${rootfs_attr}"
@@ -221,6 +236,62 @@ push_derivations() {
 			fi
 		fi
 	done
+}
+
+# Push ChromeOS chunk derivations (caches CDN pulls)
+push_chunks() {
+	local board="$1"
+
+	log_info "Pushing ChromeOS chunk derivations for board: $board"
+
+	# Get the chromeos-shim derivation to find its chunk dependencies
+	local shim_drv
+	shim_drv=$(nix eval --raw --impure --accept-flake-config ".#chromeos-shim-${board}.drvPath" 2>/dev/null || echo "")
+
+	if [[ -z "$shim_drv" ]]; then
+		log_warn "Could not get shim derivation path, skipping chunk push"
+		return 0
+	fi
+
+	# Extract chunk store paths from the derivation
+	local chunk_paths
+	chunk_paths=$(nix-store --query --requisites --include-outputs "$shim_drv" 2>/dev/null | grep -E "chunk.*\.zip$" || echo "")
+
+	if [[ -z "$chunk_paths" ]]; then
+		log_warn "No chunk derivations found for $board"
+		return 0
+	fi
+
+	local chunk_count
+	chunk_count=$(echo "$chunk_paths" | wc -l)
+	log_info "Found $chunk_count chunk derivations to push"
+
+	local pushed=0
+	local failed=0
+	while IFS= read -r chunk_path; do
+		if [[ -z "$chunk_path" ]]; then
+			continue
+		fi
+
+		local chunk_name
+		chunk_name=$(basename "$chunk_path")
+
+		if [[ "$DRY_RUN" -eq 1 ]]; then
+			log_info "[DRY-RUN] Would push chunk: $chunk_name"
+			((pushed++))
+		else
+			log_info "Pushing chunk: $chunk_name"
+			if safe_exec cachix push "$CACHE" "$chunk_path" 2>&1 | grep -v "Compressing"; then
+				log_success "Pushed chunk: $chunk_name"
+				((pushed++))
+			else
+				log_error "Failed to push chunk: $chunk_name"
+				((failed++))
+			fi
+		fi
+	done <<< "$chunk_paths"
+
+	log_info "Chunk push complete: $pushed pushed, $failed failed"
 }
 
 # Upload final image (disabled - cachix no longer supports arbitrary file uploads)
@@ -274,6 +345,13 @@ main() {
 		push_derivations "$BOARD"
 	else
 		log_info "Skipping derivation push (--skip-derivations)"
+	fi
+
+	# Push ChromeOS chunk derivations (caches CDN pulls)
+	if [[ "$SKIP_CHUNKS" -eq 0 ]]; then
+		push_chunks "$BOARD"
+	else
+		log_info "Skipping chunk push (--skip-chunks)"
 	fi
 
 	# Upload image
