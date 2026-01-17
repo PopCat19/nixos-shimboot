@@ -49,12 +49,6 @@
       url = "github:popcat19/project-minimalist-design/dev";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
-    # Alejandra Nix formatter
-    alejandra = {
-      url = "github:kamadorueda/alejandra/4.0.0";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   # Combine all outputs from modules
@@ -67,7 +61,6 @@
     rose-pine-hyprcursor,
     noctalia,
     stylix,
-    alejandra,
     ...
   }: let
     # Import Cachix configuration
@@ -145,7 +138,7 @@
     nixosModules = {};
   in {
     # Export all merged outputs
-    formatter.${system} = alejandra.defaultPackage.${system};
+    formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt;
     inherit packages devShells nixosConfigurations nixosModules;
   };
 }
