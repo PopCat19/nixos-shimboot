@@ -55,6 +55,7 @@
       builtins.readFile ./fish_functions/list-fish-helpers.fish;
 
     "fish/functions/cnup.fish".text = builtins.readFile ./fish_functions/cnup.fish;
+    "fish/functions/lsa.fish".text = builtins.readFile ./fish_functions/lsa.fish;
 
     # Helper functions from helpers directory
     "fish/functions/expand_rootfs.fish".text = builtins.readFile ./helpers/expand_rootfs.fish;
