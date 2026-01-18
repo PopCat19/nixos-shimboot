@@ -1,3 +1,14 @@
+# System Configuration Module
+#
+# Purpose: Generate NixOS configurations using modular structure
+# Dependencies: vars/, modules/, hosts/
+# Related: flake.nix
+#
+# This module:
+# - Imports vars for configuration
+# - Creates base and main configurations
+# - Integrates Home Manager
+# - Maintains backward compatibility with existing outputs
 {
   self,
   nixpkgs,
@@ -12,14 +23,15 @@ let
   system = "x86_64-linux";
   inherit (nixpkgs) lib;
 
-  # Import user configuration
-  userConfig = import ../shimboot_config/user-config.nix { };
+  # Import variables from vars/default.nix
+  vars = import ../vars;
   # Hostname (used to expose .#HOSTNAME and .#HOSTNAME-minimal)
-  hn = userConfig.host.hostname;
+  hn = vars.host.hostname;
 
   # Base = required system configuration only
   baseModules = [
-    ../shimboot_config/base_configuration/configuration.nix
+    ../modules/nixos/core
+    ../modules/nixos/hardware
 
     # Base-level defaults/tuning common to all variants
     (_: {
@@ -38,9 +50,12 @@ let
     })
   ];
 
-  # Main = user configuration that itself imports base; keeps flake from duplicating base
+  # Main = user configuration with desktop environment
   mainModules = [
-    ../shimboot_config/main_configuration/configuration.nix
+    ../modules/nixos/core
+    ../modules/nixos/desktop
+    ../modules/nixos/hardware
+    ../modules/nixos/profiles/shimboot
 
     # Integrate Home Manager for user-level config
     home-manager.nixosModules.home-manager
@@ -51,22 +66,22 @@ let
         home-manager.useGlobalPkgs = false;
         home-manager.useUserPackages = true;
         home-manager.extraSpecialArgs = {
-          inherit zen-browser rose-pine-hyprcursor userConfig;
+          inherit zen-browser rose-pine-hyprcursor vars;
           inherit (self) inputs;
         };
 
-        # Make userConfig available to home modules
+        # Make vars available to home modules
         home-manager.sharedModules = [
           (_: {
             nixpkgs.config.allowUnfree = true;
             nixpkgs.overlays = import ../overlays/overlays.nix pkgs.system;
-            _module.args.userConfig = userConfig;
+            _module.args.vars = vars;
           })
         ];
 
-        # Delegate actual HM content to home.nix (split into programs.nix and packages.nix)
-        home-manager.users."${userConfig.user.username}" =
-          import ../shimboot_config/main_configuration/home/home.nix;
+        # Delegate actual HM content to home.nix
+        home-manager.users."${vars.username}" =
+          import ../hosts/shimboot/home.nix;
       }
     )
   ];
@@ -87,7 +102,7 @@ in
               rose-pine-hyprcursor
               noctalia
               stylix
-              userConfig
+              vars
               ;
           };
         };
@@ -103,7 +118,7 @@ in
               rose-pine-hyprcursor
               noctalia
               stylix
-              userConfig
+              vars
               ;
           };
         };
@@ -120,7 +135,7 @@ in
               rose-pine-hyprcursor
               noctalia
               stylix
-              userConfig
+              vars
               ;
           };
         };
@@ -136,6 +151,7 @@ in
               zen-browser
               rose-pine-hyprcursor
               stylix
+              vars
               ;
           };
         };

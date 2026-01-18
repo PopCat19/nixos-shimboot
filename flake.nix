@@ -79,8 +79,8 @@
         "snappy"
       ];
 
-      # Import user configuration
-      # Extract username for easier access
+      # Import variables from vars/default.nix
+      vars = import ./vars;
 
       # Import module outputs
       # Core system and development modules
@@ -96,6 +96,7 @@
             rose-pine-hyprcursor
             noctalia
             stylix
+            vars
             board
             ;
         };
@@ -108,6 +109,7 @@
           rose-pine-hyprcursor
           noctalia
           stylix
+          vars
           ;
       };
       developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix {

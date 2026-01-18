@@ -1,3 +1,12 @@
+# Raw Image Generation Module
+#
+# Purpose: Generate raw disk images for ChromeOS boards
+# Dependencies: nixos-generators, modules/, hosts/
+# Related: flake.nix
+#
+# This module:
+# - Generates full raw image with desktop environment
+# - Generates minimal raw image with base configuration only
 {
   self,
   nixos-generators,
@@ -10,7 +19,7 @@
 }:
 let
   system = "x86_64-linux";
-  userConfig = import ../shimboot_config/user-config.nix { };
+  vars = import ../vars;
 in
 {
   packages.${system} = {
@@ -24,6 +33,7 @@ in
           rose-pine-hyprcursor
           noctalia
           stylix
+          vars
           ;
       };
 
@@ -37,8 +47,11 @@ in
         )
       ]
       ++ [
-        # Use the main configuration (which itself imports base)
-        ../shimboot_config/main_configuration/configuration.nix
+        # Use the new modular structure
+        ../modules/nixos/core
+        ../modules/nixos/desktop
+        ../modules/nixos/hardware
+        ../modules/nixos/profiles/shimboot
 
         # Integrate Home Manager for user-level configuration like the full system build
         home-manager.nixosModules.home-manager
@@ -48,18 +61,18 @@ in
             home-manager.useGlobalPkgs = false;
             home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = {
-              inherit zen-browser rose-pine-hyprcursor userConfig;
+              inherit zen-browser rose-pine-hyprcursor vars;
               inherit (self) inputs;
             };
             home-manager.sharedModules = [
               (_: {
                 nixpkgs.config.allowUnfree = true;
                 nixpkgs.overlays = import ../overlays/overlays.nix pkgs.system;
-                _module.args.userConfig = userConfig;
+                _module.args.vars = vars;
               })
             ];
-            home-manager.users.${userConfig.user.username} =
-              import ../shimboot_config/main_configuration/home/home.nix;
+            home-manager.users.${vars.username} =
+              import ../hosts/shimboot/home.nix;
           }
         )
 
@@ -94,12 +107,14 @@ in
           rose-pine-hyprcursor
           noctalia
           stylix
+          vars
           ;
       };
 
       modules = [
-        # Base-only configuration (standalone Hyprland via greetd)
-        ../shimboot_config/base_configuration/configuration.nix
+        # Base-only configuration using new modular structure
+        ../modules/nixos/core
+        ../modules/nixos/hardware
 
         # Raw image specific configuration
         (_: {
