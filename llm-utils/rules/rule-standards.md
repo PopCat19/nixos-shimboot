@@ -1,13 +1,11 @@
-# Rule Writing Guidelines
-
-Guidelines for creating new rule files in `.kilocode/rules` directory.
+# Rule Standards
 
 ## File Naming
 
 - Use kebab-case: `descriptive-name.md`
 - Names should reflect the rule's primary purpose
 - Avoid generic names like `rules.md` or `guidelines.md`
-- Examples: `dry-refactor.md`, `module.md`, `llm-note.md`
+- Examples: `dry-refactor.md`, `module-structure.md`
 
 ## Content Structure
 
@@ -62,7 +60,6 @@ Guidelines for creating new rule files in `.kilocode/rules` directory.
 ## Process
 1. Step one
 2. Step two
-3. Step three
 
 ## Examples
 ```lang
@@ -85,12 +82,10 @@ Guidelines for creating new rule files in `.kilocode/rules` directory.
 ```
 
 ## Required Fields
-- Field 1: Description (required/optional)
-- Field 2: Description (required/optional)
+- Field 1: Description (required)
 
 ## Style Rules
 - Rule 1
-- Rule 2
 ```
 
 ### Pattern 3: Reference-Oriented
@@ -101,19 +96,9 @@ Guidelines for creating new rule files in `.kilocode/rules` directory.
 - Concept 1
 - Concept 2
 
-## Examples
-```lang
-# Example 1
-```
-
-```lang
-# Example 2
-```
-
 ## Reference Commands
 ```bash
 # Command 1
-# Command 2
 ```
 ```
 
@@ -129,7 +114,7 @@ Guidelines for creating new rule files in `.kilocode/rules` directory.
 - [ ] Content follows token efficiency principles
 - [ ] Examples are minimal and focused
 - [ ] Language is direct and actionable
-- [ ] Structure matches one of the established patterns
+- [ ] Structure matches established patterns
 - [ ] All code blocks have language specifications
 - [ ] Headers follow H1 → H2 → H3 hierarchy
 
@@ -165,3 +150,8 @@ Guidelines for creating new rule files in `.kilocode/rules` directory.
 - Rule changes don't require version numbers
 - Git history serves as change tracking
 - Update related rules when making breaking changes
+
+## High-Level Guidelines
+
+- Aim for accuracy rather than completion
+- Don't plan ambitiously; focus on smaller, manageable steps to minimize backtrack debugging
