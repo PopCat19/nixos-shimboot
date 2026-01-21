@@ -35,6 +35,9 @@ let
         dates = "weekly";
         options = "--delete-older-than 30d";
       };
+
+      # Enable Android WiFi Direct proxy auto-configuration
+      proxy.enable = true;
     })
   ];
 
