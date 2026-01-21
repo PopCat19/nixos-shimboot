@@ -97,20 +97,39 @@ in
           #!/bin/sh
           SSID=$(nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d: -f2)
 
-          if echo "$SSID" | grep -q '^${patternBase}'; then
-            # Inject proxy into systemd environment for all services
-            systemctl set-environment \
-              HTTP_PROXY="${cfg.urls.http}" \
-              HTTPS_PROXY="${cfg.urls.https}" \
-              ALL_PROXY="${cfg.urls.socks}"
-            systemctl restart nix-daemon
-            logger "Nix Proxy: Enabled for $SSID"
-          else
-            # Remove proxy when on normal networks
-            systemctl unset-environment HTTP_PROXY HTTPS_PROXY ALL_PROXY
-            systemctl restart nix-daemon
-            logger "Nix Proxy: Disabled"
-          fi
+            if echo "$SSID" | grep -q '^${patternBase}'; then
+              # 1. System-level (for nix-daemon)
+              systemctl set-environment \
+                HTTP_PROXY="${cfg.urls.http}" \
+                HTTPS_PROXY="${cfg.urls.https}" \
+                ALL_PROXY="${cfg.urls.socks}" \
+                NO_PROXY="${cfg.urls.noProxy}"
+
+              # 2. User-level (for Electron apps & Desktop Environment)
+              for user_id in $(loginctl list-users --no-legend | awk '{print $1}'); do
+                sudo -u "#$user_id" DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$user_id/bus \
+                  systemctl --user set-environment \
+                    HTTP_PROXY="${cfg.urls.http}" \
+                    HTTPS_PROXY="${cfg.urls.https}" \
+                    ALL_PROXY="${cfg.urls.socks}" \
+                    NO_PROXY="${cfg.urls.noProxy}"
+              done
+
+              systemctl restart nix-daemon
+              logger "Nix Proxy: Enabled for $SSID and User Sessions"
+            else
+              # 1. System-level
+              systemctl unset-environment HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY
+
+              # 2. User-level
+              for user_id in $(loginctl list-users --no-legend | awk '{print $1}'); do
+                sudo -u "#$user_id" DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$user_id/bus \
+                  systemctl --user unset-environment HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY
+              done
+
+              systemctl restart nix-daemon
+              logger "Nix Proxy: Disabled"
+            fi
         '';
         type = "basic";
       }

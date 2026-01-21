@@ -63,6 +63,8 @@
       "$mainMod+Shift, V, exec, bash -lc \"cliphist list | fuzzel --dmenu --with-nth 2 | cliphist decode | wl-copy && sleep 0.05 && wtype -M ctrl -k v\""
       # desc: Restart hyprpanel
       "Ctrl+Alt, W, exec, systemctl --user restart hyprpanel.service"
+      # desc: Restart Noctalia shell
+      "$mainMod+Ctrl, N, exec, systemctl --user restart noctalia-shell.service"
 
       # cat: Screenshots
       # desc: Screenshot monitor
