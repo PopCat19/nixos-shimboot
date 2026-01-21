@@ -6,6 +6,7 @@
   rose-pine-hyprcursor,
   noctalia,
   stylix,
+  llm-agents,
   ...
 }:
 let
@@ -91,6 +92,7 @@ in
               noctalia
               stylix
               userConfig
+              llm-agents
               ;
           };
         };
@@ -107,6 +109,7 @@ in
               noctalia
               stylix
               userConfig
+              llm-agents
               ;
           };
         };
@@ -124,6 +127,7 @@ in
               noctalia
               stylix
               userConfig
+              llm-agents
               ;
           };
         };
@@ -139,6 +143,7 @@ in
               zen-browser
               rose-pine-hyprcursor
               stylix
+              llm-agents
               ;
           };
         };
