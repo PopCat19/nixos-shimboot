@@ -62,7 +62,7 @@ function fish_greeting
 
         # Dynamically discover and display helper functions
         set -l helper_functions
-        set -l helper_patterns "expand_rootfs" "fix-steam-bwrap" "setup_nixos" "setup_nixos_config" "nixos-" "setup_" "shimboot_" "fix" "list" "harvest"
+        set -l helper_patterns "show-shortcuts" "expand_rootfs" "fix-steam-bwrap" "setup_nixos" "setup_nixos_config" "nixos-" "setup_" "shimboot_" "fix" "list" "harvest"
 
         for pattern in $helper_patterns
             set -l matches (functions | grep "$pattern" | head -3)

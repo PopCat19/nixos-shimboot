@@ -19,7 +19,7 @@ function list-fish-helpers
     set_color green; echo "[INFO] Helper Functions:"; set_color normal
 
     # Dynamically discover helper functions
-    set -l helper_patterns "expand_rootfs" "fix-steam-bwrap" "setup_nixos" "setup_nixos_config" "nixos-" "setup_" "shimboot_" "fix" "list" "harvest"
+    set -l helper_patterns "show-shortcuts" "expand_rootfs" "fix-steam-bwrap" "setup_nixos" "setup_nixos_config" "nixos-" "setup_" "shimboot_" "fix" "list" "harvest"
     set -l found_helpers
 
     for pattern in $helper_patterns

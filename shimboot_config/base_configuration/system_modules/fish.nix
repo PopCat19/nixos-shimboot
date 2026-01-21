@@ -29,6 +29,7 @@
     abbr -a nrb nixos-rebuild-basic
     abbr -a flup nixos-flake-update
     abbr -a cdn 'cd $NIXOS_CONFIG_DIR'
+    abbr -a scuts show-shortcuts
   '';
 
   environment.etc = {
@@ -55,6 +56,8 @@
       builtins.readFile ./fish_functions/list-fish-helpers.fish;
 
     "fish/functions/cnup.fish".text = builtins.readFile ./fish_functions/cnup.fish;
+
+    "fish/functions/show-shortcuts.fish".text = builtins.readFile ./fish_functions/show-shortcuts.fish;
 
     # Helper functions from helpers directory
     "fish/functions/expand_rootfs.fish".text = builtins.readFile ./helpers/expand_rootfs.fish;
