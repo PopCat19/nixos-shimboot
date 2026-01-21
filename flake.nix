@@ -68,6 +68,7 @@
       rose-pine-hyprcursor,
       noctalia,
       stylix,
+      llm-agents,
       ...
     }:
     let
@@ -114,6 +115,7 @@
           rose-pine-hyprcursor
           noctalia
           stylix
+          llm-agents
           ;
       };
       developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix {

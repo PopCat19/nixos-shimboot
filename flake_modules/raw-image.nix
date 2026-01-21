@@ -20,6 +20,7 @@ in
       format = "raw";
       specialArgs = {
         inherit
+          self
           zen-browser
           rose-pine-hyprcursor
           noctalia
@@ -90,6 +91,7 @@ in
       format = "raw";
       specialArgs = {
         inherit
+          self
           zen-browser
           rose-pine-hyprcursor
           noctalia

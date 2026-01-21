@@ -6,7 +6,7 @@
 #
 # This module:
 # - Installs system-wide utility packages
-{ pkgs, inputs, ... }:
+{ pkgs, self, ... }:
 {
   environment.systemPackages = with pkgs; [
     gh
@@ -17,6 +17,6 @@
     simple-mtpfs
     usbutils
     android-tools
-    inputs.llm-agents.packages.${pkgs.system}.opencode
+    self.inputs.llm-agents.packages.${pkgs.system}.opencode
   ];
 }
