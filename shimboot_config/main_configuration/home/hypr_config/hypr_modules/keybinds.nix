@@ -51,14 +51,14 @@
       "$mainMod, C, exec, $editor"
       # desc: Open browser
       "$mainMod, F, exec, $browser"
-      # desc: Toggle app launcher
-      "$mainMod, A, exec, noctalia-shell ipc call launcher toggle"
-      # desc: Open launcher menu
-      "$mainMod+Shift, A, exec, $launcher"
+      # desc: Open Vicinae
+      "$mainMod, A, exec, vicinae open"
+      # desc: Open application launcher
+      "$mainMod+Shift, A, exec, fuzzel"
       # desc: Pick color from screen
       "$mainMod+Shift, C, exec, hyprpicker -a"
       # desc: Open clipboard history
-      "$mainMod, V, exec, noctalia-shell ipc call launcher clipboard"
+      "$mainMod, V, exec, vicinae vicinae://extensions/vicinae/clipboard/history"
       # desc: Paste from clipboard history
       "$mainMod+Shift, V, exec, bash -lc \"cliphist list | fuzzel --dmenu --with-nth 2 | cliphist decode | wl-copy && sleep 0.05 && wtype -M ctrl -k v\""
       # desc: Restart hyprpanel

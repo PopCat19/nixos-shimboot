@@ -25,9 +25,10 @@ function fish_greeting
     set_color brcyan; echo "$host"
 
     # 2. Fastfetch with Caching
+    set -l git_cache_file "/tmp/.fastfetch_git_$user"
     if type -q fastfetch
-        # Refresh cache if missing or older than 2 minutes
-        if not test -f $cache_file; or test (math (date +%s) - (stat -c %Y $cache_file)) -gt 120
+        # Refresh cache if missing or older than 5 minutes
+        if not test -f $cache_file; or test (math (date +%s) - (stat -c %Y $cache_file)) -gt 300
             fastfetch --load-config none \
                 --disable title os kernel uptime packages \
                 --disable wm dde resolution theme icons term \
@@ -48,17 +49,28 @@ function fish_greeting
         set_color yellow; echo "Uptime:" (math --scale=1 "$uptime_min / 60") "hours"
     end
 
-    # 4. Config & Git Status
-    if test -d "$config_dir"
-        set_color brcyan; echo "Config: $config_dir"
+        # 4. Config & Git Status
+        set -l git_info ""
+        if test -d "$config_dir"
+            set_color brcyan; echo "Config: $config_dir"
 
-        if test -d "$config_dir/.git"
-            set -l branch (git -C $config_dir rev-parse --abbrev-ref HEAD 2>/dev/null)
-            set -l commit (git -C $config_dir rev-parse --short HEAD 2>/dev/null)
-            if test -n "$branch"
-                set_color normal; echo "Git: $branch @ $commit"
+            if test -d "$config_dir/.git"
+                # Use cached git info if available and fresh
+                if test -f $git_cache_file; and test (math (date +%s) - (stat -c %Y $git_cache_file)) -lt 300
+                    set git_info (cat $git_cache_file 2>/dev/null)
+                else
+                    set -l branch (git -C $config_dir rev-parse --abbrev-ref HEAD 2>/dev/null)
+                    set -l commit (git -C $config_dir rev-parse --short HEAD 2>/dev/null)
+                    if test -n "$branch"
+                        set git_info "$branch @ $commit"
+                    end
+                    echo -n "$git_info" > $git_cache_file 2>/dev/null
+                end
+
+                if test -n "$git_info"
+                    set_color normal; echo "Git: $git_info"
+                end
             end
-        end
 
         # Dynamically discover and display helper functions
         set -l helper_functions
