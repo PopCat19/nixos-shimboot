@@ -14,44 +14,77 @@
 # - Lists available helper functions
 
 function fish_greeting
+    # 1. Use built-in variables (Instant, no external process)
     set -l config_dir "$NIXOS_CONFIG_DIR"
-    set -l host (hostname)
-    set -l user (whoami)
+    set -l host $hostname
+    set -l user $USER
     set -l cache_file "/tmp/.fastfetch_cache_$user"
 
-    # 1. Header
+    # 2. Header
     set_color brgreen; echo -n "$user"
     set_color normal; echo -n "@"
     set_color brcyan; echo "$host"
 
-    # 2. Fastfetch with Caching
-    set -l git_cache_file "/tmp/.fastfetch_git_$user"
+    # 3. Async Fastfetch (The major speedup)
     if type -q fastfetch
-        # Refresh cache if missing or older than 5 minutes
-        if not test -f $cache_file; or test (math (date +%s) - (stat -c %Y $cache_file)) -gt 300
-            fastfetch --load-config none \
-                --disable title os kernel uptime packages \
-                --disable wm dde resolution theme icons term \
-                --disable font host cpu gpu memory disk \
-                > $cache_file 2>/dev/null
+        # If cache exists, print it immediately (instant)
+        if test -f $cache_file
+            cat $cache_file
+        else
+            # Fallback for very first run only
+            set_color green; echo "System: Initializing cache..."
+            set_color normal
         end
-        cat $cache_file
-    # Fallback if fastfetch fails or is missing
-    else if not test -s $cache_file
+
+        # Update cache in the BACKGROUND (&) so it never blocks startup.
+        # This checks age and updates if needed without making you wait.
+        begin
+            set -l needs_update 0
+            if not test -f $cache_file
+                set needs_update 1
+            else
+                # Check if older than 30 mins (1800s)
+                set -l last_mod (stat -c %Y $cache_file 2>/dev/null; or echo 0)
+                set -l now (date +%s)
+                if test (math "$now - $last_mod") -gt 1800
+                    set needs_update 1
+                end
+            end
+
+            if test $needs_update -eq 1
+                # Run fastfetch and save to cache
+                fastfetch --load-config none \
+                    --disable title os kernel uptime packages \
+                    --disable wm dde resolution theme icons term \
+                    --disable font host cpu gpu memory disk \
+                    > $cache_file 2>/dev/null
+            end
+        end & # <--- The ampersand detaches this process
+        
+        # Disown the background job to prevent "Job ... terminated" messages
+        disown 2>/dev/null
+
+    else
+        # Fast fallback
         set_color green; echo "System:" (uname -sr)
-        set_color brmagenta; echo "CPU:" (string trim (string split -f2 ":" (grep -m1 "model name" /proc/cpuinfo)))
         set_color normal
     end
 
-    # 3. Uptime
-    set -l uptime_min (math (string split . (cat /proc/uptime))[1] / 60)
-    if test $uptime_min -gt 0
-        set_color yellow; echo "Uptime:" (math --scale=1 "$uptime_min / 60") "hours"
+    # 4. Optimized Uptime (No 'cat' or pipes)
+    # Read /proc/uptime directly into variable using built-in 'read'
+    if test -f /proc/uptime
+        read -d . uptime_sec uptime_frac < /proc/uptime
+        set -l uptime_min (math "$uptime_sec / 60")
+        if test $uptime_min -gt 0
+            set_color yellow; echo "Uptime:" (math --scale=1 "$uptime_min / 60") "hours"
+        end
     end
 
-        # 4. Config
-        if test -d "$config_dir"
-            set_color brcyan; echo "Config: $config_dir"
+    # 5. Config Check
+    if test -d "$config_dir"
+        set_color brcyan; echo "Config: $config_dir"
+        
+        # 6. Helpers
         # Dynamically discover and display helper functions
         set -l helper_functions
         set -l helper_patterns "show-shortcuts" "expand_rootfs" "fix-steam-bwrap" "setup_nixos" "setup_nixos_config" "nixos-" "setup_" "shimboot_" "fix" "list" "harvest"
@@ -80,6 +113,6 @@ function fish_greeting
         set_color normal; echo "Run: setup_nixos to initialize"
     end
 
-    # 5. Footer
+    # 7. Footer
     set_color grey; echo (date "+%a, %b %d %Y  %H:%M:%S"); set_color normal
 end
