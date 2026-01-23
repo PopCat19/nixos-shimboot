@@ -75,21 +75,27 @@ in
   config = lib.mkIf cfg.enable {
     networking.nameservers = cfg.nameservers;
 
-    environment.shellInit = ''
-      # Check for Android WiFi Direct SSID
-      SSID=$(nmcli -t -f active,ssid dev wifi 2>/dev/null | grep '^yes' | cut -d: -f2)
-      if [[ "$SSID" == ${cfg.androidWifiDirect.pattern} ]]; then
-        export http_proxy="${cfg.urls.http}"
-        export https_proxy="${cfg.urls.https}"
-        export all_proxy="${cfg.urls.socks}"
-        export no_proxy="${cfg.urls.noProxy}"
-        # Sync uppercase versions
-        export HTTP_PROXY="$http_proxy"
-        export HTTPS_PROXY="$https_proxy"
-        export ALL_PROXY="$all_proxy"
-        export NO_PROXY="$no_proxy"
-      fi
-    '';
+    environment.systemPackages = [
+      (pkgs.writeShellScriptBin "proxy-toggle" ''
+        # Check for Android WiFi Direct SSID
+        SSID=$(nmcli -t -f active,ssid dev wifi 2>/dev/null | grep '^yes' | cut -d: -f2)
+        if [[ "$SSID" == ${cfg.androidWifiDirect.pattern} ]]; then
+          export http_proxy="${cfg.urls.http}"
+          export https_proxy="${cfg.urls.https}"
+          export all_proxy="${cfg.urls.socks}"
+          export no_proxy="${cfg.urls.noProxy}"
+          # Sync uppercase versions
+          export HTTP_PROXY="$http_proxy"
+          export HTTPS_PROXY="$https_proxy"
+          export ALL_PROXY="$all_proxy"
+          export NO_PROXY="$no_proxy"
+          echo "Proxy enabled for $SSID"
+        else
+          unset http_proxy https_proxy all_proxy no_proxy HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY
+          echo "Proxy disabled"
+        fi
+      '')
+    ];
 
     networking.networkmanager.dispatcherScripts = [
       {
