@@ -68,13 +68,17 @@
 
       # cat: Screenshots
       # desc: Screenshot monitor
-      "$mainMod, P, exec, ~/.local/bin/screenshot monitor"
+      "$mainMod, P, exec, screenshot monitor"
       # desc: Screenshot monitor (keep shader)
-      "$mainMod+Ctrl, P, exec, ~/.local/bin/screenshot monitor --keep-shader"
+      "$mainMod+Ctrl, P, exec, screenshot monitor --keep-shader"
       # desc: Screenshot region
-      "$mainMod+Shift, P, exec, ~/.local/bin/screenshot region"
+      "$mainMod+Shift, P, exec, screenshot region"
       # desc: Screenshot region (keep shader)
-      "$mainMod+Shift+Ctrl, P, exec, ~/.local/bin/screenshot region --keep-shader"
+      "$mainMod+Shift+Ctrl, P, exec, screenshot region --keep-shader"
+      # desc: Screenshot window
+      "$mainMod+Alt, P, exec, screenshot window"
+      # desc: Screenshot window (keep shader)
+      "$mainMod+Alt+Ctrl, P, exec, screenshot window --keep-shader"
 
       # cat: Media
       # desc: Play/pause media
