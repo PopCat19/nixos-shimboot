@@ -19,6 +19,7 @@ function fish_greeting
     set -l host $hostname
     set -l user $USER
     set -l cache_file "/tmp/.fastfetch_cache_$user"
+    set -l git_cache_file "/tmp/.git_cache_$user"
 
     # 2. Header
     set_color brgreen; echo -n "$user"
@@ -83,7 +84,36 @@ function fish_greeting
     # 5. Config Check
     if test -d "$config_dir"
         set_color brcyan; echo "Config: $config_dir"
-        
+
+        # Git Status
+        set -l git_info ""
+        if test -d "$config_dir/.git"
+            set -l current_head (git -C $config_dir rev-parse HEAD 2>/dev/null)
+            set -l cached_head ""
+            set -l cached_info ""
+
+            if test -f $git_cache_file
+                set cached_head (head -n1 $git_cache_file 2>/dev/null)
+                set cached_info (tail -n+2 $git_cache_file 2>/dev/null)
+            end
+
+            if test "$current_head" = "$cached_head"; and test -n "$cached_info"
+                set git_info "$cached_info"
+            else
+                set -l branch (git -C $config_dir rev-parse --abbrev-ref HEAD 2>/dev/null)
+                set -l commit (git -C $config_dir rev-parse --short HEAD 2>/dev/null)
+                if test -n "$branch"
+                    set git_info "$branch @ $commit"
+                end
+                echo "$current_head" > $git_cache_file 2>/dev/null
+                echo "$git_info" >> $git_cache_file 2>/dev/null
+            end
+
+            if test -n "$git_info"
+                set_color normal; echo "Git: $git_info"
+            end
+        end
+
         # 6. Helpers
         # Dynamically discover and display helper functions
         set -l helper_functions
