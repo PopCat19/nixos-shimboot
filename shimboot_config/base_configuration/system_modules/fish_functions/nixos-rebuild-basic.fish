@@ -36,9 +36,9 @@ function nixos-rebuild-basic
     set -a nix_args $argv
 
     set_color blue; echo "[STEP] Running NixOS rebuild..."; set_color normal
-    set_color cyan; echo "Command: sudo nixos-rebuild $nix_args"; set_color normal
+    set_color cyan; echo "Command: sudo -E nixos-rebuild $nix_args"; set_color normal
 
-    if sudo nixos-rebuild $nix_args
+    if sudo -E nixos-rebuild $nix_args
     set_color green; echo "[SUCCESS] Build succeeded"; set_color normal
     cd "$original_dir"
     return 0

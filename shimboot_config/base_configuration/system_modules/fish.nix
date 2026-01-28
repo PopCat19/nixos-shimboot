@@ -148,6 +148,8 @@
     abbr -a cdn 'cd $NIXOS_CONFIG_DIR'
     abbr -a scuts show-shortcuts
     abbr -a lsa lsa
+    abbr -a proxy_on proxy_on
+    abbr -a proxy_off proxy_off
   '';
 
   environment.etc = {
@@ -178,6 +180,8 @@
     "fish/functions/show-shortcuts.fish".text = builtins.readFile ./fish_functions/show-shortcuts.fish;
 
     "fish/functions/lsa.fish".text = builtins.readFile ./fish_functions/lsa.fish;
+
+    "fish/functions/proxy-env.fish".text = builtins.readFile ./fish_functions/proxy-env.fish;
 
     # Helper functions from helpers directory
     "fish/functions/expand_rootfs.fish".text = builtins.readFile ./helpers/expand_rootfs.fish;
