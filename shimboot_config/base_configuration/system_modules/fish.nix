@@ -143,6 +143,8 @@
     end
 
     # Abbreviations for common NixOS commands
+    abbr -a nrb nixos-rebuild-basic
+    abbr -a flup nixos-flake-update
     abbr -a cdn 'cd $NIXOS_CONFIG_DIR'
     abbr -a scuts show-shortcuts
     abbr -a lsa lsa
