@@ -187,6 +187,9 @@
 
     "fish/functions/proxify.fish".text = builtins.readFile ./fish_functions/proxify.fish;
 
+    # Fish completions
+    "fish/completions/proxify.fish".text = builtins.readFile ./fish_functions/completions/proxify.fish;
+
     # Helper functions from helpers directory
     "fish/functions/expand_rootfs.fish".text = builtins.readFile ./helpers/expand_rootfs.fish;
 
