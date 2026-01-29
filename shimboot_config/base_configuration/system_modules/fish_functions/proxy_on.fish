@@ -1,10 +1,8 @@
 #!/usr/bin/env fish
 
-# Proxy Environment Manager
-# Purpose: Toggle proxy variables with overwritable defaults
+# Proxy Environment On
+# Purpose: Enable proxy variables with overwritable defaults
 # Usage: proxy_on [HOST] [HTTP_PORT] [SOCKS_PORT]
-#        proxy_off
-#        proxify <app_name>
 
 function proxy_on
     set -l _host (test -n "$argv[1]"; and echo "$argv[1]"; or echo (set -q PROXY_HOST; and echo $PROXY_HOST; or echo "192.168.49.1"))
@@ -24,7 +22,7 @@ function proxy_on
         systemctl --user set-environment all_proxy=$all_proxy
         systemctl --user set-environment no_proxy=$no_proxy
     end
-    
+
     # Backup for non-systemd setups
     if command -q dbus-update-activation-environment
         dbus-update-activation-environment --systemd http_proxy https_proxy all_proxy no_proxy 2>/dev/null
@@ -32,36 +30,4 @@ function proxy_on
 
     set_color green; echo -n "[OK] "
     set_color normal; echo "Proxy active: $_host (HTTP:$_http_port, SOCKS:$_socks_port)"
-end
-
-function proxy_off
-    set -e http_proxy
-    set -e https_proxy
-    set -e all_proxy
-    set -e no_proxy
-    
-    if command -q systemctl
-        systemctl --user unset-environment http_proxy https_proxy all_proxy no_proxy
-    end
-    
-    set_color red; echo "[OK]"; set_color normal; echo " Proxy disabled"
-end
-
-function proxify
-    if not set -q all_proxy
-        set_color yellow; echo "[WARN] No proxy env. Run: proxy_on"; set_color normal
-        $argv
-        return 1
-    end
-    
-    set -l proxy_addr (string replace -r '^[^:]+://' '' "$all_proxy")
-    set_color cyan; echo "[RUN] $argv[1] → $proxy_addr"; set_color normal
-    
-    # If uwsm is available, use it to launch so the app inherits the session env
-    if command -q uwsm
-        uwsm app -- $argv --proxy-server="socks5://$proxy_addr"
-    else
-        $argv --proxy-server="socks5://$proxy_addr" &
-        disown
-    end
 end

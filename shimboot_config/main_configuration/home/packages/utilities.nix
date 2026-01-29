@@ -20,5 +20,9 @@
     alejandra
     nixd
     nil
+
+    # Android Development
+    scrcpy
+    android-tools
   ];
 }

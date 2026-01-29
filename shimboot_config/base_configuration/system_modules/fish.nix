@@ -181,7 +181,11 @@
 
     "fish/functions/lsa.fish".text = builtins.readFile ./fish_functions/lsa.fish;
 
-    "fish/functions/proxy-env.fish".text = builtins.readFile ./fish_functions/proxy-env.fish;
+    "fish/functions/proxy_on.fish".text = builtins.readFile ./fish_functions/proxy_on.fish;
+
+    "fish/functions/proxy_off.fish".text = builtins.readFile ./fish_functions/proxy_off.fish;
+
+    "fish/functions/proxify.fish".text = builtins.readFile ./fish_functions/proxify.fish;
 
     # Helper functions from helpers directory
     "fish/functions/expand_rootfs.fish".text = builtins.readFile ./helpers/expand_rootfs.fish;

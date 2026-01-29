@@ -18,23 +18,23 @@ function list-fish-helpers
 
     set_color green; echo "[INFO] Helper Functions:"; set_color normal
 
-    # Dynamically discover helper functions
-    set -l helper_patterns "show-shortcuts" "expand_rootfs" "fix-steam-bwrap" "setup_nixos" "setup_nixos_config" "nixos-" "setup_" "shimboot_" "fix" "list" "harvest"
+    # Dynamically discover functions from fish_functions directory
+    set -l func_dirs ./fish_functions ./helpers
     set -l found_helpers
 
-    for pattern in $helper_patterns
-        set -l matches (functions | grep "$pattern" | sort)
-        if test -n "$matches"
-            for match in $matches
-                if not contains "$match" $found_helpers
-                    set found_helpers $found_helpers "$match"
-                    echo "   • $match"
+    for dir in $func_dirs
+        if test -d $dir
+            for f in $dir/*.fish
+                set -l func_name (path basename --no-extension $f)
+                if functions -q $func_name; and not contains $func_name $found_helpers
+                    set found_helpers $found_helpers $func_name
+                    echo "   • $func_name"
                 end
             end
         end
-    end
+    end | sort
 
-    # If no pattern matches found, show all non-builtin functions
+    # If no functions found, show all non-builtin functions
     if test -z "$found_helpers"
         functions | grep -vE "^_|fish_|^__" | sort | awk '{print "   • " $0}'
     end
