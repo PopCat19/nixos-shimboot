@@ -9,8 +9,7 @@
 # - Imports modular configuration files
 # - Sources user preferences and monitor configuration
 # - Manages shader files and wallpaper directory
-{ pkgs, ... }:
-{
+{pkgs, ...}: {
   imports = [
     ./hypr_modules/colors.nix
     ./hypr_modules/environment.nix
@@ -37,9 +36,5 @@
   home.file = {
     ".config/hypr/monitors.conf".source = ./monitors.conf;
     ".config/hypr/userprefs.conf".source = ./userprefs.conf;
-    ".config/hypr/shaders" = {
-      source = ./shaders;
-      recursive = true;
-    };
   };
 }
