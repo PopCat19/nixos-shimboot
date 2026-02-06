@@ -17,6 +17,5 @@
     simple-mtpfs
     usbutils
     android-tools
-    self.inputs.llm-agents.packages.${pkgs.system}.opencode
   ];
 }
