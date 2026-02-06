@@ -1,395 +1,224 @@
 #version 320 es
 precision highp float;
 
-// Input texture coordinates
 in vec2 v_texcoord;
-
-// Output fragment color
 out vec4 fragColor;
 
-// Input texture and time uniform
 uniform sampler2D tex;
 uniform float time;
 
-// [Debug Toggles]
-#define DEBUG_CA       1       // Toggle chromatic aberration effect
-#define DEBUG_BLOOM    1       // Toggle bloom effect
-#define DEBUG_VIGNETTE 0       // Toggle vignette effect
-#define DEBUG_PIXEL    0       // Toggle pixelation effect
-#define COLOR_DEPTH_ENABLED 0  // Enable color depth reduction
-#define DEBUG_SCANLINE 0       // Toggle scanline effect
-#define DEBUG_VHS_OVERLAY 1    // Toggle VHS effect
-#define DEBUG_GLITCH   1       // Toggle glitch effect
-#define DEBUG_DRIFT    0       // Toggle drifting effect
-#define DEBUG_COLOR_TEMP 0     // Toggle color temperature adjustment
-#define DEBUG_VIBRATION 0      // Toggle CRT buzz vibration effect
-#define DEBUG_GRAIN     0      // Toggle cinematic grain effect
+const bool ENABLE_CHROMATIC_ABERRATION = true;
+const bool ENABLE_PIXELATION           = false;
+const bool ENABLE_GLITCH               = true;
+const bool ENABLE_FILM_GRAIN           = true;
+const bool ENABLE_COLOR_BLEED          = true;
 
-// [Effect Parameters]
-// Bloom Parameters
-#define BLOOM_INTENSITY       0.16
-#define BLOOM_RADIUS          0.008
-#define BLOOM_SAMPLES         64
-#define BLOOM_TINT            vec3(1.1, 0.9, 0.9)
-#define BLOOM_THRESHOLD       0.0
-#define BLOOM_SOFT_THRESHOLD  1.0
-#define BLOOM_FALLOFF_CURVE   32.0
+const struct ChromaticAberration {
+    float red_offset;
+    float blue_offset;
+    float falloff;
+    float falloff_exp;
+    float center_boost;
+    float angle;
+} CA = ChromaticAberration(0.001, 0.001, 1.0, 1.0, 3.0, 0.0);
 
-// Glitch Parameters
-#define GLITCH_STRENGTH        1.0
-#define GLITCH_PROBABILITY     0.20
-#define GLITCH_INTERVAL        3.0
-#define GLITCH_DURATION        0.12   // at least 120ms
-#define GLITCH_SPEED           64.0   // configurable bounce speed
+const struct Pixelation {
+    float grid_size;
+} PIXEL = Pixelation(960.0);
 
-// Vignette Parameters
-#define VIGNETTE_STRENGTH      0.4
-#define VIGNETTE_RADIUS        1.6
-#define VIGNETTE_SMOOTHNESS    0.8
-#define VIGNETTE_ASPECT        vec2(1.0, 1.0)
-#define VIGNETTE_COLOR         vec3(0.0, 0.0, 0.0)
-#define VIGNETTE_OFFSET        vec2(0.0, 0.0)
-#define VIGNETTE_EXPONENT      1.0
-#define VIGNETTE_MODE          0
+const struct Glitch {
+    float strength;
+    float probability;
+    float interval;
+    float duration;
+    float speed;
+} GLITCH = Glitch(1.0, 0.20, 3.0, 0.12, 64.0);
 
-// Chromatic Aberration Parameters
-#define CA_RED_STRENGTH     0.001
-#define CA_BLUE_STRENGTH    0.001
-#define CA_FALLOFF          1.0
-#define CA_ANGLE            0.0
-#define CA_FALLOFF_EXPONENT 1.0
-#define CA_CENTER_STRENGTH  3.0
+const struct FilmGrain {
+    float intensity;
+    float size;
+    float speed;
+    float luma_amount;
+    float chroma_amount;
+} GRAIN = FilmGrain(0.08, 1.6, 15.0, 0.7, 0.3);
 
-// Scanline Parameters
-#define SCANLINE_OPACITY     0.2
-#define SCANLINE_FREQUENCY   1.0
-#define SCANLINE_SPEED       -1.0
-#define SCANLINE_THICKNESS   0.2
-
-// Drifting Effect Parameters
-#define DRIFT_MODE 1
-#define DRIFT_SPEED -1.6
-#define DRIFT_RADIUS 0.002
-#define DRIFT_AMPLITUDE 0.002
-#define DRIFT_FREQUENCY 1.2
-#define DRIFT_DIRECTION vec2(1.0, 0.5)
-
-// CRT Buzz Vibration Parameters
-#define VIBRATION_AMPLITUDE 0.0004
-#define VIBRATION_BASE_FREQ 75.0
-#define VIBRATION_NOISE_FREQ 120.0
-#define VIBRATION_NOISE_STRENGTH 0.4
-
-// Color Settings
-#define COLOR_DEPTH 16
-const float COLOR_TEMPERATURE = 4000.0;
-const float COLOR_TEMPERATURE_STRENGTH = 1.0;
-
-// Pixelation Effect
-#define PIXEL_GRID_SIZE 360.0
-
-// VHS Overlay Parameters
-#define VHS_INTENSITY        0.16
-#define VHS_JITTER_STRENGTH  0.004
-#define VHS_WAVE_FREQ        2.0
-#define VHS_WAVE_AMPLITUDE   0.003
-#define VHS_COLOR_SHIFT      0.0015
-#define VHS_NOISE_BAND_FREQ  0.8
-#define VHS_NOISE_BAND_STRENGTH 0.25
-
-// Grain Parameters
-#define GRAIN_INTENSITY 0.08
-#define GRAIN_SIZE 800.0
-#define GRAIN_SPEED 0.5
+const struct ColorBleed {
+    float strength;
+    float distance;
+    int   samples;
+} BLEED = ColorBleed(0.4, 0.003, 8);
 
 const float PI = 3.14159265359;
+const vec3  LUMA_WEIGHTS = vec3(0.299, 0.587, 0.114);
 
-// --- Utility Functions ---
-float random(vec2 st) {
-    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
-// --- Grain Effect ---
-vec3 applyGrain(vec2 uv, vec3 color, float time) {
-#if DEBUG_GRAIN
-    float noise = random(uv * GRAIN_SIZE + time * GRAIN_SPEED);
-    float grain = (noise - 0.5) * 2.0;
-    return mix(color, color + grain * GRAIN_INTENSITY, 0.5);
-#else
-    return color;
-#endif
+float hash(vec3 p) {
+    vec3 q = fract(p * 0.1031);
+    q += dot(q, q.yzx + 33.33);
+    return fract((q.x + q.y) * q.z);
 }
 
-// --- Color Depth Reduction ---
-vec3 applyColorDepthReduction(vec3 color) {
-#if COLOR_DEPTH_ENABLED
-    ivec3 bits;
-    if (COLOR_DEPTH == 8) {
-        bits = ivec3(3, 3, 2);
-    } else if (COLOR_DEPTH == 16) {
-        bits = ivec3(5, 6, 5);
-    } else if (COLOR_DEPTH == 24) {
-        bits = ivec3(8, 8, 8);
-    } else {
-        return color;
-    }
-    vec3 maxValues = pow(vec3(2.0), vec3(bits)) - 1.0;
-    return floor(color * maxValues + 0.5) / maxValues;
-#else
-    return color;
-#endif
+vec2 hash22(vec2 p) {
+    vec3 q = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973));
+    q += dot(q, q.yzx + 33.33);
+    return fract((q.xx + q.yz) * q.zy);
 }
 
-// --- Pixelation Effect ---
-vec2 pixelate(vec2 uv) {
-#if DEBUG_PIXEL
-    vec2 grid = vec2(PIXEL_GRID_SIZE, PIXEL_GRID_SIZE * (VIGNETTE_ASPECT.y / VIGNETTE_ASPECT.x));
-    vec2 pixelUV = floor(uv * grid) / grid;
-    return pixelUV;
-#else
-    return uv;
-#endif
+vec2 get_resolution() {
+    return 1.0 / vec2(length(dFdx(v_texcoord)), length(dFdy(v_texcoord)));
 }
 
-vec3 applyPixelGrid(vec2 uv, vec3 color) {
-#if DEBUG_PIXEL
-    vec2 grid = vec2(PIXEL_GRID_SIZE, PIXEL_GRID_SIZE * (VIGNETTE_ASPECT.y / VIGNETTE_ASPECT.x));
-    vec2 pixelCoord = uv * grid;
-    vec2 gridLine = smoothstep(0.95, 0.99, fract(pixelCoord));
-    float gridMask = 1.0 - max(gridLine.x, gridLine.y);
-    return color * mix(vec3(0.2), vec3(1.0), gridMask);
-#else
-    return color;
-#endif
+float luma(vec3 color) {
+    return dot(color, LUMA_WEIGHTS);
 }
 
-// --- Core Functions ---
-vec3 colorTemperatureToRGB(float temperature) {
-    mat3 m = (temperature <= 6500.0) ? mat3(
-        0.0, -2902.1955373783176, -8257.7997278925690,
-        0.0, 1669.5803561666639, 2575.2827530017594,
-        1.0, 1.3302673723350029, 1.8993753891711275
-    ) : mat3(
-        1745.0425298314172, 1216.6168361476490, -8257.7997278925690,
-        -2666.3474220535695, -2173.1012343082230, 2575.2827530017594,
-        0.55995389139931482, 0.70381203140554553, 1.8993753891711275
-    );
-    vec3 result = clamp(vec3(m[0] / (vec3(clamp(temperature, 1000.0, 40000.0)) + m[1]) + m[2]), vec3(0.0), vec3(1.0));
-    return mix(result, vec3(1.0), smoothstep(1000.0, 0.0, temperature));
-}
-
-// --- Post-Processing Effects ---
-float computeVignette(vec2 uv) {
-    vec2 coord = (uv - 0.5 - VIGNETTE_OFFSET) * 2.0 * VIGNETTE_ASPECT;
-    float dist = length(coord);
-    dist = pow(dist, VIGNETTE_EXPONENT);
-    return smoothstep(VIGNETTE_RADIUS, VIGNETTE_RADIUS - VIGNETTE_SMOOTHNESS, dist);
-}
-
-vec3 applyChromaticAberration(vec2 uv, out float alpha) {
-    vec2 dir = (uv - 0.5) * CA_FALLOFF;
-    float cosA = cos(CA_ANGLE);
-    float sinA = sin(CA_ANGLE);
-    dir = vec2(dir.x * cosA - dir.y * sinA, dir.x * sinA + dir.y * cosA);
-    float dist = length(dir);
-    float edgeComponent = pow(dist, CA_FALLOFF_EXPONENT);
-    float centerComponent = (1.0 - edgeComponent) * CA_CENTER_STRENGTH;
-    float totalFalloff = edgeComponent + centerComponent;
-    float strength_r = totalFalloff * CA_RED_STRENGTH;
-    float strength_b = totalFalloff * CA_BLUE_STRENGTH;
-    alpha = texture(tex, uv).a;
+vec3 sample_rgb_split(vec2 uv_r, vec2 uv_g, vec2 uv_b) {
     return vec3(
-        texture(tex, uv + dir * strength_r).r,
-        texture(tex, uv).g,
-        texture(tex, uv - dir * strength_b).b
+        texture(tex, uv_r).r,
+        texture(tex, uv_g).g,
+        texture(tex, uv_b).b
     );
 }
 
-// --- Bloom ---
-vec3 calculateBloom(vec2 uv) {
-    vec3 color = vec3(0.0);
-    float total = 0.0;
-    const float goldenAngle = 2.39996;
-    float currentAngle = 0.0;
+vec2 pixelate_uv(vec2 uv) {
+    if (!ENABLE_PIXELATION) return uv;
 
-    const int SCALES = 3;
-    float scaleRadius[SCALES];
-    scaleRadius[0] = BLOOM_RADIUS * 0.5;
-    scaleRadius[1] = BLOOM_RADIUS * 1.5;
-    scaleRadius[2] = BLOOM_RADIUS * 3.0;
+    return floor(uv * PIXEL.grid_size) / PIXEL.grid_size;
+}
 
-    for (int s = 0; s < SCALES; s++) {
-        for (int i = 0; i < BLOOM_SAMPLES / SCALES; i++) {
-            float ratio = sqrt(float(i) / float(BLOOM_SAMPLES / SCALES));
-            float radius = ratio * scaleRadius[s];
-            currentAngle += goldenAngle;
-            vec2 dir = vec2(cos(currentAngle), sin(currentAngle)) * radius;
-            vec2 sampleUV = uv + dir;
-
-            vec3 sampleColor = texture(tex, sampleUV).rgb;
-            float luminance = dot(sampleColor, vec3(0.299, 0.587, 0.114));
-
-            float softThreshold = smoothstep(
-                BLOOM_THRESHOLD - BLOOM_SOFT_THRESHOLD,
-                BLOOM_THRESHOLD + BLOOM_SOFT_THRESHOLD,
-                luminance
-            );
-
-            float weight = exp(-(radius * radius) * BLOOM_FALLOFF_CURVE) * softThreshold;
-            color += sampleColor * weight;
-            total += weight;
-        }
+vec3 sample_with_chromatic_aberration(vec2 uv) {
+    if (!ENABLE_CHROMATIC_ABERRATION) {
+        return texture(tex, uv).rgb;
     }
 
-    return (color / max(total, 0.001)) * BLOOM_INTENSITY * BLOOM_TINT;
-}
+    vec2 dir = (uv - 0.5) * CA.falloff;
+    float c = cos(CA.angle);
+    float s = sin(CA.angle);
+    dir = mat2(c, -s, s, c) * dir;
 
-// --- Scanline Effect ---
-float applyScanlines(vec2 uv, float time) {
-    float scan = sin(uv.y * SCANLINE_FREQUENCY * PI + time * SCANLINE_SPEED);
-    scan = smoothstep(1.0 - SCANLINE_THICKNESS, 1.0, scan);
-    return 1.0 - scan * SCANLINE_OPACITY;
-}
+    float dist = length(dir);
+    float falloff_curve = pow(dist, CA.falloff_exp);
+    float falloff = falloff_curve + (1.0 - falloff_curve) * CA.center_boost;
 
-// --- VHS Effect ---
-vec3 applyVHSEffect(vec2 uv, float time, vec3 originalColor) {
-#if DEBUG_VHS_OVERLAY
-    float jitter = (random(vec2(time, uv.y)) - 0.5) * VHS_JITTER_STRENGTH;
-    uv.x += jitter;
-
-    uv.y += sin(uv.x * VHS_WAVE_FREQ + time * 1.5) * VHS_WAVE_AMPLITUDE;
-
-    vec3 vhsColor = vec3(
-        texture(tex, uv + vec2( VHS_COLOR_SHIFT, 0.0)).r,
-        texture(tex, uv).g,
-        texture(tex, uv - vec2( VHS_COLOR_SHIFT, 0.0)).b
+    vec2 offset = dir * falloff;
+    return sample_rgb_split(
+        uv + offset * CA.red_offset,
+        uv,
+        uv - offset * CA.blue_offset
     );
+}
 
-    float bandNoise = step(1.0 - VHS_NOISE_BAND_FREQ, random(vec2(time, floor(uv.y * 480.0))));
-    if (bandNoise > 0.5) {
-        float noise = (random(uv * time) - 0.5) * VHS_NOISE_BAND_STRENGTH;
-        vhsColor += vec3(noise);
+vec3 apply_color_bleed(vec2 uv, vec3 color) {
+    if (!ENABLE_COLOR_BLEED) return color;
+
+    vec3 bleed_accumulator = vec3(0.0);
+    float step = BLEED.distance / float(BLEED.samples);
+
+    for (int i = 1; i <= BLEED.samples; i++) {
+        vec2 sample_uv = uv - vec2(float(i) * step, 0.0);
+        bleed_accumulator += texture(tex, sample_uv).rgb;
     }
 
-    return mix(originalColor, vhsColor, VHS_INTENSITY);
-#else
-    return originalColor;
-#endif
+    vec3 bleed_avg = bleed_accumulator / float(BLEED.samples);
+
+    float orig_luma = luma(color);
+    vec3 orig_chroma = color - orig_luma;
+    vec3 bleed_chroma = bleed_avg - luma(bleed_avg);
+
+    return vec3(orig_luma) + mix(orig_chroma, bleed_chroma, BLEED.strength);
 }
 
-// --- Drift ---
-vec2 applyDrift(vec2 uv, float time) {
-    vec2 driftOffset = vec2(0.0);
-    #if DRIFT_MODE == 0
-        float driftAngle = time * DRIFT_SPEED;
-        driftOffset = vec2(cos(driftAngle), sin(driftAngle)) * DRIFT_RADIUS;
-    #elif DRIFT_MODE == 1
-        driftOffset.x = sin(time * DRIFT_SPEED * DRIFT_FREQUENCY) * DRIFT_AMPLITUDE;
-        driftOffset.y = cos(time * DRIFT_SPEED * DRIFT_FREQUENCY) * DRIFT_AMPLITUDE;
-    #elif DRIFT_MODE == 2
-        driftOffset = DRIFT_DIRECTION * (time * DRIFT_SPEED);
-    #endif
-    return uv + driftOffset;
-}
+vec3 apply_glitch(vec2 uv, vec3 color) {
+    if (!ENABLE_GLITCH) return color;
 
-// --- CRT Buzz ---
-vec2 applyCRTVibration(vec2 uv, float time) {
-#if DEBUG_VIBRATION
-    float buzz = sin(time * VIBRATION_BASE_FREQ) * VIBRATION_AMPLITUDE;
-    float line = floor(uv.y * 480.0);
-    float noise = (random(vec2(line, time * VIBRATION_NOISE_FREQ)) - 0.5) 
-                  * VIBRATION_AMPLITUDE * VIBRATION_NOISE_STRENGTH;
-    uv.y += buzz + noise;
-#endif
-    return uv;
-}
+    float interval_id = floor(time / GLITCH.interval);
+    float time_in_interval = fract(time / GLITCH.interval);
 
-// --- Glitch ---
-vec3 applyAnalogGlitch(vec2 uv, float time, vec3 color, float isActive, float tInInterval) {
-    if (isActive < 0.5) return color;
-    float bounce = sin(tInInterval * GLITCH_SPEED * PI);
-    float strength = GLITCH_STRENGTH * bounce;
-    float line = floor(uv.y * 480.0);
-    float lineNoise = random(vec2(line, time));
-    float tearStrength = step(0.985, lineNoise) * 0.02 * strength;
-    uv.x += tearStrength * (random(vec2(lineNoise, time)) - 0.5);
-    float wave = sin(uv.y * 40.0 + time * 6.0) * 0.002 * strength;
-    uv.x += wave;
-    float shift = 0.0015 * sin(time * 2.0 + uv.y * 10.0) * strength;
-    vec3 analogColor = vec3(
-        texture(tex, uv + vec2( shift, 0.0)).r,
-        texture(tex, uv).g,
-        texture(tex, uv - vec2( shift, 0.0)).b
+    float trigger_hash = hash(vec2(interval_id, 0.0));
+    bool is_glitch_active = trigger_hash < GLITCH.probability &&
+                            time_in_interval < GLITCH.duration;
+
+    if (!is_glitch_active) return color;
+
+    float strength = GLITCH.strength * sin(time_in_interval * GLITCH.speed * PI);
+    vec2 glitch_uv = uv;
+
+    float scanline_id = floor(uv.y * 480.0);
+    float line_rand = hash(vec2(scanline_id, time));
+    if (line_rand > 0.985) {
+        float shift = 0.02 * strength * (hash(vec2(line_rand, time)) - 0.5);
+        glitch_uv.x += shift;
+    }
+
+    glitch_uv.x += sin(uv.y * 40.0 + time * 6.0) * 0.002 * strength;
+
+    float rgb_shift = 0.0015 * sin(time * 2.0 + uv.y * 10.0) * strength;
+    vec3 glitch_color = sample_rgb_split(
+        glitch_uv + vec2(rgb_shift, 0.0),
+        glitch_uv,
+        glitch_uv - vec2(rgb_shift, 0.0)
     );
-    return mix(color, analogColor, strength);
+
+    float block_id = floor(uv.y * 20.0);
+    float block_trigger = hash(vec2(block_id, floor(time * 10.0)));
+    if (block_trigger > 0.95) {
+        float block_shift = (hash(vec2(block_id, time)) - 0.5) * 0.05 * strength;
+        glitch_color = sample_rgb_split(
+            glitch_uv + vec2(block_shift, 0.0),
+            glitch_uv,
+            glitch_uv - vec2(block_shift, 0.0)
+        );
+    }
+
+    return mix(color, glitch_color, strength);
 }
 
-// --- Main ---
+vec3 apply_pixel_grid(vec2 uv, vec3 color) {
+    if (!ENABLE_PIXELATION) return color;
+
+    vec2 grid_coords = fract(uv * PIXEL.grid_size);
+    vec2 grid_lines = smoothstep(0.95, 0.99, grid_coords);
+    float grid_mask = 1.0 - max(grid_lines.x, grid_lines.y);
+
+    return color * mix(vec3(0.2), vec3(1.0), grid_mask);
+}
+
+vec3 apply_film_grain(vec2 uv, vec3 color) {
+    if (!ENABLE_FILM_GRAIN) return color;
+
+    float frame = floor(mod(time, 1000.0) * GRAIN.speed);
+    vec2 grain_uv = (uv * get_resolution()) / max(GRAIN.size, 0.1);
+    grain_uv += hash22(vec2(frame)) * 100.0;
+
+    float mono_grain = hash(vec3(grain_uv, frame));
+
+    vec3 chroma_grain = vec3(
+        hash(vec3(grain_uv + 0.1, frame)),
+        hash(vec3(grain_uv + 0.2, frame)),
+        hash(vec3(grain_uv + 0.3, frame))
+    );
+
+    float response = 1.0 - pow(luma(color), 2.0);
+
+    color += (mono_grain - 0.5) * GRAIN.intensity * GRAIN.luma_amount * response;
+    color += (chroma_grain - 0.5) * GRAIN.intensity * GRAIN.chroma_amount * response;
+
+    return clamp(color, 0.0, 1.0);
+}
+
 void main() {
-    float alpha;
-    vec3 color;
-    vec2 processedUV = v_texcoord;
+    float alpha = texture(tex, v_texcoord).a;
 
-    float currentInterval = floor(time / GLITCH_INTERVAL);
-    float tInInterval = fract(time / GLITCH_INTERVAL);
-    float seedGlitch = random(vec2(currentInterval));
-    float intervalActive = step(seedGlitch, GLITCH_PROBABILITY);
-    float isActiveGlitch = intervalActive * step(tInInterval, GLITCH_DURATION);
+    vec2 uv = pixelate_uv(v_texcoord);
 
-    #if DEBUG_DRIFT
-        processedUV = applyDrift(processedUV, time);
-    #endif
-    #if DEBUG_VIBRATION
-        processedUV = applyCRTVibration(processedUV, time);
-    #endif
-
-    processedUV = pixelate(processedUV);
-
-    #if DEBUG_CA
-        color = applyChromaticAberration(processedUV, alpha);
-    #else
-        vec4 base = texture(tex, processedUV);
-        color = base.rgb;
-        alpha = base.a;
-    #endif
-
-    #if DEBUG_GLITCH
-        color = applyAnalogGlitch(processedUV, time, color, isActiveGlitch, tInInterval);
-    #endif
-
-    color = applyPixelGrid(processedUV, color);
-
-    #if DEBUG_BLOOM
-        color += calculateBloom(processedUV);
-    #endif
-
-    #if DEBUG_COLOR_TEMP
-        color = mix(color, color * colorTemperatureToRGB(COLOR_TEMPERATURE), COLOR_TEMPERATURE_STRENGTH);
-    #endif
-
-    color = applyColorDepthReduction(color);
-
-    #if DEBUG_SCANLINE
-        color *= applyScanlines(v_texcoord, time);
-    #endif
-
-    #if DEBUG_VIGNETTE
-        float vig = computeVignette(processedUV);
-        #if VIGNETTE_MODE == 0
-            color *= mix(1.0 - VIGNETTE_STRENGTH, 1.0, vig);
-        #else
-            color = mix(color * VIGNETTE_COLOR, color, vig);
-            color *= mix(1.0 - VIGNETTE_STRENGTH/2.0, 1.0, vig);
-        #endif
-    #endif
-
-    #if DEBUG_VHS_OVERLAY
-        color = applyVHSEffect(processedUV, time, color);
-    #endif
-
-    #if DEBUG_GRAIN
-        color = applyGrain(processedUV, color, time);
-    #endif
+    vec3 color = sample_with_chromatic_aberration(uv);
+    color = apply_color_bleed(uv, color);
+    color = apply_glitch(uv, color);
+    color = apply_pixel_grid(uv, color);
+    color = apply_film_grain(uv, color);
 
     fragColor = vec4(color, alpha);
 }
