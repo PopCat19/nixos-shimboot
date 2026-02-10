@@ -60,11 +60,6 @@ on:
         required: false
         default: false
         type: boolean
-      push_cachix_only:
-        description: 'Only push Nix derivations to Cachix (skip image build)'
-        required: false
-        default: false
-        type: boolean
 
 env:
   NIXPKGS_ALLOW_UNFREE: 1
@@ -125,6 +120,17 @@ jobs:
           # We manually push to control exactly what gets cached
           skipPush: true
 
+      - name: Prewarm Cachix (cache-first, no build)
+        run: |
+          echo "🔍 Pre-warming Cachix (no builds)..."
+          nix build --dry-run --impure --accept-flake-config \
+            .#chromeos-shim-${{ matrix.board }} \
+            .#chromeos-recovery-${{ matrix.board }} \
+            .#extracted-kernel-${{ matrix.board }} \
+            .#initramfs-patching-${{ matrix.board }} \
+            .#raw-rootfs \
+            2>&1 | grep -E "will be fetched|will be built" || true
+
       - name: Build Nix components
         run: |
           BOARD="${{ matrix.board }}"
@@ -159,18 +165,7 @@ jobs:
           echo "🔨 Building RootFS: $ROOTFS_ATTR"
           nix build --impure --accept-flake-config ".#${ROOTFS_ATTR}" --print-out-paths
 
-      - name: Prewarm Cachix (cache-first, no build)
-        run: |
-          echo "🔍 Pre-warming Cachix (no builds)..."
-          nix build --dry-run --impure --accept-flake-config \
-            .#chromeos-shim-${{ matrix.board }} \
-            .#chromeos-recovery-${{ matrix.board }} \
-            .#extracted-kernel-${{ matrix.board }} \
-            .#initramfs-patching-${{ matrix.board }} \
-            .#raw-rootfs \
-            2>&1 | grep -E "will be fetched|will be built" || true
-
-      - name: Explicitly Push to Cachix
+      - name: Push to Cachix
         if: ${{ github.event.inputs.build_mode == 'cachix-only' || github.event.inputs.build_mode == 'full' }}
         env:
           CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
@@ -184,13 +179,13 @@ jobs:
             --skip-image
 
       - name: Install Assembly Dependencies
-        if: ${{ github.event.inputs.build_mode == 'full' && github.event.inputs.push_cachix_only != 'true' }}
+        if: ${{ github.event.inputs.build_mode == 'full' }}
         run: |
           sudo apt-get update
           sudo apt-get install -y parted gdisk e2fsprogs util-linux pv zstd vboot-utils
 
       - name: Assemble Image
-        if: ${{ github.event.inputs.build_mode == 'full' && github.event.inputs.push_cachix_only != 'true' }}
+        if: ${{ github.event.inputs.build_mode == 'full' }}
         run: |
           # Load Nix environment
           if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
@@ -225,7 +220,7 @@ jobs:
           if [ "$success" = "false" ]; then echo "❌ Assembly failed."; exit 1; fi
 
       - name: Compress and Artifact
-        if: ${{ github.event.inputs.build_mode == 'full' && github.event.inputs.push_cachix_only != 'true' }}
+        if: ${{ github.event.inputs.build_mode == 'full' }}
         run: |
           set -e
 
@@ -247,7 +242,7 @@ jobs:
           ARTIFACT_BASE="${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs }}"
 
           echo "📦 Compressing..."
-          stdbuf -oL pv shimboot.img | stdbuf -oL zstd -19 --long -T0 -o "${ARTIFACT_BASE}.img.zst"
+          stdbuf -oL pv shimboot.img | stdbuf -oL zstd -15 --long -T0 -o "${ARTIFACT_BASE}.img.zst"
 
           # Save checksum
           if [ "${{ github.event.inputs.include_checksum }}" = "true" ]; then
@@ -264,24 +259,11 @@ jobs:
           sudo rm -f shimboot.img
 
       - name: Upload Artifact
-        if: ${{ github.event.inputs.build_mode == 'full' && github.event.inputs.push_cachix_only != 'true' }}
+        if: ${{ github.event.inputs.build_mode == 'full' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs }}
           path: artifacts/${{ matrix.board }}/*
-
-      - name: Push Derivations to Cachix (Derivation-only)
-        if: ${{ github.event.inputs.push_cachix_only == 'true' }}
-        env:
-          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
-        run: |
-          chmod +x tools/push-to-cachix.sh
-          echo "🚀 Pushing derivations to Cachix (no image build)..."
-          ./tools/push-to-cachix.sh \
-            --board "${{ matrix.board }}" \
-            --rootfs "${{ github.event.inputs.rootfs || 'minimal' }}" \
-            --drivers "${{ github.event.inputs.drivers_mode || 'vendor' }}" \
-            --skip-image
 
   # ==================================================================
   # JOB 2: RELEASE (Conditional)
@@ -289,8 +271,7 @@ jobs:
   create-release:
     needs: build
     if: ${{ github.event.inputs.create_release == 'true' &&
-            github.event.inputs.build_mode == 'full' &&
-            github.event.inputs.push_cachix_only != 'true' }}
+            github.event.inputs.build_mode == 'full' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -334,17 +315,11 @@ jobs:
           echo "" >> "$GITHUB_OUTPUT"
           echo "**Prerequisites:** Install zstd utility if not already available" >> "$GITHUB_OUTPUT"
           echo "- **Package Manager (preferred):**" >> "$GITHUB_OUTPUT"
-          echo "  - Arch and its derivatives: \`sudo pacman -Sy \`" >> "$GITHUB_OUTPUT"
+          echo "  - Arch and its derivatives: \`sudo pacman -Sy zstd\`" >> "$GITHUB_OUTPUT"
           echo "  - Ubuntu/Debian: \`sudo apt install zstd\`" >> "$GITHUB_OUTPUT"
           echo "  - macOS: \`brew install zstd\` or \`sudo port install zstd\`" >> "$GITHUB_OUTPUT"
           echo "  - Fedora/RHEL: \`sudo dnf install zstd\` or \`sudo yum install zstd\`" >> "$GITHUB_OUTPUT"
           echo "- **Nix (if available):** \`nix-shell -p zstd\`" >> "$GITHUB_OUTPUT"
-          echo "- **Manual install:** Download from https://facebook.github.io/zstd/" >> "$GITHUB_OUTPUT"
-          echo "- **Package Manager (preferred):**" >> "$GITHUB_OUTPUT"
-          echo "  - Ubuntu/Debian: `sudo apt install zstd`" >> "$GITHUB_OUTPUT"
-          echo "  - macOS: `brew install zstd` or `sudo port install zstd`" >> "$GITHUB_OUTPUT"
-          echo "  - Fedora/RHEL: `sudo dnf install zstd` or `sudo yum install zstd`" >> "$GITHUB_OUTPUT"
-          echo "- **Nix (if available):** `nix-shell -p zstd`" >> "$GITHUB_OUTPUT"
           echo "- **Manual install:** Download from https://facebook.github.io/zstd/" >> "$GITHUB_OUTPUT"
           echo "" >> "$GITHUB_OUTPUT"
           echo "1. Extract the image:" >> "$GITHUB_OUTPUT"

@@ -85,6 +85,12 @@ fi
 # Ensure manifests directory exists
 mkdir -p manifests
 
+# Add cleanup trap for leftover chunk files
+cleanup() {
+	rm -f "${BOARD}".zip.* 2>/dev/null || true
+}
+trap cleanup EXIT
+
 # --fixup mode: sort and clean manifest
 if $FIXUP; then
 	if [ ! -f "$OUT_PATH" ]; then
@@ -93,7 +99,7 @@ if $FIXUP; then
 	fi
 	log_info "Fixing up manifest $OUT_PATH..." >&2
 	header=$(sed -n '1,/chunks = \[/p' "$OUT_PATH")
-	entries=$(grep '^[[:space:]]*{ name = "' "$OUT_PATH" | sort -t. -k3,3n)
+	entries=$(grep '^[[:space:]]*{ name = "' "$OUT_PATH" | sort -t'"' -k2 -V)
 	{
 		echo "$header"
 		echo "$entries"
@@ -140,7 +146,12 @@ if [ -f "$OUT_PATH" ]; then
 				break
 			fi
 		done
-		read -rp "Do you want to resume from chunk index $start_index (${chunks[$start_index]})? [Y/n] " ans
+		# Add CI guard for interactive prompt
+		if [[ -t 0 ]]; then
+			read -rp "Resume from chunk index $start_index (${chunks[$start_index]})? [Y/n] " ans
+		else
+			ans="Y"  # Auto-resume in CI
+		fi
 		if [[ "$ans" =~ ^[Nn]$ ]]; then
 			start_index=0
 			rm -f "${BOARD}".zip.* 2>/dev/null || true
@@ -201,8 +212,8 @@ printf "%s\n" "${chunks[@]:$start_index}" | nl -v"$start_index" -w4 -s' ' |
 # Join chunks into a zip
 cat "${BOARD}".zip.* >"${BOARD}.zip"
 
-# Extract shim.bin from the zip
-unzip -p "${BOARD}.zip" >"${BOARD}.bin"
+# Extract shim.bin from the zip (specify target file)
+unzip -p "${BOARD}.zip" "shim.bin" >"${BOARD}.bin"
 
 # Compute Nix-style sha256 of shim.bin
 shim_hash=$(nix hash file --type sha256 "${BOARD}.bin")
@@ -213,7 +224,7 @@ rm -f "${BOARD}.zip" "${BOARD}.bin" "${BOARD}".zip.* 2>/dev/null || true
 # Fix-up sort at the end and insert correct hash
 log_info "Sorting manifest entries..." >&2
 header=$(sed -n '1,/chunks = \[/p' "$OUT_PATH" | sed "s|hash = \"\";|hash = \"${shim_hash}\";|")
-entries=$(grep '^[[:space:]]*{ name = "' "$OUT_PATH" | sort -t. -k3,3n)
+entries=$(grep '^[[:space:]]*{ name = "' "$OUT_PATH" | sort -t'"' -k2 -V)
 
 {
 	echo "$header"

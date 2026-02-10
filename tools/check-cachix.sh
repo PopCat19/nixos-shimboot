@@ -59,21 +59,31 @@ echo
 log_info "Checking cache coverage for board: $BOARD"
 echo
 
+missing=0
 for attr in "${ATTRS[@]}"; do
 	printf "  %-30s ... " "$attr"
 
-	# Get derivation path without building
-	drv_path=$(nix eval --raw ".#${attr}" 2>/dev/null || echo "")
+	# Get store path using nix path-info
+	store_path=$(nix path-info --json --impure --accept-flake-config ".#${attr}" 2>/dev/null | jq -r '.[0].path // empty' || echo "")
 
-	if [ -z "$drv_path" ]; then
+	if [ -z "$store_path" ]; then
 		log_warn "SKIP (not found)"
 		continue
 	fi
 
+	# Extract hash from store path for narinfo URL
+	store_hash=$(basename "$store_path" | cut -d- -f1)
+
 	# Query Cachix
-	if curl -sf "https://${CACHE}.cachix.org/${drv_path}.narinfo" >/dev/null 2>&1; then
+	if curl -sf "https://${CACHE}.cachix.org/${store_hash}.narinfo" >/dev/null 2>&1; then
 		log_success "CACHED"
 	else
 		log_error "MISSING"
+		((missing++))
 	fi
 done
+
+# Exit with error if any derivations are missing
+if [ "$missing" -gt 0 ]; then
+	exit 1
+fi

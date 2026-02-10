@@ -41,7 +41,7 @@ log_error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 log_success() { echo -e "${GREEN}[SUCCESS]${NC} $*" >&2; }
 
 usage() {
-	cat <<'EOF'
+	cat <<EOF
 Usage: $0 [OPTIONS] [BOARD]
 
 Fetch ChromeOS recovery image hashes and update chromeos-sources.nix.
@@ -150,7 +150,7 @@ fetch_google_recovery_data() {
 	fi
 
 	# Convert to expected format
-	jq 'reduce .[] as $item ({}; 
+	jq 'reduce .[] as $item ({};
 		if $item.channel == "stable-channel" then
 			.[$item.board] = {url: $item.url, sha256: $item.sha256}
 		else . end
@@ -233,10 +233,10 @@ update_nix_file() {
 		return 0
 	fi
 
-	# Use awk for reliable multi-line pattern replacement
+	# Use awk for reliable multi-line pattern replacement with word boundaries
 	awk -v board="$board" -v url="$url" -v hash="$hash" '
 		BEGIN { in_board = 0 }
-		$0 ~ board " = \\{" { in_board = 1 }
+		$0 ~ "\"" board "\"" " = \\{" { in_board = 1 }
 		in_board && /url = / { $0 = "        url = \"" url "\";" }
 		in_board && /sha256 = / { $0 = "        sha256 = \"" hash "\";"; in_board = 0 }
 		{ print }
@@ -257,7 +257,7 @@ validate_nix_file() {
 	fi
 
 	log_success "Nix syntax valid"
-	return 0
+	return 1
 }
 
 process_board() {

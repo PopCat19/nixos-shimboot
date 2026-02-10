@@ -18,10 +18,8 @@
 #   --board BOARD              Target board (required)
 #   --rootfs FLAVOR            Rootfs variant (full, minimal)
 #   --drivers MODE             Driver mode (vendor, inject, both, none)
-#   --image PATH               Path to final shimboot.img (for info only, not uploaded)
 #   --skip-derivations         Skip pushing Nix derivations
 #   --skip-chunks              Skip pushing ChromeOS chunk derivations
-#   --skip-image               Skip image info display
 #   --dry-run                  Show what would be done
 #
 # Examples:
@@ -31,11 +29,8 @@
 #   # Push derivations including ChromeOS chunks (caches CDN pulls)
 #   ./tools/push-to-cachix.sh --board dedede
 #
-#   # Show image info (no upload)
-#   ./tools/push-to-cachix.sh --board dedede --image work/shimboot.img --rootfs full --drivers vendor
-#
 #   # Dry run
-#   ./tools/push-to-cachix.sh --board dedede --image work/shimboot.img --dry-run
+#   ./tools/push-to-cachix.sh --board dedede --dry-run
 
 set -euo pipefail
 
@@ -56,10 +51,8 @@ CACHE="shimboot-systemd-nixos"
 BOARD=""
 ROOTFS_FLAVOR="full"
 DRIVERS_MODE="vendor"
-IMAGE_PATH=""
 SKIP_DERIVATIONS=0
 SKIP_CHUNKS=0
-SKIP_IMAGE=0
 DRY_RUN=0
 
 usage() {
@@ -70,10 +63,8 @@ Options:
     --board BOARD              Target board (required)
     --rootfs FLAVOR            Rootfs variant (full, minimal)
     --drivers MODE             Driver mode (vendor, inject, both, none)
-    --image PATH               Path to final shimboot.img (for info only, not uploaded)
     --skip-derivations         Skip pushing Nix derivations
     --skip-chunks              Skip pushing ChromeOS chunk derivations
-    --skip-image               Skip image info display
     --dry-run                  Show what would be done
 
 Examples:
@@ -82,9 +73,6 @@ Examples:
 
     # Push derivations without chunks
     ./push-to-cachix.sh --board dedede --skip-chunks
-
-    # Show image info (no upload)
-    ./push-to-cachix.sh --board dedede --image work/shimboot.img --rootfs full --drivers vendor
 EOF
 }
 
@@ -103,20 +91,12 @@ while [[ $# -gt 0 ]]; do
 		DRIVERS_MODE="${2:-vendor}"
 		shift 2
 		;;
-	--image)
-		IMAGE_PATH="${2:-}"
-		shift 2
-		;;
 	--skip-derivations)
 		SKIP_DERIVATIONS=1
 		shift
 		;;
 	--skip-chunks)
 		SKIP_CHUNKS=1
-		shift
-		;;
-	--skip-image)
-		SKIP_IMAGE=1
 		shift
 		;;
 	--dry-run)
@@ -143,7 +123,7 @@ if [[ -z "$BOARD" ]]; then
 fi
 
 # Check dependencies
-for cmd in cachix nix curl zstd; do
+for cmd in cachix nix; do
 	if ! command -v "$cmd" >/dev/null 2>&1; then
 		log_error "Missing dependency: $cmd"
 		exit 1
@@ -165,16 +145,6 @@ safe_exec() {
 	else
 		"$@"
 	fi
-}
-
-# Compute configuration hash
-compute_config_hash() {
-	local board="$1"
-	local rootfs="$2"
-	local drivers="$3"
-	local git_commit="${4:-unknown}"
-
-	echo "${board}-${rootfs}-${drivers}-${git_commit}" | sha256sum | cut -d' ' -f1 | cut -c1-16
 }
 
 # Push Nix derivations
@@ -223,8 +193,6 @@ push_derivations() {
 				continue
 			fi
 
-			# FIX: Push everything relevant. Removed overly strict regex.
-			# If the user explicitly asks to push these targets, we push them.
 			log_info "Pushing to $CACHE: $(basename "$store_path")"
 
 			# Use authToken from env (CACHIX_AUTH_TOKEN) if set, handled by cachix CLI automatically
@@ -244,88 +212,19 @@ push_chunks() {
 
 	log_info "Pushing ChromeOS chunk derivations for board: $board"
 
-	# Get the chromeos-shim derivation to find its chunk dependencies
-	local shim_drv
-	shim_drv=$(nix eval --raw --impure --accept-flake-config ".#chromeos-shim-${board}.drvPath" 2>/dev/null || echo "")
+	# Get the realized output path of the shim derivation
+	local shim_path
+	shim_path=$(nix build --impure --accept-flake-config --print-out-paths \
+		".#chromeos-shim-${board}" 2>/dev/null || echo "")
 
-	if [[ -z "$shim_drv" ]]; then
-		log_warn "Could not get shim derivation path, skipping chunk push"
+	if [[ -z "$shim_path" ]]; then
+		log_warn "Could not build shim for chunk discovery"
 		return 0
 	fi
 
-	# Extract chunk store paths from the derivation
-	local chunk_paths
-	chunk_paths=$(nix-store --query --requisites --include-outputs "$shim_drv" 2>/dev/null | grep -E "chunk.*\.zip$" || echo "")
-
-	if [[ -z "$chunk_paths" ]]; then
-		log_warn "No chunk derivations found for $board"
-		return 0
-	fi
-
-	local chunk_count
-	chunk_count=$(echo "$chunk_paths" | wc -l)
-	log_info "Found $chunk_count chunk derivations to push"
-
-	local pushed=0
-	local failed=0
-	while IFS= read -r chunk_path; do
-		if [[ -z "$chunk_path" ]]; then
-			continue
-		fi
-
-		local chunk_name
-		chunk_name=$(basename "$chunk_path")
-
-		if [[ "$DRY_RUN" -eq 1 ]]; then
-			log_info "[DRY-RUN] Would push chunk: $chunk_name"
-			((pushed++))
-		else
-			log_info "Pushing chunk: $chunk_name"
-			if safe_exec cachix push "$CACHE" "$chunk_path" 2>&1 | grep -v "Compressing"; then
-				log_success "Pushed chunk: $chunk_name"
-				((pushed++))
-			else
-				log_error "Failed to push chunk: $chunk_name"
-				((failed++))
-			fi
-		fi
-	done <<< "$chunk_paths"
-
-	log_info "Chunk push complete: $pushed pushed, $failed failed"
-}
-
-# Upload final image (disabled - cachix no longer supports arbitrary file uploads)
-upload_image() {
-	local image_path="$1"
-	local board="$2"
-	local rootfs="$3"
-	local drivers="$4"
-
-	if [[ ! -f "$image_path" ]]; then
-		log_error "Image not found: $image_path"
-		return 1
-	fi
-
-	log_warn "Image upload to Cachix is no longer supported"
-	log_warn "Cachix removed --file option in newer versions"
-	log_warn "Image remains at: $image_path"
-
-	# Get git commit
-	local git_commit="unknown"
-	if command -v git >/dev/null 2>&1 && [[ -d .git ]]; then
-		git_commit=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-	fi
-
-	# Compute config hash for reference
-	local config_hash
-	config_hash=$(compute_config_hash "$board" "$rootfs" "$drivers" "$git_commit")
-
-	log_info "Image info for reference:"
-	log_info "  Board: $board"
-	log_info "  Rootfs: $rootfs"
-	log_info "  Drivers: $drivers"
-	log_info "  Config hash: $config_hash"
-	log_info "  Size: $(du -h "$image_path" | cut -f1)"
+	# Push the entire closure (includes all fetched chunks)
+	log_info "Pushing shim closure (includes chunks)..."
+	nix-store --query --requisites "$shim_path" | cachix push "$CACHE"
 }
 
 # Main execution
@@ -352,15 +251,6 @@ main() {
 		push_chunks "$BOARD"
 	else
 		log_info "Skipping chunk push (--skip-chunks)"
-	fi
-
-	# Upload image
-	if [[ -n "$IMAGE_PATH" ]] && [[ "$SKIP_IMAGE" -eq 0 ]]; then
-		upload_image "$IMAGE_PATH" "$BOARD" "$ROOTFS_FLAVOR" "$DRIVERS_MODE"
-	elif [[ "$SKIP_IMAGE" -eq 1 ]]; then
-		log_info "Skipping image upload (--skip-image)"
-	elif [[ -z "$IMAGE_PATH" ]]; then
-		log_info "No image path provided (--image PATH)"
 	fi
 
 	log_success "Cachix push complete"

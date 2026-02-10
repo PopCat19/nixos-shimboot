@@ -24,7 +24,6 @@
 #   --no-dry-run           Actually delete in cleanup (default: dry-run)
 #   --dry-run              Show what would be done without executing destructive operations
 #   --prewarm-cache        Attempt to fetch from Cachix before building
-#   --pull-cached-image    Pull pre-built image from Cachix instead of building
 #   --push-to-cachix       Automatically push Nix derivations to Cachix after successful build (image upload no longer supported)
 #
 # Examples:
@@ -39,9 +38,6 @@
 #
 #   # Build with cache pre-warming
 #   ./assemble-final.sh --board dedede --rootfs full --prewarm-cache
-#
-#   # Use cached image instead of building
-#   ./assemble-final.sh --board dedede --rootfs full --pull-cached-image
 #
 #   # Build and automatically push Nix derivations to Cachix
 #   ./assemble-final.sh --board dedede --rootfs full --push-to-cachix
@@ -147,20 +143,6 @@ log_success() {
 	printf "${ANSI_GREEN}  ✓ %s${ANSI_CLEAR}\n" "$1"
 }
 
-# Add after color definitions
-show_progress() {
-	local current="$1"
-	local total="$2"
-	local step_name="$3"
-	local percent=$((current * 100 / total))
-
-	printf "\r${ANSI_BLUE}Progress: [%-50s] %d%% (%d/%d) - %s${ANSI_CLEAR}" \
-		"$(printf '#%.0s' $(seq 1 $((percent / 2))))" \
-		"$percent" "$current" "$total" "$step_name"
-
-	[ "$current" -eq "$total" ] && echo
-}
-
 # === Cachix Configuration (fixed cache, CI-safe) ===
 CACHIX_CACHE="shimboot-systemd-nixos"
 CACHIX_PUBKEY="shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA="
@@ -225,6 +207,7 @@ export NIXPKGS_ALLOW_UNFREE="${NIXPKGS_ALLOW_UNFREE:-1}"
 SYSTEM="x86_64-linux"
 
 # Initialize BOARD_EXPLICITLY_SET before CLI parsing
+BOARD="${BOARD:-}"
 BOARD_EXPLICITLY_SET="${BOARD_EXPLICITLY_SET:-}"
 ROOTFS_NAME="${ROOTFS_NAME:-nixos}"
 ROOTFS_FLAVOR="${ROOTFS_FLAVOR:-}"
@@ -243,7 +226,6 @@ CLEANUP_KEEP=""
 
 # Cache options
 PREWARM_CACHE=0
-PULL_CACHED_IMAGE=0
 PUSH_TO_CACHIX=0
 
 while [ $# -gt 0 ]; do
@@ -292,10 +274,6 @@ while [ $# -gt 0 ]; do
 		;;
 	--prewarm-cache)
 		PREWARM_CACHE=1
-		shift
-		;;
-	--pull-cached-image)
-		PULL_CACHED_IMAGE=1
 		shift
 		;;
 	--push-to-cachix)
@@ -417,74 +395,6 @@ check_disk_space() {
 
 # Usage
 check_disk_space 30 "$(dirname "$WORKDIR")"
-
-# === Function: Check for cached image ===
-check_cached_image() {
-	local board="$1"
-	local rootfs="$2"
-	local drivers="$3"
-
-	log_step "Cache" "Checking for pre-built image in Cachix"
-
-	# Get git commit
-	local git_commit="unknown"
-	if command -v git >/dev/null 2>&1 && [[ -d .git ]]; then
-		git_commit=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-	fi
-
-	# Compute config hash (same as push-to-cachix.sh)
-	local config_hash
-	config_hash=$(echo "${board}-${rootfs}-${drivers}-${git_commit}" | sha256sum | cut -d' ' -f1 | cut -c1-16)
-
-	local manifest_name="shimboot-manifest-${config_hash}.json"
-	local manifest_url="https://${CACHIX_CACHE}.cachix.org/${manifest_name}"
-
-	log_info "Looking for manifest: $manifest_name"
-
-	# Check if manifest exists
-	if ! curl -sf "$manifest_url" -o "/tmp/${manifest_name}" 2>/dev/null; then
-		log_warn "No cached image found for this configuration"
-		return 1
-	fi
-
-	log_success "Found cached image manifest"
-
-	# Parse manifest
-	local filename
-	filename=$(jq -r '.filename' "/tmp/${manifest_name}")
-
-	if [[ -z "$filename" ]] || [[ "$filename" == "null" ]]; then
-		log_error "Invalid manifest format"
-		rm -f "/tmp/${manifest_name}"
-		return 1
-	fi
-
-	# Download compressed image
-	local image_url="https://${CACHIX_CACHE}.cachix.org/${filename}"
-	log_info "Downloading: $filename"
-
-	if ! curl -L --progress-bar "$image_url" -o "/tmp/${filename}"; then
-		log_error "Failed to download cached image"
-		rm -f "/tmp/${manifest_name}"
-		return 1
-	fi
-
-	# Decompress
-	log_info "Decompressing image..."
-	if ! pv "/tmp/${filename}" | zstd -d >"$IMAGE"; then
-		log_error "Failed to decompress image"
-		rm -f "/tmp/${filename}" "/tmp/${manifest_name}"
-		return 1
-	fi
-
-	# Cleanup
-	rm -f "/tmp/${filename}" "/tmp/${manifest_name}"
-
-	log_success "Successfully retrieved cached image: $IMAGE"
-	return 0
-}
-
-START_STEP=0
 
 # === Track loop devices for cleanup ===
 LOOPDEV=""
@@ -614,75 +524,36 @@ if [ "$PREWARM_CACHE" -eq 1 ]; then
 		2>&1 | grep "will be fetched" || log_info "Nothing to fetch"
 fi
 
-# === Check for cached image if requested ===
-if [ "$PULL_CACHED_IMAGE" -eq 1 ]; then
-	if check_cached_image "$BOARD" "$ROOTFS_FLAVOR" "$DRIVERS_MODE"; then
-		log_success "Using cached image, skipping build"
-
-		# Optionally inspect
-		if [ "$INSPECT_AFTER" = "--inspect" ]; then
-			CURRENT_STEP="Inspect"
-			log_step "$CURRENT_STEP" "Partition table and init check"
-			safe_exec sudo partx -o NR,START,END,SIZE,TYPE,NAME,UUID -g --show "$IMAGE"
-			LOOPDEV=$(sudo losetup --show -fP "$IMAGE")
-			mkdir -p "$WORKDIR/inspect_rootfs"
-			safe_exec sudo mount "${LOOPDEV}p5" "$WORKDIR/inspect_rootfs"
-			sudo ls -l "$WORKDIR/inspect_rootfs"
-			if [ -f "$WORKDIR/inspect_rootfs/sbin/init" ]; then
-				log_info "Init found at /sbin/init → $(file -b "$WORKDIR/inspect_rootfs/sbin/init")"
-			elif [ -f "$WORKDIR/inspect_rootfs/init" ]; then
-				log_info "Init found at /init → $(file -b "$WORKDIR/inspect_rootfs/init")"
-			else
-				log_error "Init missing"
-			fi
-			safe_exec sudo umount "$WORKDIR/inspect_rootfs"
-			safe_exec sudo losetup -d "$LOOPDEV"
-		fi
-
-		exit 0
-	else
-		log_warn "Cached image not found, proceeding with build"
-	fi
-fi
-
 # === Step 1: Build Nix outputs (parallel) ===
-if [ "$START_STEP" -le 1 ]; then
-	CURRENT_STEP="1/15"
-	log_step "$CURRENT_STEP" "Building Nix outputs (parallel)"
+CURRENT_STEP="1/15"
+log_step "$CURRENT_STEP" "Building Nix outputs (parallel)"
 
-	# Build all in parallel, capture PIDs
-	nix build "${NIX_BUILD_FLAGS[@]}" .#extracted-kernel-${BOARD} &
-	KERNEL_PID=$!
-	nix build "${NIX_BUILD_FLAGS[@]}" .#initramfs-patching-${BOARD} &
-	INITRAMFS_PID=$!
-	nix build "${NIX_BUILD_FLAGS[@]}" .#${RAW_ROOTFS_ATTR} &
-	ROOTFS_PID=$!
+# Build all in parallel, capture PIDs
+nix build "${NIX_BUILD_FLAGS[@]}" .#extracted-kernel-${BOARD} &
+KERNEL_PID=$!
+nix build "${NIX_BUILD_FLAGS[@]}" .#initramfs-patching-${BOARD} &
+INITRAMFS_PID=$!
+nix build "${NIX_BUILD_FLAGS[@]}" .#${RAW_ROOTFS_ATTR} &
+ROOTFS_PID=$!
 
-	# Wait and check each
-	wait $KERNEL_PID || {
-		log_error "Kernel build failed"
-		handle_error "$CURRENT_STEP"
-	}
-	wait $INITRAMFS_PID || {
-		log_error "Initramfs build failed"
-		handle_error "$CURRENT_STEP"
-	}
-	wait $ROOTFS_PID || {
-		log_error "Rootfs build failed"
-		handle_error "$CURRENT_STEP"
-	}
+# Wait and check each
+wait $KERNEL_PID || {
+	log_error "Kernel build failed"
+	handle_error "$CURRENT_STEP"
+}
+wait $INITRAMFS_PID || {
+	log_error "Initramfs build failed"
+	handle_error "$CURRENT_STEP"
+}
+wait $ROOTFS_PID || {
+	log_error "Rootfs build failed"
+	handle_error "$CURRENT_STEP"
+}
 
-	# Get paths (instant since already built)
-	ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config ".#extracted-kernel-${BOARD}" --print-out-paths)/p2.bin"
-	PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config ".#initramfs-patching-${BOARD}" --print-out-paths)/patched-initramfs"
-	RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config ".#${RAW_ROOTFS_ATTR}" --print-out-paths)/nixos.img"
-else
-	log_info "Skipping step 1 (already completed)"
-	# Get paths (instant since already built)
-	ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config ".#extracted-kernel-${BOARD}" --print-out-paths)/p2.bin"
-	PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config ".#initramfs-patching-${BOARD}" --print-out-paths)/patched-initramfs"
-	RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config ".#${RAW_ROOTFS_ATTR}" --print-out-paths)/nixos.img"
-fi
+# Get paths (instant since already built)
+ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config ".#extracted-kernel-${BOARD}" --print-out-paths)/p2.bin"
+PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config ".#initramfs-patching-${BOARD}" --print-out-paths)/patched-initramfs"
+RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config ".#${RAW_ROOTFS_ATTR}" --print-out-paths)/nixos.img"
 
 # Validate build results
 if [ ! -f "$ORIGINAL_KERNEL" ]; then
@@ -714,178 +585,121 @@ else
 fi
 
 # === Step 2: Harvest ChromeOS drivers (modules/firmware/modprobe.d) ===
-if [ "$START_STEP" -le 2 ]; then
-	HARVEST_OUT="$WORKDIR/harvested"
-	mkdir -p "$HARVEST_OUT"
-	CURRENT_STEP="2/15"
-	log_step "$CURRENT_STEP" "Harvest ChromeOS drivers"
-	if [ -n "$RECOVERY_PATH" ]; then
-		bash tools/harvest-drivers.sh --shim "$SHIM_BIN" --recovery "$RECOVERY_PATH" --out "$HARVEST_OUT" || {
-			log_error "Driver harvest failed with recovery image"
-			handle_error "$CURRENT_STEP"
-		}
-	else
-		bash tools/harvest-drivers.sh --shim "$SHIM_BIN" --out "$HARVEST_OUT" || {
-			log_error "Driver harvest failed without recovery image"
-			handle_error "$CURRENT_STEP"
-		}
-	fi
+HARVEST_OUT="$WORKDIR/harvested"
+mkdir -p "$HARVEST_OUT"
+CURRENT_STEP="2/15"
+log_step "$CURRENT_STEP" "Harvest ChromeOS drivers"
+if [ -n "$RECOVERY_PATH" ]; then
+	bash tools/harvest-drivers.sh --shim "$SHIM_BIN" --recovery "$RECOVERY_PATH" --out "$HARVEST_OUT" || {
+		log_error "Driver harvest failed with recovery image"
+		handle_error "$CURRENT_STEP"
+	}
 else
-	log_info "Skipping step 2 (already completed)"
-	HARVEST_OUT="$WORKDIR/harvested"
+	bash tools/harvest-drivers.sh --shim "$SHIM_BIN" --out "$HARVEST_OUT" || {
+		log_error "Driver harvest failed without recovery image"
+		handle_error "$CURRENT_STEP"
+	}
 fi
 
 # === Step 3: Augment firmware with upstream ChromiumOS linux-firmware ===
-if [ "$START_STEP" -le 3 ]; then
-	if [ "${FIRMWARE_UPSTREAM:-1}" != "0" ]; then
-		CURRENT_STEP="3/15"
-		log_step "$CURRENT_STEP" "Augment firmware with upstream linux-firmware"
-		log_info "Cloning upstream linux-firmware repository..."
-		UPSTREAM_FW_DIR="$WORKDIR/linux-firmware.upstream"
-		if [ ! -d "$UPSTREAM_FW_DIR" ]; then
-			# Shallow clone to reduce time/size
-			git clone --depth=1 https://chromium.googlesource.com/chromiumos/third_party/linux-firmware "$UPSTREAM_FW_DIR" || true
-		fi
-		log_info "Merging upstream firmware with harvested firmware..."
-		mkdir -p "$HARVEST_OUT/lib/firmware"
-		# Merge, preserving attributes; ignore errors on collisions
-		sudo cp -a "$UPSTREAM_FW_DIR/." "$HARVEST_OUT/lib/firmware/" 2>/dev/null || true
-		log_info "Upstream firmware augmentation complete"
-	else
-		log_info "Upstream firmware disabled, using only harvested firmware"
+if [ "${FIRMWARE_UPSTREAM:-1}" != "0" ]; then
+	CURRENT_STEP="3/15"
+	log_step "$CURRENT_STEP" "Augment firmware with upstream linux-firmware"
+	log_info "Cloning upstream linux-firmware repository..."
+	UPSTREAM_FW_DIR="$WORKDIR/linux-firmware.upstream"
+	if [ ! -d "$UPSTREAM_FW_DIR" ]; then
+		# Shallow clone to reduce time/size
+		git clone --depth=1 https://chromium.googlesource.com/chromiumos/third_party/linux-firmware "$UPSTREAM_FW_DIR" || true
 	fi
+	log_info "Merging upstream firmware with harvested firmware..."
+	mkdir -p "$HARVEST_OUT/lib/firmware"
+	# Merge, preserving attributes; ignore errors on collisions
+	sudo cp -a "$UPSTREAM_FW_DIR/." "$HARVEST_OUT/lib/firmware/" 2>/dev/null || true
+	log_info "Upstream firmware augmentation complete"
 else
-	log_info "Skipping step 3 (already completed)"
+	log_info "Upstream firmware disabled, using only harvested firmware"
 fi
 
 # === Step 4: Prune unused firmware files ===
-if [ "$START_STEP" -le 4 ]; then
-	if [ -d "$HARVEST_OUT/lib/firmware" ]; then
-		CURRENT_STEP="4/15"
-		log_step "$CURRENT_STEP" "Prune unused firmware files"
-		# More robust path resolution
-		SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-		if [ -f "$SCRIPT_DIR/tools/harvest-drivers.sh" ]; then
-			source "$SCRIPT_DIR/tools/harvest-drivers.sh"
-			prune_unused_firmware "$HARVEST_OUT/lib/firmware"
-		else
-			log_warn "harvest-drivers.sh not found; skipping firmware pruning"
-		fi
+if [ -d "$HARVEST_OUT/lib/firmware" ]; then
+	CURRENT_STEP="4/15"
+	log_step "$CURRENT_STEP" "Prune unused firmware files"
+	# More robust path resolution
+	SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+	if [ -f "$SCRIPT_DIR/tools/harvest-drivers.sh" ]; then
+		source "$SCRIPT_DIR/tools/harvest-drivers.sh"
+		prune_unused_firmware "$HARVEST_OUT/lib/firmware"
+	else
+		log_warn "harvest-drivers.sh not found; skipping firmware pruning"
 	fi
-else
-	log_info "Skipping step 4 (already completed)"
 fi
 
 # === Step 5: Calculate vendor partition size AFTER firmware augmentation ===
-if [ "$START_STEP" -le 5 ]; then
-	CURRENT_STEP="5/15"
-	log_step "$CURRENT_STEP" "Calculate vendor partition size after firmware merge"
-	VENDOR_SRC_SIZE_MB=0
-	if [ -d "$HARVEST_OUT/lib/modules" ]; then
-		VENDOR_SRC_SIZE_MB=$((VENDOR_SRC_SIZE_MB + $(sudo du -sm "$HARVEST_OUT/lib/modules" | cut -f1)))
-	fi
-	if [ -d "$HARVEST_OUT/lib/firmware" ]; then
-		VENDOR_SRC_SIZE_MB=$((VENDOR_SRC_SIZE_MB + $(sudo du -sm "$HARVEST_OUT/lib/firmware" | cut -f1)))
-	fi
-
-	# Add 15% overhead + small safety cushion
-	VENDOR_PART_SIZE=$(((VENDOR_SRC_SIZE_MB * 115 / 100) + 20))
-	log_info "Vendor partition size (post-firmware): ${VENDOR_PART_SIZE} MB"
-else
-	log_info "Skipping step 5 (already completed)"
-	# Recalculate values needed for later steps
-	VENDOR_SRC_SIZE_MB=0
-	if [ -d "$HARVEST_OUT/lib/modules" ]; then
-		VENDOR_SRC_SIZE_MB=$((VENDOR_SRC_SIZE_MB + $(sudo du -sm "$HARVEST_OUT/lib/modules" | cut -f1)))
-	fi
-	if [ -d "$HARVEST_OUT/lib/firmware" ]; then
-		VENDOR_SRC_SIZE_MB=$((VENDOR_SRC_SIZE_MB + $(sudo du -sm "$HARVEST_OUT/lib/firmware" | cut -f1)))
-	fi
-	VENDOR_PART_SIZE=$(((VENDOR_SRC_SIZE_MB * 115 / 100) + 20))
+CURRENT_STEP="5/15"
+log_step "$CURRENT_STEP" "Calculate vendor partition size after firmware merge"
+VENDOR_SRC_SIZE_MB=0
+if [ -d "$HARVEST_OUT/lib/modules" ]; then
+	VENDOR_SRC_SIZE_MB=$((VENDOR_SRC_SIZE_MB + $(sudo du -sm "$HARVEST_OUT/lib/modules" | cut -f1)))
 fi
+if [ -d "$HARVEST_OUT/lib/firmware" ]; then
+	VENDOR_SRC_SIZE_MB=$((VENDOR_SRC_SIZE_MB + $(sudo du -sm "$HARVEST_OUT/lib/firmware" | cut -f1)))
+fi
+
+# Add 15% overhead + small safety cushion
+VENDOR_PART_SIZE=$(((VENDOR_SRC_SIZE_MB * 115 / 100) + 20))
+log_info "Vendor partition size (post-firmware): ${VENDOR_PART_SIZE} MB"
 
 # === Step 6: Copy raw rootfs image ===
-if [ "$START_STEP" -le 6 ]; then
-	CURRENT_STEP="6/15"
-	log_step "$CURRENT_STEP" "Copy raw rootfs image"
-	pv "$RAW_ROOTFS_IMG" >"$WORKDIR/rootfs.img"
-
-else
-	log_info "Skipping step 6 (already completed)"
-fi
+CURRENT_STEP="6/15"
+log_step "$CURRENT_STEP" "Copy raw rootfs image"
+pv "$RAW_ROOTFS_IMG" >"$WORKDIR/rootfs.img"
 
 # === Step 7: Optimize Nix store in raw rootfs ===
-if [ "$START_STEP" -le 7 ]; then
-	CURRENT_STEP="7/15"
-	log_step "$CURRENT_STEP" "Optimize Nix store in raw rootfs"
-	LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img") || {
-		log_error "Failed to setup loop device for rootfs optimization"
-		handle_error "$CURRENT_STEP"
-	}
-	safe_exec sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs" || {
-		log_error "Failed to mount rootfs for optimization"
-		handle_error "$CURRENT_STEP"
-	}
+CURRENT_STEP="7/15"
+log_step "$CURRENT_STEP" "Optimize Nix store in raw rootfs"
+LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img") || {
+	log_error "Failed to setup loop device for rootfs optimization"
+	handle_error "$CURRENT_STEP"
+}
+safe_exec sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs" || {
+	log_error "Failed to mount rootfs for optimization"
+	handle_error "$CURRENT_STEP"
+}
 	log_info "Running nix-store --optimise on raw rootfs (may take a while)..."
-	safe_exec sudo nix-store --store "$WORKDIR/mnt_src_rootfs" --optimise || true
+	safe_exec sudo "$(which nix-store)" --store "$WORKDIR/mnt_src_rootfs" --optimise || true
 	log_info "Store optimization complete"
-	safe_exec sudo umount "$WORKDIR/mnt_src_rootfs"
-	safe_exec sudo losetup -d "$LOOPROOT"
-	LOOPROOT=""
-
-else
-	log_info "Skipping step 7 (already completed)"
-fi
+safe_exec sudo umount "$WORKDIR/mnt_src_rootfs"
+safe_exec sudo losetup -d "$LOOPROOT"
+LOOPROOT=""
 
 # === Step 8: Calculate rootfs size ===
-if [ "$START_STEP" -le 8 ]; then
-	CURRENT_STEP="8/15"
-	log_step "$CURRENT_STEP" "Calculate rootfs size"
-	LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
-	safe_exec sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
-	ROOTFS_SIZE_MB=$(sudo du -sm "$WORKDIR/mnt_src_rootfs" | cut -f1)
-	log_info "Rootfs content size: ${ROOTFS_SIZE_MB} MB"
-	safe_exec sudo umount "$WORKDIR/mnt_src_rootfs"
-	safe_exec sudo losetup -d "$LOOPROOT"
-	LOOPROOT=""
+CURRENT_STEP="8/15"
+log_step "$CURRENT_STEP" "Calculate rootfs size"
+LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
+safe_exec sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
+ROOTFS_SIZE_MB=$(sudo du -sm "$WORKDIR/mnt_src_rootfs" | cut -f1)
+log_info "Rootfs content size: ${ROOTFS_SIZE_MB} MB"
+safe_exec sudo umount "$WORKDIR/mnt_src_rootfs"
+safe_exec sudo losetup -d "$LOOPROOT"
+LOOPROOT=""
 
-	# Add 10% growth margin, at least 100 MiB spare
-	ROOTFS_PART_SIZE=$(((ROOTFS_SIZE_MB * 110 / 100) + 100))
-	log_info "Rootfs partition size: ${ROOTFS_PART_SIZE} MB (with safety margin)"
+# Add 10% growth margin, at least 100 MiB spare
+ROOTFS_PART_SIZE=$(((ROOTFS_SIZE_MB * 110 / 100) + 100))
+log_info "Rootfs partition size: ${ROOTFS_PART_SIZE} MB (with safety margin)"
 
-	# Compute end of vendor and total size (MiB)
-	# NEW LAYOUT: vendor comes before rootfs
-	VENDOR_START_MB=54
-	VENDOR_END_MB=$((VENDOR_START_MB + VENDOR_PART_SIZE))
-	TOTAL_SIZE_MB=$((1 + 32 + 20 + VENDOR_PART_SIZE + ROOTFS_PART_SIZE))
-	log_info "Vendor partition size: ${VENDOR_PART_SIZE} MB"
-	log_info "Rootfs partition size: ${ROOTFS_PART_SIZE} MB (initial, expandable)"
-	log_info "Total image size: ${TOTAL_SIZE_MB} MB"
-
-else
-	log_info "Skipping step 8 (already completed)"
-	# Recalculate values needed for later steps
-	LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
-	safe_exec sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
-	ROOTFS_SIZE_MB=$(sudo du -sm "$WORKDIR/mnt_src_rootfs" | cut -f1)
-	safe_exec sudo umount "$WORKDIR/mnt_src_rootfs"
-	safe_exec sudo losetup -d "$LOOPROOT"
-	LOOPROOT=""
-	ROOTFS_PART_SIZE=$(((ROOTFS_SIZE_MB * 110 / 100) + 100))
-	VENDOR_START_MB=54
-	VENDOR_END_MB=$((VENDOR_START_MB + VENDOR_PART_SIZE))
-	TOTAL_SIZE_MB=$((1 + 32 + 20 + VENDOR_PART_SIZE + ROOTFS_PART_SIZE))
-fi
+# Compute end of vendor and total size (MiB)
+# NEW LAYOUT: vendor comes before rootfs
+VENDOR_START_MB=54
+VENDOR_END_MB=$((VENDOR_START_MB + VENDOR_PART_SIZE))
+TOTAL_SIZE_MB=$((1 + 32 + 20 + VENDOR_PART_SIZE + ROOTFS_PART_SIZE))
+log_info "Vendor partition size: ${VENDOR_PART_SIZE} MB"
+log_info "Rootfs partition size: ${ROOTFS_PART_SIZE} MB (initial, expandable)"
+log_info "Total image size: ${TOTAL_SIZE_MB} MB"
 
 # === Step 9: Create empty image ===
-if [ "$START_STEP" -le 9 ]; then
-	CURRENT_STEP="9/15"
-	log_step "$CURRENT_STEP" "Create empty image"
-	fallocate -l ${TOTAL_SIZE_MB}M "$IMAGE"
-
-else
-	log_info "Skipping step 9 (already completed)"
-fi
+CURRENT_STEP="9/15"
+log_step "$CURRENT_STEP" "Create empty image"
+fallocate -l ${TOTAL_SIZE_MB}M "$IMAGE"
 
 # === Partition Layout Logic ===
 if [ "$DRIVERS_MODE" = "inject" ]; then
@@ -899,217 +713,193 @@ else
 fi
 
 # === Step 10: Partition image ===
-if [ "$START_STEP" -le 10 ]; then
-	CURRENT_STEP="10/15"
-	log_step "$CURRENT_STEP" "Partition image (GPT, ChromeOS GUIDs, vendor before rootfs)"
-	if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
-		log_info "Partition layout: vendor (p4), rootfs (p5)"
-		log_info "  p1: STATE (1–2 MiB)"
-		log_info "  p2: KERNEL (2–34 MiB, ChromeOS kernel)"
-		log_info "  p3: BOOT (34–54 MiB, bootloader/initramfs)"
-		log_info "  p4: VENDOR (${VENDOR_START_MB}–${VENDOR_END_MB} MiB, drivers/firmware)"
-		log_info "  p5: ROOTFS (${VENDOR_END_MB} MiB–end, NixOS system)"
+CURRENT_STEP="10/15"
+log_step "$CURRENT_STEP" "Partition image (GPT, ChromeOS GUIDs, vendor before rootfs)"
+if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
+	log_info "Partition layout: vendor (p4), rootfs (p5)"
+	log_info "  p1: STATE (1–2 MiB)"
+	log_info "  p2: KERNEL (2–34 MiB, ChromeOS kernel)"
+	log_info "  p3: BOOT (34–54 MiB, bootloader/initramfs)"
+	log_info "  p4: VENDOR (${VENDOR_START_MB}–${VENDOR_END_MB} MiB, drivers/firmware)"
+	log_info "  p5: ROOTFS (${VENDOR_END_MB} MiB–end, NixOS system)"
 
-		parted --script "$IMAGE" \
-			mklabel gpt \
-			mkpart stateful ext4 1MiB 2MiB \
-			name 1 STATE \
-			mkpart kernel 2MiB 34MiB \
-			name 2 KERNEL \
-			type 2 FE3A2A5D-4F32-41A7-B725-ACCC3285A309 \
-			mkpart bootloader ext2 34MiB 54MiB \
-			name 3 BOOT \
-			type 3 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC \
-			mkpart vendor ext4 ${VENDOR_START_MB}MiB ${VENDOR_END_MB}MiB \
-			name 4 "shimboot_rootfs:vendor" \
-			type 4 0FC63DAF-8483-4772-8E79-3D69D8477DE4 \
-			mkpart rootfs ext4 ${VENDOR_END_MB}MiB 100% \
-			name 5 "shimboot_rootfs:${ROOTFS_NAME}" \
-			type 5 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC
-
-	else
-		log_info "Partition layout: rootfs (p4), no vendor partition"
-		log_info "  p1: STATE (1–2 MiB)"
-		log_info "  p2: KERNEL (2–34 MiB, ChromeOS kernel)"
-		log_info "  p3: BOOT (34–54 MiB, bootloader/initramfs)"
-		log_info "  p4: ROOTFS (54 MiB–end, NixOS system)"
-
-		parted --script "$IMAGE" \
-			mklabel gpt \
-			mkpart stateful ext4 1MiB 2MiB \
-			name 1 STATE \
-			mkpart kernel 2MiB 34MiB \
-			name 2 KERNEL \
-			type 2 FE3A2A5D-4F32-41A7-B725-ACCC3285A309 \
-			mkpart bootloader ext2 34MiB 54MiB \
-			name 3 BOOT \
-			type 3 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC \
-			mkpart rootfs ext4 54MiB 100% \
-			name 4 "shimboot_rootfs:${ROOTFS_NAME}" \
-			type 4 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC
-	fi
-
-	log_info "Partition table:"
-	sudo partx -o NR,START,END,SIZE,TYPE,NAME,UUID -g --show "$IMAGE"
+	parted --script "$IMAGE" \
+		mklabel gpt \
+		mkpart stateful ext4 1MiB 2MiB \
+		name 1 STATE \
+		mkpart kernel 2MiB 34MiB \
+		name 2 KERNEL \
+		type 2 FE3A2A5D-4F32-41A7-B725-ACCC3285A309 \
+		mkpart bootloader ext2 34MiB 54MiB \
+		name 3 BOOT \
+		type 3 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC \
+		mkpart vendor ext4 ${VENDOR_START_MB}MiB ${VENDOR_END_MB}MiB \
+		name 4 "shimboot_rootfs:vendor" \
+		type 4 0FC63DAF-8483-4772-8E79-3D69D8477DE4 \
+		mkpart rootfs ext4 ${VENDOR_END_MB}MiB 100% \
+		name 5 "shimboot_rootfs:${ROOTFS_NAME}" \
+		type 5 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC
 
 else
-	log_info "Skipping step 10 (already completed)"
+	log_info "Partition layout: rootfs (p4), no vendor partition"
+	log_info "  p1: STATE (1–2 MiB)"
+	log_info "  p2: KERNEL (2–34 MiB, ChromeOS kernel)"
+	log_info "  p3: BOOT (34–54 MiB, bootloader/initramfs)"
+	log_info "  p4: ROOTFS (54 MiB–end, NixOS system)"
+
+	parted --script "$IMAGE" \
+		mklabel gpt \
+		mkpart stateful ext4 1MiB 2MiB \
+		name 1 STATE \
+		mkpart kernel 2MiB 34MiB \
+		name 2 KERNEL \
+		type 2 FE3A2A5D-4F32-41A7-B725-ACCC3285A309 \
+		mkpart bootloader ext2 34MiB 54MiB \
+		name 3 BOOT \
+		type 3 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC \
+		mkpart rootfs ext4 54MiB 100% \
+		name 4 "shimboot_rootfs:${ROOTFS_NAME}" \
+		type 4 3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC
 fi
+
+log_info "Partition table:"
+sudo partx -o NR,START,END,SIZE,TYPE,NAME,UUID -g --show "$IMAGE"
 
 # === Step 11: Setup loop device ===
-if [ "$START_STEP" -le 11 ]; then
-	CURRENT_STEP="11/15"
-	log_step "$CURRENT_STEP" "Setup loop device"
-	LOOPDEV=$(sudo losetup --show -fP "$IMAGE") || {
-		log_error "Failed to setup loop device for $IMAGE"
-		handle_error "$CURRENT_STEP"
-	}
-	log_info "Loop device: $LOOPDEV"
+CURRENT_STEP="11/15"
+log_step "$CURRENT_STEP" "Setup loop device"
+LOOPDEV=$(sudo losetup --show -fP "$IMAGE") || {
+	log_error "Failed to setup loop device for $IMAGE"
+	handle_error "$CURRENT_STEP"
+}
+log_info "Loop device: $LOOPDEV"
 
-	# Ensure cgpt is available
-	if ! command -v cgpt >/dev/null 2>&1; then
-		log_info "cgpt not found in PATH, searching in Nix store..."
-		# Find cgpt in Nix store
-		CGPT_PATH=$(find /nix/store -name "cgpt" -type f -executable 2>/dev/null | grep vboot_reference | head -n1)
-		if [ -n "$CGPT_PATH" ]; then
-			log_info "Found cgpt at: $CGPT_PATH"
-			# Create a temporary wrapper to ensure cgpt is available
-			export PATH="$(dirname "$CGPT_PATH"):''${PATH}"
-		else
-			log_error "cgpt not found in Nix store. Please ensure vboot_reference is installed."
-			log_error "Try running: nix develop"
-			handle_error "$CURRENT_STEP"
-		fi
+# Ensure cgpt is available
+if ! command -v cgpt >/dev/null 2>&1; then
+	log_info "cgpt not found in PATH, searching in Nix store..."
+	# Find cgpt in Nix store
+	CGPT_PATH=$(find /nix/store -name "cgpt" -type f -executable 2>/dev/null | grep vboot_reference | head -n1)
+	if [ -n "$CGPT_PATH" ]; then
+		log_info "Found cgpt at: $CGPT_PATH"
+		# Create a temporary wrapper to ensure cgpt is available
+		export PATH="$(dirname "$CGPT_PATH"):${PATH}"
+	else
+		log_error "cgpt not found in Nix store. Please ensure vboot_reference is installed."
+		log_error "Try running: nix develop"
+		handle_error "$CURRENT_STEP"
 	fi
-
-	# Set ChromeOS boot flags on p2
-	log_info "Setting ChromeOS boot flags on KERNEL partition..."
-	safe_exec sudo cgpt add -i 2 -S 1 -T 5 -P 10 "$LOOPDEV" || {
-		log_error "Failed to set ChromeOS boot flags"
-		handle_error "$CURRENT_STEP"
-	}
-
-else
-	log_info "Skipping step 11 (already completed)"
-	# Need to set up loop device for later steps
-	LOOPDEV=$(sudo losetup --show -fP "$IMAGE")
 fi
 
+# Set ChromeOS boot flags on p2
+log_info "Setting ChromeOS boot flags on KERNEL partition..."
+safe_exec sudo cgpt add -i 2 -S 1 -T 5 -P 10 "$LOOPDEV" || {
+	log_error "Failed to set ChromeOS boot flags"
+	handle_error "$CURRENT_STEP"
+}
+
 # === Step 12: Format partitions ===
-if [ "$START_STEP" -le 12 ]; then
-	CURRENT_STEP="12/15"
-	log_step "$CURRENT_STEP" "Format partitions"
-	# Use conservative ext4 features for ChromeOS kernel compatibility (avoid EINVAL on mount)
-	MKFS_EXT4_FLAGS="-O ^orphan_file,^metadata_csum_seed"
-	safe_exec sudo mkfs.ext4 -q "$MKFS_EXT4_FLAGS" "${LOOPDEV}p1"
-	safe_exec sudo dd if="$ORIGINAL_KERNEL" of="${LOOPDEV}p2" bs=1M conv=fsync status=progress
-	safe_exec sudo mkfs.ext2 -q "${LOOPDEV}p3"
+CURRENT_STEP="12/15"
+log_step "$CURRENT_STEP" "Format partitions"
+# Use conservative ext4 features for ChromeOS kernel compatibility (avoid EINVAL on mount)
+MKFS_EXT4_FLAGS="-O ^orphan_file,^metadata_csum_seed"
+safe_exec sudo mkfs.ext4 -q "$MKFS_EXT4_FLAGS" "${LOOPDEV}p1"
+safe_exec sudo dd if="$ORIGINAL_KERNEL" of="${LOOPDEV}p2" bs=1M conv=fsync status=progress
+safe_exec sudo mkfs.ext2 -q "${LOOPDEV}p3"
 
-	if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
-		# Vendor partition (drivers/firmware donor) - p4
-		safe_exec sudo mkfs.ext4 -q -O ^has_journal,^orphan_file,^metadata_csum_seed \
-			-L "shimboot_vendor" "${LOOPDEV}p4"
-		# Rootfs is p5
-		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "$MKFS_EXT4_FLAGS" "${LOOPDEV}p5"
-	else
-		# Rootfs directly as p4
-		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "$MKFS_EXT4_FLAGS" "${LOOPDEV}p4"
-	fi
-
-	# After Step 12: Format partitions
-	log_info "Verifying partition formatting..."
-	if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
-		for part in p1 p2 p3 p4 p5; do
-			if [ ! -b "${LOOPDEV}${part}" ]; then
-				log_error "Partition ${part} not found after formatting"
-				handle_error "$CURRENT_STEP"
-			fi
-		done
-	else
-		for part in p1 p2 p3 p4; do
-			if [ ! -b "${LOOPDEV}${part}" ]; then
-				log_error "Partition ${part} not found after formatting"
-				handle_error "$CURRENT_STEP"
-			fi
-		done
-	fi
-
+if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
+	# Vendor partition (drivers/firmware donor) - p4
+	safe_exec sudo mkfs.ext4 -q -O ^has_journal,^orphan_file,^metadata_csum_seed \
+		-L "shimboot_vendor" "${LOOPDEV}p4"
+	# Rootfs is p5
+	safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "$MKFS_EXT4_FLAGS" "${LOOPDEV}p5"
 else
-	log_info "Skipping step 12 (already completed)"
-	# Set MKFS_EXT4_FLAGS for later use
-	MKFS_EXT4_FLAGS="-O ^orphan_file,^metadata_csum_seed"
+	# Rootfs directly as p4
+	safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "$MKFS_EXT4_FLAGS" "${LOOPDEV}p4"
+fi
+
+# After Step 12: Format partitions
+log_info "Verifying partition formatting..."
+if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
+	for part in p1 p2 p3 p4 p5; do
+		if [ ! -b "${LOOPDEV}${part}" ]; then
+			log_error "Partition ${part} not found after formatting"
+			handle_error "$CURRENT_STEP"
+		fi
+	done
+else
+	for part in p1 p2 p3 p4; do
+		if [ ! -b "${LOOPDEV}${part}" ]; then
+			log_error "Partition ${part} not found after formatting"
+			handle_error "$CURRENT_STEP"
+		fi
+	done
 fi
 
 # === Step 13: Populate bootloader partition ===
-if [ "$START_STEP" -le 13 ]; then
-	CURRENT_STEP="13/15"
-	log_step "$CURRENT_STEP" "Populate bootloader partition"
-	safe_exec sudo mount "${LOOPDEV}p3" "$WORKDIR/mnt_bootloader" || {
-		log_error "Failed to mount bootloader partition"
-		handle_error "$CURRENT_STEP"
-	}
-	total_bytes=$(sudo du -sb "$PATCHED_INITRAMFS" | cut -f1)
-	(cd "$PATCHED_INITRAMFS" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_bootloader" && sudo tar xf -) || {
-		log_error "Failed to populate bootloader partition"
-		handle_error "$CURRENT_STEP"
-	}
-	safe_exec sudo umount "$WORKDIR/mnt_bootloader"
-
-else
-	log_info "Skipping step 13 (already completed)"
-fi
+CURRENT_STEP="13/15"
+log_step "$CURRENT_STEP" "Populate bootloader partition"
+safe_exec sudo mount "${LOOPDEV}p3" "$WORKDIR/mnt_bootloader" || {
+	log_error "Failed to mount bootloader partition"
+	handle_error "$CURRENT_STEP"
+}
+total_bytes=$(sudo du -sb "$PATCHED_INITRAMFS" | cut -f1)
+(cd "$PATCHED_INITRAMFS" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_bootloader" && sudo tar xf -) || {
+	log_error "Failed to populate bootloader partition"
+	handle_error "$CURRENT_STEP"
+}
+safe_exec sudo umount "$WORKDIR/mnt_bootloader"
 
 # === Step 14: Populate rootfs partition ===
-if [ "$START_STEP" -le 14 ]; then
-	CURRENT_STEP="14/15"
-	log_step "$CURRENT_STEP" "Populate rootfs partition (now p${ROOTFS_PARTITION_INDEX})"
-	LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
-	safe_exec sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
-	safe_exec sudo mount "${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "$WORKDIR/mnt_rootfs"
-	total_bytes=$(sudo du -sb "$WORKDIR/mnt_src_rootfs" | cut -f1)
-	(cd "$WORKDIR/mnt_src_rootfs" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_rootfs" && sudo tar xf -)
+CURRENT_STEP="14/15"
+log_step "$CURRENT_STEP" "Populate rootfs partition (now p${ROOTFS_PARTITION_INDEX})"
+LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
+safe_exec sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
+safe_exec sudo mount "${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "$WORKDIR/mnt_rootfs"
+total_bytes=$(sudo du -sb "$WORKDIR/mnt_src_rootfs" | cut -f1)
+(cd "$WORKDIR/mnt_src_rootfs" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_rootfs" && sudo tar xf -)
 
 	# Get username from userConfig
-	PROFILE=$(cat ./shimboot_config/selected-profile.nix 2>/dev/null || echo "default")
-	USERNAME=$(nix eval "${NIX_BUILD_FLAGS[@]}" --expr "(import ./shimboot_config/profiles/$PROFILE/user-config.nix {}).user.username" --json | jq -r .)
+	# Evaluate the Nix file properly to get the plain string value
+	PROFILE=$(nix eval --impure --expr "(import ./shimboot_config/selected-profile.nix)" --raw 2>/dev/null || echo "default")
+	USERNAME=$(nix eval "${NIX_BUILD_FLAGS[@]}" --expr "(import ./shimboot_config/profiles/${PROFILE}/user-config.nix {}).user.username" --json | jq -r .)
 	log_info "Using username from userConfig: $USERNAME"
 
-	# === Step 14: Clone nixos-config repository into rootfs ===
-	log_step "$CURRENT_STEP" "Clone nixos-config repository into rootfs"
-	NIXOS_CONFIG_DEST="$WORKDIR/mnt_rootfs/home/$USERNAME/nixos-config"
+# === Step 14: Clone nixos-config repository into rootfs ===
+log_step "$CURRENT_STEP" "Clone nixos-config repository into rootfs"
+NIXOS_CONFIG_DEST="$WORKDIR/mnt_rootfs/home/$USERNAME/nixos-config"
 
-	if command -v git >/dev/null 2>&1 && [ -d .git ]; then
-		# Get current git branch/commit info
-		GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
-		GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-		GIT_STATUS=$(git status --porcelain | wc -l 2>/dev/null || echo "0")
-		BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-		GIT_REMOTE=$(git remote get-url origin 2>/dev/null || echo "unknown")
+if command -v git >/dev/null 2>&1 && [ -d .git ]; then
+	# Get current git branch/commit info
+	GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+	GIT_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+	GIT_STATUS=$(git status --porcelain | wc -l 2>/dev/null || echo "0")
+	BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+	GIT_REMOTE=$(git remote get-url origin 2>/dev/null || echo "unknown")
 
-		# Remove existing nixos-config if it exists
-		if [ -d "$NIXOS_CONFIG_DEST" ]; then
-			log_info "Removing existing nixos-config directory"
-			safe_exec sudo rm -rf "$NIXOS_CONFIG_DEST"
-		fi
+	# Remove existing nixos-config if it exists
+	if [ -d "$NIXOS_CONFIG_DEST" ]; then
+		log_info "Removing existing nixos-config directory"
+		safe_exec sudo rm -rf "$NIXOS_CONFIG_DEST"
+	fi
 
-		# Clone the repository
-		log_info "Cloning nixos-config repository..."
-		safe_exec sudo git clone --no-local "$(pwd)" "$NIXOS_CONFIG_DEST"
-		# Detect actual remote origin
-		ACTUAL_REMOTE=$(git remote get-url origin 2>/dev/null || echo "https://github.com/PopCat19/nixos-shimboot.git")
-		safe_exec sudo git -C "$NIXOS_CONFIG_DEST" remote set-url origin "$ACTUAL_REMOTE"
+	# Clone the repository
+	log_info "Cloning nixos-config repository..."
+	safe_exec sudo git clone --no-local "$(pwd)" "$NIXOS_CONFIG_DEST"
+	# Detect actual remote origin
+	ACTUAL_REMOTE=$(git remote get-url origin 2>/dev/null || echo "https://github.com/PopCat19/nixos-shimboot.git")
+	safe_exec sudo git -C "$NIXOS_CONFIG_DEST" remote set-url origin "$ACTUAL_REMOTE"
 
-		# Switch to the same branch as the source repository
-		if [ "$GIT_BRANCH" != "unknown" ]; then
-			log_info "Switching to branch: $GIT_BRANCH"
-			safe_exec sudo git -C "$NIXOS_CONFIG_DEST" checkout "$GIT_BRANCH" || log_warn "Failed to checkout branch $GIT_BRANCH"
-		fi
+	# Switch to the same branch as the source repository
+	if [ "$GIT_BRANCH" != "unknown" ]; then
+		log_info "Switching to branch: $GIT_BRANCH"
+		safe_exec sudo git -C "$NIXOS_CONFIG_DEST" checkout "$GIT_BRANCH" || log_warn "Failed to checkout branch $GIT_BRANCH"
+	fi
 
-		# Set ownership to user
-		safe_exec sudo chown -R 1000:1000 "$NIXOS_CONFIG_DEST"
+	# Set ownership to user
+	safe_exec sudo chown -R 1000:1000 "$NIXOS_CONFIG_DEST"
 
-		# Create branch info file
-		sudo tee "$NIXOS_CONFIG_DEST/.shimboot_branch" >/dev/null <<EOF
+	# Create branch info file
+	sudo tee "$NIXOS_CONFIG_DEST/.shimboot_branch" >/dev/null <<EOF
 # Shimboot build information
 BUILD_DATE=$BUILD_DATE
 GIT_BRANCH=$GIT_BRANCH
@@ -1118,8 +908,8 @@ GIT_CHANGES=$GIT_STATUS
 GIT_REMOTE=$GIT_REMOTE
 EOF
 
-		# Create detailed build metadata file
-		sudo tee "$NIXOS_CONFIG_DEST/.shimboot_build_info" >/dev/null <<EOF
+	# Create detailed build metadata file
+	sudo tee "$NIXOS_CONFIG_DEST/.shimboot_build_info" >/dev/null <<EOF
 # Shimboot build metadata
 BUILD_HOST=$(hostname)
 BUILD_USER=$(whoami)
@@ -1133,14 +923,14 @@ GIT_CHANGES=$GIT_STATUS
 GIT_REMOTE=$GIT_REMOTE
 EOF
 
-		log_info "Cloned nixos-config: $GIT_BRANCH ($GIT_COMMIT) with $GIT_STATUS changes"
-	else
-		log_warn "Git not available or not a git repository, skipping nixos-config clone"
-	fi
+	log_info "Cloned nixos-config: $GIT_BRANCH ($GIT_COMMIT) with $GIT_STATUS changes"
+else
+	log_warn "Git not available or not a git repository, skipping nixos-config clone"
+fi
 
-	# Create build metadata
-	log_info "Creating build metadata..."
-	safe_exec sudo tee "$WORKDIR/mnt_rootfs/etc/shimboot-build.json" >/dev/null <<EOF
+# Create build metadata
+log_info "Creating build metadata..."
+safe_exec sudo tee "$WORKDIR/mnt_rootfs/etc/shimboot-build.json" >/dev/null <<EOF
 {
 	 "build_date": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
 	 "build_host": "$(hostname)",
@@ -1155,16 +945,10 @@ EOF
 }
 EOF
 
-	# Source rootfs unmounted; target rootfs remains mounted briefly before finalization
-	safe_exec sudo umount "$WORKDIR/mnt_src_rootfs"
-	safe_exec sudo losetup -d "$LOOPROOT"
-	LOOPROOT=""
-
-else
-	log_info "Skipping step 14 (already completed)"
-	# Need to mount rootfs for step 15
-	safe_exec sudo mount "${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "$WORKDIR/mnt_rootfs" 2>/dev/null || true
-fi
+# Source rootfs unmounted; target rootfs remains mounted briefly before finalization
+safe_exec sudo umount "$WORKDIR/mnt_src_rootfs"
+safe_exec sudo losetup -d "$LOOPROOT"
+LOOPROOT=""
 
 # === Step 15: Driver handling functions ===
 # Extract functions first to eliminate code duplication
@@ -1221,73 +1005,43 @@ inject_drivers() {
 }
 
 # === Step 15: Handle driver placement strategy ===
-if [ "$START_STEP" -le 15 ]; then
-	# Modes:
-	#   vendor: Place drivers in separate vendor partition (p4) - mounted at boot
-	#   inject: Directly copy drivers into rootfs (p${ROOTFS_PARTITION_INDEX}) /lib/{modules,firmware}
-	#   both:   Populate vendor partition AND inject into rootfs (redundant but safe)
-	#   none:   Skip driver handling entirely
-	case "$DRIVERS_MODE" in
-	vendor | CROSDRV)
+# Modes:
+#   vendor: Place drivers in separate vendor partition (p4) - mounted at boot
+#   inject: Directly copy drivers into rootfs (p${ROOTFS_PARTITION_INDEX}) /lib/{modules,firmware}
+#   both:   Populate vendor partition AND inject into rootfs (redundant but safe)
+#   none:   Skip driver handling entirely
+case "$DRIVERS_MODE" in
+vendor | CROSDRV)
+	populate_vendor
+	;;
+both)
+	populate_vendor
+	inject_drivers
+	;;
+inject)
+	if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
 		populate_vendor
-		;;
-	both)
-		populate_vendor
-		inject_drivers
-		;;
-	inject)
-		if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
-			populate_vendor
-		else
-			log_info "Skipping vendor partition creation (inject mode)"
-		fi
-		inject_drivers
-		;;
-	none)
-		log_info "DRIVERS_MODE=none; leaving rootfs unchanged"
-		;;
-	*)
-		log_warn "Unknown DRIVERS_MODE='${DRIVERS_MODE}', defaulting to vendor populate"
-		populate_vendor
-		;;
-	esac
-
-	# Unmount rootfs
-	safe_exec sudo umount "$WORKDIR/mnt_rootfs"
-
-	# Detach loop devices used for target image
-	safe_exec sudo losetup -d "$LOOPDEV"
-	LOOPDEV=""
-	log_info "✅ Final image created at: $IMAGE"
-
-else
-	log_info "Skipping step 15 (already completed)"
-	# Clean up any remaining mounts
-	if mountpoint -q "$WORKDIR/mnt_rootfs" 2>/dev/null; then
-		safe_exec sudo umount "$WORKDIR/mnt_rootfs" 2>/dev/null || true
+	else
+		log_info "Skipping vendor partition creation (inject mode)"
 	fi
-	if [ -n "${LOOPDEV:-}" ] && losetup "${LOOPDEV}" &>/dev/null; then
-		safe_exec sudo losetup -d "$LOOPDEV" 2>/dev/null || true
-		LOOPDEV=""
-	fi
-	log_info "✅ Final image already exists at: $IMAGE"
-fi
+	inject_drivers
+	;;
+none)
+	log_info "DRIVERS_MODE=none; leaving rootfs unchanged"
+	;;
+*)
+	log_warn "Unknown DRIVERS_MODE='${DRIVERS_MODE}', defaulting to vendor populate"
+	populate_vendor
+	;;
+esac
 
-# Add before final cleanup
-show_cache_stats() {
-	log_step "Stats" "Build cache statistics"
+# Unmount rootfs
+safe_exec sudo umount "$WORKDIR/mnt_rootfs"
 
-	if [ -f /nix/var/log/nix/drvs ]; then
-		local total_derivations=$(find /nix/var/log/nix/drvs -type f | wc -l)
-		log_info "Total derivations built: $total_derivations"
-	fi
-
-	# Show what was fetched vs built
-	if command -v nix >/dev/null 2>&1; then
-		log_info "Checking recent store operations..."
-		nix store diff-closures /nix/var/nix/profiles/system-{1,2}-link 2>/dev/null | head -n 20 || true
-	fi
-}
+# Detach loop devices used for target image
+safe_exec sudo losetup -d "$LOOPDEV"
+LOOPDEV=""
+log_info "✅ Final image created at: $IMAGE"
 
 # === Optional cleanup of old shimboot rootfs generations ===
 if [ "${CLEANUP_ROOTFS:-0}" -eq 1 ]; then
@@ -1305,10 +1059,6 @@ if [ "${CLEANUP_ROOTFS:-0}" -eq 1 ]; then
 	fi
 	"${CLEANUP_CMD[@]}"
 fi
-
-# === Optional inspection ===
-# Call at end of script
-show_cache_stats
 
 # === Automatic Cachix push ===
 if [ "$PUSH_TO_CACHIX" -eq 1 ]; then

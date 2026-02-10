@@ -68,6 +68,7 @@
       rose-pine-hyprcursor,
       noctalia,
       stylix,
+      pmd,
       llm-agents,
       ...
     }:
@@ -103,6 +104,7 @@
             rose-pine-hyprcursor
             noctalia
             stylix
+            pmd
             board
             ;
         };
@@ -115,6 +117,7 @@
           rose-pine-hyprcursor
           noctalia
           stylix
+          pmd
           llm-agents
           ;
       };
@@ -158,10 +161,6 @@
         ${system} = nixpkgs.lib.foldl' (acc: board: acc // (boardPackages board)) { } supportedBoards;
       };
 
-      # Import overlays
-
-      # Set default package to dedede raw-rootfs
-
       # Merge devShells from all modules
       devShells = {
         ${system} = developmentEnvironmentOutputs.devShells.${system} or { };
@@ -169,9 +168,6 @@
 
       # Merge nixosConfigurations from all modules
       nixosConfigurations = systemConfigurationOutputs.nixosConfigurations or { };
-
-      # Merge nixosModules from all modules
-      nixosModules = { };
     in
     {
       # Export all merged outputs
@@ -180,7 +176,6 @@
         packages
         devShells
         nixosConfigurations
-        nixosModules
         ;
     };
 }
