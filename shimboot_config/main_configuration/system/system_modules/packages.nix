@@ -14,7 +14,6 @@
     kdePackages.dolphin
     libmtp
     kdePackages.kio-extras
-    simple-mtpfs
     usbutils
     android-tools
   ];
