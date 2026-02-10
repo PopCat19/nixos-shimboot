@@ -372,12 +372,15 @@ function setup_nixos
         else if prompt_yes_no "Run nixos-rebuild switch now?" n
             cd "$CONFIG_DIR"
 
-            # Available configurations (no flake evaluation needed)
+            # Available configurations (dynamic detection)
             set -l DEFAULT_HOST (set -q HOSTNAME; and echo "$HOSTNAME"; or hostname)
-            set -l CONFIGS "$DEFAULT_HOST-minimal
+            set -l CONFIGS (nix flake show --json 2>/dev/null | jq -r '.nixosConfigurations | keys[]' 2>/dev/null)
+            if test -z "$CONFIGS"
+                set CONFIGS "$DEFAULT_HOST-minimal
 $DEFAULT_HOST
 nixos-shimboot
 raw-efi-system"
+            end
 
             echo
             echo "Available:"

@@ -13,8 +13,9 @@ let
   system = "x86_64-linux";
   inherit (nixpkgs) lib;
 
-  # Import user configuration
-  userConfig = import ../shimboot_config/user-config.nix { };
+  # Import user configuration from selected profile
+  profile = import ../shimboot_config/selected-profile.nix;
+  userConfig = import ../shimboot_config/profiles/${profile}/user-config.nix { };
   # Hostname (used to expose .#HOSTNAME and .#HOSTNAME-minimal)
   hn = userConfig.host.hostname;
 
@@ -44,7 +45,7 @@ let
 
   # Main = user configuration that itself imports base; keeps flake from duplicating base
   mainModules = [
-    ../shimboot_config/main_configuration/configuration.nix
+    ../shimboot_config/profiles/${profile}/main_configuration/configuration.nix
 
     # Integrate Home Manager for user-level config
     home-manager.nixosModules.home-manager
@@ -70,7 +71,7 @@ let
 
         # Delegate actual HM content to home.nix (split into programs.nix and packages.nix)
         home-manager.users."${userConfig.user.username}" =
-          import ../shimboot_config/main_configuration/home/home.nix;
+          import ../shimboot_config/profiles/${profile}/main_configuration/home/home.nix;
       }
     )
   ];

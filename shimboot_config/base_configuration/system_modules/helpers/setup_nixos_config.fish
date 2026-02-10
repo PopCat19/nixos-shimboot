@@ -19,7 +19,8 @@ function setup_nixos_config
         exit 1
     end
 
-    set -l USERNAME "$USER"
+    set -l PROFILE (cat ./shimboot_config/selected-profile.nix 2>/dev/null; or echo "default")
+    set -l USERNAME (nix eval --raw --impure --expr '(import ./shimboot_config/profiles/$PROFILE/user-config.nix {}).user.username' 2>/dev/null; or echo "$USER")
     set -l NIXOS_CONFIG_PATH "/home/$USERNAME/nixos-config"
 
     echo "[setup_nixos_config] Configuring /etc/nixos for nixos-rebuild..."
