@@ -88,6 +88,10 @@ rec {
       package = "fuzzel";
       command = "fuzzel";
     };
+
+    clipboard = {
+      command = "bash -lc \"cliphist list | fuzzel --dmenu --with-nth 2 | cliphist decode | wl-copy && sleep 0.05 && wtype -M ctrl -k v\"";
+    };
   };
 
   # Localization settings

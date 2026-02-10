@@ -19,6 +19,7 @@
     "$browser" = userConfig.defaultApps.browser.command;
     "$menu" = "${userConfig.defaultApps.launcher.command} --dmenu";
     "$launcher" = userConfig.defaultApps.launcher.command;
+    "$clipboard" = userConfig.defaultApps.clipboard.command;
 
     bind = [
       # cat: System Close
@@ -51,20 +52,16 @@
       "$mainMod, C, exec, $editor"
       # desc: Open browser
       "$mainMod, F, exec, $browser"
-      # desc: Open Vicinae
-      "$mainMod, A, exec, vicinae open"
       # desc: Open application launcher
-      "$mainMod+Shift, A, exec, fuzzel"
+      "$mainMod, A, exec, $launcher"
       # desc: Pick color from screen
       "$mainMod+Shift, C, exec, hyprpicker -a"
       # desc: Open clipboard history
-      "$mainMod, V, exec, vicinae vicinae://extensions/vicinae/clipboard/history"
+      "$mainMod, V, exec, $clipboard"
       # desc: Paste from clipboard history
-      "$mainMod+Shift, V, exec, bash -lc \"cliphist list | fuzzel --dmenu --with-nth 2 | cliphist decode | wl-copy && sleep 0.05 && wtype -M ctrl -k v\""
+      "$mainMod+Shift, V, exec, $clipboard"
       # desc: Restart hyprpanel
       "Ctrl+Alt, W, exec, systemctl --user restart hyprpanel.service"
-      # desc: Restart Noctalia shell
-      "$mainMod+Ctrl, N, exec, systemctl --user restart noctalia-shell.service"
 
       # cat: Screenshots
       # desc: Screenshot monitor
