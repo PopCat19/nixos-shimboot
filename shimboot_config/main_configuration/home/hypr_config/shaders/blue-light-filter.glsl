@@ -6,7 +6,7 @@ out vec4 fragColor;
 
 uniform sampler2D tex;
 
-const float TEMPERATURE           = 3200.0;
+const float TEMPERATURE           = 2400.0;
 const float TEMPERATURE_STRENGTH  = 1.0;
 const float LUMINANCE_PRESERVATION_FACTOR = 1.0;
 const float MIN_LUMINANCE         = 1e-5;

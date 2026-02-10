@@ -6,7 +6,7 @@
 #
 # This module:
 # - Installs system-wide utility packages
-{ pkgs, self, ... }:
+{ pkgs, ... }:
 {
   environment.systemPackages = with pkgs; [
     gh

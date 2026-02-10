@@ -9,7 +9,8 @@
 # - Imports modular configuration files
 # - Sources user preferences and monitor configuration
 # - Manages shader files and wallpaper directory
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   imports = [
     ./hypr_modules/colors.nix
     ./hypr_modules/environment.nix
