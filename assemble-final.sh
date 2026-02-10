@@ -1070,7 +1070,8 @@ if [ "$START_STEP" -le 14 ]; then
 	(cd "$WORKDIR/mnt_src_rootfs" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_rootfs" && sudo tar xf -)
 
 	# Get username from userConfig
-	USERNAME=$(nix eval "${NIX_BUILD_FLAGS[@]}" --expr '(import ./shimboot_config/user-config.nix {}).user.username' --json | jq -r .)
+	PROFILE=$(cat ./shimboot_config/selected-profile.nix 2>/dev/null || echo "default")
+	USERNAME=$(nix eval "${NIX_BUILD_FLAGS[@]}" --expr "(import ./shimboot_config/profiles/$PROFILE/user-config.nix {}).user.username" --json | jq -r .)
 	log_info "Using username from userConfig: $USERNAME"
 
 	# === Step 14: Clone nixos-config repository into rootfs ===

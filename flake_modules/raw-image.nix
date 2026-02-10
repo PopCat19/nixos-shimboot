@@ -10,7 +10,8 @@
 }:
 let
   system = "x86_64-linux";
-  userConfig = import ../shimboot_config/user-config.nix { };
+  profile = import ../shimboot_config/selected-profile.nix;
+  userConfig = import ../shimboot_config/profiles/${profile}/user-config.nix { };
 in
 {
   packages.${system} = {
@@ -39,7 +40,7 @@ in
       ]
       ++ [
         # Use the main configuration (which itself imports base)
-        ../shimboot_config/main_configuration/configuration.nix
+        ../shimboot_config/profiles/${profile}/main_configuration/configuration.nix
 
         # Integrate Home Manager for user-level configuration like the full system build
         home-manager.nixosModules.home-manager
@@ -60,7 +61,7 @@ in
               })
             ];
             home-manager.users.${userConfig.user.username} =
-              import ../shimboot_config/main_configuration/home/home.nix;
+              import ../shimboot_config/profiles/${profile}/main_configuration/home/home.nix;
           }
         )
 

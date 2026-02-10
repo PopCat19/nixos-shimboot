@@ -11,7 +11,8 @@
 # - Sets system state version
 { lib, ... }:
 let
-  userConfig = import ../user-config.nix { };
+  profile = import ../selected-profile.nix;
+  userConfig = import ../profiles/${profile}/user-config.nix { };
 in
 {
   imports = [
