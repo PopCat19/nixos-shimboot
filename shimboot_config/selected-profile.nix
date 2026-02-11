@@ -1,4 +1,4 @@
 {
   profile = "default";
-  NIXOS_PROFILE_DIR = "$HOME/nixos-config/shimboot_config/profiles/default";
+  NIXOS_PROFILE_DIR = "$NIXOS_CONFIG_DIR/shimboot_config/profiles/default";
 }

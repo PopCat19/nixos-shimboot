@@ -11,7 +11,7 @@
 {
   environment.variables = {
     inherit (userConfig.env) NIXOS_CONFIG_DIR;
-    inherit (selectedProfile) NIXOS_PROFILE_DIR;
+    NIXOS_PROFILE_DIR = selectedProfile.NIXOS_PROFILE_DIR;
     NIXOS_FLAKE_HOSTNAME = userConfig.host.hostname;
     EDITOR = userConfig.defaultApps.editor.command;
     VISUAL = "$EDITOR";
