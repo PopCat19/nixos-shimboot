@@ -2,7 +2,7 @@
 #
 # Purpose: Install absolutely minimal essential system packages only
 # Dependencies: Various system utilities
-# Related: fish.nix, services.nix, display.nix, security.nix
+# Related: fish.nix, services.nix, display.nix, security.nix, user-config.nix
 #
 # This module installs only essential packages:
 # - Core utilities (coreutils, util-linux)
@@ -11,12 +11,14 @@
 # - System tools (git, btop, file)
 # - Documentation disabled to save space
 # - Only English locale to reduce size
-{ pkgs, ... }:
+{ pkgs, userConfig, ... }:
+let
+  inherit (userConfig.defaultApps) editor;
+in
 {
-  # Minimal system packages
   environment.systemPackages = with pkgs; [
-    # Text editors
-    micro
+    # Text editor (from SoT)
+    (pkgs.${editor.package})
 
     # Network tools
     curl
@@ -27,16 +29,4 @@
     fastfetch
     jql
   ];
-
-  # Disable documentation to save space
-  documentation = {
-    enable = false;
-    doc.enable = false;
-    man.enable = false;
-    info.enable = false;
-    nixos.enable = false;
-  };
-
-  # Only English locale
-  i18n.supportedLocales = [ "en_US.UTF-8/UTF-8" ];
 }

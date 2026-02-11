@@ -13,6 +13,7 @@
 {
   lib,
   pkgs,
+  userConfig,
   ...
 }:
 {
@@ -137,6 +138,13 @@
   };
 
   programs.fish.interactiveShellInit = ''
+    # Source SoT environment variables from Nix
+    set -gx SOT_USERNAME ${userConfig.user.username}
+    set -gx SOT_SHELL ${userConfig.user.shellPackage}
+    set -gx SOT_TERM_CMD ${userConfig.defaultApps.terminal.command}
+    set -gx SOT_EDITOR_CMD ${userConfig.defaultApps.editor.command}
+    set -gx NIXOS_CONFIG_DIR ${userConfig.env.NIXOS_CONFIG_DIR}
+
     # Make system-wide functions visible
     if not contains /etc/fish/functions $fish_function_path
         set -g fish_function_path /etc/fish/functions $fish_function_path
