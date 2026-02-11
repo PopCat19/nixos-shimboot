@@ -11,6 +11,7 @@
 {
   environment.variables = {
     NIXOS_CONFIG_DIR = "$HOME/nixos-config";
+    NIXOS_PROFILE_DIR = "$HOME/nixos-config/shimboot_config/profiles/default";
     NIXOS_FLAKE_HOSTNAME = userConfig.host.hostname;
     EDITOR = userConfig.defaultApps.editor.command;
     VISUAL = "$EDITOR";
