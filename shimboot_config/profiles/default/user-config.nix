@@ -15,7 +15,7 @@
   system ? "x86_64-linux",
   username ? "nixos-user",
 }:
-rec {
+{
   # Host configuration
   host = {
     inherit system;
