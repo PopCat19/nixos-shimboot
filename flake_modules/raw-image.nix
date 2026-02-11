@@ -10,7 +10,8 @@
 }:
 let
   system = "x86_64-linux";
-  profile = import ../shimboot_config/selected-profile.nix;
+  selectedProfile = import ../shimboot_config/selected-profile.nix;
+  profile = selectedProfile.profile;
   userConfig = import ../shimboot_config/profiles/${profile}/user-config.nix { };
 in
 {

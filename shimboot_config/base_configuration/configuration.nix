@@ -11,7 +11,8 @@
 # - Sets system state version
 { lib, ... }:
 let
-  profile = import ../selected-profile.nix;
+  selectedProfile = import ../selected-profile.nix;
+  profile = selectedProfile.profile;
   userConfig = import ../profiles/${profile}/user-config.nix { };
 in
 {
@@ -42,6 +43,7 @@ in
   ];
 
   _module.args.userConfig = userConfig;
+  _module.args.selectedProfile = selectedProfile;
 
   nix.settings = {
     experimental-features = [

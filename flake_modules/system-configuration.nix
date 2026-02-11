@@ -14,7 +14,8 @@ let
   inherit (nixpkgs) lib;
 
   # Import user configuration from selected profile
-  profile = import ../shimboot_config/selected-profile.nix;
+  selectedProfile = import ../shimboot_config/selected-profile.nix;
+  profile = selectedProfile.profile;
   userConfig = import ../shimboot_config/profiles/${profile}/user-config.nix { };
   # Hostname (used to expose .#HOSTNAME and .#HOSTNAME-minimal)
   hn = userConfig.host.hostname;
