@@ -11,6 +11,10 @@
 # - Provides cursor and icon theme integration
 # - Handles browser theming targets (Firefox-based browsers)
 # - Applies system-wide theming across all applications
+#
+# Note: The stylix/pmd modules may emit a warning about builtins.toFile creating
+# options.json without proper context. This is a known issue in the upstream modules
+# and does not affect functionality. The warning can be safely ignored.
 {
   pkgs,
   inputs,
