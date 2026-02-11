@@ -11,7 +11,7 @@
 let
   system = "x86_64-linux";
   selectedProfile = import ../shimboot_config/selected-profile.nix;
-  profile = selectedProfile.profile;
+  inherit (selectedProfile) profile;
   userConfig = import ../shimboot_config/profiles/${profile}/user-config.nix { };
 in
 {

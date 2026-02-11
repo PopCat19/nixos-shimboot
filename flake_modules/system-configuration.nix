@@ -15,7 +15,7 @@ let
 
   # Import user configuration from selected profile
   selectedProfile = import ../shimboot_config/selected-profile.nix;
-  profile = selectedProfile.profile;
+  inherit (selectedProfile) profile;
   userConfig = import ../shimboot_config/profiles/${profile}/user-config.nix { };
   # Hostname (used to expose .#HOSTNAME and .#HOSTNAME-minimal)
   hn = userConfig.host.hostname;

@@ -12,7 +12,7 @@
 { lib, ... }:
 let
   selectedProfile = import ../selected-profile.nix;
-  profile = selectedProfile.profile;
+  inherit (selectedProfile) profile;
   userConfig = import ../profiles/${profile}/user-config.nix { };
 in
 {
