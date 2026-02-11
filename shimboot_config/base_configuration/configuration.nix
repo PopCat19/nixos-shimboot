@@ -17,29 +17,29 @@ let
 in
 {
   imports = [
-    ./system_modules/environment.nix
-    ./system_modules/boot.nix
-    ./system_modules/networking.nix
-    ./system_modules/proxy.nix
-    ./system_modules/filesystems.nix
-    ./system_modules/packages.nix
-    ./system_modules/helpers/helpers.nix
-    ./system_modules/security.nix
-    ./system_modules/systemd-patch.nix
-    ./system_modules/kill-frecon.nix
-    ./system_modules/localization.nix
-    ./system_modules/hardware.nix
-    ./system_modules/power-management.nix
-    ./system_modules/hyprland.nix
-    ./system_modules/setup-experience.nix
-    ./system_modules/display-manager.nix
-    ./system_modules/xdg-portals.nix
-    ./system_modules/fonts.nix
-    ./system_modules/users.nix
-    ./system_modules/audio.nix
-    ./system_modules/fish.nix
-    ./system_modules/services.nix
-    ./system_modules/zram.nix
+    ./system/environment.nix
+    ./system/boot.nix
+    ./system/networking.nix
+    ./system/proxy.nix
+    ./system/filesystems.nix
+    ./system/packages.nix
+    ./system/helpers/helpers.nix
+    ./system/security.nix
+    ./system/systemd-patch.nix
+    ./system/kill-frecon.nix
+    ./system/localization.nix
+    ./system/hardware.nix
+    ./system/power-management.nix
+    ./system/hyprland.nix
+    ./system/setup-experience.nix
+    ./system/display-manager.nix
+    ./system/xdg-portals.nix
+    ./system/fonts.nix
+    ./system/users.nix
+    ./system/audio.nix
+    ./system/fish.nix
+    ./system/services.nix
+    ./system/zram.nix
   ];
 
   _module.args.userConfig = userConfig;
