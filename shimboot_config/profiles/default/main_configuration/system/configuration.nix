@@ -12,11 +12,11 @@
 {
   imports = [
     ../../../../base_configuration/configuration.nix
-    ./system_modules/fonts.nix
-    ./system_modules/packages.nix
-    ./system_modules/services.nix
-    ./system_modules/syncthing.nix
-    ./system_modules/stylix.nix
-    ./system_modules/greeter.nix
+    ./fonts.nix
+    ./packages.nix
+    ./services.nix
+    ./syncthing.nix
+    ./stylix.nix
+    ./greeter.nix
   ];
 }

@@ -11,6 +11,7 @@
 { ... }:
 {
   imports = [
+    ../../../base_configuration/configuration.nix
     ./system/configuration.nix
   ];
 }
