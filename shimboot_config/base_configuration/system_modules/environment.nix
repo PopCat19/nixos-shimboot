@@ -10,7 +10,7 @@
 { userConfig, selectedProfile, ... }:
 {
   environment.variables = {
-    NIXOS_CONFIG_DIR = "$HOME/nixos-config";
+    NIXOS_CONFIG_DIR = userConfig.env.NIXOS_CONFIG_DIR;
     NIXOS_PROFILE_DIR = selectedProfile.NIXOS_PROFILE_DIR;
     NIXOS_FLAKE_HOSTNAME = userConfig.host.hostname;
     EDITOR = userConfig.defaultApps.editor.command;

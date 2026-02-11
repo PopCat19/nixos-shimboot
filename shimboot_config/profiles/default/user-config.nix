@@ -9,6 +9,7 @@
 # - Defines user credentials and groups
 # - Defines default application preferences
 # - Defines system directory structure
+# - Defines environment variables
 {
   hostname ? null,
   system ? "x86_64-linux",
@@ -117,5 +118,10 @@ rec {
   theme = {
     hue = 30;
     variant = "dark"; # "dark" or "light"
+  };
+
+  # Environment variables
+  env = {
+    NIXOS_CONFIG_DIR = "$HOME/nixos-config";
   };
 }
