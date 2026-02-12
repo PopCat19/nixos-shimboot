@@ -12,9 +12,9 @@
     gh
     ranger
     kdePackages.dolphin
-    libmtp
     kdePackages.kio-extras
     usbutils
     android-tools
+    tree
   ];
 }
