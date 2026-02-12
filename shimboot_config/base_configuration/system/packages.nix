@@ -18,7 +18,7 @@ in
 {
   environment.systemPackages = with pkgs; [
     # Text editor (from SoT)
-    (pkgs.${editor.package})
+    pkgs.${editor.package}
 
     # Network tools
     curl

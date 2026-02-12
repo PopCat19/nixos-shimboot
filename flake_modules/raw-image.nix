@@ -51,7 +51,12 @@ in
             home-manager.useGlobalPkgs = false;
             home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = {
-              inherit zen-browser rose-pine-hyprcursor userConfig selectedProfile;
+              inherit
+                zen-browser
+                rose-pine-hyprcursor
+                userConfig
+                selectedProfile
+                ;
               inherit (self) inputs;
             };
             home-manager.sharedModules = [
