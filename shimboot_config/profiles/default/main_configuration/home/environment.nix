@@ -29,7 +29,7 @@
 
     # NixOS configuration paths
     NIXOS_CONFIG_DIR = userConfig.env.NIXOS_CONFIG_DIR;
-    NIXOS_PROFILE_DIR = "${userConfig.directories.home}/nixos-config/shimboot_config/profiles/${selectedProfile.profile}";
+    NIXOS_PROFILE_DIR = "$NIXOS_CONFIG_DIR/shimboot_config/profiles/${selectedProfile.profile}";
   };
 
   # Add local bin to PATH

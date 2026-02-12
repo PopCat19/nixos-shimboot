@@ -1,7 +1,7 @@
 # Global Environment Variables Module
 #
 # Purpose: Set system-wide environment variables for all users
-# Dependencies: userConfig
+# Dependencies: userConfig, selectedProfile
 # Related: fish.nix, main_configuration/home/environment.nix
 #
 # This module:

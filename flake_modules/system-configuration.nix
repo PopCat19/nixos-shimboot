@@ -99,6 +99,7 @@ in
               noctalia
               stylix
               userConfig
+              selectedProfile
               llm-agents
               ;
           };
@@ -116,6 +117,7 @@ in
               noctalia
               stylix
               userConfig
+              selectedProfile
               llm-agents
               ;
           };
@@ -134,6 +136,7 @@ in
               noctalia
               stylix
               userConfig
+              selectedProfile
               llm-agents
               ;
           };
@@ -150,6 +153,8 @@ in
               zen-browser
               rose-pine-hyprcursor
               stylix
+              userConfig
+              selectedProfile
               llm-agents
               ;
           };
