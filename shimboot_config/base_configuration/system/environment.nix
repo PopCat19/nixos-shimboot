@@ -7,13 +7,14 @@
 # This module:
 # - Sets global environment variables accessible to all processes
 # - Configures NixOS-specific paths and host information
-{ userConfig, ... }:
+{ userConfig, selectedProfile, ... }:
 {
   environment.variables = {
     inherit (userConfig.env) NIXOS_CONFIG_DIR;
+    NIXOS_PROFILE_DIR = "${userConfig.env.NIXOS_CONFIG_DIR}/shimboot_config/profiles/${selectedProfile.profile}";
     NIXOS_FLAKE_HOSTNAME = userConfig.host.hostname;
     EDITOR = userConfig.defaultApps.editor.command;
-    VISUAL = "$EDITOR";
+    VISUAL = userConfig.defaultApps.editor.command;
     PATH = "$HOME/bin:$HOME/.npm-global/bin:$PATH";
   };
 }
