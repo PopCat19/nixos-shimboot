@@ -1,8 +1,6 @@
 # Screenshot Module
 #
 # Purpose: Configure screenshot tools and wrapper script for Hyprland using grimblast
-# Dependencies: grimblast, gwenview, libnotify, jq
-# Related: hypr_config/hyprland.nix (keybinds)
 #
 # This module:
 # - Installs screenshot tools (grimblast, gwenview, libnotify, jq)
@@ -10,9 +8,7 @@
 # - Installs screenshot wrapper script with hyprshade integration
 { pkgs, ... }:
 let
-  # Screenshot wrapper script using grimblast with hyprshade integration
   screenshotScript = pkgs.writeShellScriptBin "screenshot" ''
-    #!${pkgs.bash}/bin/bash
     set -euo pipefail
 
     # Configuration
@@ -21,7 +17,7 @@ let
     mkdir -p "$XDG_SCREENSHOTS_DIR"
 
     # Parse arguments
-    MODE="output"  # grimblast: output (monitor), area (region), active (window)
+    MODE="output"
     KEEP_SHADER=false
     POSITIONAL_ARGS=()
 
@@ -42,17 +38,18 @@ let
       esac
     done
 
-    set -- "''${POSITIONAL_ARGS[@]}"
+    if [[ ''${#POSITIONAL_ARGS[@]} -gt 0 ]]; then
+      set -- "''${POSITIONAL_ARGS[@]}"
+    else
+      set --
+    fi
 
     if [[ $# -gt 0 ]]; then
       case $1 in
         monitor|full) MODE="output" ;;
         region|area) MODE="area" ;;
         window|active) MODE="active" ;;
-        both)
-          # Special case: take both output and area screenshots
-          MODE="both"
-          ;;
+        both) MODE="both" ;;
         *)
           echo "Usage: screenshot [monitor|region|window|both] [--keep-shader]" >&2
           echo ""
@@ -69,18 +66,19 @@ let
       esac
     fi
 
-    # Helper: Slugify app name
     slugify_app_name() {
       local s="''${1:-}"
       if [[ -z "$s" ]]; then
         echo "screen"
         return
       fi
-      s="''${s,,}"  # lowercase
-      s="''${s//[^a-z0-9._-]/-}"  # replace invalid chars with dash
-      s="''${s//+(-)/-}"  # collapse multiple dashes
-      s="''${s#-}"  # trim leading dash
-      s="''${s%-}"  # trim trailing dash
+      s="''${s,,}"
+      s="''${s//[^a-z0-9._-]/-}"
+      while [[ "$s" == *--* ]]; do
+        s="''${s//--/-}"
+      done
+      s="''${s#-}"
+      s="''${s%-}"
       if [[ -z "$s" ]]; then
         echo "screen"
       else
@@ -88,7 +86,6 @@ let
       fi
     }
 
-    # Helper: Get app name from hyprctl
     get_app_name() {
       local app="screen"
       if command -v hyprctl >/dev/null 2>&1; then
@@ -105,7 +102,6 @@ let
       slugify_app_name "$app"
     }
 
-    # Helper: Generate next incremental filename
     next_filename() {
       local dir="$1"
       local app="$2"
@@ -113,13 +109,14 @@ let
       date=$(date +%Y%m%d)
       local prefix="''${app}_''${date}-"
       local n=1
-      while [[ -e "$dir/$prefix$n.png" ]]; do
+      while [[ -e "$dir/''${prefix}''${n}.png" ]] || \
+            [[ -e "$dir/''${prefix}''${n}_output.png" ]] || \
+            [[ -e "$dir/''${prefix}''${n}_area.png" ]]; do
         ((n++))
       done
-      echo "$prefix$n.png"
+      echo "''${prefix}''${n}.png"
     }
 
-    # Helper: Run command with hyprshade workaround
     run_with_hyprshade() {
       local keep_shader="$1"
       shift
@@ -144,9 +141,8 @@ let
       "$@"
     }
 
-    # Helper: Take screenshot
     take_screenshot() {
-      local mode="$1"  # grimblast target: output, area, active
+      local mode="$1"
       local dir="$2"
       local filename="$3"
       local keep_shader="$4"
@@ -162,7 +158,6 @@ let
 
       if run_with_hyprshade "$keep_shader" "''${grimblast_cmd[@]}"; then
         if [[ -f "$screenshot_path" ]]; then
-          # grimblast already handles clipboard, just show notification
           ${pkgs.libnotify}/bin/notify-send \
             "Screenshot" \
             "$mode screenshot saved: $filename" \
@@ -184,25 +179,19 @@ let
       fi
     }
 
-    # Helper: Take both screenshots
     take_both_screenshots() {
       local dir="$1"
       local base_filename="$2"
       local keep_shader="$3"
-
-      # Extract base name without extension
       local base_name="''${base_filename%.png}"
 
-      # Take output screenshot
       local output_filename="''${base_name}_output.png"
       take_screenshot "output" "$dir" "$output_filename" "$keep_shader"
 
-      # Take area screenshot
       local area_filename="''${base_name}_area.png"
       take_screenshot "area" "$dir" "$area_filename" "$keep_shader"
     }
 
-    # Main execution
     APP_NAME=$(get_app_name)
     FILENAME=$(next_filename "$XDG_SCREENSHOTS_DIR" "$APP_NAME")
 
@@ -218,11 +207,11 @@ let
 in
 {
   home.packages = with pkgs; [
-    grimblast # Primary screenshot tool (more reliable than hyprshot)
+    grimblast
     kdePackages.gwenview
     libnotify
     jq
-    screenshotScript # Unified screenshot wrapper script
+    screenshotScript
   ];
 
   home.file."Pictures/Screenshots/.keep".text = "";
