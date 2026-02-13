@@ -8,6 +8,7 @@
 # - Sets Hyprland session identifiers
 # - Configures Qt platform and style settings
 # - Defines cursor size
+# - Passes through NIXOS_PROFILE_DIR for shader paths
 # Note: Cross-DE variables belong in system_modules/environment.nix or home_modules/environment.nix
 {
   wayland.windowManager.hyprland.settings = {
