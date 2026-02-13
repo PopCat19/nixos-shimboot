@@ -14,7 +14,7 @@ _: {
     enable = true;
     algorithm = "lzo-rle";
     memoryPercent = 60;
-    priority = 100;
+    priority = 80;
   };
 
   boot.kernel.sysctl = {
