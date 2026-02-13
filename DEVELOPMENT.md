@@ -26,6 +26,7 @@
 16. [Tone and Formatting](#16-tone-and-formatting)
 17. [Example Patterns](#17-example-patterns)
 18. [New Rule Files](#18-new-rule-files)
+19. [Changelog Policy](#19-changelog-policy)
 
 ## 1. File Headers
 
@@ -141,7 +142,7 @@ nix flake check
     inherit stdenv;
     pname = "example";
   }
-  
+
   # Bad
   mkDerivation {
     stdenv = stdenv;
@@ -157,7 +158,7 @@ nix flake check
 - Extract large attribute sets to separate files
   ```nix
   # Bad: 200-line packages list inline
-  
+
   # Good
   packages = import ./packages.nix { inherit pkgs; };
   ```
@@ -174,7 +175,7 @@ nix flake check
   ```fish
   # Good
   set filename (string replace '.txt' '.md' $input)
-  
+
   # Bad
   set filename (echo $input | sed 's/.txt/.md/')
   ```
@@ -218,7 +219,7 @@ nix flake check
   ```python
   # Good
   message = f"User {name} logged in at {time}"
-  
+
   # Bad
   message = "User {} logged in at {}".format(name, time)
   ```
@@ -226,7 +227,7 @@ nix flake check
   ```python
   # Good (readable)
   evens = [x for x in numbers if x % 2 == 0]
-  
+
   # Bad (less clear)
   evens = list(filter(lambda x: x % 2 == 0, numbers))
   ```
@@ -313,10 +314,10 @@ nix flake check
   ```rust
   // Bad (panics on None)
   let value = map.get("key").unwrap();
-  
+
   // Good
   let value = map.get("key").ok_or(Error::MissingKey)?;
-  
+
   // Good (with context)
   let value = map.get("key")
       .ok_or_else(|| Error::MissingKey("key".into()))?;
@@ -377,11 +378,11 @@ nix flake check
   // Standard library
   use std::collections::HashMap;
   use std::fs;
-  
+
   // External crates
   use serde::{Deserialize, Serialize};
   use tokio::runtime::Runtime;
-  
+
   // Internal modules
   use crate::config::Config;
   use crate::errors::Error;
@@ -399,12 +400,12 @@ nix flake check
       if data == "" {
           return errors.New("empty data")
       }
-      
+
       result, err := parse(data)
       if err != nil {
           return fmt.Errorf("parse failed: %w", err)
       }
-      
+
       return store(result)
   }
   ```
@@ -416,7 +417,7 @@ nix flake check
           return nil, err
       }
       defer f.Close()  // Cleanup guaranteed
-      
+
       return io.ReadAll(f)
   }
   ```
@@ -426,7 +427,7 @@ nix flake check
   type Reader interface {
       Read(p []byte) (n int, err error)
   }
-  
+
   // Accept interfaces, return structs
   func NewProcessor(r Reader) *Processor {
       return &Processor{reader: r}
@@ -444,7 +445,7 @@ nix flake check
           {"valid", "test@example.com", false},
           {"invalid", "not-an-email", true},
       }
-      
+
       for _, tt := range tests {
           t.Run(tt.name, func(t *testing.T) {
               err := Validate(tt.input)
@@ -531,7 +532,7 @@ nix flake check
   ```typescript
   // Good
   const data = await fetch(url).then(r => r.json())
-  
+
   // Bad
   fetch(url).then(r => r.json()).then(data => { ... })
   ```
@@ -541,7 +542,7 @@ nix flake check
   function createUser({ name, email, role = "user" }) {
       // ...
   }
-  
+
   // Bad
   function createUser(name, email, role) {
       // ...
@@ -606,7 +607,7 @@ fn load_config(path: &Path) -> Result<Config, Error> {
             path: path.to_path_buf(),
             source: e,
         })?;
-    
+
     serde_json::from_str(&contents)
         .map_err(Error::ParseFailed)
 }
@@ -620,12 +621,12 @@ func loadConfig(path string) (*Config, error) {
     if err != nil {
         return nil, fmt.Errorf("read config %s: %w", path, err)
     }
-    
+
     var cfg Config
     if err := json.Unmarshal(data, &cfg); err != nil {
         return nil, fmt.Errorf("parse config: %w", err)
     }
-    
+
     return &cfg, nil
 }
 ```
@@ -686,7 +687,7 @@ mod tests {
         let result = validate("");
         assert!(result.is_err());
     }
-    
+
     #[test]
     fn test_validate_correct_email_succeeds() {
         let result = validate("test@example.com");
@@ -706,7 +707,7 @@ func TestValidate(t *testing.T) {
         {"empty", "", true},
         {"valid", "test@example.com", false},
     }
-    
+
     for _, tt := range tests {
         t.Run(tt.name, func(t *testing.T) {
             err := Validate(tt.input)
@@ -733,7 +734,7 @@ func TestValidate(t *testing.T) {
     file = ./secrets/api-key.age;
     owner = "myuser";
   };
-  
+
   # Reference in config
   services.myapp.apiKeyFile = config.age.secrets.api-key.path;
   ```
@@ -746,7 +747,7 @@ func TestValidate(t *testing.T) {
   ```typescript
   // Good
   db.query("SELECT * FROM users WHERE id = ?", [userId])
-  
+
   // Bad
   db.query(`SELECT * FROM users WHERE id = ${userId}`)
   ```
@@ -776,7 +777,7 @@ func TestValidate(t *testing.T) {
   ```bash
   # Don't: Enter shell interactively
   nix-shell -p jq
-  
+
   # Do: Run command directly
   nix-shell -p jq --run "jq '.key' file.json"
   # OR
@@ -798,7 +799,7 @@ func TestValidate(t *testing.T) {
   ```bash
   # Package conflicts with system version
   nix develop --command python3 script.py
-  
+
   # Not recommended: Entering the shell
   nix develop  # Then manually running commands
   ```
@@ -832,7 +833,7 @@ nix-shell -p pandoc --run "pandoc input.md -o output.pdf"
   for (const user of users) {
       const posts = await db.getPosts(user.id)
   }
-  
+
   // Good: 1 query
   const posts = await db.getPostsByUserIds(users.map(u => u.id))
   ```
@@ -842,7 +843,7 @@ nix-shell -p pandoc --run "pandoc input.md -o output.pdf"
   for (const item of items) {
       for (const other of items) { ... }
   }
-  
+
   // O(n) with Set lookup
   const itemSet = new Set(items)
   for (const item of items) {
@@ -920,7 +921,7 @@ configuration/
 configuration/
   home/
     some-category.nix  # Flat, obvious
-    
+
 # OR if multiple related files:
 configuration/
   home/
@@ -1075,7 +1076,7 @@ packages:
    // Before
    api.call({ timeout: 5000 });
    fetch.get({ timeout: 5000 });
-   
+
    // After
    const API_TIMEOUT = 5000;
    api.call({ timeout: API_TIMEOUT });
@@ -1085,7 +1086,7 @@ packages:
 2. **Replace inline duplicates** with references
    ```python
    # Before: same validation logic in 3 places
-   
+
    # After
    def validate_email(email):
        return re.match(r'^[^@]+@[^@]+\.[^@]+$', email)
@@ -1099,7 +1100,7 @@ packages:
        url: "..."
      }
    }
-   
+
    // After (if database only has url)
    config: {
      databaseUrl: "..."
@@ -1111,7 +1112,7 @@ packages:
    /* Before */
    .btn { color: blue; }
    .btn { padding: 10px; }
-   
+
    /* After */
    .btn {
      color: blue;
@@ -1123,7 +1124,7 @@ packages:
    ```javascript
    // Before
    const x = 86400000;
-   
+
    // After
    const MILLISECONDS_PER_DAY = 86400000;
    ```
@@ -1321,7 +1322,7 @@ git rebase -i HEAD~3
   ```bash
   # Check current branch
   git branch --show-current
-  
+
   # Only if on dev-experimental or dev-very-experimental
   git rebase -i HEAD~5
   ```
@@ -1615,7 +1616,7 @@ done
   run: |
     # Prefer source branch changes
     git merge "origin/${FROM_BRANCH}" --strategy-option=theirs --no-edit
-    
+
     # Create backup before conflict resolution
     if git ls-files -u | grep -q .; then
       BACKUP_TAG="premerge-${TO_BRANCH}-$(date +'%Y%m%d-%H%M')"
@@ -1702,7 +1703,7 @@ create-release:
   run: |
     TIMESTAMP=$(date -u '+%Y.%m.%d.%H%M-UTC')
     echo "timestamp=${TIMESTAMP}" >> "$GITHUB_OUTPUT"
-    
+
     # Heredoc for multi-line output
     EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
     echo "body<<$EOF" >> "$GITHUB_OUTPUT"
@@ -1799,13 +1800,13 @@ const reverseString = (str) => {
 ```nix
 inputs = {
   nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-  
+
   # Always use follows for consistency
   home-manager = {
     url = "github:nix-community/home-manager";
     inputs.nixpkgs.follows = "nixpkgs";
   };
-  
+
   zen-browser = {
     url = "github:0xc000022070/zen-browser-flake";
     inputs.nixpkgs.follows = "nixpkgs";
@@ -1820,7 +1821,7 @@ inputs = {
 outputs = { self, nixpkgs, home-manager, ... }:
   let
     system = "x86_64-linux";
-    
+
     moduleOutputs = import ./modules/example.nix {
       inherit self nixpkgs home-manager;  # Explicit is clear
     };
@@ -1852,7 +1853,7 @@ outputs = { self, nixpkgs, home-manager, ... }:
     inherit system;
     hostname = if hostname == null then username else hostname;
   };
-  
+
   user = {
     inherit username;
     # Configuration here
@@ -1893,7 +1894,7 @@ set -Eeuo pipefail
 handle_error() {
     local exit_code=$?
     local step="$1"
-    
+
     echo "Error at step $step (exit code: $exit_code)" >&2
     # Step-specific troubleshooting
     exit $exit_code
@@ -1981,13 +1982,13 @@ fi
 ```fish
 function cnup
     argparse 'no-check' -- $argv
-    
+
     if set -q _flag_no_check
         set check_cmd ''
     else
         set check_cmd '&& nix flake check'
     end
-    
+
     # Function body
 end
 ```
@@ -2036,7 +2037,7 @@ function nixos-rebuild-basic
     # Kernel-specific configuration
     set -l kver (uname -r)
     set -l nix_args "switch" "--flake" "."
-    
+
     if string match -qr '^([0-4]\.|5\.[0-5][^0-9])' "$kver"
         set_color yellow; echo "[WARN] Kernel $kver (< 5.6). Disabling sandbox."; set_color normal
         set -a nix_args "--option" "sandbox" "false"
@@ -2050,7 +2051,7 @@ function nixos-rebuild-basic
         cd "$original_dir"
         return 1
     end
-    
+
     cd "$original_dir"
 end
 ```
@@ -2073,7 +2074,7 @@ function nixos-flake-update
 
     if nix flake update $update_args
         set -l new_hash (sha256sum flake.lock | cut -d' ' -f1)
-        
+
         # Detect changes
         if test "$old_hash" = "$new_hash"
             set_color green; echo "[INFO] No changes in inputs"; set_color normal
@@ -2081,12 +2082,12 @@ function nixos-flake-update
         else
             # Show diff
             diff -u3 --color=always flake.lock.bak flake.lock 2>/dev/null; or true
-            
+
             # Summarize with jq
             if command -v jq >/dev/null
                 jq -r '.nodes | to_entries[] | select(.value.locked) | .key' flake.lock
             end
-            
+
             echo "Next steps:"
             echo "   • Test: nrb dry-run"
             echo "   • Apply: nrb switch"
@@ -2109,17 +2110,17 @@ end
 ```fish
 function fish_greeting
     set -l cache_file "/tmp/.fastfetch_cache_$USER"
-    
+
     # Header
     set_color brgreen; echo -n "$USER"
     set_color normal; echo -n "@"
     set_color brcyan; echo "$hostname"
-    
+
     # Cached output (instant)
     if test -f $cache_file
         cat $cache_file
     end
-    
+
     # Background refresh (non-blocking)
     begin
         set -l needs_update 0
@@ -2133,7 +2134,7 @@ function fish_greeting
                 set needs_update 1
             end
         end
-        
+
         if test $needs_update -eq 1
             fastfetch > $cache_file 2>/dev/null
         end
@@ -2154,7 +2155,7 @@ function list-fish-helpers
     # Discover from directories
     set -l func_dirs ./fish_functions ./helpers
     set -l found_helpers
-    
+
     for dir in $func_dirs
         if test -d $dir
             for f in $dir/*.fish
@@ -2166,7 +2167,7 @@ function list-fish-helpers
             end
         end
     end | sort
-    
+
     # Fallback to all non-builtin
     if test -z "$found_helpers"
         functions | grep -vE "^_|fish_|^__" | sort
@@ -2188,11 +2189,11 @@ function show-shortcuts
         # Category tags
         if string match -qr '^\s*#\s*cat:\s*(.+)' "$line"
             set current_cat (string replace -r '^\s*#\s*cat:\s*' '' "$line")
-        
+
         # Description tags
         else if string match -qr '^\s*#\s*desc:\s*(.+)' "$line"
             set current_desc (string replace -r '^\s*#\s*desc:\s*' '' "$line")
-        
+
         # Nix binding
         else if string match -qr '^\s*"([^"]+)"' "$line"; and test -n "$current_desc"
             set -l raw (string replace -r '^\s*"([^"]+)".*' '$1' "$line")
@@ -2200,7 +2201,7 @@ function show-shortcuts
             set current_desc ""
         end
     end
-    
+
     # Group by category
     for cat in $found_cats
         set_color brcyan; echo "[$cat]"; set_color normal
@@ -2286,12 +2287,12 @@ end
 
     decoration = {
       rounding = 16;
-      
+
       shadow = {
         enabled = false;
         range = 4;
       };
-      
+
       blur = {
         enabled = true;
         size = 2;
@@ -2447,6 +2448,205 @@ esac
 - [ ] Will it be referenced >3 times?
 
 **Example:** Don't create `variable-naming-rules.md` when it fits in existing `code-style.md`.
+
+## 19. Changelog Policy
+
+**Rationale:** Changelogs provide human-readable summaries of what changed per merge. Generating them from git history before merging ensures accuracy and creates an audit trail. Archiving keeps the root clean.
+
+**Policy:** Generate a changelog before every merge to main. Root contains only the latest; previous changelogs live in `changelog-archive/`.
+
+### Structure
+
+```
+repo/
+├── CHANGELOG-<short-hash>.md        # Latest (current merge)
+└── changelog-archive/
+    ├── CHANGELOG-a1b2c3d.md          # Previous merges
+    ├── CHANGELOG-e4f5g6h.md
+    └── ...
+```
+
+**Filename format:** `CHANGELOG-<7-char-short-hash>.md` using the merge commit hash.
+
+### Generating the Changelog
+
+**Diff commits between main and current branch:**
+
+```bash
+git log main..HEAD --oneline --no-merges
+```
+
+**Full generation script (bash):**
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+TARGET_BRANCH="main"
+CURRENT_BRANCH=$(git branch --show-current)
+ARCHIVE_DIR="changelog-archive"
+
+if [[ "$CURRENT_BRANCH" == "$TARGET_BRANCH" ]]; then
+    echo "Error: already on $TARGET_BRANCH, switch to feature branch" >&2
+    exit 1
+fi
+
+# Collect commits between main and current branch
+COMMITS=$(git log "$TARGET_BRANCH..HEAD" --oneline --no-merges)
+
+if [[ -z "$COMMITS" ]]; then
+    echo "No new commits relative to $TARGET_BRANCH" >&2
+    exit 1
+fi
+
+# Placeholder hash (replaced after merge with actual merge commit)
+PLACEHOLDER="pending"
+CHANGELOG="CHANGELOG-${PLACEHOLDER}.md"
+
+# Archive existing root changelog
+mkdir -p "$ARCHIVE_DIR"
+for old in CHANGELOG-*.md; do
+    [[ -f "$old" ]] && mv "$old" "$ARCHIVE_DIR/"
+done
+
+# Generate changelog
+cat > "$CHANGELOG" <<EOF
+# Changelog — ${CURRENT_BRANCH} → ${TARGET_BRANCH}
+
+**Date:** $(date -u +"%Y-%m-%d")
+**Branch:** ${CURRENT_BRANCH}
+**Merge commit:** _pending (rename after merge)_
+
+## Commits
+
+$(git log "$TARGET_BRANCH..HEAD" --no-merges \
+    --pretty=format:"- %s (\`%h\`)" )
+
+## Files changed
+
+$(git diff --stat "$TARGET_BRANCH"...HEAD | head -50)
+EOF
+
+echo "Generated: $CHANGELOG"
+echo "After merge, rename with: mv $CHANGELOG CHANGELOG-\$(git rev-parse --short HEAD).md"
+```
+
+**Fish equivalent:**
+
+```fish
+function changelog-generate
+    set -l target main
+    set -l current (git branch --show-current)
+    set -l archive changelog-archive
+
+    if test "$current" = "$target"
+        echo "Error: already on $target" >&2
+        return 1
+    end
+
+    set -l commits (git log "$target..HEAD" --oneline --no-merges)
+    if test -z "$commits"
+        echo "No new commits relative to $target" >&2
+        return 1
+    end
+
+    mkdir -p $archive
+    for old in CHANGELOG-*.md
+        test -f "$old"; and mv "$old" $archive/
+    end
+
+    set -l changelog "CHANGELOG-pending.md"
+
+    echo "# Changelog — $current → $target" > $changelog
+    echo "" >> $changelog
+    echo "**Date:** "(date -u +"%Y-%m-%d") >> $changelog
+    echo "**Branch:** $current" >> $changelog
+    echo "**Merge commit:** _pending_" >> $changelog
+    echo "" >> $changelog
+    echo "## Commits" >> $changelog
+    echo "" >> $changelog
+    git log "$target..HEAD" --no-merges \
+        --pretty=format:"- %s (\`%h\`)" >> $changelog
+    echo "" >> $changelog
+    echo "" >> $changelog
+    echo "## Files changed" >> $changelog
+    echo "" >> $changelog
+    git diff --stat "$target...HEAD" | head -50 >> $changelog
+
+    echo "Generated: $changelog"
+end
+```
+
+### Post-Merge Rename
+
+After the merge commit exists, rename the file with the actual hash:
+
+```bash
+MERGE_HASH=$(git rev-parse --short HEAD)
+mv CHANGELOG-pending.md "CHANGELOG-${MERGE_HASH}.md"
+git add "CHANGELOG-${MERGE_HASH}.md" changelog-archive/
+git commit --amend --no-edit
+```
+
+**Or as a one-liner for squash merges (hash known immediately):**
+
+```bash
+git checkout main
+git merge --squash feature-branch
+MERGE_HASH=$(git rev-parse --short HEAD)
+mv CHANGELOG-pending.md "CHANGELOG-${MERGE_HASH}.md"
+git add -A
+git commit -m "feat(scope): summary of feature"
+```
+
+### Changelog Format
+
+```markdown
+# Changelog — feature-branch → main
+
+**Date:** 2026-02-13
+**Branch:** dev
+**Merge commit:** `a1b2c3d`
+
+## Commits
+
+- feat(auth): add JWT refresh endpoint (`f1a2b3c`)
+- fix(api): handle network timeouts (`d4e5f6a`)
+- test(auth): add token expiry edge cases (`b7c8d9e`)
+
+## Files changed
+
+ src/auth/tokens.ts    | 42 +++++++++++++++---
+ src/api/client.ts     | 18 +++++---
+ tests/auth.test.ts    | 35 +++++++++++++++
+ 3 files changed, 82 insertions(+), 13 deletions(-)
+```
+
+### Rules
+
+- **One root changelog:** Only the latest `CHANGELOG-<hash>.md` lives in root
+- **Archive on generation:** Move any existing root changelog to `changelog-archive/` before writing a new one
+- **Generate before merge:** Changelog reflects the branch diff, not post-merge guesswork
+- **Rename after merge:** Replace `pending` placeholder with actual merge commit short hash
+- **No empty changelogs:** Skip generation if no commits differ from main
+- **Commit the changelog:** Include it in the merge commit itself (or amend)
+- **`changelog-archive/` is append-only:** Never delete archived changelogs unless explicitly requested
+
+### Commit Message
+
+```
+docs(changelog): add changelog for <branch> merge (<short-hash>)
+```
+
+### Gitignore Consideration
+
+Do **not** gitignore changelogs. They are project history.
+
+```gitignore
+# Do NOT add:
+# CHANGELOG-*.md
+# changelog-archive/
+```
 
 ---
 
