@@ -1,3 +1,11 @@
+# initramfs-extraction.nix
+#
+# Purpose: Extract initramfs from ChromeOS kernel blobs with multi-layer decompression
+#
+# This module:
+# - Extracts vmlinuz from ChromeOS kernel blobs using futility
+# - Decompresses multiple compression layers (gzip, xz, lz4, zstd)
+# - Outputs initramfs in multiple compressed formats
 {
   self,
   nixpkgs,
@@ -19,9 +27,6 @@ let
   extractedKernel = self.packages.${system}."extracted-kernel-${board}";
 in
 {
-  # Extracted ChromeOS initramfs - derived from proprietary firmware
-  # This derivation extracts initramfs from ChromeOS kernel blobs.
-  # The output contains proprietary components and remains under unfree license terms.
   packages.${system}."initramfs-extraction-${board}" = pkgs.stdenv.mkDerivation {
     name = "initramfs-extraction-${board}";
     src = extractedKernel;
@@ -109,10 +114,8 @@ in
       dd if=work/decompressed2.bin of=work/initramfs.cpio bs=1 skip="$CPIO_OFFSET" status=none
 
       mkdir -p work/initramfs
-      # Extract, ignoring mknod errors in sandbox
       (cd work/initramfs && cpio -idm --no-absolute-filenames --no-preserve-owner 2>/dev/null < ../initramfs.cpio || true)
 
-      # Produce compressed variants
       gzip -c -9 work/initramfs.cpio > work/initramfs.cpio.gz
       xz -c -9e work/initramfs.cpio > work/initramfs.cpio.xz
       zstd -q -19 work/initramfs.cpio -o work/initramfs.cpio.zst

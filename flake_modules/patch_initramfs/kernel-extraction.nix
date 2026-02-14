@@ -1,3 +1,11 @@
+# kernel-extraction.nix
+#
+# Purpose: Extract ChromeOS kernel blob from shim firmware images
+#
+# This module:
+# - Locates and extracts KERN-A partition from ChromeOS shim
+# - Searches for CHROMEOS magic and carves inner kernel blob
+# - Verifies extracted kernel with vbutil_kernel
 {
   self,
   nixpkgs,
@@ -21,9 +29,6 @@ let
   chromeosShim = self.packages.${system}."chromeos-shim-${board}";
 in
 {
-  # Extracted ChromeOS kernel - derived from proprietary firmware
-  # This derivation extracts kernel blobs from ChromeOS shim firmware.
-  # The output contains proprietary code and remains under unfree license terms.
   packages.${system}."extracted-kernel-${board}" = pkgs.stdenv.mkDerivation {
     name = "extracted-kernel-${board}";
     version = "1.1.0";
@@ -50,7 +55,6 @@ in
 
       cp "$src" "$WORKDIR/shim.bin"
 
-      # --- Step 1: Locate KERN-A partition ---
       echo "Locating KERN-A partition..."
       START=""
       SIZE=""
@@ -74,13 +78,10 @@ in
 
       echo "KERN-A start sector: $START, size: $SIZE sectors"
 
-      # --- Step 2: Extract raw p2 ---
       dd if="$WORKDIR/shim.bin" of="$WORKDIR/p2.bin" \
          bs=$SECTOR_SIZE skip=$START count=$SIZE status=none
 
-      # --- Step 3: Search for CHROMEOS magic ---
       echo "Searching for CHROMEOS magic..."
-      # binwalk-based detection sometimes panics under concurrent I/O; add retry loop
       BINWALK_ATTEMPTS=3
       for attempt in $(seq 1 "$BINWALK_ATTEMPTS"); do
         MAGIC_OFFSET=$(grep -aob 'CHROMEOS' "$WORKDIR/p2.bin" | head -n1 | cut -d: -f1 || true)
@@ -92,7 +93,6 @@ in
         sleep 2
       done
 
-      # Fallback if still empty after retries
       if [ -z "$MAGIC_OFFSET" ]; then
         echo "ERROR: Could not find CHROMEOS magic in KERN-A"
         exit 1
@@ -100,18 +100,15 @@ in
 
       echo "Found CHROMEOS magic at byte offset $MAGIC_OFFSET inside p2"
 
-      # --- Step 4: Carve inner kernel blob ---
       dd if="$WORKDIR/p2.bin" of="$WORKDIR/kernel.bin" \
          bs=1 skip=$MAGIC_OFFSET status=none
 
       echo "Extracted kernel blob size: $(stat -c%s "$WORKDIR/kernel.bin") bytes"
 
-      # --- Step 5: Verify with vbutil_kernel ---
       if ! vbutil_kernel --verify "$WORKDIR/kernel.bin" --verbose; then
         echo "WARNING: vbutil_kernel verify failed (expected if patched)"
       fi
 
-      # Save offset for repacking later
       echo "$MAGIC_OFFSET" > "$WORKDIR/kernel_offset.txt"
 
       runHook postBuild

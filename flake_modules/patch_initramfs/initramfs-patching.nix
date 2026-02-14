@@ -1,3 +1,11 @@
+# initramfs-patching.nix
+#
+# Purpose: Overlay custom bootloader files onto extracted ChromeOS initramfs
+#
+# This module:
+# - Takes extracted initramfs and replaces init with custom bootloader
+# - Overlays bootloader directory contents into initramfs
+# - Outputs patched initramfs directory and tar archive
 {
   self,
   nixpkgs,
@@ -17,17 +25,11 @@ let
     };
   };
 
-  # Input: extracted initramfs from Step 2
   extractedInitramfs = self.packages.${system}."initramfs-extraction-${board}";
-
-  # Path to your bootloader overlay in the repo
   bootloaderDir = ./../../bootloader;
   extractedKernel = self.packages.${system}."extracted-kernel-${board}";
 in
 {
-  # Patched ChromeOS initramfs - mixed GPL/proprietary
-  # This derivation overlays GPL-licensed bootloader scripts onto proprietary ChromeOS initramfs.
-  # The combined output contains both GPL and proprietary components, marked unfree.
   packages.${system}."initramfs-patching-${board}" = pkgs.stdenv.mkDerivation {
     name = "initramfs-patching-${board}";
     src = extractedInitramfs;
@@ -68,10 +70,8 @@ in
       runHook preInstall
       mkdir -p "$out"
 
-      # Convenience passthrough of original kernel blob
       cp ${extractedKernel}/kernel.bin "$out/original-kernel.bin" || true
 
-      # Output patched initramfs as a directory and as a tar
       mkdir -p "$out/patched-initramfs"
       cp -a work/* "$out/patched-initramfs/"
 
