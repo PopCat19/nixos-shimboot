@@ -152,3 +152,7 @@ sudo resize2fs /dev/sdXN
 - May require manual kernel namespace workarounds for `nixos-rebuild` (e.g. appending `--option sandbox false` on shim kernels <5.6)
 
 For more documentation, see [README.md](README.md).
+
+## For LLM Assistants
+
+If you're an LLM assistant working with this repository, see [AGENTS.md](AGENTS.md) for project conventions and reference documentation.

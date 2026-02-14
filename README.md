@@ -11,6 +11,8 @@ Contributions and feedbacks are welcome by opening a [discussion](https://github
 
 To get started, follow the [quickstart guide](QUICKSTART.md). (assuming you are in a linux environment)
 
+For LLM assistants working with this repository, see [AGENTS.md](AGENTS.md) for project conventions.
+
 # NixOS Shimboot
 I like NixOS. I've started this project since no one else released NixOS shimboot until now. This repository took place with flake approach over the existing scripts from [ading2210/shimboot](https://github.com/ading2210/shimboot), which is mostly incompatible to build with a non-FHS distro like NixOS.
 
