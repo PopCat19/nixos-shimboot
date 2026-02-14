@@ -1,20 +1,16 @@
 #!/usr/bin/env bash
 
-# Fetch Manifest Script
+# fetch-manifest.sh
 #
 # Purpose: Download and process ChromeOS recovery image manifests for supported boards
-# Dependencies: curl, jq, nix, unzip, sort
-# Related: fetch-recovery.sh, manifests/*.nix
 #
-# This script fetches manifest JSON from ChromeOS CDN, downloads chunks in parallel,
-# assembles the recovery image, extracts shim.bin, and generates Nix manifest files.
-#
-# Usage:
-#   ./tools/fetch-manifest.sh dedede --jobs 4
+# This module:
+# - Fetches manifest JSON from ChromeOS CDN with parallel chunk downloads
+# - Assembles recovery images and extracts shim.bin
+# - Generates Nix manifest files with proper hashes
 
-set -euo pipefail
+set -Eeuo pipefail
 
-# Colors & Logging
 export ANSI_CLEAR='\033[0m'
 export ANSI_BOLD='\033[1m'
 export ANSI_GREEN='\033[1;32m'

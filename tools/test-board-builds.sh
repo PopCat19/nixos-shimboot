@@ -1,27 +1,22 @@
 #!/usr/bin/env bash
 
-# Test Board Builds Script
+# test-board-builds.sh
 #
-# Purpose: Test Nix flake builds for all supported ChromeOS boards to verify recovery functionality
-# Dependencies: nix, jq
-# Related: flake.nix, manifests/*.nix
+# Purpose: Test Nix flake builds for all supported ChromeOS boards
 #
-# This script tests building chromeos-shim packages for each supported board,
-# ensuring recovery images can be built successfully.
-#
-# Usage:
-#   ./tools/test-board-builds.sh
+# This module:
+# - Tests building chromeos-shim packages for each supported board
+# - Validates flake structure and raw-rootfs packages
+# - Reports build success/failure summary
 
-set -euo pipefail
+set -Eeuo pipefail
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Logging functions
 log_info() {
 	echo -e "${BLUE}[INFO]${NC} $1"
 }

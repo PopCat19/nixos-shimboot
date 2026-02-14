@@ -1,40 +1,16 @@
 #!/usr/bin/env bash
 
-# Push to Cachix Script
+# push-to-cachix.sh
 #
-# Purpose: Push Nix derivations to Cachix (image upload no longer supported)
-# Dependencies: cachix, nix
-# Related: assemble-final.sh, check-cachix.sh
+# Purpose: Push Nix derivations to Cachix binary cache
 #
-# This script handles Cachix push operations:
+# This module:
 # - Pushes Nix derivations (shim, recovery, kernel, initramfs, rootfs)
 # - Optionally pushes ChromeOS chunk derivations to cache CDN pulls
-# - Note: Image upload disabled due to cachix removing --file option
-#
-# Usage:
-#   ./tools/push-to-cachix.sh --board BOARD [OPTIONS]
-#
-# Options:
-#   --board BOARD              Target board (required)
-#   --rootfs FLAVOR            Rootfs variant (full, minimal)
-#   --drivers MODE             Driver mode (vendor, inject, both, none)
-#   --skip-derivations         Skip pushing Nix derivations
-#   --skip-chunks              Skip pushing ChromeOS chunk derivations
-#   --dry-run                  Show what would be done
-#
-# Examples:
-#   # Push all derivations (shim, recovery, kernel, initramfs, rootfs)
-#   ./tools/push-to-cachix.sh --board dedede
-#
-#   # Push derivations including ChromeOS chunks (caches CDN pulls)
-#   ./tools/push-to-cachix.sh --board dedede
-#
-#   # Dry run
-#   ./tools/push-to-cachix.sh --board dedede --dry-run
+# - Supports dry-run and selective push modes
 
-set -euo pipefail
+set -Eeuo pipefail
 
-# Colors
 readonly BLUE='\033[0;34m'
 readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[1;33m'

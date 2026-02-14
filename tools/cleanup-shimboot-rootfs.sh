@@ -1,25 +1,15 @@
 #!/usr/bin/env bash
 
-# Cleanup Shimboot Rootfs Script
+# cleanup-shimboot-rootfs.sh
 #
 # Purpose: Safely prune old shimboot rootfs generations without touching other outputs
-# Dependencies: nix, sudo, losetup, mount, umount, cp, find, xargs
-# Related: fetch-recovery.sh, harvest-drivers.sh
 #
-# This script discovers rootfs store paths via profiles, GC roots, or repo symlinks,
-# identifies candidates matching the pattern, keeps the newest N, and deletes older ones.
-# It avoids global GC to prevent rebuilding other outputs.
-#
-# Requirements:
-# - Nix installed
-# - Sufficient permissions (usually sudo)
-#
-# Usage examples:
-#   sudo ./tools/cleanup-shimboot-rootfs.sh --no-dry-run
+# This module:
+# - Discovers rootfs store paths via profiles, GC roots, or repo symlinks
+# - Identifies candidates matching the pattern and keeps the newest N
+# - Deletes older generations avoiding global GC
 
-set -euo pipefail
-
-# Colors & Logging
+set -Eeuo pipefail
 ANSI_CLEAR='\033[0m'
 ANSI_BOLD='\033[1m'
 ANSI_GREEN='\033[1;32m'
@@ -39,10 +29,6 @@ GCROOTS=""
 RESULTS_DIR="$(pwd)"
 PATTERN="-nixos-disk-image"
 REMOVE_STALE_SYMLINKS=0
-
-log() { printf '[cleanup] %s\n' "$*" >&2; }
-warn() { printf '[cleanup][warn] %s\n' "$*" >&2; }
-err() { printf '[cleanup][error] %s\n' "$*" >&2; }
 
 usage() {
 	cat <<'EOF'
@@ -74,7 +60,7 @@ while [[ $# -gt 0 ]]; do
 	-k | --keep)
 		KEEP="${2:-}"
 		[[ -n "$KEEP" ]] || {
-			err "Missing value for --keep"
+			log_error "Missing value for --keep"
 			exit 2
 		}
 		shift 2
@@ -90,7 +76,7 @@ while [[ $# -gt 0 ]]; do
 	-p | --profile)
 		PROFILE="${2:-}"
 		[[ -n "$PROFILE" ]] || {
-			err "Missing value for --profile"
+			log_error "Missing value for --profile"
 			exit 2
 		}
 		shift 2
@@ -98,7 +84,7 @@ while [[ $# -gt 0 ]]; do
 	-g | --gcroots)
 		GCROOTS="${2:-}"
 		[[ -n "$GCROOTS" ]] || {
-			err "Missing value for --gcroots"
+			log_error "Missing value for --gcroots"
 			exit 2
 		}
 		shift 2
@@ -106,7 +92,7 @@ while [[ $# -gt 0 ]]; do
 	-r | --results-dir)
 		RESULTS_DIR="${2:-}"
 		[[ -n "$RESULTS_DIR" ]] || {
-			err "Missing value for --results-dir"
+			log_error "Missing value for --results-dir"
 			exit 2
 		}
 		shift 2
@@ -114,7 +100,7 @@ while [[ $# -gt 0 ]]; do
 	-m | --match-substr)
 		PATTERN="${2:-}"
 		[[ -n "$PATTERN" ]] || {
-			err "Missing value for --match-substr"
+			log_error "Missing value for --match-substr"
 			exit 2
 		}
 		shift 2
@@ -128,7 +114,7 @@ while [[ $# -gt 0 ]]; do
 		exit 0
 		;;
 	*)
-		err "Unknown argument: $1"
+		log_error "Unknown argument: $1"
 		usage
 		exit 2
 		;;
@@ -137,7 +123,7 @@ done
 
 # Ensure numeric KEEP
 if ! [[ "$KEEP" =~ ^[0-9]+$ ]]; then
-	err "--keep must be an integer"
+	log_error "--keep must be an integer"
 	exit 2
 fi
 
@@ -372,7 +358,7 @@ fi
 # With set -u, guard for unset arrays using ${ORDERED+x} and ${#ORDERED[@]-0}
 if [[ -z ${ORDERED+x} || ${#ORDERED[@]} -eq 0 ]]; then
 	# Final fallback: scan the Nix store for /nix/store/*${PATTERN}*/nixos.img
-	log "Discovering via Nix store glob: /nix/store/*${PATTERN}*/nixos.img"
+	log_info "Discovering via Nix store glob: /nix/store/*${PATTERN}*/nixos.img"
 	store_output="$(discover_via_store_glob)"
 	local_rank=0
 	while IFS=$'\t' read -r mtime path img; do

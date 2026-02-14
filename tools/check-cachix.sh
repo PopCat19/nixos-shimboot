@@ -1,26 +1,15 @@
 #!/usr/bin/env bash
 
-# Check Cachix Cache Health Script
+# check-cachix.sh
 #
 # Purpose: Check Cachix cache health and coverage for shimboot derivations
-# Dependencies: curl, nix
-# Related: assemble-final.sh, flake_modules/cachix-config.nix
 #
-# This script checks:
-# - Cache endpoint connectivity
-# - Cache coverage for specific board derivations
-# - Whether derivations are available in the cache or need to be built
-#
-# Usage:
-#   ./tools/check-cachix.sh [BOARD]
-#
-# Examples:
-#   ./tools/check-cachix.sh dedede
-#   ./tools/check-cachix.sh octopus
+# This module:
+# - Tests cache endpoint connectivity
+# - Checks cache coverage for specific board derivations
+# - Reports whether derivations are cached or need building
 
-set -euo pipefail
-
-# Colors & Logging
+set -Eeuo pipefail
 ANSI_CLEAR='\033[0m'
 ANSI_BOLD='\033[1m'
 ANSI_GREEN='\033[1;32m'

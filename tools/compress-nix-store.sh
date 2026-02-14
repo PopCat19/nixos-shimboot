@@ -1,7 +1,16 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
-# Colors & Logging
+# compress-nix-store.sh
+#
+# Purpose: Compress /nix/store with squashfs to reduce disk usage
+#
+# This module:
+# - Creates squashfs archive of /nix/store with zstd compression
+# - Replaces original store with compressed read-only version
+# - Reports size reduction statistics
+
+set -Eeuo pipefail
+
 ANSI_CLEAR='\033[0m'
 ANSI_BOLD='\033[1m'
 ANSI_GREEN='\033[1;32m'

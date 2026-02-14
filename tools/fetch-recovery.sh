@@ -1,40 +1,41 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
 # fetch-recovery.sh
-# Automate fetching ChromeOS recovery image hashes for all supported boards
+#
+# Purpose: Automate fetching ChromeOS recovery image hashes for all supported boards
+#
+# This module:
+# - Fetches recovery image URLs and hashes from ChromeOS APIs
+# - Updates chromeos-sources.nix with current recovery information
+# - Supports dry-run and single-board operation modes
 
-# Configuration
+set -Eeuo pipefail
+
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 readonly CHROMEOS_SOURCES_FILE="$PROJECT_ROOT/flake_modules/chromeos-sources.nix"
 readonly BACKUP_DIR="$PROJECT_ROOT/.backup"
 readonly TEMP_DIR="$PROJECT_ROOT/.temp"
 
-# ChromeOS Releases JSON API
 readonly CHROMEOS_RELEASES_URL="https://cdn.jsdelivr.net/gh/MercuryWorkshop/chromeos-releases-data/data.json"
 readonly GOOGLE_RECOVERY_API="https://dl.google.com/dl/edgedl/chromeos/recovery/recovery2.json"
 
-# Supported boards from flake.nix
 readonly SUPPORTED_BOARDS=(
 	"dedede" "octopus" "zork" "nissa" "hatch"
 	"grunt" "snappy"
 )
 
-# Global variables
 DRY_RUN=false
 VERBOSE=false
 SPECIFIC_BOARD=""
 TEMP_JSON_FILE=""
 
-# Colors
 readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
 readonly YELLOW='\033[1;33m'
 readonly BLUE='\033[0;34m'
 readonly NC='\033[0m'
 
-# Logging
 log_info() { echo -e "${BLUE}[INFO]${NC} $*" >&2; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $*" >&2; }
 log_error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }

@@ -1,18 +1,15 @@
 #!/usr/bin/env bash
 
-# Harvest Drivers Script
+# harvest-drivers.sh
 #
-# Purpose: Extract ChromeOS kernel modules, firmware, and modprobe configs from SHIM and RECOVERY images
-# Dependencies: losetup, mount, umount, cp, find, xargs, sudo, lspci, du
-# Related: fetch-recovery.sh, fetch-manifest.sh
+# Purpose: Extract ChromeOS kernel modules, firmware, and modprobe configs from images
 #
-# This script mounts ChromeOS images read-only, extracts kernel modules and firmware,
-# and merges modprobe configurations for use in NixOS shimboot.
-#
-# Usage:
-#   sudo ./tools/harvest-drivers.sh --shim shim.bin --recovery recovery.bin --out drivers/
+# This module:
+# - Mounts ChromeOS SHIM and RECOVERY images read-only
+# - Extracts kernel modules, firmware, and modprobe configurations
+# - Prunes unused firmware files to reduce size
 
-set -euo pipefail
+set -Eeuo pipefail
 
 ANSI_CLEAR='\033[0m'
 ANSI_BOLD='\033[1m'
@@ -25,13 +22,13 @@ log_step() {
 	printf "${ANSI_BOLD}${ANSI_BLUE}[%s] %s${ANSI_CLEAR}\n" "$1" "$2"
 }
 log_info() {
-	printf "${ANSI_GREEN}  → %s${ANSI_CLEAR}\n" "$1"
+	printf "${ANSI_GREEN}  %s${ANSI_CLEAR}\n" "$1"
 }
 log_warn() {
-	printf "${ANSI_YELLOW}  ! %s${ANSI_CLEAR}\n" "$1"
+	printf "${ANSI_YELLOW}  %s${ANSI_CLEAR}\n" "$1"
 }
 log_error() {
-	printf "${ANSI_RED}  ✗ %s${ANSI_CLEAR}\n" "$1"
+	printf "${ANSI_RED}  %s${ANSI_CLEAR}\n" "$1"
 }
 
 # Prune unused firmware files to reduce size

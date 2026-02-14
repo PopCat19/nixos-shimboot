@@ -1,18 +1,15 @@
 #!/usr/bin/env bash
 
-# Collect Minimal Logs Script
+# collect-minimal-logs.sh
 #
-# Purpose: Collect diagnostics from NixOS minimal rootfs for debugging LightDM/Xorg/PAM/journal issues
-# Dependencies: sudo, lsblk, mount, umount, journalctl, grep, tail
-# Related: test-board-builds.sh, harvest-drivers.sh
+# Purpose: Collect diagnostics from NixOS minimal rootfs for debugging
 #
-# This script enumerates block devices, mounts partitions read-only, and collects
-# logs from LightDM, Xorg, PAM, and systemd journal for troubleshooting.
-#
-# Usage:
-#   sudo ./tools/collect-minimal-logs.sh /dev/sdc4
+# This module:
+# - Enumerates block devices and mounts partitions read-only
+# - Collects logs from LightDM, Xorg, PAM, and systemd journal
+# - Provides troubleshooting information for display manager issues
 
-set -euo pipefail
+set -Eeuo pipefail
 
 MNT_ARG="${1:-}"
 
@@ -21,7 +18,6 @@ SECTION() {
 	echo "========== $* =========="
 }
 
-# Colors & Logging
 ANSI_CLEAR='\033[0m'
 ANSI_BOLD='\033[1m'
 ANSI_GREEN='\033[1;32m'
@@ -33,11 +29,6 @@ log_info() { printf "${ANSI_BLUE}[INFO]${ANSI_CLEAR} %s\n" "$*" >&2; }
 log_warn() { printf "${ANSI_YELLOW}[WARN]${ANSI_CLEAR} %s\n" "$*" >&2; }
 log_error() { printf "${ANSI_RED}[ERROR]${ANSI_CLEAR} %s\n" "$*" >&2; }
 log_success() { printf "${ANSI_GREEN}[SUCCESS]${ANSI_CLEAR} %s\n" "$*" >&2; }
-
-# Legacy compatibility
-info() { printf "[INFO] %s\n" "$*" >&2; }
-warn() { printf "[WARN] %s\n" "$*" >&2; }
-err() { printf "[ERR ] %s\n" "$*" >&2; }
 
 ensure_mountpoint() {
 	sudo mkdir -p /mnt/inspect_rootfs
