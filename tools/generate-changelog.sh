@@ -131,6 +131,13 @@ done
 PLACEHOLDER="pending"
 CHANGELOG="CHANGELOG-${PLACEHOLDER}.md"
 
+# Detect merge type based on branch relationship
+MERGE_TYPE="Merge commit"
+if git merge-base --is-ancestor "$TARGET_BRANCH" HEAD 2>/dev/null; then
+    # Current branch is ahead of target (can fast-forward)
+    MERGE_TYPE="Fast-forward"
+fi
+
 log_info "Generating changelog: $CHANGELOG"
 
 cat > "$CHANGELOG" <<EOF
@@ -138,7 +145,8 @@ cat > "$CHANGELOG" <<EOF
 
 **Date:** $(date -u +"%Y-%m-%d")
 **Branch:** ${CURRENT_BRANCH}
-**Merge commit:** \`pending\` (rename after merge)
+**Merge type:** ${MERGE_TYPE} (linear history)
+**HEAD:** \`pending\` (rename after merge)
 
 ## Commits
 

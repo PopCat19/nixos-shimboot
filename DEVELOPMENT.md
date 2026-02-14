@@ -2610,7 +2610,8 @@ git commit -m "feat(scope): summary of feature"
 
 **Date:** 2026-02-13
 **Branch:** dev
-**Merge commit:** `a1b2c3d`
+**Merge type:** Merge commit (or Fast-forward)
+**HEAD:** `a1b2c3d`
 
 ## Commits
 
@@ -2625,6 +2626,11 @@ git commit -m "feat(scope): summary of feature"
  tests/auth.test.ts    | 35 +++++++++++++++
  3 files changed, 82 insertions(+), 13 deletions(-)
 ```
+
+**Merge type field:**
+- **Merge commit:** For `--no-ff` merges (creates a merge commit)
+- **Fast-forward:** For linear merges (no merge commit, just moves HEAD)
+- **Squash:** For `--squash` merges (combines all commits into one)
 
 ### Rules
 

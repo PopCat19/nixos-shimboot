@@ -2,7 +2,8 @@
 
 **Date:** 2026-02-14
 **Branch:** dev-very-experimental
-**Merge commit:** `f10c754`
+**Merge type:** Fast-forward (linear history)
+**HEAD:** `f10c754`
 
 ## Commits
 
