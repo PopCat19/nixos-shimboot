@@ -1,3 +1,11 @@
+# system-configuration.nix
+#
+# Purpose: Define NixOS system configurations for building shimboot targets
+#
+# This module:
+# - Exposes minimal and full NixOS configurations with Home Manager integration
+# - Provides compatibility aliases for legacy configuration names
+# - Configures Nix flakes, garbage collection, and proxy settings
 {
   self,
   nixpkgs,
@@ -13,42 +21,33 @@ let
   system = "x86_64-linux";
   inherit (nixpkgs) lib;
 
-  # Import user configuration from selected profile
   selectedProfile = import ../shimboot_config/selected-profile.nix;
   inherit (selectedProfile) profile;
   userConfig = import ../shimboot_config/profiles/${profile}/user-config.nix { };
-  # Hostname (used to expose .#HOSTNAME and .#HOSTNAME-minimal)
   hn = userConfig.host.hostname;
 
-  # Base = required system configuration only
   baseModules = [
     ../shimboot_config/base_configuration/configuration.nix
 
-    # Base-level defaults/tuning common to all variants
     (_: {
-      # Enable Nix flakes
       nix.settings.experimental-features = [
         "nix-command"
         "flakes"
       ];
 
-      # Enable automatic garbage collection
       nix.gc = {
         automatic = true;
         dates = "weekly";
         options = "--delete-older-than 30d";
       };
 
-      # Enable Android WiFi Direct proxy auto-configuration
       proxy.enable = true;
     })
   ];
 
-  # Main = user configuration that itself imports base; keeps flake from duplicating base
   mainModules = [
     ../shimboot_config/profiles/${profile}/main_configuration/configuration.nix
 
-    # Integrate Home Manager for user-level config
     home-manager.nixosModules.home-manager
 
     (
@@ -66,7 +65,6 @@ let
           inherit (self) inputs;
         };
 
-        # Make userConfig available to home modules
         home-manager.sharedModules = [
           (_: {
             nixpkgs.config.allowUnfree = true;
@@ -75,7 +73,6 @@ let
           })
         ];
 
-        # Delegate actual HM content to home.nix (split into programs.nix and packages.nix)
         home-manager.users."${userConfig.user.username}" =
           import ../shimboot_config/profiles/${profile}/main_configuration/home/home.nix;
       }
@@ -83,11 +80,9 @@ let
   ];
 in
 {
-  # NixOS configurations for building the system
   nixosConfigurations =
     let
       baseSet = {
-        # Minimal/base-only target (host-qualified)
         "${hn}-minimal" = nixpkgs.lib.nixosSystem {
           inherit system;
           modules = baseModules;
@@ -105,7 +100,6 @@ in
           };
         };
 
-        # Full target (host-qualified, preferred)
         "${hn}" = nixpkgs.lib.nixosSystem {
           inherit system;
           modules = mainModules;

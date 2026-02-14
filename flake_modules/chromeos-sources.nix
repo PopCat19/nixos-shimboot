@@ -1,3 +1,11 @@
+# chromeos-sources.nix
+#
+# Purpose: Fetch ChromeOS shim and recovery firmware for board-specific builds
+#
+# This module:
+# - Downloads ChromeOS shim firmware from CDN using manifest-based chunk assembly
+# - Fetches ChromeOS recovery images for supported boards
+# - Provides unfree-licensed proprietary firmware as Nix derivations
 {
   nixpkgs,
   board ? "dedede",
@@ -18,12 +26,10 @@ let
     };
   };
 
-  # Import generated manifest from fetch-manifest.sh
   boardManifest = import ../manifests/${board}-manifest.nix;
 
   chunkBaseUrl = "https://cdn.cros.download/files/${board}";
 
-  # Fetch each chunk as a fixed-output derivation
   chunkDrvs = map (
     chunk:
     pkgs.fetchurl {

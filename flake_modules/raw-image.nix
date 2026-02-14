@@ -1,3 +1,11 @@
+# raw-image.nix
+#
+# Purpose: Generate raw rootfs images for ChromeOS shimboot installation
+#
+# This module:
+# - Builds full raw rootfs with Home Manager integration
+# - Builds minimal raw rootfs with base configuration only
+# - Configures serial console logging and Nix garbage collection
 {
   self,
   nixos-generators,
@@ -31,7 +39,6 @@ in
       };
 
       modules = [
-        # Apply overlays
         (
           { config, ... }:
           {
@@ -40,10 +47,8 @@ in
         )
       ]
       ++ [
-        # Use the main configuration (which itself imports base)
         ../shimboot_config/profiles/${profile}/main_configuration/configuration.nix
 
-        # Integrate Home Manager for user-level configuration like the full system build
         home-manager.nixosModules.home-manager
         (
           { pkgs, ... }:
@@ -71,18 +76,14 @@ in
           }
         )
 
-        # Raw image specific configuration
         (_: {
-          # Enable serial console logging
           boot.kernelParams = [ "console=ttyS0,115200" ];
 
-          # Enable Nix flakes
           nix.settings.experimental-features = [
             "nix-command"
             "flakes"
           ];
 
-          # Enable automatic garbage collection
           nix.gc = {
             automatic = true;
             dates = "weekly";
@@ -92,7 +93,6 @@ in
       ];
     };
 
-    # Minimal/base-only raw image (no Home Manager, base configuration only)
     raw-rootfs-minimal = nixos-generators.nixosGenerate {
       inherit system;
       format = "raw";
@@ -107,21 +107,16 @@ in
       };
 
       modules = [
-        # Base-only configuration (standalone Hyprland via greetd)
         ../shimboot_config/base_configuration/configuration.nix
 
-        # Raw image specific configuration
         (_: {
-          # Enable serial console logging
           boot.kernelParams = [ "console=ttyS0,115200" ];
 
-          # Enable Nix flakes
           nix.settings.experimental-features = [
             "nix-command"
             "flakes"
           ];
 
-          # Enable automatic garbage collection
           nix.gc = {
             automatic = true;
             dates = "weekly";

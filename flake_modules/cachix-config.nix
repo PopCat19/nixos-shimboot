@@ -1,8 +1,6 @@
-# Cachix Configuration Module
+# cachix-config.nix
 #
 # Purpose: Configure Cachix binary cache for all builds
-# Dependencies: None
-# Related: flake.nix
 #
 # This module:
 # - Configures Nix substituters for binary cache access
