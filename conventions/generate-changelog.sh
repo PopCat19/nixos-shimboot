@@ -14,12 +14,16 @@
 #   ./generate-changelog.sh [OPTIONS]
 #
 # Options:
-#   --target BRANCH    Target branch (default: main)
+#   --target BRANCH    Target branch (prompts if not specified)
 #   --rename           Rename pending changelog with current HEAD hash
+#   --yes, -y          Skip all confirmation prompts
 #   --help             Show this help message
 #
 # Examples:
-#   # Generate changelog before merge
+#   # Interactive mode (prompts for target branch)
+#   ./generate-changelog.sh
+#
+#   # Specify target branch
 #   ./generate-changelog.sh --target dev
 #
 #   # Rename after merge
@@ -36,8 +40,9 @@ else
 fi
 
 # Default values
-TARGET_BRANCH="main"
+TARGET_BRANCH=""
 RENAME_MODE=false
+SKIP_CONFIRM=false
 ARCHIVE_DIR="${PROJECT_ROOT}/changelog-archive"
 
 # Colors
@@ -45,6 +50,7 @@ ANSI_CLEAR='\033[0m'
 ANSI_GREEN='\033[1;32m'
 ANSI_YELLOW='\033[1;33m'
 ANSI_RED='\033[1;31m'
+ANSI_CYAN='\033[1;36m'
 
 log_info() {
 	printf "${ANSI_GREEN}  → %s${ANSI_CLEAR}\n" "$1"
@@ -56,6 +62,10 @@ log_warn() {
 
 log_error() {
 	printf "${ANSI_RED}  ✗ %s${ANSI_CLEAR}\n" "$1"
+}
+
+log_prompt() {
+	printf "${ANSI_CYAN}  ? %s${ANSI_CLEAR}" "$1"
 }
 
 show_help() {
@@ -72,6 +82,10 @@ while [[ $# -gt 0 ]]; do
 		;;
 	--rename)
 		RENAME_MODE=true
+		shift
+		;;
+	--yes | -y)
+		SKIP_CONFIRM=true
 		shift
 		;;
 	--help | -h)
@@ -104,13 +118,39 @@ fi
 # Get current branch
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "detached")
 
-if [[ "$CURRENT_BRANCH" == "$TARGET_BRANCH" ]]; then
-	log_error "Already on $TARGET_BRANCH, switch to feature branch"
+if [[ "$CURRENT_BRANCH" == "detached" ]]; then
+	log_error "Cannot generate changelog in detached HEAD state"
 	exit 1
 fi
 
-if [[ "$CURRENT_BRANCH" == "detached" ]]; then
-	log_error "Cannot generate changelog in detached HEAD state"
+# Get common branches for target selection
+get_common_branches() {
+	git branch -r 2>/dev/null | grep -E 'origin/(main|master|dev|develop|staging)' | sed 's/.*origin\///' | sort -u
+}
+
+# Prompt for target branch if not specified
+if [[ -z "$TARGET_BRANCH" ]]; then
+	COMMON_BRANCHES=$(get_common_branches)
+	DEFAULT_BRANCH="main"
+
+	# Try to detect default branch
+	if echo "$COMMON_BRANCHES" | grep -q "^main$"; then
+		DEFAULT_BRANCH="main"
+	elif echo "$COMMON_BRANCHES" | grep -q "^master$"; then
+		DEFAULT_BRANCH="master"
+	fi
+
+	echo ""
+	echo "Available branches:"
+	echo "$COMMON_BRANCHES" | head -5
+	echo ""
+	log_prompt "Target branch [${DEFAULT_BRANCH}]: "
+	read -r INPUT_BRANCH
+	TARGET_BRANCH="${INPUT_BRANCH:-$DEFAULT_BRANCH}"
+fi
+
+if [[ "$CURRENT_BRANCH" == "$TARGET_BRANCH" ]]; then
+	log_error "Already on $TARGET_BRANCH, switch to feature branch"
 	exit 1
 fi
 
@@ -125,6 +165,26 @@ fi
 # Count commits
 COMMIT_COUNT=$(echo "$COMMITS" | wc -l)
 log_info "Found $COMMIT_COUNT commits to include in changelog"
+
+# Show preview of commits
+echo ""
+echo "Commits to be included:"
+echo "$COMMITS" | head -10
+if [[ $COMMIT_COUNT -gt 10 ]]; then
+	echo "  ... and $((COMMIT_COUNT - 10)) more"
+fi
+echo ""
+
+# Ask for confirmation
+if [[ "$SKIP_CONFIRM" != "true" ]]; then
+	log_prompt "Generate changelog for ${COMMIT_COUNT} commits? [y/N] "
+	read -n 1 -r
+	echo ""
+	if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+		log_info "Aborted"
+		exit 0
+	fi
+fi
 
 # Archive existing root changelogs (excluding pending which may exist from aborted run)
 mkdir -p "$ARCHIVE_DIR"
