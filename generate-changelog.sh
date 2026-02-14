@@ -11,7 +11,7 @@
 # - Optionally renames after merge with actual commit hash
 #
 # Usage:
-#   ./tools/generate-changelog.sh [OPTIONS]
+#   ./generate-changelog.sh [OPTIONS]
 #
 # Options:
 #   --target BRANCH    Target branch (default: main)
@@ -20,10 +20,10 @@
 #
 # Examples:
 #   # Generate changelog before merge
-#   ./tools/generate-changelog.sh --target dev
+#   ./generate-changelog.sh --target dev
 #
 #   # Rename after merge
-#   ./tools/generate-changelog.sh --rename
+#   ./generate-changelog.sh --rename
 
 set -Eeuo pipefail
 
@@ -138,6 +138,20 @@ if git merge-base --is-ancestor "$TARGET_BRANCH" HEAD 2>/dev/null; then
     MERGE_TYPE="Fast-forward"
 fi
 
+# Get remote URL for commit hyperlinks
+REMOTE_URL=$(git remote get-url origin 2>/dev/null | sed 's/\.git$//' | sed 's/git@github\.com:/https:\/\/github.com\//')
+
+# Format commits with hyperlinks
+format_commits() {
+    git log "$TARGET_BRANCH..HEAD" --no-merges --pretty=format:"%s|%h" 2>/dev/null | while IFS='|' read -r msg hash; do
+        if [[ -n "$REMOTE_URL" ]]; then
+            echo "- $msg ([\`$hash\`]($REMOTE_URL/commit/$hash))"
+        else
+            echo "- $msg (\`$hash\`)"
+        fi
+    done
+}
+
 log_info "Generating changelog: $CHANGELOG"
 
 cat > "$CHANGELOG" <<EOF
@@ -150,11 +164,13 @@ cat > "$CHANGELOG" <<EOF
 
 ## Commits
 
-$(git log "$TARGET_BRANCH..HEAD" --no-merges --pretty=format:"- %s (\`%h\`)" 2>/dev/null)
+$(format_commits)
 
 ## Files changed
 
+\`\`\`
 $(git diff --stat "$TARGET_BRANCH...HEAD" 2>/dev/null | head -100)
+\`\`\`
 EOF
 
 log_info "Generated: $CHANGELOG"

@@ -111,6 +111,7 @@
 
 ## Files changed
 
+```
  .gitattributes                                     |    1 +
  .github/workflows/flake-check.yml                  |    4 +-
  .github/workflows/shimboot-unified.yml             |   65 +-
@@ -212,6 +213,7 @@
  .../home/noctalia_config/noctalia.nix              |   16 -
  .../main_configuration/home/screenshot.fish        |  139 -
  166 files changed, 7166 insertions(+), 5810 deletions(-)
+```
 
 ## Summary
 

@@ -1793,11 +1793,13 @@ cat > "$CHANGELOG" <<EOF
 
 ## Commits
 
-$(git log "$TARGET_BRANCH..HEAD" --no-merges --pretty=format:"- %s (\`%h\`)" 2>/dev/null)
+\$(format_commits)
 
 ## Files changed
 
-$(git diff --stat "$TARGET_BRANCH...HEAD" 2>/dev/null | head -100)
+\`\`\`
+\$(git diff --stat "$TARGET_BRANCH...HEAD" 2>/dev/null | head -100)
+\`\`\`
 EOF
 
 echo "Generated: $CHANGELOG"
@@ -1810,7 +1812,7 @@ After the merge commit exists, rename the file with the actual hash:
 
 ```bash
 # Using the script
-./tools/generate-changelog.sh --rename
+./generate-changelog.sh --rename
 
 # Or manually
 MERGE_HASH=$(git rev-parse --short HEAD)
@@ -1831,16 +1833,18 @@ git commit --amend --no-edit
 
 ## Commits
 
-- feat(auth): add JWT refresh endpoint (`f1a2b3c`)
-- fix(api): handle network timeouts (`d4e5f6a`)
-- test(auth): add token expiry edge cases (`b7c8d9e`)
+- feat(auth): add JWT refresh endpoint ([`f1a2b3c`](https://github.com/org/repo/commit/f1a2b3c))
+- fix(api): handle network timeouts ([`d4e5f6a`](https://github.com/org/repo/commit/d4e5f6a))
+- test(auth): add token expiry edge cases ([`b7c8d9e`](https://github.com/org/repo/commit/b7c8d9e))
 
 ## Files changed
 
+```
  src/auth/tokens.ts    | 42 +++++++++++++++---
  src/api/client.ts     | 18 +++++---
  tests/auth.test.ts    | 35 +++++++++++++++
  3 files changed, 82 insertions(+), 13 deletions(-)
+```
 ```
 
 **Merge type field:**
