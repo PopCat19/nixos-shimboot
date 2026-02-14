@@ -144,8 +144,15 @@ if [[ -z "$TARGET_BRANCH" ]]; then
 	echo "Available branches:"
 	echo "$COMMON_BRANCHES" | head -5
 	echo ""
-	log_prompt "Target branch [${DEFAULT_BRANCH}]: "
+	log_prompt "Target branch [${DEFAULT_BRANCH}] (q to quit): "
 	read -r INPUT_BRANCH
+
+	# Allow user to quit
+	if [[ "$INPUT_BRANCH" == "q" || "$INPUT_BRANCH" == "quit" || "$INPUT_BRANCH" == "exit" ]]; then
+		log_info "Aborted"
+		exit 0
+	fi
+
 	TARGET_BRANCH="${INPUT_BRANCH:-$DEFAULT_BRANCH}"
 fi
 
