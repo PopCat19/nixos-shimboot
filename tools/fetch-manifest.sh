@@ -146,7 +146,7 @@ if [ -f "$OUT_PATH" ]; then
 		if [[ -t 0 ]]; then
 			read -rp "Resume from chunk index $start_index (${chunks[$start_index]})? [Y/n] " ans
 		else
-			ans="Y"  # Auto-resume in CI
+			ans="Y" # Auto-resume in CI
 		fi
 		if [[ "$ans" =~ ^[Nn]$ ]]; then
 			start_index=0
