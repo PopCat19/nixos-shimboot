@@ -1,6 +1,6 @@
 # NixOS Shimboot Quickstart Guide
 
-> **Warning**: This is a Proof-of-Concept project. It may not work reliably and is intended for experimentation only. See [README.md](README.md) and [SPEC.md](SPEC.md) for more details.
+> **Warning**: This is a Proof-of-Concept project. It may not work reliably and is intended for experimentation only. See [README.md](README.md) for more details.
 
 ## Prerequisites
 
@@ -151,4 +151,4 @@ sudo resize2fs /dev/sdXN
 - May require `--impure` for some builds
 - May require manual kernel namespace workarounds for `nixos-rebuild` (e.g. appending `--option sandbox false` on shim kernels <5.6)
 
-For more documentation, see [README.md](README.md) and [SPEC.md](SPEC.md).
+For more documentation, see [README.md](README.md).
