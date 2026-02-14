@@ -259,8 +259,9 @@ nix flake check
 - Use `#!/usr/bin/env bash` shebang
 - Set strict mode at top of scripts
   ```bash
-  set -euo pipefail
+  set -Eeuo pipefail
   # -e: exit on error
+  # -E: inherit ERR trap (needed when using trap ... ERR)
   # -u: error on undefined variable
   # -o pipefail: catch errors in pipes
   ```
@@ -531,7 +532,8 @@ nix flake check
 - Async/await over raw promises
   ```typescript
   // Good
-  const data = await fetch(url).then(r => r.json())
+  const response = await fetch(url);
+  const data = await response.json();
 
   // Bad
   fetch(url).then(r => r.json()).then(data => { ... })
@@ -1172,7 +1174,7 @@ chore(flake): update nixpkgs input [skip-check]
 
 **With flags:**
 ```regex
-^(feat|fix|docs|style|refactor|test|chore|perf|revert)\([^)]+\): [a-z].+[^.]( \[(untested|skip-check)\])?$
+^(feat|fix|docs|style|refactor|test|chore|perf|revert)\([^)]+\): [a-z].+[^. ]( \[(untested|skip-check)\])?$
 ```
 
 **Note:** Scope pattern `[^)]+` intentionally permits hyphens, numbers, etc. for flexibility (e.g., `api-v2`, `user-model-3`). Enforce naming convention in review if needed.
@@ -1441,7 +1443,9 @@ nix flake check       # Nix (see policy below)
 # Interactive: Ask first
 "Run nix flake check? (resource-intensive, CI already configured)"
 # If yes:
-nix flake check --impure --accept-flake-config
+nix flake check --accept-flake-config
+# Add --impure only if the flake requires it (e.g., impure inputs)
+# Using --impure by default undermines reproducibility
 
 # Skip if:
 # - CI handles validation
