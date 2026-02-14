@@ -2484,30 +2484,41 @@ git log main..HEAD --oneline --no-merges
 
 ```bash
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 TARGET_BRANCH="main"
-CURRENT_BRANCH=$(git branch --show-current)
+CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "detached")
 ARCHIVE_DIR="changelog-archive"
+
+if [[ "$CURRENT_BRANCH" == "detached" ]]; then
+    echo "Error: cannot generate changelog in detached HEAD state" >&2
+    exit 1
+fi
 
 if [[ "$CURRENT_BRANCH" == "$TARGET_BRANCH" ]]; then
     echo "Error: already on $TARGET_BRANCH, switch to feature branch" >&2
     exit 1
 fi
 
-# Collect commits between main and current branch
-COMMITS=$(git log "$TARGET_BRANCH..HEAD" --oneline --no-merges)
+# Collect commits between target and current branch
+COMMITS=$(git log "$TARGET_BRANCH..HEAD" --oneline --no-merges 2>/dev/null || true)
 
 if [[ -z "$COMMITS" ]]; then
     echo "No new commits relative to $TARGET_BRANCH" >&2
     exit 1
 fi
 
-# Placeholder hash (replaced after merge with actual merge commit)
+# Detect merge type based on branch relationship
+MERGE_TYPE="Merge commit"
+if git merge-base --is-ancestor "$TARGET_BRANCH" HEAD 2>/dev/null; then
+    MERGE_TYPE="Fast-forward"
+fi
+
+# Placeholder hash (replaced after merge with actual commit hash)
 PLACEHOLDER="pending"
 CHANGELOG="CHANGELOG-${PLACEHOLDER}.md"
 
-# Archive existing root changelog
+# Archive existing root changelogs
 mkdir -p "$ARCHIVE_DIR"
 for old in CHANGELOG-*.md; do
     [[ -f "$old" ]] && mv "$old" "$ARCHIVE_DIR/"
@@ -2519,66 +2530,20 @@ cat > "$CHANGELOG" <<EOF
 
 **Date:** $(date -u +"%Y-%m-%d")
 **Branch:** ${CURRENT_BRANCH}
-**Merge commit:** _pending (rename after merge)_
+**Merge type:** ${MERGE_TYPE} (linear history)
+**HEAD:** \`pending\` (rename after merge)
 
 ## Commits
 
-$(git log "$TARGET_BRANCH..HEAD" --no-merges \
-    --pretty=format:"- %s (\`%h\`)" )
+$(git log "$TARGET_BRANCH..HEAD" --no-merges --pretty=format:"- %s (\`%h\`)" 2>/dev/null)
 
 ## Files changed
 
-$(git diff --stat "$TARGET_BRANCH"...HEAD | head -50)
+$(git diff --stat "$TARGET_BRANCH...HEAD" 2>/dev/null | head -100)
 EOF
 
 echo "Generated: $CHANGELOG"
 echo "After merge, rename with: mv $CHANGELOG CHANGELOG-\$(git rev-parse --short HEAD).md"
-```
-
-**Fish equivalent:**
-
-```fish
-function changelog-generate
-    set -l target main
-    set -l current (git branch --show-current)
-    set -l archive changelog-archive
-
-    if test "$current" = "$target"
-        echo "Error: already on $target" >&2
-        return 1
-    end
-
-    set -l commits (git log "$target..HEAD" --oneline --no-merges)
-    if test -z "$commits"
-        echo "No new commits relative to $target" >&2
-        return 1
-    end
-
-    mkdir -p $archive
-    for old in CHANGELOG-*.md
-        test -f "$old"; and mv "$old" $archive/
-    end
-
-    set -l changelog "CHANGELOG-pending.md"
-
-    echo "# Changelog — $current → $target" > $changelog
-    echo "" >> $changelog
-    echo "**Date:** "(date -u +"%Y-%m-%d") >> $changelog
-    echo "**Branch:** $current" >> $changelog
-    echo "**Merge commit:** _pending_" >> $changelog
-    echo "" >> $changelog
-    echo "## Commits" >> $changelog
-    echo "" >> $changelog
-    git log "$target..HEAD" --no-merges \
-        --pretty=format:"- %s (\`%h\`)" >> $changelog
-    echo "" >> $changelog
-    echo "" >> $changelog
-    echo "## Files changed" >> $changelog
-    echo "" >> $changelog
-    git diff --stat "$target...HEAD" | head -50 >> $changelog
-
-    echo "Generated: $changelog"
-end
 ```
 
 ### Post-Merge Rename
@@ -2586,21 +2551,14 @@ end
 After the merge commit exists, rename the file with the actual hash:
 
 ```bash
+# Using the script
+./tools/generate-changelog.sh --rename
+
+# Or manually
 MERGE_HASH=$(git rev-parse --short HEAD)
 mv CHANGELOG-pending.md "CHANGELOG-${MERGE_HASH}.md"
 git add "CHANGELOG-${MERGE_HASH}.md" changelog-archive/
 git commit --amend --no-edit
-```
-
-**Or as a one-liner for squash merges (hash known immediately):**
-
-```bash
-git checkout main
-git merge --squash feature-branch
-MERGE_HASH=$(git rev-parse --short HEAD)
-mv CHANGELOG-pending.md "CHANGELOG-${MERGE_HASH}.md"
-git add -A
-git commit -m "feat(scope): summary of feature"
 ```
 
 ### Changelog Format
@@ -2610,7 +2568,7 @@ git commit -m "feat(scope): summary of feature"
 
 **Date:** 2026-02-13
 **Branch:** dev
-**Merge type:** Merge commit (or Fast-forward)
+**Merge type:** Fast-forward (linear history)
 **HEAD:** `a1b2c3d`
 
 ## Commits
@@ -2628,9 +2586,8 @@ git commit -m "feat(scope): summary of feature"
 ```
 
 **Merge type field:**
-- **Merge commit:** For `--no-ff` merges (creates a merge commit)
-- **Fast-forward:** For linear merges (no merge commit, just moves HEAD)
-- **Squash:** For `--squash` merges (combines all commits into one)
+- **Fast-forward:** Current branch is descendant of target (linear history)
+- **Merge commit:** Current branch has diverged (requires merge commit)
 
 ### Rules
 
