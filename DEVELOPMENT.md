@@ -1,10 +1,10 @@
 # DEVELOPMENT
 
-**Purpose:** Agent development rules and conventions.
+**Purpose:** An opinionated agent development rules and conventions.
 
 **Principles:** KISS (Keep It Simple, Stupid), DRY (Don't Repeat Yourself), lazy maintenance, self-documenting code.
 
-**Reading Guide:** This document is comprehensive (~2,500 lines) covering multiple languages and use cases. Use the table of contents to navigate to relevant sections. Each rule is independently simple; apparent complexity comes from breadth of coverage. Rule 17 (Example Patterns) is optional reference material.
+**Reading Guide:** This document is comprehensive (1.5~3k lines) covering multiple languages and use cases. Use the table of contents to navigate to relevant sections. Each rule is independently simple; apparent complexity comes from breadth of coverage. Rule 17 (Example Patterns) is optional reference material.
 
 ## Table of Contents
 
@@ -92,8 +92,7 @@
   - Commit summaries: 72 characters (git log readability, see Rule 10)
   - Python with black: 88 characters (tool default)
   - Exception: Long hashes, URLs, Nix store paths
-- **Trailing newline:** Single at EOF
-  - Why: POSIX compliance, cleaner diffs
+- **Trailing newline:** Single at EOF (POSIX compliance, cleaner diffs)
 - **Extract repeated values:** Named bindings for duplicates
   - Before: `timeout: 5000` appears 6 times
   - After: `const TIMEOUT_MS = 5000`
@@ -101,10 +100,8 @@
   - Before: `if (a) { if (b) { if (c) { ... }}}`
   - After: `if (!a) return; if (!b) return; if (!c) return; ...`
 - **No first-person:** Avoid "I", "we" in code, comments, and commit messages
-  - Bad: `# We validate here because...`
-  - Good: `# Validates here because...`
-  - Bad: `fix: we updated the API`
-  - Good: `fix: update API endpoint`
+  - Use `# Validates here because...` not `# We validate here because...`
+  - Use `fix: update API endpoint` not `fix: we updated the API`
 
 ### Nix (NixOS, Home Manager, Flakes)
 
@@ -168,8 +165,8 @@ nix flake check
 **Conventions:**
 - Use `set -l` for local variables, `set -g` for global
   ```fish
-  set -l temp_file (mktemp)  # Local to function
-  set -g API_KEY "..."       # Global
+  set -l temp_file (mktemp)
+  set -g API_KEY "..."
   ```
 - Prefer `string` built-ins over external tools
   ```fish
@@ -181,8 +178,7 @@ nix flake check
   ```
 - Use command substitution `(command)` syntax
   ```fish
-  set result (command args)  # Good (Fish syntax)
-  set result `command args`  # Not supported (bash/sh syntax)
+  set result (command args)
   ```
 - Test conditions with `test` or `[`
   ```fish
@@ -217,19 +213,11 @@ nix flake check
   ```
 - F-strings over `.format()` or `%`
   ```python
-  # Good
   message = f"User {name} logged in at {time}"
-
-  # Bad
-  message = "User {} logged in at {}".format(name, time)
   ```
 - List comprehensions over `map`/`filter` when readable
   ```python
-  # Good (readable)
   evens = [x for x in numbers if x % 2 == 0]
-
-  # Bad (less clear)
-  evens = list(filter(lambda x: x % 2 == 0, numbers))
   ```
 - Context managers for resources
   ```python
@@ -260,15 +248,10 @@ nix flake check
 - Set strict mode at top of scripts
   ```bash
   set -Eeuo pipefail
-  # -e: exit on error
-  # -E: inherit ERR trap (needed when using trap ... ERR)
-  # -u: error on undefined variable
-  # -o pipefail: catch errors in pipes
   ```
 - Quote all variable expansions unless word-splitting intended
   ```bash
-  echo "$var"           # Good
-  echo $var             # Bad (word-splitting)
+  echo "$var"           # Quoted
   array=($list)         # Exception: intentional splitting
   ```
 - Use `[[ ]]` for tests (not `[ ]`)
@@ -286,8 +269,7 @@ nix flake check
   ```
 - Prefer `$()` over backticks for command substitution
   ```bash
-  result=$(command)     # Good
-  result=`command`      # Bad
+  result=$(command)
   ```
 - Check command existence before use
   ```bash
@@ -522,8 +504,7 @@ nix flake check
   ```
 - Use template literals over concatenation
   ```typescript
-  console.log(`User ${name} logged in`)  // Good
-  console.log("User " + name + " logged in")  // Bad
+  console.log(`User ${name} logged in`)
   ```
 - Optional chaining and nullish coalescing
   ```typescript
@@ -531,22 +512,12 @@ nix flake check
   ```
 - Async/await over raw promises
   ```typescript
-  // Good
   const response = await fetch(url);
   const data = await response.json();
-
-  // Bad
-  fetch(url).then(r => r.json()).then(data => { ... })
   ```
 - Destructure function parameters for readability
   ```typescript
-  // Good
   function createUser({ name, email, role = "user" }) {
-      // ...
-  }
-
-  // Bad
-  function createUser(name, email, role) {
       // ...
   }
   ```
@@ -572,82 +543,7 @@ nix flake check
 - Return/throw errors with context
 - Distinguish recoverable vs fatal errors
 
-**Nix:**
-```nix
-# Use builtins.throw for unrecoverable errors
-if !condition then
-  throw "Invalid configuration: expected X, got ${value}"
-else
-  # ...
-```
-
-**Fish:**
-```fish
-function critical_operation
-    if not test -f $required_file
-        echo "Error: $required_file not found" >&2
-        return 1
-    end
-    # ...
-end
-```
-
-**Bash:**
-```bash
-if [[ ! -f "$config" ]]; then
-    echo "Error: Config file not found: $config" >&2
-    exit 1
-fi
-```
-
-**Rust:**
-```rust
-// Return Result with context
-fn load_config(path: &Path) -> Result<Config, Error> {
-    let contents = std::fs::read_to_string(path)
-        .map_err(|e| Error::ReadFailed {
-            path: path.to_path_buf(),
-            source: e,
-        })?;
-
-    serde_json::from_str(&contents)
-        .map_err(Error::ParseFailed)
-}
-```
-
-**Go:**
-```go
-// Wrap errors with context
-func loadConfig(path string) (*Config, error) {
-    data, err := os.ReadFile(path)
-    if err != nil {
-        return nil, fmt.Errorf("read config %s: %w", path, err)
-    }
-
-    var cfg Config
-    if err := json.Unmarshal(data, &cfg); err != nil {
-        return nil, fmt.Errorf("parse config: %w", err)
-    }
-
-    return &cfg, nil
-}
-```
-
-**Bun/TypeScript:**
-```typescript
-// Return Result type or throw with context
-if (!isValid(input)) {
-    throw new ValidationError(`Invalid input: ${input}`, { input })
-}
-
-// Or use Result pattern
-function parse(input: string): Result<Data, Error> {
-    if (!isValid(input)) {
-        return { ok: false, error: new Error("Invalid") }
-    }
-    return { ok: true, value: parseData(input) }
-}
-```
+See per-language sections above for idiomatic patterns.
 
 ### Testing Conventions
 
@@ -875,14 +771,10 @@ nix-shell -p pandoc --run "pandoc input.md -o output.pdf"
 
 **Rules:**
 - **Max depth:** 6 levels from repository root
-  - Why: Beyond this, paths become unwieldy and context is lost
   - Counting: Start from repo root (where `.git` lives)
   - Monorepo note: Count from app/package root instead (e.g., `apps/myapp/` is depth 0)
-- **Dir names:** Simple, descriptive, single-purpose
-  - Good: `auth/`, `models/`, `utils/`
-  - Bad: `miscellaneous/`, `stuff/`, `temp-backup-old/`
-- **Configurable files:** Group flat rather than deep
-  - Why: User-facing settings should be easy to find and edit
+- **Dir names:** Simple, descriptive, single-purpose (e.g., `auth/`, `models/` — not `miscellaneous/`, `stuff/`)
+- **Configurable files:** Group flat rather than deep (user-facing settings should be easy to find)
 
 **Modular design:**
 - **Prefer modules over large files** unless:
@@ -1017,8 +909,7 @@ function add(a, b) {
 **Rules:**
 - **Every module must be imported/referenced somewhere**
   - Exception: Entry points (main.js, index.html)
-- **Wire in on create:** Add import immediately after creating file
-  - Prevents orphans
+- **Wire in on create:** Add import immediately after creating file (prevents orphans)
 - **Remove refs before delete:** Find all imports/references first
   ```bash
   grep -r "filename" .  # Check before deleting
@@ -1794,640 +1685,7 @@ const reverseString = (str) => {
 
 ## 17. Example Patterns
 
-**Rationale:** Concrete examples from real projects demonstrate conventions in practice.
-
-**Note:** The following examples are drawn from a NixOS/Home Manager/Hyprland/Fish configuration context. They illustrate patterns rather than prescribe universal solutions. Adapt to your project's stack and requirements. Comments in examples are for illustration purposes; follow Rule 5 for actual code.
-
-### Nix Flake Structure
-
-**Input following:**
-```nix
-inputs = {
-  nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-
-  # Always use follows for consistency
-  home-manager = {
-    url = "github:nix-community/home-manager";
-    inputs.nixpkgs.follows = "nixpkgs";
-  };
-
-  zen-browser = {
-    url = "github:0xc000022070/zen-browser-flake";
-    inputs.nixpkgs.follows = "nixpkgs";
-  };
-};
-```
-
-**Why:** Prevents duplicate nixpkgs versions, reduces closure size, ensures version consistency.
-
-**Module imports with explicit inheritance:**
-```nix
-outputs = { self, nixpkgs, home-manager, ... }:
-  let
-    system = "x86_64-linux";
-
-    moduleOutputs = import ./modules/example.nix {
-      inherit self nixpkgs home-manager;  # Explicit is clear
-    };
-  in
-  {
-    inherit (moduleOutputs) packages devShells;
-  };
-```
-
-**Formatter configuration:**
-```nix
-{
-  # Use nixfmt-tree (provides treefmt interface)
-  formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-tree;
-}
-```
-
-### Nix Module Patterns
-
-**Function parameters with defaults:**
-```nix
-{
-  hostname ? null,
-  system ? "x86_64-linux",
-  username ? "nixos-user",
-}:
-{
-  host = {
-    inherit system;
-    hostname = if hostname == null then username else hostname;
-  };
-
-  user = {
-    inherit username;
-    # Configuration here
-  };
-}
-```
-
-**Nested attribute sets with let bindings:**
-```nix
-{
-  directories =
-    let
-      home = "/home/${username}";
-    in
-    {
-      inherit home;
-      documents = "${home}/Documents";
-      downloads = "${home}/Downloads";
-      pictures = "${home}/Pictures";
-    };
-}
-```
-
-**Why:** Avoids repeating `"/home/${username}"` throughout the attribute set.
-
-### Bash Script Patterns
-
-**Strict mode with error handling:**
-```bash
-#!/usr/bin/env bash
-
-set -Eeuo pipefail
-# -e: exit on error
-# -E: inherit ERR trap
-# -u: error on undefined variable
-# -o pipefail: catch errors in pipes
-
-handle_error() {
-    local exit_code=$?
-    local step="$1"
-
-    echo "Error at step $step (exit code: $exit_code)" >&2
-    # Step-specific troubleshooting
-    exit $exit_code
-}
-
-trap 'handle_error "${CURRENT_STEP:-unknown}"' ERR
-```
-
-**Colored logging functions:**
-```bash
-ANSI_CLEAR='\033[0m'
-ANSI_BOLD='\033[1m'
-ANSI_GREEN='\033[1;32m'
-ANSI_RED='\033[1;31m'
-
-log_info() {
-    printf "${ANSI_GREEN}  → %s${ANSI_CLEAR}\n" "$1"
-}
-
-log_error() {
-    printf "${ANSI_RED}  ✗ %s${ANSI_CLEAR}\n" "$1"
-}
-```
-
-**Safe command execution wrapper:**
-```bash
-safe_exec() {
-    if [ "$DRY_RUN" -eq 1 ]; then
-        echo "[DRY RUN] Would execute: $*"
-    else
-        "$@"
-    fi
-}
-```
-
-**Sudo re-execution pattern:**
-```bash
-if [ "${EUID:-$(id -u)}" -ne 0 ]; then
-    echo "Re-executing with sudo..."
-    SUDO_ENV=()
-    for var in BOARD CACHIX_AUTH_TOKEN; do
-        if [ -n "${!var:-}" ]; then
-            SUDO_ENV+=("$var=${!var}")
-        fi
-    done
-    exec sudo -E -H "${SUDO_ENV[@]}" "$0" "$@"
-fi
-```
-
-**Why:** Preserves environment variables when elevating privileges.
-
-**Argument parsing with defaults:**
-```bash
-BOARD="${BOARD:-}"
-ROOTFS_FLAVOR="${ROOTFS_FLAVOR:-full}"
-DRY_RUN=0
-
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --board)
-            BOARD="$2"
-            shift 2
-            ;;
-        --dry-run)
-            DRY_RUN=1
-            shift
-            ;;
-        *)
-            echo "Unknown option: $1" >&2
-            exit 1
-            ;;
-    esac
-done
-
-# Validation
-if [ -z "$BOARD" ]; then
-    echo "Error: --board required" >&2
-    exit 1
-fi
-```
-
-### Fish Function Patterns
-
-**Argument parsing:**
-```fish
-function cnup
-    argparse 'no-check' -- $argv
-
-    if set -q _flag_no_check
-        set check_cmd ''
-    else
-        set check_cmd '&& nix flake check'
-    end
-
-    # Function body
-end
-```
-
-**Conditional command execution:**
-```fish
-set -l use_nix_shell false
-for cmd in statix deadnix treefmt
-    if not command -q $cmd
-        set use_nix_shell true
-        break
-    end
-end
-
-if test $use_nix_shell = true
-    nix-shell -p statix deadnix nixfmt-tree --run "..."
-else
-    eval "statix fix . && deadnix -e . && treefmt"
-end
-```
-
-**Git integration:**
-```fish
-if test -d .git
-    git add --intent-to-add . 2>/dev/null; or true
-end
-```
-
-**Why:** Allows Nix flakes to see new files without fully staging them.
-
-### NixOS-Specific Patterns
-
-**System rebuild with kernel compatibility:**
-```fish
-function nixos-rebuild-basic
-    # Environment validation
-    if not set -q NIXOS_CONFIG_DIR; or not test -d "$NIXOS_CONFIG_DIR"
-        set_color red; echo "[ERROR] NIXOS_CONFIG_DIR not set"; set_color normal
-        return 1
-    end
-
-    # Preserve working directory
-    set -l original_dir (pwd)
-    cd "$NIXOS_CONFIG_DIR"
-
-    # Kernel-specific configuration
-    set -l kver (uname -r)
-    set -l nix_args "switch" "--flake" "."
-
-    if string match -qr '^([0-4]\.|5\.[0-5][^0-9])' "$kver"
-        set_color yellow; echo "[WARN] Kernel $kver (< 5.6). Disabling sandbox."; set_color normal
-        set -a nix_args "--option" "sandbox" "false"
-    end
-
-    # Execute with error handling
-    if sudo -E nixos-rebuild $nix_args
-        set_color green; echo "[SUCCESS] Build succeeded"; set_color normal
-    else
-        set_color red; echo "[ERROR] Build failed"; set_color normal
-        cd "$original_dir"
-        return 1
-    end
-
-    cd "$original_dir"
-end
-```
-
-**Why:**
-- Environment validation prevents cryptic errors
-- Directory preservation maintains user context
-- Kernel detection handles compatibility automatically
-- Colored output provides clear status feedback
-
-**Flake update with backup and diff:**
-```fish
-function nixos-flake-update
-    set -l original_dir (pwd)
-    cd "$NIXOS_CONFIG_DIR"
-
-    # Backup before update
-    test -f flake.lock; and cp flake.lock flake.lock.bak
-    set -l old_hash (test -f flake.lock; and sha256sum flake.lock | cut -d' ' -f1)
-
-    if nix flake update $update_args
-        set -l new_hash (sha256sum flake.lock | cut -d' ' -f1)
-
-        # Detect changes
-        if test "$old_hash" = "$new_hash"
-            set_color green; echo "[INFO] No changes in inputs"; set_color normal
-            rm -f flake.lock.bak
-        else
-            # Show diff
-            diff -u3 --color=always flake.lock.bak flake.lock 2>/dev/null; or true
-
-            # Summarize with jq
-            if command -v jq >/dev/null
-                jq -r '.nodes | to_entries[] | select(.value.locked) | .key' flake.lock
-            end
-
-            echo "Next steps:"
-            echo "   • Test: nrb dry-run"
-            echo "   • Apply: nrb switch"
-            echo "   • Revert: mv flake.lock.bak flake.lock"
-        end
-    else
-        # Restore on failure
-        test -f flake.lock.bak; and mv flake.lock.bak flake.lock
-    end
-end
-```
-
-**Why:**
-- Backup enables easy rollback
-- Hash comparison detects no-op updates
-- Diff shows exactly what changed
-- Next steps guide user workflow
-
-**Shell greeting with caching:**
-```fish
-function fish_greeting
-    set -l cache_file "/tmp/.fastfetch_cache_$USER"
-
-    # Header
-    set_color brgreen; echo -n "$USER"
-    set_color normal; echo -n "@"
-    set_color brcyan; echo "$hostname"
-
-    # Cached output (instant)
-    if test -f $cache_file
-        cat $cache_file
-    end
-
-    # Background refresh (non-blocking)
-    begin
-        set -l needs_update 0
-        if not test -f $cache_file
-            set needs_update 1
-        else
-            # Check age (30 min threshold)
-            set -l last_mod (stat -c %Y $cache_file 2>/dev/null; or echo 0)
-            set -l now (date +%s)
-            if test (math "$now - $last_mod") -gt 1800
-                set needs_update 1
-            end
-        end
-
-        if test $needs_update -eq 1
-            fastfetch > $cache_file 2>/dev/null
-        end
-    end &
-    disown 2>/dev/null
-end
-```
-
-**Why:**
-- Instant startup (displays cached data immediately)
-- Background updates don't block shell
-- Age-based refresh balances freshness and speed
-- Disown prevents job termination messages
-
-**Dynamic function discovery:**
-```fish
-function list-fish-helpers
-    # Discover from directories
-    set -l func_dirs ./fish_functions ./helpers
-    set -l found_helpers
-
-    for dir in $func_dirs
-        if test -d $dir
-            for f in $dir/*.fish
-                set -l func_name (path basename --no-extension $f)
-                if functions -q $func_name; and not contains $func_name $found_helpers
-                    set found_helpers $found_helpers $func_name
-                    echo "   • $func_name"
-                end
-            end
-        end
-    end | sort
-
-    # Fallback to all non-builtin
-    if test -z "$found_helpers"
-        functions | grep -vE "^_|fish_|^__" | sort
-    end
-end
-```
-
-**Why:**
-- Discovers functions automatically (no manual list maintenance)
-- Checks existence before listing (prevents errors)
-- Deduplicates across directories
-- Fallback handles edge cases
-
-**Hyprland shortcut parser with categories:**
-```fish
-function show-shortcuts
-    # Parse config files
-    cat "$config_file" | while read -l line
-        # Category tags
-        if string match -qr '^\s*#\s*cat:\s*(.+)' "$line"
-            set current_cat (string replace -r '^\s*#\s*cat:\s*' '' "$line")
-
-        # Description tags
-        else if string match -qr '^\s*#\s*desc:\s*(.+)' "$line"
-            set current_desc (string replace -r '^\s*#\s*desc:\s*' '' "$line")
-
-        # Nix binding
-        else if string match -qr '^\s*"([^"]+)"' "$line"; and test -n "$current_desc"
-            set -l raw (string replace -r '^\s*"([^"]+)".*' '$1' "$line")
-            set -a all_shortcuts "$binding|$current_desc|$current_cat"
-            set current_desc ""
-        end
-    end
-
-    # Group by category
-    for cat in $found_cats
-        set_color brcyan; echo "[$cat]"; set_color normal
-        for item in $filtered
-            set -l p (string split '|' "$item")
-            if test "$p[3]" = "$cat"
-                echo -e "$p[1]\t$p[2]"
-            end
-        end | column -t -s (printf '\t')
-    end
-end
-```
-
-**Why:**
-- Tag-based organization (# cat:, # desc:)
-- Supports both Nix and conf formats
-- Category grouping improves readability
-- Tabular output with column alignment
-
-**Home Manager module with Stylix:**
-```nix
-{
-  pkgs,
-  inputs,
-  userConfig,
-  ...
-}:
-{
-  imports = [
-    inputs.stylix.homeModules.stylix
-    inputs.pmd.homeManagerModules.pmd
-  ];
-
-  # Centralized theme configuration
-  stylix.pmd = {
-    enable = true;
-    inherit (userConfig.theme) hue;
-    inherit (userConfig.theme) variant;
-  };
-
-  # Font configuration with all contexts
-  stylix.fonts = {
-    sansSerif = {
-      package = pkgs.google-fonts;
-      name = "Rounded Mplus 1c Medium";
-    };
-    monospace = {
-      package = pkgs.nerd-fonts.fira-code;
-      name = "FiraCode Nerd Font";
-    };
-  };
-
-  # Per-context font sizes
-  stylix.fonts.sizes = {
-    applications = 10;
-    terminal = 10;
-    popups = 10;
-    desktop = 10;
-  };
-
-  # Theme targets
-  stylix.targets.zen-browser.enable = true;
-  stylix.targets.vscode.enable = true;
-end
-```
-
-**Why:**
-- Centralized theming (userConfig.theme)
-- Explicit font contexts
-- Modular target enabling
-- Clear separation of concerns
-
-**Hyprland settings module:**
-```nix
-{
-  wayland.windowManager.hyprland.settings = {
-    general = {
-      gaps_in = 4;
-      gaps_out = 4;
-      border_size = 2;
-      layout = "dwindle";
-    };
-
-    decoration = {
-      rounding = 16;
-
-      shadow = {
-        enabled = false;
-        range = 4;
-      };
-
-      blur = {
-        enabled = true;
-        size = 2;
-        passes = 2;
-      };
-    };
-
-    dwindle = {
-      pseudotile = true;
-      preserve_split = true;
-    };
-
-    misc = {
-      force_default_wallpaper = -1;
-      vfr = true;
-    };
-  };
-}
-```
-
-**Why:**
-- Nested attribute sets group related settings
-- Self-documenting structure
-- Easy to override in other modules
-- Follows Hyprland's native structure
-
-### Documentation Patterns
-
-**Script headers with usage examples:**
-```bash
-# Script Name
-#
-# Purpose: One-line description
-# Dependencies: tool1, tool2, tool3
-# Related: other-script.sh, config-file.nix
-#
-# Detailed description of what the script does,
-# explaining the complete workflow.
-#
-# Usage:
-#   ./script.sh [OPTIONS]
-#
-# Options:
-#   --option VALUE    Description
-#   --flag           Description
-#
-# Examples:
-#   # Simple case
-#   ./script.sh --option value
-#
-#   # Complex case
-#   ./script.sh --option value --flag
-```
-
-**Nix module headers:**
-```nix
-# Module Name
-#
-# Purpose: One-line functional description
-#
-# This module:
-# - Responsibility 1
-# - Responsibility 2
-# - Responsibility 3
-{ param1, param2, ... }:
-{
-  # Module body
-}
-```
-
-**Inline comments for complex logic:**
-```bash
-# Detect actual remote origin
-ACTUAL_REMOTE=$(git remote get-url origin 2>/dev/null || echo "https://github.com/...")
-safe_exec sudo git -C "$DEST" remote set-url origin "$ACTUAL_REMOTE"
-
-# Switch to the same branch as the source repository
-if [ "$GIT_BRANCH" != "unknown" ]; then
-    log_info "Switching to branch: $GIT_BRANCH"
-    safe_exec sudo git -C "$DEST" checkout "$GIT_BRANCH" || log_warn "Failed to checkout"
-fi
-```
-
-### Build Metadata Patterns
-
-**Structured build info:**
-```bash
-sudo tee "$DEST/.build_info" >/dev/null <<EOF
-# Build metadata
-BUILD_HOST=$(hostname)
-BUILD_USER=$(whoami)
-BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-GIT_BRANCH=$GIT_BRANCH
-GIT_COMMIT=$GIT_COMMIT
-GIT_CHANGES=$GIT_STATUS
-EOF
-```
-
-**JSON metadata:**
-```bash
-sudo tee "$DEST/build.json" >/dev/null <<EOF
-{
-  "build_date": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-  "build_host": "$(hostname)",
-  "git_commit": "$(git rev-parse --short HEAD 2>/dev/null || echo unknown)",
-  "nix_version": "$(nix --version | head -n1)"
-}
-EOF
-```
-
-### Error Messaging Patterns
-
-**Contextual error messages:**
-```bash
-case "$step" in
-"kernel-extraction")
-    log_error "Kernel extraction failed. Check:"
-    log_error "  1. Recovery image exists and is valid"
-    log_error "  2. Board manifest correct: manifests/${BOARD}-manifest.nix"
-    log_error "  3. Disk space available: df -h"
-    ;;
-"partition-format")
-    log_error "Partition formatting failed. Possible causes:"
-    log_error "  1. Loop device issues: sudo losetup -D"
-    log_error "  2. Insufficient permissions"
-    log_error "  3. Corrupted image file"
-    ;;
-esac
-```
-
-**Why:** Provides actionable troubleshooting steps instead of cryptic errors.
+See [DEV-EXAMPLES.md](./DEV-EXAMPLES.md) for concrete reference examples from real projects (NixOS/Home Manager/Hyprland/Fish context). Optional reading.
 
 ## 18. New Rule Files
 
