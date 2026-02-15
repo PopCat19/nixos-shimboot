@@ -50,7 +50,7 @@ Generates changelog from git history before merge.
 
 **Behavior:**
 - Collects commits between target branch and current branch
-- Archives existing root changelogs to `changelog-archive/`
+- Archives existing root changelogs to `changelog_archive/`
 - Generates `CHANGELOG-pending.md` with commit list and file changes
 - After merge, renames with actual merge commit hash
 

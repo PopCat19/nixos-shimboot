@@ -18,8 +18,7 @@
 #   --files LIST       Comma-separated list of files (default: all in conventions/)
 #   --dry-run          Show what would be downloaded without writing
 #   --no-commit        Skip auto-commit (only stage updated files)
-#   --push             Auto-push after commit (default: true)
-#   --no-push          Skip auto-push
+#   --push             Auto-push after commit (default: false)
 #   --help             Show this help message
 #
 # Examples:
@@ -60,7 +59,7 @@ VERSION=""
 FILES=()
 DRY_RUN=false
 AUTO_COMMIT=true
-AUTO_PUSH=true
+AUTO_PUSH=false
 
 # Colors
 ANSI_CLEAR='\033[0m'
