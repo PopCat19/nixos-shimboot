@@ -235,7 +235,12 @@ delete_generations() {
 	echo
 
 	local keep_count
-	keep_count=$(gum input --header "Keep last N generations:" --value "3" --char-limit=3)
+	keep_count=$(gum input \
+		--header "Keep last N generations:" \
+		--placeholder "Enter a number (e.g., 5, 10)" \
+		--prompt "> " \
+		--value "5" \
+		--char-limit=3)
 
 	if ! [[ "$keep_count" =~ ^[0-9]+$ ]]; then
 		log_error "Invalid number: $keep_count"
