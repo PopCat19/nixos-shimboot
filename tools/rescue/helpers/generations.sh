@@ -29,7 +29,7 @@ list_generations() {
 	fi
 
 	local current_gen
-	current_gen="$(readlink -f "$PROFILE_DIR/system" 2>/dev/null || true)"
+	current_gen="$(resolve_mounted_link "$PROFILE_DIR/system" 2>/dev/null || true)"
 
 	# Use gum table for better formatting
 	local table_data=()
@@ -37,7 +37,7 @@ list_generations() {
 		local gen_num gen_path gen_date gen_size is_current
 
 		gen_num="$(basename "$gen" | sed 's/system-\([0-9]*\)-link/\1/')"
-		gen_path="$(readlink -f "$gen")"
+		gen_path="$(resolve_mounted_link "$gen")"
 		gen_date="$(stat -c %y "$gen" | cut -d' ' -f1,2 | cut -d'.' -f1)"
 		gen_size="$(du -sh "$gen_path" 2>/dev/null | cut -f1 || echo "?")"
 
@@ -86,8 +86,11 @@ view_generation_details() {
 
 	list_generations || return 1
 
+	local gen_options=()
+	mapfile -t gen_options < <(get_generation_list)
+
 	local gen_choice
-	gen_choice=$(gum choose "$(get_generation_list)" "← Back" --header "Select generation to view details:" --height 15)
+	gen_choice=$(gum choose "${gen_options[@]}" "← Back" --header "Select generation to view details:" --height 15)
 
 	[[ -z "$gen_choice" || "$gen_choice" == "← Back" ]] && return 0
 
@@ -100,10 +103,10 @@ view_generation_details() {
 	fi
 
 	local gen_path
-	gen_path="$(readlink -f "$target_gen")"
+	gen_path="$(resolve_mounted_link "$target_gen")"
 
 	local current_gen
-	current_gen="$(readlink -f "$PROFILE_DIR/system" 2>/dev/null || true)"
+	current_gen="$(resolve_mounted_link "$PROFILE_DIR/system" 2>/dev/null || true)"
 
 	echo
 	gum style --border normal --margin "1" --padding "1 2" --border-foreground 62 \
@@ -155,8 +158,11 @@ rollback_generation() {
 
 	list_generations || return 1
 
+	local gen_options=()
+	mapfile -t gen_options < <(get_generation_list)
+
 	local gen_choice
-	gen_choice=$(gum choose "$(get_generation_list)" "← Back" --header "Select generation to rollback to:" --height 15)
+	gen_choice=$(gum choose "${gen_options[@]}" "← Back" --header "Select generation to rollback to:" --height 15)
 
 	[[ -z "$gen_choice" || "$gen_choice" == "← Back" ]] && {
 		log_info "Rollback cancelled"
@@ -172,10 +178,10 @@ rollback_generation() {
 	fi
 
 	local target_path
-	target_path="$(readlink -f "$target_gen")"
+	target_path="$(resolve_mounted_link "$target_gen")"
 
 	local current_gen
-	current_gen="$(readlink -f "$PROFILE_DIR/system" 2>/dev/null || true)"
+	current_gen="$(resolve_mounted_link "$PROFILE_DIR/system" 2>/dev/null || true)"
 
 	# Check if already active
 	if [[ "$target_path" == "$current_gen" ]]; then
@@ -301,7 +307,7 @@ delete_generations() {
 	# Garbage collect
 	log_info "Running garbage collection..."
 	local gc_output gc_exit
-	gc_output=$(nix store --store "$MOUNTPOINT/nix/store" collect-garbage -d 2>&1) || gc_exit=$?
+	gc_output=$(nix store gc --store "local?root=$MOUNTPOINT" 2>&1) || gc_exit=$?
 
 	if [[ -z "${gc_exit:-}" ]]; then
 		log_success "Garbage collection completed"
@@ -320,11 +326,14 @@ view_generation_diff() {
 
 	list_generations || return 1
 
+	local gen_options=()
+	mapfile -t gen_options < <(get_generation_list)
+
 	local gen1_choice gen2_choice
-	gen1_choice=$(gum choose "$(get_generation_list)" "← Back" --header "Select first generation:" --height 15)
+	gen1_choice=$(gum choose "${gen_options[@]}" "← Back" --header "Select first generation:" --height 15)
 	[[ -z "$gen1_choice" || "$gen1_choice" == "← Back" ]] && return 0
 
-	gen2_choice=$(gum choose "$(get_generation_list)" "← Back" --header "Select second generation:" --height 15)
+	gen2_choice=$(gum choose "${gen_options[@]}" "← Back" --header "Select second generation:" --height 15)
 	[[ -z "$gen2_choice" || "$gen2_choice" == "← Back" ]] && return 0
 
 	local gen1="${gen1_choice%% (*}"
@@ -340,11 +349,11 @@ view_generation_diff() {
 
 	log_info "Comparing generation $gen1 → $gen2..."
 
-	local path1 path2
-	path1="$(readlink -f "$gen1_path")"
-	path2="$(readlink -f "$gen2_path")"
+	local store_path1 store_path2
+	store_path1="$(resolve_store_path "$gen1_path")"
+	store_path2="$(resolve_store_path "$gen2_path")"
 
-	nix store --store "$MOUNTPOINT/nix/store" diff-closures "$path1" "$path2" | less
+	nix store diff-closures --store "local?root=$MOUNTPOINT" "$store_path1" "$store_path2" | less
 
 	return 0
 }

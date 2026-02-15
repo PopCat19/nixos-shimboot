@@ -32,6 +32,30 @@ PROFILE_DIR=""
 EDITOR="${EDITOR:-nano}"
 HOME_BACKUP_DIR="${HOME_BACKUP_DIR:-/tmp/home-backups}"
 
+# === Path Resolution Helpers ===
+
+# Resolve a symlink inside the mounted filesystem without escaping to host.
+# Absolute targets get MOUNTPOINT prepended; relative targets resolve
+# against the link's parent directory.
+resolve_mounted_link() {
+	local link_path="$1"
+	local target
+	target="$(readlink "$link_path")"
+
+	if [[ "$target" == /* ]]; then
+		echo "${MOUNTPOINT}${target}"
+	else
+		echo "$(dirname "$link_path")/$target"
+	fi
+}
+
+# Return the raw symlink target (store path without MOUNTPOINT prefix).
+# Needed for nix store commands that accept --store.
+resolve_store_path() {
+	local link_path="$1"
+	readlink "$link_path"
+}
+
 # === Logging Functions ===
 
 log_step() {

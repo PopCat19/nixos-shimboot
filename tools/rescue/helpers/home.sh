@@ -70,10 +70,14 @@ EOF
 	local home_size
 	home_size="$(du -sb "$MOUNTPOINT/home/$username" | cut -f1)"
 
-	tar -C "$MOUNTPOINT/home" -cf - "$username" --transform="s|^|$username/|" -C /tmp "$(basename "$meta_file")" |
+	# Copy metadata into home dir temporarily so tar picks it up cleanly
+	cp "$meta_file" "$MOUNTPOINT/home/$username/.backup_meta.txt"
+
+	tar -C "$MOUNTPOINT/home" -cf - "$username" |
 		pv -s "$home_size" |
 		zstd -T0 -19 >"$archive_path"
 
+	rm -f "$MOUNTPOINT/home/$username/.backup_meta.txt"
 	rm -f "$meta_file"
 
 	log_success "Exported to: $archive_path"

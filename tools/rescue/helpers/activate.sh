@@ -29,8 +29,8 @@ find_latest_activation_script() {
 	fi
 
 	local latest_target
-	latest_target=$(readlink -f "$latest_gen")
-	local activate_path="$MOUNTPOINT$latest_target/activate"
+	latest_target=$(resolve_mounted_link "$latest_gen")
+	local activate_path="$latest_target/activate"
 
 	if [[ ! -f "$activate_path" ]]; then
 		log_error "Activation script not found"
