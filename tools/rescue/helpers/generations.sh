@@ -133,14 +133,14 @@ view_generation_details() {
 
 	echo
 	gum style --foreground 141 "Contents:"
-	echo "  Packages: $(ls "$gen_path/sw/bin" 2>/dev/null | wc -l) binaries in /sw/bin"
-	echo "  System units: $(ls "$gen_path/systemd" 2>/dev/null | wc -l) unit files"
+	echo "  Packages: $(find "$gen_path/sw/bin" -maxdepth 1 -type f 2>/dev/null | wc -l) binaries in /sw/bin"
+	echo "  System units: $(find "$gen_path/systemd" -maxdepth 1 -type f 2>/dev/null | wc -l) unit files"
 
 	echo
 	if gum confirm "View full generation contents?" --default=false; then
 		echo
 		log_info "Generation directory contents:"
-		ls -la "$gen_path" | less
+		ls -la "$gen_path" 2>/dev/null | less || log_warn "Could not list directory"
 	fi
 
 	return 0
@@ -201,7 +201,7 @@ rollback_generation() {
 	if gum confirm "View generation contents before rollback?" --default=false; then
 		echo
 		log_info "Generation directory contents:"
-		ls -la "$target_path" | less
+		ls -la "$target_path" 2>/dev/null | less || log_warn "Could not list directory"
 	fi
 
 	echo

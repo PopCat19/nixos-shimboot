@@ -21,8 +21,8 @@ ANSI_CYAN='\033[1;36m'
 ANSI_MAGENTA='\033[1;35m'
 
 # === Global State ===
-# Current menu breadcrumb trail
-BREADCRUMB="Main"
+# Current menu breadcrumb trail (exported for subshells)
+export BREADCRUMB="Main"
 # shellcheck disable=SC2034 # Global state used across modules
 MOUNTPOINT="${MOUNTPOINT:-/mnt/nixos-rescue}"
 # shellcheck disable=SC2034 # Global state used across modules
@@ -90,17 +90,21 @@ cleanup() {
 	set +e
 	log_info "Rescue cleanup in progress..."
 
-	local mount_points=(
-		"/mnt/bootloader-rescue"
-		"$MOUNTPOINT/home"
-		"$MOUNTPOINT/dev"
-		"$MOUNTPOINT/proc"
-		"$MOUNTPOINT/sys"
-		"$MOUNTPOINT"
-	)
+	# Build mount points list, only including non-empty MOUNTPOINT
+	local mount_points=()
+	mount_points+=("/mnt/bootloader-rescue")
+	if [[ -n "${MOUNTPOINT:-}" ]]; then
+		mount_points+=(
+			"$MOUNTPOINT/home"
+			"$MOUNTPOINT/dev"
+			"$MOUNTPOINT/proc"
+			"$MOUNTPOINT/sys"
+			"$MOUNTPOINT"
+		)
+	fi
 
 	for m in "${mount_points[@]}"; do
-		if mountpoint -q "$m" 2>/dev/null; then
+		if [[ -d "$m" ]] && mountpoint -q "$m" 2>/dev/null; then
 			log_info "Unmounting $m"
 			umount "$m" 2>/dev/null || umount -l "$m" 2>/dev/null || true
 		fi
