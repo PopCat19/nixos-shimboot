@@ -31,9 +31,8 @@ list_generations() {
 	local current_gen
 	current_gen="$(readlink -f "$PROFILE_DIR/system" 2>/dev/null || true)"
 
-	printf "%-6s %-20s %-12s %-12s %s\n" "GEN" "DATE" "SIZE" "CURRENT" "PATH"
-	echo "─────────────────────────────────────────────────────────────────────────────"
-
+	# Use gum table for better formatting
+	local table_data=()
 	for gen in "${generations[@]}"; do
 		local gen_num gen_path gen_date gen_size is_current
 
@@ -43,12 +42,23 @@ list_generations() {
 		gen_size="$(du -sh "$gen_path" 2>/dev/null | cut -f1 || echo "?")"
 
 		if [[ "$gen_path" == "$current_gen" ]]; then
-			is_current="✓ (active)"
+			is_current="✓ ACTIVE"
 		else
 			is_current=""
 		fi
 
-		printf "%-6s %-20s %-12s %-12s %s\n" "$gen_num" "$gen_date" "$gen_size" "$is_current" "$gen_path"
+		table_data+=("$gen_num	$gen_date	$gen_size	$is_current")
+	done
+
+	printf "%-8s %-20s %-10s %-12s\n" "GEN #" "DATE" "SIZE" "STATUS"
+	echo "──────────────────────────────────────────────────────────"
+	for row in "${table_data[@]}"; do
+		IFS=$'\t' read -r gen_num gen_date gen_size is_current <<<"$row"
+		if [[ "$is_current" == "✓ ACTIVE" ]]; then
+			gum style --foreground 46 "$(printf "%-8s %-20s %-10s %-12s" "$gen_num" "$gen_date" "$gen_size" "$is_current")"
+		else
+			printf "%-8s %-20s %-10s %-12s\n" "$gen_num" "$gen_date" "$gen_size" "$is_current"
+		fi
 	done
 
 	return 0
@@ -71,15 +81,84 @@ get_generation_list() {
 	done
 }
 
+view_generation_details() {
+	log_section "Generation Details"
+
+	list_generations || return 1
+
+	local gen_choice
+	gen_choice=$(gum choose "$(get_generation_list)" "← Back" --header "Select generation to view details:" --height 15)
+
+	[[ -z "$gen_choice" || "$gen_choice" == "← Back" ]] && return 0
+
+	local gen_num="${gen_choice%% (*}"
+	local target_gen="$PROFILE_DIR/system-${gen_num}-link"
+
+	if [[ ! -L "$target_gen" ]]; then
+		log_error "Generation $gen_num not found"
+		return 1
+	fi
+
+	local gen_path
+	gen_path="$(readlink -f "$target_gen")"
+
+	local current_gen
+	current_gen="$(readlink -f "$PROFILE_DIR/system" 2>/dev/null || true)"
+
+	echo
+	gum style --border normal --margin "1" --padding "1 2" --border-foreground 62 \
+		"Generation $gen_num"
+
+	echo
+	gum style --foreground 141 "Details:"
+	echo "  Path: $gen_path"
+	echo "  Created: $(stat -c %y "$target_gen" | cut -d'.' -f1)"
+	echo "  Size: $(du -sh "$gen_path" 2>/dev/null | cut -f1 || echo "?")"
+
+	if [[ "$gen_path" == "$current_gen" ]]; then
+		gum style --foreground 46 "  Status: ✓ ACTIVE (current system profile)"
+	else
+		gum style --foreground 214 "  Status: Inactive"
+	fi
+
+	# Try to extract nixpkgs version from the generation
+	local nixpkgs_version=""
+	if [[ -f "$gen_path/nixos-version" ]]; then
+		nixpkgs_version="$(cat "$gen_path/nixos-version" 2>/dev/null || true)"
+		echo "  NixOS Version: ${nixpkgs_version:-Unknown}"
+	fi
+
+	# Show kernel version if available
+	local kernel_version=""
+	if [[ -f "$gen_path/kernel" ]]; then
+		kernel_version="$(file "$gen_path/kernel" 2>/dev/null | grep -oP 'version \K[0-9.]+' || true)"
+		echo "  Kernel Version: ${kernel_version:-Unknown}"
+	fi
+
+	echo
+	gum style --foreground 141 "Contents:"
+	echo "  Packages: $(ls "$gen_path/sw/bin" 2>/dev/null | wc -l) binaries in /sw/bin"
+	echo "  System units: $(ls "$gen_path/systemd" 2>/dev/null | wc -l) unit files"
+
+	echo
+	if gum confirm "View full generation contents?" --default=false; then
+		echo
+		log_info "Generation directory contents:"
+		ls -la "$gen_path" | less
+	fi
+
+	return 0
+}
+
 rollback_generation() {
 	log_section "Rollback Generation"
 
 	list_generations || return 1
 
 	local gen_choice
-	gen_choice=$(gum choose "$(get_generation_list)" --header "Select generation to rollback to:" --height 15)
+	gen_choice=$(gum choose "$(get_generation_list)" "← Back" --header "Select generation to rollback to:" --height 15)
 
-	[[ -z "$gen_choice" ]] && {
+	[[ -z "$gen_choice" || "$gen_choice" == "← Back" ]] && {
 		log_info "Rollback cancelled"
 		return 0
 	}
@@ -95,8 +174,40 @@ rollback_generation() {
 	local target_path
 	target_path="$(readlink -f "$target_gen")"
 
-	log_warn "This will switch the system profile to generation $gen_num"
-	log_info "Target: $target_path"
+	local current_gen
+	current_gen="$(readlink -f "$PROFILE_DIR/system" 2>/dev/null || true)"
+
+	# Check if already active
+	if [[ "$target_path" == "$current_gen" ]]; then
+		log_warn "Generation $gen_num is already the active system profile"
+		return 0
+	fi
+
+	echo
+	gum style --border normal --margin "1" --padding "1 2" --border-foreground 214 \
+		"Rollback Preview"
+
+	echo
+	log_info "Target Generation: $gen_num"
+	log_info "Path: $target_path"
+	log_info "Created: $(stat -c %y "$target_gen" | cut -d'.' -f1)"
+	log_info "Size: $(du -sh "$target_path" 2>/dev/null | cut -f1 || echo "?")"
+
+	# Show nixpkgs version if available
+	if [[ -f "$target_path/nixos-version" ]]; then
+		log_info "NixOS Version: $(cat "$target_path/nixos-version" 2>/dev/null || echo 'Unknown')"
+	fi
+
+	echo
+	if gum confirm "View generation contents before rollback?" --default=false; then
+		echo
+		log_info "Generation directory contents:"
+		ls -la "$target_path" | less
+	fi
+
+	echo
+	log_warn "⚠ This will switch the system profile to generation $gen_num"
+	log_warn "⚠ You will need to reboot for changes to take effect"
 
 	if ! gum confirm "Proceed with rollback?" --default=false; then
 		log_info "Rollback cancelled"
@@ -119,7 +230,9 @@ delete_generations() {
 
 	list_generations || return 1
 
-	log_warn "WARNING: Deleting generations is irreversible!"
+	log_warn "⚠ WARNING: Deleting generations is irreversible!"
+	log_warn "⚠ This will also run garbage collection to free disk space"
+	echo
 
 	local keep_count
 	keep_count=$(gum input --header "Keep last N generations:" --value "3" --char-limit=3)
@@ -141,6 +254,28 @@ delete_generations() {
 		return 0
 	fi
 
+	# Show which generations will be deleted
+	echo
+	gum style --foreground 214 "Generations to be deleted:"
+	for ((i = 0; i < delete_count; i++)); do
+		local gen="${generations[$i]}"
+		local gen_num gen_date
+		gen_num="$(basename "$gen" | sed 's/system-\([0-9]*\)-link/\1/')"
+		gen_date="$(stat -c %y "$gen" | cut -d' ' -f1,2 | cut -d'.' -f1)"
+		echo "  - Gen $gen_num ($gen_date)"
+	done
+
+	echo
+	gum style --foreground 46 "Generations to keep:"
+	for ((i = delete_count; i < total_count; i++)); do
+		local gen="${generations[$i]}"
+		local gen_num gen_date
+		gen_num="$(basename "$gen" | sed 's/system-\([0-9]*\)-link/\1/')"
+		gen_date="$(stat -c %y "$gen" | cut -d' ' -f1,2 | cut -d'.' -f1)"
+		echo "  ✓ Gen $gen_num ($gen_date)"
+	done
+
+	echo
 	log_warn "Will delete $delete_count generation(s), keeping newest $keep_count"
 
 	if ! gum confirm "Proceed with deletion?" --default=false; then
@@ -175,11 +310,11 @@ view_generation_diff() {
 	list_generations || return 1
 
 	local gen1_choice gen2_choice
-	gen1_choice=$(gum choose "$(get_generation_list)" --header "Select first generation:" --height 15)
-	[[ -z "$gen1_choice" ]] && return 1
+	gen1_choice=$(gum choose "$(get_generation_list)" "← Back" --header "Select first generation:" --height 15)
+	[[ -z "$gen1_choice" || "$gen1_choice" == "← Back" ]] && return 0
 
-	gen2_choice=$(gum choose "$(get_generation_list)" --header "Select second generation:" --height 15)
-	[[ -z "$gen2_choice" ]] && return 1
+	gen2_choice=$(gum choose "$(get_generation_list)" "← Back" --header "Select second generation:" --height 15)
+	[[ -z "$gen2_choice" || "$gen2_choice" == "← Back" ]] && return 0
 
 	local gen1="${gen1_choice%% (*}"
 	local gen2="${gen2_choice%% (*}"

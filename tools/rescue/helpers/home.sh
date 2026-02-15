@@ -190,8 +190,6 @@ change_backup_dir() {
 }
 
 home_menu() {
-	log_section "Home Directory Management"
-
 	if [[ "$MOUNTED" -eq 0 ]]; then
 		mount_system "ro" || return 1
 	fi
@@ -205,12 +203,16 @@ home_menu() {
 		"List home contents"
 		"View backup archives"
 		"Change backup directory"
-		"Back to main menu"
+		"← Back to main menu"
+		"✕ Exit"
 	)
 
 	while true; do
+		show_header
+		show_menu_header "Home Directory Management"
+
 		local choice
-		choice=$(gum choose "${options[@]}" --header "Select home directory operation:" --height 10)
+		choice=$(gum choose "${options[@]}" --header "Select home directory operation:" --height 12)
 
 		[[ -z "$choice" ]] && return 0
 
@@ -230,8 +232,12 @@ home_menu() {
 		"Change backup directory")
 			change_backup_dir
 			;;
-		"Back to main menu")
+		"← Back to main menu")
 			return 0
+			;;
+		"✕ Exit")
+			log_info "Goodbye!"
+			exit 0
 			;;
 		esac
 

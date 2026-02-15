@@ -161,12 +161,16 @@ backup_restore_menu() {
 	local options=(
 		"Backup bootloader files"
 		"Restore from backup"
-		"Back to bootstrap menu"
+		"← Back to bootstrap menu"
+		"✕ Exit"
 	)
 
 	while true; do
+		show_header
+		show_menu_header "Bootloader Backup/Restore"
+
 		local choice
-		choice=$(gum choose "${options[@]}" --header "Select bootloader backup/restore operation:" --height 8)
+		choice=$(gum choose "${options[@]}" --header "Select bootloader backup/restore operation:" --height 10)
 
 		[[ -z "$choice" ]] && return 0
 
@@ -177,10 +181,16 @@ backup_restore_menu() {
 		"Restore from backup")
 			restore_bootloader
 			;;
-		"Back to bootstrap menu")
+		"← Back to bootstrap menu")
 			return 0
 			;;
+		"✕ Exit")
+			log_info "Goodbye!"
+			exit 0
+			;;
 		esac
+
+		pause
 	done
 }
 
@@ -223,8 +233,6 @@ check_gpt_flags() {
 }
 
 bootstrap_menu() {
-	log_section "Bootstrap Tools"
-
 	local bootloader_dev
 	bootloader_dev=$(get_bootloader_device)
 
@@ -237,10 +245,14 @@ bootstrap_menu() {
 		"Backup or Restore bootloader"
 		"Inspect kernel/initramfs"
 		"Check ChromeOS GPT flags"
-		"Unmount and return"
+		"← Back to main menu"
+		"✕ Exit"
 	)
 
 	while true; do
+		show_header
+		show_menu_header "Bootstrap Tools"
+
 		local choice
 		choice=$(gum choose "${options[@]}" --header "Select bootstrap operation:" --height 12)
 
@@ -265,8 +277,13 @@ bootstrap_menu() {
 		"Check ChromeOS GPT flags")
 			check_gpt_flags
 			;;
-		"Unmount and return")
+		"← Back to main menu")
 			break
+			;;
+		"✕ Exit")
+			safe_unmount "$BOOT_MNT"
+			log_info "Goodbye!"
+			exit 0
 			;;
 		esac
 

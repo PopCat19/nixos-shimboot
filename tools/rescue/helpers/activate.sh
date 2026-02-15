@@ -83,8 +83,6 @@ edit_activation_script() {
 }
 
 activate_menu() {
-	log_section "Stage-2 Activation Script (legacy)"
-
 	local activate_path
 	activate_path=$(find_latest_activation_script)
 
@@ -98,12 +96,16 @@ activate_menu() {
 		"List first 40 lines"
 		"Search (custom grep pattern)"
 		"Edit activation script"
-		"Back to main menu"
+		"← Back to main menu"
+		"✕ Exit"
 	)
 
 	while true; do
+		show_header
+		show_menu_header "Stage-2 Activation Script (legacy)"
+
 		local choice
-		choice=$(gum choose "${options[@]}" --header "Select action:" --height 8)
+		choice=$(gum choose "${options[@]}" --header "Select action:" --height 10)
 
 		[[ -z "$choice" ]] && return 0
 
@@ -117,9 +119,15 @@ activate_menu() {
 		"Edit activation script")
 			edit_activation_script "$activate_path"
 			;;
-		"Back to main menu")
+		"← Back to main menu")
 			return 0
 			;;
+		"✕ Exit")
+			log_info "Goodbye!"
+			exit 0
+			;;
 		esac
+
+		pause
 	done
 }

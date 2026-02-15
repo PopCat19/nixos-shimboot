@@ -39,6 +39,14 @@ source "$HELPERS_DIR/tui.sh"
 main() {
 	ensure_root
 
+	# Check if running in Nix devshell and show recommendation
+	if [[ -z "${IN_NIX_SHELL:-}" ]]; then
+		log_warn "Not running in a Nix devshell"
+		log_info "For best experience, run: nix develop"
+		log_info "This ensures all dependencies are available"
+		echo
+	fi
+
 	# Handle command line argument for partition
 	if [[ -n "${1:-}" ]]; then
 		if [[ "$1" == "auto" ]]; then

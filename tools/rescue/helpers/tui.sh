@@ -29,6 +29,12 @@ show_header() {
 	echo
 }
 
+show_menu_header() {
+	local menu_title="$1"
+	gum style --foreground 141 --bold "▸ $menu_title"
+	echo
+}
+
 show_generation_menu() {
 	if [[ "$MOUNTED" -eq 0 ]]; then
 		mount_system "ro" || return 1
@@ -36,24 +42,29 @@ show_generation_menu() {
 
 	local options=(
 		"List generations"
+		"View generation details"
 		"Rollback generation"
 		"Delete old generations"
 		"View generation diff"
-		"Back to main menu"
+		"← Back to main menu"
+		"✕ Exit"
 	)
 
 	while true; do
 		show_header
-		log_section "Generation Management"
+		show_menu_header "Generation Management"
 
 		local choice
-		choice=$(gum choose "${options[@]}" --header "Select generation operation:" --height 10)
+		choice=$(gum choose "${options[@]}" --header "Select generation operation:" --height 12)
 
 		[[ -z "$choice" ]] && return 0
 
 		case "$choice" in
 		"List generations")
 			list_generations
+			;;
+		"View generation details")
+			view_generation_details
 			;;
 		"Rollback generation")
 			remount_system_rw
@@ -66,8 +77,12 @@ show_generation_menu() {
 		"View generation diff")
 			view_generation_diff
 			;;
-		"Back to main menu")
+		"← Back to main menu")
 			return 0
+			;;
+		"✕ Exit")
+			log_info "Goodbye!"
+			exit 0
 			;;
 		esac
 
@@ -82,11 +97,12 @@ main_menu() {
 		"Bootstrap Tools"
 		"Home Directory Management"
 		"Stage-2 Activation Script (legacy)"
-		"Exit"
+		"✕ Exit"
 	)
 
 	while true; do
 		show_header
+		show_menu_header "Main Menu"
 
 		local choice
 		choice=$(gum choose "${categories[@]}" --header "Select operation category:" --height 10)
@@ -112,7 +128,7 @@ main_menu() {
 		"Stage-2 Activation Script (legacy)")
 			activate_menu
 			;;
-		"Exit")
+		"✕ Exit")
 			log_info "Goodbye!"
 			exit 0
 			;;

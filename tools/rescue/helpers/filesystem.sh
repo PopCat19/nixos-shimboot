@@ -92,20 +92,22 @@ remount_ro() {
 }
 
 filesystem_menu() {
-	log_section "Filesystem Operations"
-
 	local options=(
 		"Remount read-write"
 		"Remount read-only"
 		"Chroot into system"
 		"Check disk usage"
 		"Filesystem health check"
-		"Back to main menu"
+		"← Back to main menu"
+		"✕ Exit"
 	)
 
 	while true; do
+		show_header
+		show_menu_header "Filesystem Operations"
+
 		local choice
-		choice=$(gum choose "${options[@]}" --header "Select filesystem operation:" --height 10)
+		choice=$(gum choose "${options[@]}" --header "Select filesystem operation:" --height 12)
 
 		[[ -z "$choice" ]] && return 0
 
@@ -130,8 +132,12 @@ filesystem_menu() {
 		"Filesystem health check")
 			run_fsck
 			;;
-		"Back to main menu")
+		"← Back to main menu")
 			return 0
+			;;
+		"✕ Exit")
+			log_info "Goodbye!"
+			exit 0
 			;;
 		esac
 
