@@ -43,7 +43,7 @@ fi
 TARGET_BRANCH=""
 RENAME_MODE=false
 SKIP_CONFIRM=false
-ARCHIVE_DIR="${PROJECT_ROOT}/changelog-archive"
+ARCHIVE_DIR="${PROJECT_ROOT}/changelog_archive"
 
 # Colors
 ANSI_CLEAR='\033[0m'
@@ -202,7 +202,7 @@ for old in "${PROJECT_ROOT}"/CHANGELOG-*.md; do
 	[[ "$(basename "$old")" == "CHANGELOG-pending.md" ]] && continue
 	if [[ -f "$old" ]]; then
 		mv "$old" "$ARCHIVE_DIR/"
-		log_info "Archived: $(basename "$old") → changelog-archive/"
+		log_info "Archived: $(basename "$old") → changelog_archive/"
 	fi
 done
 

@@ -1718,14 +1718,14 @@ See [DEV-EXAMPLES.md](./DEV-EXAMPLES.md) for concrete reference examples from re
 
 **Rationale:** Changelogs provide human-readable summaries of what changed per merge. Generating them from git history before merging ensures accuracy and creates an audit trail. Archiving keeps the root clean.
 
-**Policy:** Generate a changelog before every merge to main. Root contains only the latest; previous changelogs live in `changelog-archive/`.
+**Policy:** Generate a changelog before every merge to main. Root contains only the latest; previous changelogs live in `changelog_archive/`.
 
 ### Structure
 
 ```
 repo/
 ├── CHANGELOG-<short-hash>.md        # Latest (current merge)
-└── changelog-archive/
+└── changelog_archive/
     ├── CHANGELOG-a1b2c3d.md          # Previous merges
     ├── CHANGELOG-e4f5g6h.md
     └── ...
@@ -1749,7 +1749,7 @@ set -Eeuo pipefail
 
 TARGET_BRANCH="main"
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || echo "detached")
-ARCHIVE_DIR="changelog-archive"
+ARCHIVE_DIR="changelog_archive"
 
 if [[ "$CURRENT_BRANCH" == "detached" ]]; then
     echo "Error: cannot generate changelog in detached HEAD state" >&2
@@ -1820,7 +1820,7 @@ After the merge commit exists, rename the file with the actual hash:
 # Or manually
 MERGE_HASH=$(git rev-parse --short HEAD)
 mv CHANGELOG-pending.md "CHANGELOG-${MERGE_HASH}.md"
-git add "CHANGELOG-${MERGE_HASH}.md" changelog-archive/
+git add "CHANGELOG-${MERGE_HASH}.md" changelog_archive/
 git commit --amend --no-edit
 ```
 
@@ -1857,12 +1857,12 @@ git commit --amend --no-edit
 ### Rules
 
 - **One root changelog:** Only the latest `CHANGELOG-<hash>.md` lives in root
-- **Archive on generation:** Move any existing root changelog to `changelog-archive/` before writing a new one
+- **Archive on generation:** Move any existing root changelog to `changelog_archive/` before writing a new one
 - **Generate before merge:** Changelog reflects the branch diff, not post-merge guesswork
 - **Rename after merge:** Replace `pending` placeholder with actual merge commit short hash
 - **No empty changelogs:** Skip generation if no commits differ from main
 - **Commit the changelog:** Include it in the merge commit itself (or amend)
-- **`changelog-archive/` is append-only:** Never delete archived changelogs unless explicitly requested
+- **`changelog_archive/` is append-only:** Never delete archived changelogs unless explicitly requested
 
 ### Commit Message
 
@@ -1877,7 +1877,7 @@ Do **not** gitignore changelogs. They are project history.
 ```gitignore
 # Do NOT add:
 # CHANGELOG-*.md
-# changelog-archive/
+# changelog_archive/
 ```
 
 ---
