@@ -59,44 +59,9 @@ function show-shortcuts
     set -l current_cat "General"
     set -l current_desc ""
 
-    # Helper to parse files
-    function parse_config -S
-        set -l file $argv[1]
-        test -f "$file"; or return
-
-        cat "$file" | while read -l line
-            # Detect Section Header as Category (=== Name ===)
-            if string match -qr '^\s*#\s*=== (.+) ===\s*$' "$line"
-                set current_cat (string replace -r '^\s*#\s*=== (.+) ===\s*$' '$1' "$line")
-            # Detect Category Tag (# cat: Name)
-            else if string match -qr '^\s*#\s*cat:\s*(.+)' "$line"
-                set current_cat (string replace -r '^\s*#\s*cat:\s*' '' "$line")
-
-            # Detect Description Tag
-            else if string match -qr '^\s*#\s*desc:\s*(.+)' "$line"
-                set current_desc (string replace -r '^\s*#\s*desc:\s*' '' "$line")
-
-            # Match Nix Binding ("mod, key, action")
-            else if string match -qr '^\s*"([^"]+)"' "$line"; and test -n "$current_desc"
-                set -l raw (string replace -r '^\s*"([^"]+)".*' '$1' "$line")
-                set -l parts (string split ',' "$raw")
-                if test (count $parts) -ge 2
-                    set -l binding (string trim "$parts[1]")", "(string trim "$parts[2]")" 
-                    set -a all_shortcuts (normalize_binding "$binding")"|"$current_desc"|"$current_cat"
-                end
-                set current_desc ""
-
-            # Match Conf Binding (bind = mod, key, action)
-            else if string match -qr '^\s*bind[elmn]*\s*=' "$line"; and test -n "$current_desc"
-                set -l binding (string replace -r '^\s*bind[elmn]*\s*=\s*([^,]+,\s*[^,]+),.*' '$1' "$line")
-                set -a all_shortcuts (normalize_binding "$binding")"|"$current_desc"|"$current_cat"
-                set current_desc ""
-            end
-        end
-    end
-
-    parse_config "$keybinds_file"
-    parse_config "$userprefs_file"
+    # Parse config files using helper function
+    set -a all_shortcuts (_parse_shortcuts_config "$keybinds_file")
+    set -a all_shortcuts (_parse_shortcuts_config "$userprefs_file")
 
     if test (count $all_shortcuts) -eq 0
         set_color yellow; echo "No shortcuts with # desc: tags found."; set_color normal
@@ -196,4 +161,42 @@ function get_detected_categories
     for file in $argv
         test -f "$file"; and grep -oP '#\s*cat:\s*\K.+|#\s*=== \K.+?(?=\s*===)' "$file"
     end | string replace -r '.+?:' '' | sort -u
+end
+
+function _parse_shortcuts_config
+    set -l file $argv[1]
+    test -f "$file"; or return
+
+    set -l current_cat "General"
+    set -l current_desc ""
+
+    while read -l line
+        # Detect Section Header as Category (=== Name ===)
+        if string match -qr '^\s*#\s*=== (.+) ===\s*$' "$line"
+            set current_cat (string replace -r '^\s*#\s*=== (.+) ===\s*$' '$1' "$line")
+        # Detect Category Tag (# cat: Name)
+        else if string match -qr '^\s*#\s*cat:\s*(.+)' "$line"
+            set current_cat (string replace -r '^\s*#\s*cat:\s*' '' "$line")
+
+        # Detect Description Tag
+        else if string match -qr '^\s*#\s*desc:\s*(.+)' "$line"
+            set current_desc (string replace -r '^\s*#\s*desc:\s*' '' "$line")
+
+        # Match Nix Binding ("mod, key, action")
+        else if string match -qr '^\s*"([^"]+)"' "$line"; and test -n "$current_desc"
+            set -l raw (string replace -r '^\s*"([^"]+)".*' '$1' "$line")
+            set -l parts (string split ',' "$raw")
+            if test (count $parts) -ge 2
+                set -l binding (string trim "$parts[1]")", "(string trim "$parts[2]")
+                echo (normalize_binding "$binding")"|"$current_desc"|"$current_cat
+            end
+            set current_desc ""
+
+        # Match Conf Binding (bind = mod, key, action)
+        else if string match -qr '^\s*bind[elmn]*\s*=' "$line"; and test -n "$current_desc"
+            set -l binding (string replace -r '^\s*bind[elmn]*\s*=\s*([^,]+,\s*[^,]+),.*' '$1' "$line")
+            echo (normalize_binding "$binding")"|"$current_desc"|"$current_cat
+            set current_desc ""
+        end
+    end < "$file"
 end
