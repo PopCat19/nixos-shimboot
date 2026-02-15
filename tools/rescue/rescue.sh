@@ -11,8 +11,8 @@
 
 set -Eeuo pipefail
 
-# Get script directory for sourcing helpers
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get script directory for sourcing helpers (resolve symlinks)
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 HELPERS_DIR="$SCRIPT_DIR/helpers"
 
 # Source common functions first (provides logging, colors, global state)
