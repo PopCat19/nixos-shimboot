@@ -22,10 +22,13 @@ in
       # Image assembly tools
       parted
       util-linux # losetup, mount, etc.
-      e2fsprogs # mkfs.ext4
+      e2fsprogs # mkfs.ext4, e2fsck
       pv # progress viewer
       zstd # compression
       vboot_reference # cgpt, futility
+
+      # Rescue helper dependencies
+      gum # TUI framework for rescue helper
 
       # Development utilities
       git
@@ -40,6 +43,7 @@ in
       echo "  - cgpt, futility      - ChromeOS GPT utilities"
       echo "  - parted, losetup     - Disk management"
       echo "  - pv, zstd            - Progress & compression"
+      echo "  - gum                 - TUI framework (rescue helper)"
       echo ""
       echo "Common commands:"
       echo "  nix build .#raw-rootfs-minimal          # Build minimal rootfs"
