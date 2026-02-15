@@ -90,6 +90,7 @@ activate_menu() {
 		return 1
 	fi
 
+	set_breadcrumb "Main ▸ Activation"
 	log_info "Activation script: $activate_path"
 
 	local options=(
@@ -97,7 +98,6 @@ activate_menu() {
 		"Search (custom grep pattern)"
 		"Edit activation script"
 		"← Back to main menu"
-		"✕ Exit"
 	)
 
 	while true; do
@@ -105,7 +105,7 @@ activate_menu() {
 		show_menu_header "Stage-2 Activation Script (legacy)"
 
 		local choice
-		choice=$(gum choose "${options[@]}" --header "Select action:" --height 10)
+		choice=$(gum choose "${options[@]}" --header "Select operation:" --height 8)
 
 		[[ -z "$choice" ]] && return 0
 
@@ -121,10 +121,6 @@ activate_menu() {
 			;;
 		"← Back to main menu")
 			return 0
-			;;
-		"✕ Exit")
-			log_info "Goodbye!"
-			exit 0
 			;;
 		esac
 

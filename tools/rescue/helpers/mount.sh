@@ -91,18 +91,35 @@ unmount_system() {
 }
 
 remount_system_rw() {
-	if mount | grep "$MOUNTPOINT" | grep -q "ro,"; then
-		unmount_system || return 1
-		mount_system "rw" || return 1
+	if [[ "$MOUNTED" -eq 0 ]]; then
+		mount_system "rw"
+		return $?
+	fi
+
+	if mount | grep " $MOUNTPOINT " | grep -q "\bro\b"; then
+		log_info "Remounting $MOUNTPOINT read-write..."
+		mount -o remount,rw "$TARGET_PARTITION" "$MOUNTPOINT" || {
+			log_error "Failed to remount read-write"
+			return 1
+		}
 		log_success "Remounted $MOUNTPOINT read-write"
 	fi
 	return 0
 }
 
 remount_system_ro() {
-	if mount | grep "$MOUNTPOINT" | grep -q "rw,"; then
-		unmount_system || return 1
-		mount_system "ro" || return 1
+	if [[ "$MOUNTED" -eq 0 ]]; then
+		mount_system "ro"
+		return $?
+	fi
+
+	if mount | grep " $MOUNTPOINT " | grep -q "\brw\b"; then
+		sync
+		log_info "Remounting $MOUNTPOINT read-only..."
+		mount -o remount,ro "$TARGET_PARTITION" "$MOUNTPOINT" || {
+			log_error "Failed to remount read-only"
+			return 1
+		}
 		log_success "Remounted $MOUNTPOINT read-only"
 	fi
 	return 0

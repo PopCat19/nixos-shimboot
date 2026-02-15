@@ -31,8 +31,7 @@ list_generations() {
 	local current_gen
 	current_gen="$(resolve_mounted_link "$PROFILE_DIR/system" 2>/dev/null || true)"
 
-	# Use gum table for better formatting
-	local table_data=()
+	local table_rows="Gen,Date,Size,Status"
 	for gen in "${generations[@]}"; do
 		local gen_num gen_path gen_date gen_size is_current
 
@@ -42,25 +41,19 @@ list_generations() {
 		gen_size="$(du -sh "$gen_path" 2>/dev/null | cut -f1 || echo "?")"
 
 		if [[ "$gen_path" == "$current_gen" ]]; then
-			is_current="✓ ACTIVE"
+			is_current="ACTIVE"
 		else
 			is_current=""
 		fi
 
-		table_data+=("$gen_num	$gen_date	$gen_size	$is_current")
+		table_rows+=$'\n'"$gen_num,$gen_date,$gen_size,$is_current"
 	done
 
-	printf "%-8s %-20s %-10s %-12s\n" "GEN #" "DATE" "SIZE" "STATUS"
-	echo "──────────────────────────────────────────────────────────"
-	for row in "${table_data[@]}"; do
-		IFS=$'\t' read -r gen_num gen_date gen_size is_current <<<"$row"
-		if [[ "$is_current" == "✓ ACTIVE" ]]; then
-			gum style --foreground 46 "$(printf "%-8s %-20s %-10s %-12s" "$gen_num" "$gen_date" "$gen_size" "$is_current")"
-		else
-			printf "%-8s %-20s %-10s %-12s\n" "$gen_num" "$gen_date" "$gen_size" "$is_current"
-		fi
-	done
+	echo "$table_rows" | gum table --border.foreground 62 --header.foreground 141
 
+	echo
+	local total=${#generations[@]}
+	gum style --faint "$total generation(s) found"
 	return 0
 }
 

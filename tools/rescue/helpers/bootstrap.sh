@@ -52,21 +52,21 @@ ensure_bootloader_mounted() {
 list_bootloader_layout() {
 	log_section "Bootloader Layout"
 
-	find "${BOOTLOADER_DIR:-$BOOT_MNT}" -maxdepth 2 -type f -exec ls -lah {} \; | head -n 25
+	find "$BOOTLOADER_DIR" -maxdepth 2 -type f -exec ls -lah {} \; | head -n 25
 }
 
 view_bootstrap_sh() {
-	local bootstrap_path="${BOOTLOADER_DIR:-$BOOT_MNT}/bin/bootstrap.sh"
+	local bootstrap_path="$BOOTLOADER_DIR/bin/bootstrap.sh"
 
 	if [[ -f "$bootstrap_path" ]]; then
 		less "$bootstrap_path"
 	else
-		log_error "bootstrap.sh not found in ${BOOTLOADER_DIR:-$BOOT_MNT}/bin"
+		log_error "bootstrap.sh not found in $BOOTLOADER_DIR/bin"
 	fi
 }
 
 edit_bootstrap_sh() {
-	local bootstrap_path="${BOOTLOADER_DIR:-$BOOT_MNT}/bin/bootstrap.sh"
+	local bootstrap_path="$BOOTLOADER_DIR/bin/bootstrap.sh"
 	local bootloader_dev
 	bootloader_dev=$(get_bootloader_device)
 
@@ -93,7 +93,7 @@ backup_bootloader() {
 
 	log_info "Creating backup of bootloader files to: $backup_archive"
 
-	local bootloader_dir="${BOOTLOADER_DIR:-$BOOT_MNT}"
+	local bootloader_dir="$BOOTLOADER_DIR"
 
 	tar -czf "$backup_archive" -C "$(dirname "$bootloader_dir")" "$(basename "$bootloader_dir")" 2>/dev/null || {
 		log_warn "Failed to create backup, trying alternative method..."
@@ -148,7 +148,7 @@ restore_bootloader() {
 
 	log_info "Restoring bootloader from: $backup_path"
 
-	local bootloader_dir="${BOOTLOADER_DIR:-$BOOT_MNT}"
+	local bootloader_dir="$BOOTLOADER_DIR"
 	tar -xzf "$backup_path" -C "$(dirname "$bootloader_dir")" || {
 		log_error "Restore failed"
 		return 1
@@ -162,7 +162,6 @@ backup_restore_menu() {
 		"Backup bootloader files"
 		"Restore from backup"
 		"← Back to bootstrap menu"
-		"✕ Exit"
 	)
 
 	while true; do
@@ -170,7 +169,7 @@ backup_restore_menu() {
 		show_menu_header "Bootloader Backup/Restore"
 
 		local choice
-		choice=$(gum choose "${options[@]}" --header "Select bootloader backup/restore operation:" --height 10)
+		choice=$(gum choose "${options[@]}" --header "Select operation:" --height 8)
 
 		[[ -z "$choice" ]] && return 0
 
@@ -183,10 +182,6 @@ backup_restore_menu() {
 			;;
 		"← Back to bootstrap menu")
 			return 0
-			;;
-		"✕ Exit")
-			log_info "Goodbye!"
-			exit 0
 			;;
 		esac
 
@@ -238,6 +233,8 @@ bootstrap_menu() {
 
 	ensure_bootloader_mounted "$bootloader_dev" || return 1
 
+	set_breadcrumb "Main ▸ Bootstrap"
+
 	local options=(
 		"List bootloader layout"
 		"View bootstrap.sh"
@@ -246,7 +243,6 @@ bootstrap_menu() {
 		"Inspect kernel/initramfs"
 		"Check ChromeOS GPT flags"
 		"← Back to main menu"
-		"✕ Exit"
 	)
 
 	while true; do
@@ -254,7 +250,7 @@ bootstrap_menu() {
 		show_menu_header "Bootstrap Tools"
 
 		local choice
-		choice=$(gum choose "${options[@]}" --header "Select bootstrap operation:" --height 12)
+		choice=$(gum choose "${options[@]}" --header "Select operation:" --height 10)
 
 		[[ -z "$choice" ]] && break
 
@@ -279,11 +275,6 @@ bootstrap_menu() {
 			;;
 		"← Back to main menu")
 			break
-			;;
-		"✕ Exit")
-			safe_unmount "$BOOT_MNT"
-			log_info "Goodbye!"
-			exit 0
 			;;
 		esac
 

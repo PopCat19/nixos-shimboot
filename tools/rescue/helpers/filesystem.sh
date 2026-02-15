@@ -14,6 +14,8 @@ source "${BASH_SOURCE[0]%/*}/mount.sh"
 chroot_system() {
 	if [[ "$MOUNTED" -eq 0 ]]; then
 		mount_system "rw" || return 1
+	else
+		remount_system_rw || return 1
 	fi
 
 	# Detect suitable shell path in rootfs
@@ -76,22 +78,16 @@ run_fsck() {
 }
 
 remount_rw() {
-	if [[ "$MOUNTED" -eq 0 ]]; then
-		mount_system "rw" || return 1
-	else
-		remount_system_rw || return 1
-	fi
+	remount_system_rw || return 1
 }
 
 remount_ro() {
-	if [[ "$MOUNTED" -eq 0 ]]; then
-		mount_system "ro" || return 1
-	else
-		remount_system_ro || return 1
-	fi
+	remount_system_ro || return 1
 }
 
 filesystem_menu() {
+	set_breadcrumb "Main ▸ Filesystem"
+
 	local options=(
 		"Remount read-write"
 		"Remount read-only"
@@ -99,7 +95,6 @@ filesystem_menu() {
 		"Check disk usage"
 		"Filesystem health check"
 		"← Back to main menu"
-		"✕ Exit"
 	)
 
 	while true; do
@@ -107,7 +102,7 @@ filesystem_menu() {
 		show_menu_header "Filesystem Operations"
 
 		local choice
-		choice=$(gum choose "${options[@]}" --header "Select filesystem operation:" --height 12)
+		choice=$(gum choose "${options[@]}" --header "Select operation:" --height 10)
 
 		[[ -z "$choice" ]] && return 0
 
@@ -134,10 +129,6 @@ filesystem_menu() {
 			;;
 		"← Back to main menu")
 			return 0
-			;;
-		"✕ Exit")
-			log_info "Goodbye!"
-			exit 0
 			;;
 		esac
 

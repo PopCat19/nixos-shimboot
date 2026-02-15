@@ -21,6 +21,8 @@ ANSI_CYAN='\033[1;36m'
 ANSI_MAGENTA='\033[1;35m'
 
 # === Global State ===
+# Current menu breadcrumb trail
+BREADCRUMB="Main"
 # shellcheck disable=SC2034 # Global state used across modules
 MOUNTPOINT="${MOUNTPOINT:-/mnt/nixos-rescue}"
 # shellcheck disable=SC2034 # Global state used across modules
@@ -135,5 +137,11 @@ ensure_root() {
 }
 
 pause() {
-	read -rp "Press Enter to continue..." _
+	echo
+	gum style --faint "Press Enter to continue..."
+	read -rsn1 _
+}
+
+set_breadcrumb() {
+	BREADCRUMB="$*"
 }

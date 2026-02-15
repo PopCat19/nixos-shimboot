@@ -19,26 +19,35 @@ source "${BASH_SOURCE[0]%/*}/activate.sh"
 
 show_header() {
 	clear
-	gum style --border normal --margin "1" --padding "1 2" --border-foreground 62 \
-		"NixOS Shimboot Rescue Helper"
-	echo
-	gum style --foreground 240 \
-		"System: $TARGET_PARTITION"
-	gum style --foreground 240 \
-		"Mount: $MOUNTPOINT ($(get_mount_mode))"
+	local mode
+	mode="$(get_mount_mode)"
+	local mode_color="214"
+	case "$mode" in
+		ro) mode_color="46" ;;
+		rw) mode_color="214" ;;
+		unmounted) mode_color="240" ;;
+	esac
+
+	gum style --border double --margin "1" --padding "1 2" --border-foreground 62 \
+		"NixOS Shimboot Rescue Helper" \
+		"" \
+		"Partition: $TARGET_PARTITION" \
+		"Mount: $MOUNTPOINT ($(gum style --foreground "$mode_color" "$mode"))" \
+		"Navigation: $BREADCRUMB"
 	echo
 }
 
 show_menu_header() {
 	local menu_title="$1"
-	gum style --foreground 141 --bold "▸ $menu_title"
-	echo
+	gum style --foreground 141 --bold "▸ $menu_title" --margin "0 0 1 0"
 }
 
 show_generation_menu() {
 	if [[ "$MOUNTED" -eq 0 ]]; then
 		mount_system "ro" || return 1
 	fi
+
+	set_breadcrumb "Main ▸ Generations"
 
 	local options=(
 		"List generations"
@@ -47,7 +56,6 @@ show_generation_menu() {
 		"Delete old generations"
 		"View generation diff"
 		"← Back to main menu"
-		"✕ Exit"
 	)
 
 	while true; do
@@ -55,7 +63,7 @@ show_generation_menu() {
 		show_menu_header "Generation Management"
 
 		local choice
-		choice=$(gum choose "${options[@]}" --header "Select generation operation:" --height 12)
+		choice=$(gum choose "${options[@]}" --header "Select operation:" --height 10)
 
 		[[ -z "$choice" ]] && return 0
 
@@ -80,10 +88,6 @@ show_generation_menu() {
 		"← Back to main menu")
 			return 0
 			;;
-		"✕ Exit")
-			log_info "Goodbye!"
-			exit 0
-			;;
 		esac
 
 		pause
@@ -91,13 +95,15 @@ show_generation_menu() {
 }
 
 main_menu() {
+	set_breadcrumb "Main"
+
 	local categories=(
 		"Generation Management"
 		"Filesystem Operations"
 		"Bootstrap Tools"
 		"Home Directory Management"
 		"Stage-2 Activation Script (legacy)"
-		"✕ Exit"
+		"Exit"
 	)
 
 	while true; do
@@ -105,7 +111,7 @@ main_menu() {
 		show_menu_header "Main Menu"
 
 		local choice
-		choice=$(gum choose "${categories[@]}" --header "Select operation category:" --height 10)
+		choice=$(gum choose "${categories[@]}" --header "Select category:" --height 10)
 
 		[[ -z "$choice" ]] && {
 			log_info "Goodbye!"
@@ -128,7 +134,7 @@ main_menu() {
 		"Stage-2 Activation Script (legacy)")
 			activate_menu
 			;;
-		"✕ Exit")
+		"Exit")
 			log_info "Goodbye!"
 			exit 0
 			;;

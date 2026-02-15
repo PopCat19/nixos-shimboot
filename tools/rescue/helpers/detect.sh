@@ -16,7 +16,7 @@ detect_partition() {
 	local found_partitions=()
 
 	# Scan for shimboot_rootfs:* partitions
-	for part in /dev/sd[a-z][0-9] /dev/nvme[0-9]n1p[0-9]; do
+	for part in /dev/sd[a-z]*[0-9] /dev/nvme[0-9]*n[0-9]*p[0-9]* /dev/mmcblk[0-9]*p[0-9]*; do
 		[[ -b "$part" ]] || continue
 
 		local label
@@ -123,7 +123,7 @@ select_partition_manually() {
 	local partitions=()
 
 	# Collect all partitions
-	for part in /dev/sd[a-z][0-9] /dev/nvme[0-9]n1p[0-9]; do
+	for part in /dev/sd[a-z]*[0-9] /dev/nvme[0-9]*n[0-9]*p[0-9]* /dev/mmcblk[0-9]*p[0-9]*; do
 		[[ -b "$part" ]] || continue
 		local label size
 		label="$(lsblk -no PARTLABEL "$part" 2>/dev/null || echo "unnamed")"

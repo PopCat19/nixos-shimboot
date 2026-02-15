@@ -23,6 +23,12 @@ get_backup_archives() {
 	find "$HOME_BACKUP_DIR" -maxdepth 1 -name "*.tar.zst" -type f -printf '%f\n' 2>/dev/null
 }
 
+get_backup_archives_array() {
+	local archives=()
+	mapfile -t archives < <(get_backup_archives)
+	printf '%s\n' "${archives[@]}"
+}
+
 export_home() {
 	log_section "Export Home Directory"
 
@@ -35,8 +41,9 @@ export_home() {
 	fi
 
 	local username
-	# shellcheck disable=SC2086 # Word splitting intentional for gum choose
-	username=$(gum choose $users --header "Select user to export:" --height 10)
+	local user_list=()
+	mapfile -t user_list <<< "$users"
+	username=$(gum choose "${user_list[@]}" --header "Select user to export:" --height 10)
 
 	[[ -z "$username" ]] && {
 		log_info "Export cancelled"
@@ -87,10 +94,10 @@ EOF
 import_home() {
 	log_section "Import Home Directory"
 
-	local archives
-	archives=$(get_backup_archives)
+	local archives=()
+	mapfile -t archives < <(get_backup_archives)
 
-	if [[ -z "$archives" ]]; then
+	if [[ ${#archives[@]} -eq 0 ]]; then
 		log_warn "No archives found in $HOME_BACKUP_DIR"
 
 		if gum confirm "Import from a different directory?" --default=false; then
@@ -100,7 +107,7 @@ import_home() {
 
 			if [[ -d "$import_dir" ]]; then
 				HOME_BACKUP_DIR="$import_dir"
-				archives=$(get_backup_archives)
+				mapfile -t archives < <(get_backup_archives)
 				log_info "Import directory switched to: $HOME_BACKUP_DIR"
 			else
 				log_error "Directory not found: $import_dir"
@@ -112,10 +119,11 @@ import_home() {
 	fi
 
 	log_info "Available archives in $HOME_BACKUP_DIR:"
-	ls -1h "$HOME_BACKUP_DIR"/*.tar.zst 2>/dev/null || true
+	ls -lh "$HOME_BACKUP_DIR"/*.tar.zst 2>/dev/null || true
+	echo
 
 	local archive_file
-	archive_file=$(gum choose "$(get_backup_archives)" --header "Select archive to import:" --height 10)
+	archive_file=$(gum choose "${archives[@]}" --header "Select archive to import:" --height 10)
 
 	[[ -z "$archive_file" ]] && {
 		log_info "Import cancelled"
@@ -157,10 +165,12 @@ list_home_contents() {
 
 	log_info "Users in /home:"
 	ls -lh "$MOUNTPOINT/home"
+	echo
 
 	local username
-	# shellcheck disable=SC2086 # Word splitting intentional for gum choose
-	username=$(gum choose $users "Skip" --header "Select user to inspect:" --height 10)
+	local user_list=()
+	mapfile -t user_list <<< "$users"
+	username=$(gum choose "${user_list[@]}" "Skip" --header "Select user to inspect:" --height 10)
 
 	[[ -z "$username" || "$username" == "Skip" ]] && return 0
 
@@ -198,8 +208,8 @@ home_menu() {
 		mount_system "ro" || return 1
 	fi
 
-	# Ask user once where to store/read backups
-	change_backup_dir
+	set_breadcrumb "Main ▸ Home"
+	log_info "Backup directory: $HOME_BACKUP_DIR"
 
 	local options=(
 		"Export home to zstd archive"
@@ -208,7 +218,6 @@ home_menu() {
 		"View backup archives"
 		"Change backup directory"
 		"← Back to main menu"
-		"✕ Exit"
 	)
 
 	while true; do
@@ -216,7 +225,7 @@ home_menu() {
 		show_menu_header "Home Directory Management"
 
 		local choice
-		choice=$(gum choose "${options[@]}" --header "Select home directory operation:" --height 12)
+		choice=$(gum choose "${options[@]}" --header "Select operation:" --height 10)
 
 		[[ -z "$choice" ]] && return 0
 
@@ -238,10 +247,6 @@ home_menu() {
 			;;
 		"← Back to main menu")
 			return 0
-			;;
-		"✕ Exit")
-			log_info "Goodbye!"
-			exit 0
 			;;
 		esac
 
