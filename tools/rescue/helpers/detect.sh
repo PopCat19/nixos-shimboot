@@ -79,6 +79,15 @@ validate_partition() {
 		return 1
 	fi
 
+	# Check if already mounted and offer to unmount
+	if findmnt -rno TARGET "$part" &>/dev/null; then
+		log_warn "Partition $part is already mounted"
+		if ! unmount_partition "$part"; then
+			log_error "Cannot proceed with mounted partition"
+			return 1
+		fi
+	fi
+
 	# Try to mount and check for NixOS structure
 	local temp_mnt
 	temp_mnt="$(mktemp -d)"
@@ -159,6 +168,16 @@ unmount_partition() {
 	fi
 
 	if gum confirm "Unmount $part before continuing?" --default=true; then
+		# Try udisksctl first (preferred for UDisks-mounted partitions)
+		if command -v udisksctl &>/dev/null; then
+			log_info "Unmounting $part via udisksctl..."
+			if udisksctl unmount -b "$part" 2>/dev/null; then
+				log_success "Unmounted $part"
+				return 0
+			fi
+		fi
+
+		# Fallback to regular umount
 		while IFS= read -r mp; do
 			[[ -z "$mp" ]] && continue
 			log_info "Unmounting $mp..."
