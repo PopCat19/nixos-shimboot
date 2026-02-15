@@ -300,11 +300,17 @@ delete_generations() {
 
 	# Garbage collect
 	log_info "Running garbage collection..."
-	gum spin --title "Collecting garbage..." -- nix store --store "$MOUNTPOINT/nix/store" collect-garbage -d || {
-		log_warn "Garbage collection had issues"
-	}
+	local gc_output gc_exit
+	gc_output=$(nix store --store "$MOUNTPOINT/nix/store" collect-garbage -d 2>&1) || gc_exit=$?
 
-	log_success "Deleted $delete_count generation(s)"
+	if [[ -z "${gc_exit:-}" ]]; then
+		log_success "Garbage collection completed"
+		log_success "Deleted $delete_count generation(s)"
+	else
+		log_warn "Garbage collection exited with code $gc_exit"
+		echo "$gc_output" | gum pager --header "GC Output"
+		log_warn "Deleted $delete_count generation(s), but garbage collection had issues"
+	fi
 
 	return 0
 }
