@@ -1,0 +1,269 @@
+# sync.sh
+#
+# Purpose: Sync dev-conventions files from remote repository
+#
+# This module provides:
+# - File downloading from GitHub repositories
+# - Change detection and git tracking
+# - Auto-commit and push functionality
+#
+# shellcheck shell=bash
+
+# Ensure script is sourced, not executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+	echo "Error: sync.sh should be sourced, not executed" >&2
+	exit 1
+fi
+
+# Default values
+DEFAULT_REMOTE="https://github.com/PopCat19/dev-conventions"
+DEFAULT_BRANCH="main"
+DEFAULT_FILES=(
+	"conventions/AGENTS.md"
+	"conventions/DEVELOPMENT.md"
+	"conventions/DEV-EXAMPLES.md"
+	"conventions/dev-conventions.sh"
+	"conventions/src/lib.sh"
+	"conventions/src/merge.sh"
+	"conventions/src/changelog.sh"
+	"conventions/src/sync.sh"
+	"conventions/src/lint.sh"
+)
+
+# Fetch file from GitHub
+fetch_file() {
+	local file="$1"
+	local remote_url="$2"
+	local ref="$3"
+	local raw_url
+
+	# Construct raw URL for GitHub
+	if [[ "$remote_url" == https://github.com/* ]]; then
+		local repo_path="${remote_url#https://github.com/}"
+		raw_url="https://raw.githubusercontent.com/${repo_path}/${ref}/${file}"
+	else
+		log_error "Only GitHub repositories are supported currently"
+		return 1
+	fi
+
+	local http_code
+
+	# Fetch with curl
+	http_code=$(curl -sSL -w "%{http_code}" -o /tmp/sync-content "$raw_url" 2>/dev/null) || {
+		log_error "Failed to fetch $file (curl error)"
+		return 1
+	}
+
+	if [[ "$http_code" != "200" ]]; then
+		log_error "Failed to fetch $file (HTTP $http_code)"
+		return 1
+	fi
+
+	local content
+	content=$(cat /tmp/sync-content)
+
+	if [[ -z "$content" ]]; then
+		log_warn "Empty content for $file"
+		return 1
+	fi
+
+	echo "$content"
+	return 0
+}
+
+# Main sync command
+cmd_sync() {
+	local remote_url=""
+	local branch=""
+	local version=""
+	local files=()
+	local dry_run=false
+	local auto_commit=true
+	local auto_push=false
+
+	# Parse arguments
+	while [[ $# -gt 0 ]]; do
+		case "$1" in
+		--remote)
+			remote_url="$2"
+			shift 2
+			;;
+		--branch)
+			branch="$2"
+			shift 2
+			;;
+		--version)
+			version="$2"
+			shift 2
+			;;
+		--files)
+			IFS=',' read -ra files <<<"$2"
+			shift 2
+			;;
+		--dry-run)
+			dry_run=true
+			shift
+			;;
+		--no-commit)
+			auto_commit=false
+			shift
+			;;
+		--no-push)
+			auto_push=false
+			shift
+			;;
+		--push)
+			auto_push=true
+			shift
+			;;
+		--yes | -y)
+			# shellcheck disable=SC2034
+			SKIP_CONFIRM=true
+			shift
+			;;
+		*)
+			log_error "Unknown option: $1"
+			return 1
+			;;
+		esac
+	done
+
+	# Apply defaults
+	remote_url="${remote_url:-$DEFAULT_REMOTE}"
+	branch="${branch:-$DEFAULT_BRANCH}"
+	if [[ ${#files[@]} -eq 0 ]]; then
+		files=("${DEFAULT_FILES[@]}")
+	fi
+
+	# Normalize remote URL
+	remote_url=$(normalize_github_url "$remote_url")
+
+	# Determine ref to fetch
+	local ref
+	if [[ -n "$version" ]]; then
+		ref="$version"
+	else
+		ref="$branch"
+	fi
+
+	log_info "Syncing dev-conventions"
+	log_detail "Remote: $remote_url"
+	log_detail "Ref: $ref"
+	log_detail "Files: ${files[*]}"
+	echo ""
+
+	# Track what was updated
+	local updated=()
+	local skipped=()
+	local failed=()
+	local needs_commit=()
+	local self_updated=false
+
+	for file in "${files[@]}"; do
+		echo -e "${ANSI_CYAN}  Checking $file...${ANSI_CLEAR}"
+
+		local content
+		if ! content=$(fetch_file "$file" "$remote_url" "$ref"); then
+			failed+=("$file")
+			continue
+		fi
+
+		# Compare content if file exists
+		if [[ -f "$file" ]] && diff -q <(cat "$file") <(echo "$content") >/dev/null 2>&1; then
+			# Content matches remote — check if git tracking is needed
+			local is_tracked=false
+			git ls-files --error-unmatch "$file" >/dev/null 2>&1 && is_tracked=true
+
+			if [[ "$is_tracked" == "true" ]] && git diff --quiet "$file" 2>/dev/null; then
+				log_detail "Unchanged, skipping"
+				skipped+=("$file")
+				continue
+			else
+				log_detail "Needs staging"
+				needs_commit+=("$file")
+			fi
+			continue
+		fi
+
+		if [[ "$dry_run" == "true" ]]; then
+			log_detail "Would update (dry-run)"
+		else
+			# Write to temp file first, then atomic move
+			echo "$content" >"$file.tmp"
+			# Preserve permissions if file exists
+			if [[ -f "$file" ]]; then
+				chmod --reference="$file" "$file.tmp" 2>/dev/null || true
+			fi
+			mv "$file.tmp" "$file"
+			log_detail "Updated"
+
+			# Track if script updated itself
+			if [[ "$file" == "conventions/dev-conventions" ]]; then
+				self_updated=true
+			fi
+		fi
+		updated+=("$file")
+		needs_commit+=("$file")
+	done
+
+	# Cleanup
+	rm -f /tmp/sync-content
+
+	# Summary
+	echo ""
+	log_info "Summary"
+	log_detail "Updated: ${#updated[@]} files"
+	log_detail "Untracked/modified: $((${#needs_commit[@]} - ${#updated[@]})) files"
+	log_detail "Skipped: ${#skipped[@]} files (unchanged)"
+	log_detail "Failed: ${#failed[@]} files"
+
+	if [[ ${#updated[@]} -gt 0 ]]; then
+		echo ""
+		log_info "Updated files:"
+		for f in "${updated[@]}"; do
+			log_detail "$f"
+		done
+	fi
+
+	if [[ ${#failed[@]} -gt 0 ]]; then
+		echo ""
+		log_warn "Failed files:"
+		for f in "${failed[@]}"; do
+			log_detail "$f"
+		done
+		return 1
+	fi
+
+	if [[ "$dry_run" == "true" ]]; then
+		echo ""
+		log_info "Dry-run complete, no files were modified"
+	elif [[ ${#needs_commit[@]} -eq 0 ]]; then
+		echo ""
+		log_info "No files need syncing"
+	else
+		echo ""
+		if [[ "$auto_commit" == "true" ]]; then
+			log_info "Auto-committing changes..."
+			git add "${needs_commit[@]}"
+			git commit -m "chore: sync dev-conventions"
+			log_detail "Committed ${#needs_commit[@]} files"
+
+			if [[ "$auto_push" == "true" ]]; then
+				log_info "Auto-pushing..."
+				git push
+				log_detail "Pushed to remote"
+			fi
+		else
+			log_info "Files updated. Review changes and commit:"
+			log_detail "git diff"
+			log_detail "git add ${needs_commit[*]}"
+			log_detail 'git commit -m "chore: sync dev-conventions"'
+		fi
+	fi
+
+	# Warn if script updated itself
+	if [[ "$self_updated" == "true" ]]; then
+		echo ""
+		log_warn "Script updated itself. Re-run to ensure consistency."
+	fi
+}
