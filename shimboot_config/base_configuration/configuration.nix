@@ -38,6 +38,7 @@ in
     ./system/users.nix
     ./system/audio.nix
     ./system/fish.nix
+    ./system/luks2.nix
     ./system/services.nix
     ./system/zram.nix
   ];
