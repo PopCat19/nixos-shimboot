@@ -32,8 +32,6 @@
 
 **Rationale:** Headers provide quick context without opening files. Minimal format avoids maintenance overhead from tracking dependencies and relationships that change frequently.
 
-**Policy:** Optional unless project specifies. When used:
-
 ```
 # <File Name>
 #

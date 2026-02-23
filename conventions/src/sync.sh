@@ -18,49 +18,104 @@ fi
 # Default values
 DEFAULT_REMOTE="https://github.com/PopCat19/dev-conventions"
 DEFAULT_BRANCH="main"
-DEFAULT_FILES=(
-	"conventions/AGENTS.md"
-	"conventions/DEVELOPMENT.md"
-	"conventions/DEV-EXAMPLES.md"
-	"conventions/dev-conventions.sh"
-	"conventions/src/lib.sh"
-	"conventions/src/merge.sh"
-	"conventions/src/changelog.sh"
-	"conventions/src/sync.sh"
-	"conventions/src/lint.sh"
-)
 
-# Fetch file from GitHub
+# Build default files list dynamically
+# Discovers all .md files in conventions/ plus shell scripts in conventions/src/
+build_default_files() {
+	local files=()
+
+	# Discover all .md files in conventions/ (non-recursive)
+	local md_files
+	mapfile -t md_files < <(find conventions -maxdepth 1 -name "*.md" -type f 2>/dev/null | sort)
+	files+=("${md_files[@]}")
+
+	# Add shell scripts (fixed set - these are the CLI components)
+	files+=(
+		"conventions/dev-conventions.sh"
+		"conventions/src/lib.sh"
+		"conventions/src/merge.sh"
+		"conventions/src/changelog.sh"
+		"conventions/src/sync.sh"
+		"conventions/src/lint.sh"
+	)
+
+	echo "${files[@]}"
+}
+
+DEFAULT_FILES=()
+# shellcheck disable=SC2034
+read -ra DEFAULT_FILES <<< "$(build_default_files)"
+
+# Fetch file from GitHub (tries raw URL first, falls back to API)
 fetch_file() {
 	local file="$1"
 	local remote_url="$2"
 	local ref="$3"
-	local raw_url
+	local repo_path
 
-	# Construct raw URL for GitHub
+	# Extract repo path from GitHub URL
 	if [[ "$remote_url" == https://github.com/* ]]; then
-		local repo_path="${remote_url#https://github.com/}"
-		raw_url="https://raw.githubusercontent.com/${repo_path}/${ref}/${file}"
+		repo_path="${remote_url#https://github.com/}"
 	else
 		log_error "Only GitHub repositories are supported currently"
 		return 1
 	fi
 
+	# Try raw.githubusercontent.com first (faster)
+	local raw_url="https://raw.githubusercontent.com/${repo_path}/${ref}/${file}"
 	local http_code
 
-	# Fetch with curl
-	http_code=$(curl -sSL -w "%{http_code}" -o /tmp/sync-content "$raw_url" 2>/dev/null) || {
-		log_error "Failed to fetch $file (curl error)"
+	http_code=$(curl -sSL -w "%{http_code}" -o /tmp/sync-content "$raw_url" 2>/dev/null) || true
+
+	if [[ "$http_code" == "200" ]]; then
+		local content
+		content=$(cat /tmp/sync-content)
+		if [[ -n "$content" ]]; then
+			echo "$content"
+			return 0
+		fi
+	fi
+
+	# Fallback: Use GitHub API (works when raw.githubusercontent.com is blocked)
+	log_detail "Raw URL unavailable, using API..." >&2
+	local api_url="https://api.github.com/repos/${repo_path}/contents/${file}?ref=${ref}"
+
+	# Save response to file to avoid shell interpretation issues
+	curl -sSL "$api_url" -o /tmp/sync-api-response.json 2>/dev/null || {
+		log_error "Failed to fetch $file (API request failed)"
 		return 1
 	}
 
-	if [[ "$http_code" != "200" ]]; then
-		log_error "Failed to fetch $file (HTTP $http_code)"
+	# Check for API error
+	if grep -q '"message"' /tmp/sync-api-response.json; then
+		local error_msg
+		error_msg=$(grep -oP '"message"\s*:\s*"\K[^"]+' /tmp/sync-api-response.json | head -1)
+		log_error "Failed to fetch $file: $error_msg"
 		return 1
 	fi
 
+	# Extract and decode base64 content
+	# Prefer jq for proper JSON handling, fall back to grep/sed
 	local content
-	content=$(cat /tmp/sync-content)
+	if command -v jq &>/dev/null; then
+		content=$(jq -r '.content' /tmp/sync-api-response.json 2>/dev/null | base64 -d 2>/dev/null) || {
+			log_error "Failed to decode content for $file"
+			return 1
+		}
+	else
+		# Fallback: extract content field and decode
+		# Note: This may have issues with special characters
+		local content_b64
+		content_b64=$(grep -oP '"content"\s*:\s*"\K[^"]+' /tmp/sync-api-response.json 2>/dev/null)
+		if [[ -z "$content_b64" ]]; then
+			log_error "Failed to extract content from API response for $file"
+			return 1
+		fi
+		content=$(printf '%s' "$content_b64" | base64 -d 2>/dev/null) || {
+			log_error "Failed to decode base64 content for $file"
+			return 1
+		}
+	fi
 
 	if [[ -z "$content" ]]; then
 		log_warn "Empty content for $file"
