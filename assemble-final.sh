@@ -14,6 +14,7 @@
 #
 # Options:
 #   --board BOARD          Target board (dedede, octopus, etc.)
+#   --profile PROFILE      Build profile (default, nixos-popcat19, etc.)
 #   --rootfs FLAVOR        Rootfs variant (full, minimal)
 #   --drivers MODE         Driver placement (vendor, inject, both, none)
 #   --firmware-upstream    Enable upstream firmware (default: 1)
@@ -27,20 +28,20 @@
 #   --push-to-cachix       Automatically push Nix derivations to Cachix after successful build (image upload no longer supported)
 #
 # Examples:
-#   # Build dedede with full rootfs
-#   ./assemble-final.sh --board dedede --rootfs full
+#   # Build dedede with default profile and full rootfs
+#   ./assemble-final.sh --board dedede --profile default --rootfs full
 #
 #   # Build with vendor drivers and cleanup
-#   ./assemble-final.sh --board dedede --rootfs minimal --drivers vendor --cleanup-rootfs --cleanup-keep 2 --no-dry-run
+#   ./assemble-final.sh --board dedede --profile default --rootfs minimal --drivers vendor --cleanup-rootfs --cleanup-keep 2 --no-dry-run
 #
 #   # Dry run to see what would be executed
-#   ./assemble-final.sh --board dedede --rootfs full --dry-run
+#   ./assemble-final.sh --board dedede --profile default --rootfs full --dry-run
 #
 #   # Build with cache pre-warming
-#   ./assemble-final.sh --board dedede --rootfs full --prewarm-cache
+#   ./assemble-final.sh --board dedede --profile default --rootfs full --prewarm-cache
 #
 #   # Build and automatically push Nix derivations to Cachix
-#   ./assemble-final.sh --board dedede --rootfs full --push-to-cachix
+#   ./assemble-final.sh --board dedede --profile default --rootfs full --push-to-cachix
 
 set -Eeuo pipefail
 
@@ -101,7 +102,7 @@ if [ "${EUID:-$(id -u)}" -ne 0 ]; then
 	echo "[assemble-final] Re-executing with sudo -H..."
 	echo "[assemble-final] Please enter your sudo password when prompted..."
 	SUDO_ENV=()
-	for var in BOARD BOARD_EXPLICITLY_SET CACHIX_AUTH_TOKEN; do
+	for var in BOARD BOARD_EXPLICITLY_SET PROFILE CACHIX_AUTH_TOKEN; do
 		if [ -n "${!var:-}" ]; then SUDO_ENV+=("$var=${!var}"); fi
 	done
 	exec sudo -E -H "${SUDO_ENV[@]}" "$0" "$@"
@@ -209,6 +210,7 @@ SYSTEM="x86_64-linux"
 # Initialize BOARD_EXPLICITLY_SET before CLI parsing
 BOARD="${BOARD:-}"
 BOARD_EXPLICITLY_SET="${BOARD_EXPLICITLY_SET:-}"
+PROFILE="${PROFILE:-}"
 ROOTFS_NAME="${ROOTFS_NAME:-nixos}"
 ROOTFS_FLAVOR="${ROOTFS_FLAVOR:-}"
 INSPECT_AFTER=""
@@ -233,6 +235,10 @@ while [ $# -gt 0 ]; do
 	--board)
 		BOARD="${2:-}"
 		BOARD_EXPLICITLY_SET="set"
+		shift 2
+		;;
+	--profile)
+		PROFILE="${2:-}"
 		shift 2
 		;;
 	--rootfs)
@@ -307,6 +313,20 @@ if [ -z "$BOARD" ]; then
 	exit 1
 fi
 
+# Set default profile if not provided
+if [ -z "$PROFILE" ]; then
+	PROFILE="default"
+	log_warn "No --profile specified; defaulting to 'default'."
+	log_warn "Available profiles: $(ls -1 shimboot_config/profiles/ 2>/dev/null | tr '\n' ' ')"
+fi
+
+# Validate profile exists
+if [ ! -d "shimboot_config/profiles/$PROFILE" ]; then
+	log_error "Profile '$PROFILE' not found in shimboot_config/profiles/"
+	log_error "Available profiles: $(ls -1 shimboot_config/profiles/ 2>/dev/null | tr '\n' ' ')"
+	exit 1
+fi
+
 # === Setup Workspace Path (Now that BOARD is known) ===
 # Detect if we're in CI with Nothing but Nix (large /nix mount)
 if [ -d "/nix" ] && mountpoint -q /nix 2>/dev/null; then
@@ -347,11 +367,13 @@ if [ "${ROOTFS_FLAVOR}" != "full" ] && [ "${ROOTFS_FLAVOR}" != "minimal" ]; then
 	exit 1
 fi
 
-RAW_ROOTFS_ATTR="raw-rootfs"
+# Build raw-rootfs attribute name based on profile and flavor
+RAW_ROOTFS_ATTR="raw-rootfs-${PROFILE}"
 if [ "${ROOTFS_FLAVOR}" = "minimal" ]; then
-	RAW_ROOTFS_ATTR="raw-rootfs-minimal"
+	RAW_ROOTFS_ATTR="raw-rootfs-${PROFILE}-minimal"
 fi
 
+log_info "Profile: ${PROFILE}"
 log_info "Rootfs flavor: ${ROOTFS_FLAVOR} (attr: .#${RAW_ROOTFS_ATTR})"
 log_info "Board: ${BOARD}"
 # Default drivers mode to 'vendor' unless overridden by --drivers or env
@@ -858,9 +880,7 @@ safe_exec sudo mount "${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "$WORKDIR/mnt_rootfs
 total_bytes=$(sudo du -sb "$WORKDIR/mnt_src_rootfs" | cut -f1)
 (cd "$WORKDIR/mnt_src_rootfs" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_rootfs" && sudo tar xf -)
 
-	# Get username from userConfig
-	# Evaluate the Nix file properly to get the plain string value
-	PROFILE=$(nix eval --impure --expr "(import ./shimboot_config/selected-profile.nix)" --raw 2>/dev/null || echo "default")
+	# Get username from userConfig using the selected profile
 	USERNAME=$(nix eval "${NIX_BUILD_FLAGS[@]}" --expr "(import ./shimboot_config/profiles/${PROFILE}/user-config.nix {}).user.username" --json | jq -r .)
 	log_info "Using username from userConfig: $USERNAME"
 
@@ -915,6 +935,7 @@ BUILD_HOST=$(hostname)
 BUILD_USER=$(whoami)
 BUILD_DATE=$BUILD_DATE
 BOARD=$BOARD
+PROFILE=$PROFILE
 ROOTFS_FLAVOR=$ROOTFS_FLAVOR
 DRIVERS_MODE=$DRIVERS_MODE
 GIT_BRANCH=$GIT_BRANCH
@@ -935,6 +956,7 @@ safe_exec sudo tee "$WORKDIR/mnt_rootfs/etc/shimboot-build.json" >/dev/null <<EO
 	 "build_date": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
 	 "build_host": "$(hostname)",
 	 "board": "$BOARD",
+	 "profile": "$PROFILE",
 	 "rootfs_flavor": "$ROOTFS_FLAVOR",
 	 "drivers_mode": "$DRIVERS_MODE",
 	 "firmware_upstream": "$FIRMWARE_UPSTREAM",
@@ -1073,13 +1095,13 @@ if [ "$PUSH_TO_CACHIX" -eq 1 ]; then
 				log_warn "CACHIX_AUTH_TOKEN not set in CI environment"
 				log_warn "Set it to enable automatic pushing to Cachix"
 			else
-				log_info "Executing: ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE --image $IMAGE"
-				if bash tools/push-to-cachix.sh --board "$BOARD" --rootfs "$ROOTFS_FLAVOR" --drivers "$DRIVERS_MODE" --image "$IMAGE"; then
+				log_info "Executing: ./tools/push-to-cachix.sh --board $BOARD --profile $PROFILE --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE --image $IMAGE"
+				if bash tools/push-to-cachix.sh --board "$BOARD" --profile "$PROFILE" --rootfs "$ROOTFS_FLAVOR" --drivers "$DRIVERS_MODE" --image "$IMAGE"; then
 					log_success "Successfully pushed Nix derivations to Cachix"
 				else
 					log_error "Failed to push Nix derivations to Cachix"
 					log_error "You can manually retry with:"
-					log_error "  ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE --image $IMAGE"
+					log_error "  ./tools/push-to-cachix.sh --board $BOARD --profile $PROFILE --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE --image $IMAGE"
 				fi
 			fi
 		else
@@ -1092,7 +1114,7 @@ if [ "$PUSH_TO_CACHIX" -eq 1 ]; then
 else
 	# Show manual instruction only if not auto-pushing
 	log_info "To push Nix derivations to Cachix (shim, recovery, kernel, initramfs, rootfs, chunks), run:"
-	log_info "  ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE --image $IMAGE"
+	log_info "  ./tools/push-to-cachix.sh --board $BOARD --profile $PROFILE --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE --image $IMAGE"
 fi
 
 # === Optional inspection ===

@@ -25,6 +25,7 @@ log_error() { printf "${RED}[ERROR]${NC} %s\n" "$*" >&2; }
 # Configuration
 CACHE="shimboot-systemd-nixos"
 BOARD=""
+PROFILE="default"
 ROOTFS_FLAVOR="full"
 DRIVERS_MODE="vendor"
 SKIP_DERIVATIONS=0
@@ -37,6 +38,7 @@ Usage: push-to-cachix.sh --board BOARD [OPTIONS]
 
 Options:
     --board BOARD              Target board (required)
+    --profile PROFILE          Build profile (default, nixos-popcat19, etc.)
     --rootfs FLAVOR            Rootfs variant (full, minimal)
     --drivers MODE             Driver mode (vendor, inject, both, none)
     --skip-derivations         Skip pushing Nix derivations
@@ -45,10 +47,10 @@ Options:
 
 Examples:
     # Push all derivations (shim, recovery, kernel, initramfs, rootfs, chunks)
-    ./push-to-cachix.sh --board dedede
+    ./push-to-cachix.sh --board dedede --profile default
 
     # Push derivations without chunks
-    ./push-to-cachix.sh --board dedede --skip-chunks
+    ./push-to-cachix.sh --board dedede --profile default --skip-chunks
 EOF
 }
 
@@ -57,6 +59,10 @@ while [[ $# -gt 0 ]]; do
 	case "$1" in
 	--board)
 		BOARD="${2:-}"
+		shift 2
+		;;
+	--profile)
+		PROFILE="${2:-default}"
 		shift 2
 		;;
 	--rootfs)
@@ -126,13 +132,13 @@ safe_exec() {
 # Push Nix derivations
 push_derivations() {
 	local board="$1"
-	local rootfs_attr="raw-rootfs"
+	local rootfs_attr="raw-rootfs-${PROFILE}"
 
 	if [[ "$ROOTFS_FLAVOR" == "minimal" ]]; then
-		rootfs_attr="raw-rootfs-minimal"
+		rootfs_attr="raw-rootfs-${PROFILE}-minimal"
 	fi
 
-	log_info "Pushing Nix derivations for board: $board"
+	log_info "Pushing Nix derivations for board: $board, profile: $PROFILE"
 
 	local derivations=(
 		".#chromeos-shim-${board}"
@@ -208,6 +214,7 @@ main() {
 	log_info "Cachix Push Tool"
 	log_info "Cache: $CACHE"
 	log_info "Board: $BOARD"
+	log_info "Profile: $PROFILE"
 	log_info "Rootfs: $ROOTFS_FLAVOR"
 	log_info "Drivers: $DRIVERS_MODE"
 

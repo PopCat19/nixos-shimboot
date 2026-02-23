@@ -23,6 +23,47 @@ log_warn() { printf "${ANSI_YELLOW}[WARN]${ANSI_CLEAR} %s\n" "$*"; }
 log_error() { printf "${ANSI_RED}[ERROR]${ANSI_CLEAR} %s\n" "$*"; }
 
 CACHE="shimboot-systemd-nixos"
+BOARD=""
+PROFILE="default"
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+	--board)
+		BOARD="${2:-}"
+		shift 2
+		;;
+	--profile)
+		PROFILE="${2:-default}"
+		shift 2
+		;;
+	-h | --help)
+		echo "Usage: $0 --board BOARD [--profile PROFILE]"
+		echo ""
+		echo "Options:"
+		echo "  --board BOARD     Target board (required)"
+		echo "  --profile PROFILE Build profile (default: default)"
+		exit 0
+		;;
+	*)
+		log_error "Unknown option: $1"
+		exit 1
+		;;
+	esac
+done
+
+# Set default board if not provided
+if [ -z "$BOARD" ]; then
+	BOARD="dedede"
+	log_warn "No --board specified; defaulting to 'dedede'."
+fi
+
+# Validate profile exists
+if [ ! -d "shimboot_config/profiles/$PROFILE" ]; then
+	log_error "Profile '$PROFILE' not found in shimboot_config/profiles/"
+	log_error "Available profiles: $(ls -1 shimboot_config/profiles/ 2>/dev/null | tr '\n' ' ')"
+	exit 1
+fi
 
 log_info "Checking Cachix cache: $CACHE"
 echo
@@ -36,16 +77,15 @@ else
 fi
 
 # Check for specific derivations
-BOARD="${1:-dedede}"
 ATTRS=(
 	"chromeos-shim-${BOARD}"
 	"extracted-kernel-${BOARD}"
 	"initramfs-patching-${BOARD}"
-	"raw-rootfs"
+	"raw-rootfs-${PROFILE}"
 )
 
 echo
-log_info "Checking cache coverage for board: $BOARD"
+log_info "Checking cache coverage for board: $BOARD, profile: $PROFILE"
 echo
 
 missing=0

@@ -6,7 +6,7 @@
 #
 # This module:
 # - Tests building chromeos-shim packages for each supported board
-# - Validates flake structure and raw-rootfs packages
+# - Validates flake structure and raw-rootfs packages for each profile
 # - Reports build success/failure summary
 
 set -Eeuo pipefail
@@ -44,10 +44,28 @@ SUPPORTED_BOARDS=(
 	"snappy"
 )
 
+# Discover available profiles
+PROFILE_DIR="shimboot_config/profiles"
+AVAILABLE_PROFILES=()
+if [ -d "$PROFILE_DIR" ]; then
+	for profile_dir in "$PROFILE_DIR"/*/; do
+		[ -d "$profile_dir" ] || continue
+		profile_name=$(basename "$profile_dir")
+		AVAILABLE_PROFILES+=("$profile_name")
+	done
+fi
+
+# Default to 'default' profile if none found
+if [ ${#AVAILABLE_PROFILES[@]} -eq 0 ]; then
+	AVAILABLE_PROFILES=("default")
+fi
+
 # Results tracking
 declare -A BUILD_RESULTS
 FAILED_BOARDS=()
 SUCCESSFUL_BOARDS=()
+FAILED_PROFILES=()
+SUCCESSFUL_PROFILES=()
 
 # Function to test build for a single board
 test_board_build() {
@@ -109,6 +127,27 @@ show_results() {
 	log_info "=== BUILD TEST RESULTS SUMMARY ==="
 	echo ""
 
+	echo "Profiles tested: ${#AVAILABLE_PROFILES[@]}"
+	echo "Successful profiles: ${#SUCCESSFUL_PROFILES[@]}"
+	echo "Failed profiles: ${#FAILED_PROFILES[@]}"
+	echo ""
+
+	if [ ${#SUCCESSFUL_PROFILES[@]} -gt 0 ]; then
+		log_success "Successfully built profiles:"
+		for profile in "${SUCCESSFUL_PROFILES[@]}"; do
+			echo "  ✓ $profile"
+		done
+		echo ""
+	fi
+
+	if [ ${#FAILED_PROFILES[@]} -gt 0 ]; then
+		log_error "Failed profiles:"
+		for profile in "${FAILED_PROFILES[@]}"; do
+			echo "  ✗ $profile"
+		done
+		echo ""
+	fi
+
 	echo "Total boards tested: ${#SUPPORTED_BOARDS[@]}"
 	echo "Successful builds: ${#SUCCESSFUL_BOARDS[@]}"
 	echo "Failed builds: ${#FAILED_BOARDS[@]}"
@@ -131,11 +170,11 @@ show_results() {
 	fi
 
 	# Overall result
-	if [ ${#FAILED_BOARDS[@]} -eq 0 ]; then
-		log_success "All board builds passed! Recovery should work for all supported boards."
+	if [ ${#FAILED_BOARDS[@]} -eq 0 ] && [ ${#FAILED_PROFILES[@]} -eq 0 ]; then
+		log_success "All board and profile builds passed! Recovery should work for all supported boards."
 		return 0
 	else
-		log_error "Some board builds failed. Recovery may not work for all boards."
+		log_error "Some builds failed. Recovery may not work for all boards."
 		return 1
 	fi
 }
@@ -186,21 +225,35 @@ main() {
 	log_info "Starting board build tests..."
 	echo ""
 
-	# Test raw-rootfs packages once (they're board-independent)
-	echo "Testing board-independent packages"
-	echo "-----------------------------------"
+	# Test raw-rootfs packages for each profile (they're board-independent)
+	echo "Testing board-independent packages (profiles)"
+	echo "----------------------------------------------"
 
-	if nix build ".#raw-rootfs" --no-link --fallback --quiet; then
-		log_success "Successfully built raw-rootfs"
-	else
-		log_error "Failed to build raw-rootfs"
-	fi
+	for profile in "${AVAILABLE_PROFILES[@]}"; do
+		echo "Profile: $profile"
+		local profile_failed=false
 
-	if nix build ".#raw-rootfs-minimal" --no-link --fallback --quiet; then
-		log_success "Successfully built raw-rootfs-minimal"
-	else
-		log_error "Failed to build raw-rootfs-minimal"
-	fi
+		if nix build ".#raw-rootfs-${profile}" --no-link --fallback --quiet; then
+			log_success "Successfully built raw-rootfs-${profile}"
+		else
+			log_error "Failed to build raw-rootfs-${profile}"
+			profile_failed=true
+		fi
+
+		if nix build ".#raw-rootfs-${profile}-minimal" --no-link --fallback --quiet; then
+			log_success "Successfully built raw-rootfs-${profile}-minimal"
+		else
+			log_error "Failed to build raw-rootfs-${profile}-minimal"
+			profile_failed=true
+		fi
+
+		if [ "$profile_failed" = true ]; then
+			FAILED_PROFILES+=("$profile")
+		else
+			SUCCESSFUL_PROFILES+=("$profile")
+		fi
+		echo ""
+	done
 
 	echo ""
 
@@ -229,7 +282,7 @@ main() {
 	fi
 
 	# Exit with appropriate code
-	if [ ${#FAILED_BOARDS[@]} -eq 0 ]; then
+	if [ ${#FAILED_BOARDS[@]} -eq 0 ] && [ ${#FAILED_PROFILES[@]} -eq 0 ]; then
 		exit 0
 	else
 		exit 1
@@ -249,11 +302,15 @@ show_help() {
 	echo "This script tests the raw-rootfs package build for each supported board:"
 	echo "  ${SUPPORTED_BOARDS[*]}"
 	echo ""
+	echo "And tests raw-rootfs packages for each profile:"
+	echo "  ${AVAILABLE_PROFILES[*]}"
+	echo ""
 	echo "The script will:"
 	echo "  1. Run a basic flake check"
 	echo "  2. Test build for each board"
-	echo "  3. Display a summary of results"
-	echo "  4. Exit with success if all builds pass, failure otherwise"
+	echo "  3. Test build for each profile's raw-rootfs packages"
+	echo "  4. Display a summary of results"
+	echo "  5. Exit with success if all builds pass, failure otherwise"
 }
 
 # Parse command line arguments
