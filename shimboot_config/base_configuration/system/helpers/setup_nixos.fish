@@ -85,8 +85,8 @@ function setup_nixos
     end
 
     # Initialize logging
-    exec > >(tee -a "$LOG_FILE")
-    exec 2>&1
+    # Note: Fish doesn't support bash-style process substitution (>(...)).
+    # To capture output with tee, run: setup_nixos 2>&1 | tee /tmp/setup_nixos.log
 
     # Failsafe: Create backup directory
     mkdir -p "$BACKUP_DIR"
