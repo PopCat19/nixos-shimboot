@@ -12,8 +12,6 @@
 # - Automates system initialization and rebuild processes
 
 function setup_nixos
-    set -euo pipefail
-
     # Configuration
     set -l USERNAME "$USER"
     set -l CONFIG_DIR "/home/$USERNAME/nixos-config"
@@ -31,6 +29,7 @@ function setup_nixos
     set -l HELP false
 
     argparse 'skip-wifi' 'skip-expand' 'skip-config' 'skip-rebuild' 'auto' 'config=' 'debug' 'help' 'h' -- $argv
+    or return 1
 
     if set -q _flag_skip_wifi
         set SKIP_WIFI true
@@ -52,7 +51,6 @@ function setup_nixos
     end
     if set -q _flag_debug
         set DEBUG true
-        set -x
     end
     if set -q _flag_help; or set -q _flag_h
         set HELP true
@@ -91,14 +89,19 @@ function setup_nixos
     # Failsafe: Create backup directory
     mkdir -p "$BACKUP_DIR"
 
-    # Styling
-    set -l BOLD '\033[1m'
-    set -l GREEN '\033[1;32m'
-    set -l YELLOW '\033[1;33m'
-    set -l RED '\033[1;31m'
-    set -l BLUE '\033[1;34m'
-    set -l CYAN '\033[1;36m'
-    set -l NC '\033[0m'
+    # Styling — set global so nested functions can access them
+    set -g _sn_BOLD '\033[1m'
+    set -g _sn_GREEN '\033[1;32m'
+    set -g _sn_YELLOW '\033[1;33m'
+    set -g _sn_RED '\033[1;31m'
+    set -g _sn_BLUE '\033[1;34m'
+    set -g _sn_CYAN '\033[1;36m'
+    set -g _sn_NC '\033[0m'
+    # Expose other locals needed by inner functions
+    set -g _sn_AUTO_MODE "$AUTO_MODE"
+    set -g _sn_BACKUP_DIR "$BACKUP_DIR"
+    set -g _sn_CONFIG_DIR "$CONFIG_DIR"
+    set -g _sn_DEBUG "$DEBUG"
 
     # Utility functions
     function prompt_yes_no
@@ -110,7 +113,7 @@ function setup_nixos
         end
 
         # In auto mode, use defaults
-        if test "$AUTO_MODE" = true
+        if test "$_sn_AUTO_MODE" = true
             echo "$question (auto: $default)"
             if string match -qi "y|yes" "$default"
                 return 0
@@ -119,7 +122,7 @@ function setup_nixos
             end
         end
 
-        read -r -P "$question $prompt " reply
+        read -P "$question $prompt " reply
         set reply (string lower (echo "$reply" | string trim))
 
         switch "$reply"
@@ -138,29 +141,29 @@ function setup_nixos
 
     function failsafe
         set -l operation "$argv[1]"
-        set -l command "$argv[2..]"
+        set -l cmd $argv[2..]
 
-        echo -e "$YELLOW Running failsafe for: $operation $NC"
+        echo -e "$_sn_YELLOW Running failsafe for: $operation $_sn_NC"
 
-        if eval "$command"
-            echo -e "$GREEN ✓ Failsafe passed: $operation $NC"
+        if eval $cmd
+            echo -e "$_sn_GREEN ✓ Failsafe passed: $operation $_sn_NC"
             return 0
         else
-            echo -e "$RED ✗ Failsafe failed: $operation $NC"
-            echo -e "$YELLOW Creating backup before continuing... $NC"
+            echo -e "$_sn_RED ✗ Failsafe failed: $operation $_sn_NC"
+            echo -e "$_sn_YELLOW Creating backup before continuing... $_sn_NC"
 
             # Backup critical files
-            test -f /etc/nixos/configuration.nix; and cp /etc/nixos/configuration.nix "$BACKUP_DIR/"
-            test -f /etc/nixos/flake.nix; and cp /etc/nixos/flake.nix "$BACKUP_DIR/"
-            test -d "$CONFIG_DIR"; and cp -r "$CONFIG_DIR" "$BACKUP_DIR/" 2>/dev/null; or true
+            test -f /etc/nixos/configuration.nix; and cp /etc/nixos/configuration.nix "$_sn_BACKUP_DIR/"
+            test -f /etc/nixos/flake.nix; and cp /etc/nixos/flake.nix "$_sn_BACKUP_DIR/"
+            test -d "$_sn_CONFIG_DIR"; and cp -r "$_sn_CONFIG_DIR" "$_sn_BACKUP_DIR/" 2>/dev/null; or true
 
-            echo -e "$CYAN Backup created at: $BACKUP_DIR $NC"
+            echo -e "$_sn_CYAN Backup created at: $_sn_BACKUP_DIR $_sn_NC"
             return 1
         end
     end
 
     function check_prerequisites
-        echo -e "$BLUE Checking prerequisites... $NC"
+        echo -e "$_sn_BLUE Checking prerequisites... $_sn_NC"
 
         set -l missing
 
@@ -168,44 +171,45 @@ function setup_nixos
         command -v git >/dev/null 2>&1; or set -a missing "git"
 
         if test (count $missing) -gt 0
-            echo -e "$YELLOW Warning: Missing commands: $missing $NC"
+            echo -e "$_sn_YELLOW Warning: Missing commands: $missing $_sn_NC"
             echo "Some features may not work properly."
         end
 
         # Check if running as user (not root)
         if test (id -u) -eq 0
-            echo -e "$YELLOW Warning: Running as root. Some features may not work correctly. $NC"
+            echo -e "$_sn_YELLOW Warning: Running as root. Some features may not work correctly. $_sn_NC"
         end
 
-        echo -e "$GREEN ✓ Prerequisite check complete $NC"
+        echo -e "$_sn_GREEN ✓ Prerequisite check complete $_sn_NC"
     end
 
     function log_step
-        echo -e "\n$BOLD$BLUE === $argv[1] === $NC"
+        echo -e "\n$_sn_BOLD$_sn_BLUE === $argv[1] === $_sn_NC"
     end
 
     function log_ok
-        echo -e "$GREEN ✓ $NC $argv[1]"
+        echo -e "$_sn_GREEN ✓ $_sn_NC $argv[1]"
     end
 
     function log_warn
-        echo -e "$YELLOW ⚠ $NC $argv[1]"
+        echo -e "$_sn_YELLOW ⚠ $_sn_NC $argv[1]"
     end
 
     function log_error
-        echo -e "$RED ✗ $NC $argv[1]"
+        echo -e "$_sn_RED ✗ $_sn_NC $argv[1]"
     end
 
     # Run prerequisite checks
     check_prerequisites
 
-    echo -e "$BOLD ==================================================="
+    echo -e "$_sn_BOLD ==================================================="
     echo "  NixOS Shimboot Post-Install Setup"
-    echo -e "=================================================== $NC \n"
+    echo -e "=================================================== $_sn_NC \n"
 
-    if test "$DEBUG" = true
-        echo -e "$CYAN Debug mode enabled. Log file: $LOG_FILE $NC"
-        echo -e "$CYAN Backup directory: $BACKUP_DIR $NC"
+    if test "$_sn_DEBUG" = true
+        set -x
+        echo -e "$_sn_CYAN Debug mode enabled. Log file: $LOG_FILE $_sn_NC"
+        echo -e "$_sn_CYAN Backup directory: $BACKUP_DIR $_sn_NC"
         echo
     end
 
@@ -237,9 +241,9 @@ function setup_nixos
                 echo
 
                 if prompt_yes_no "Connect to Wi-Fi now?"
-                    read -r -P "SSID: " SSID
+                    read -P "SSID: " SSID
                     if test -n "$SSID"
-                        read -r -s -P "Password: " PSK
+                        read -s -P "Password: " PSK
                         echo
 
                         echo "Command: nmcli dev wifi connect '$SSID' password '***'"
@@ -334,7 +338,7 @@ function setup_nixos
                     end
                 else if prompt_yes_no "Pull latest commits on $CURRENT_BRANCH?" Y
                     echo "Command: git pull"
-                    failsafe "Git pull" "git pull"; or log_warn "Pull failed (check for conflicts)"
+                    failsafe "Git pull" git pull; or log_warn "Pull failed (check for conflicts)"
                 end
             else
                 log_error "Fetch failed (check network)"
@@ -402,9 +406,9 @@ raw-efi-system"
             echo "(press Enter for default: $DEFAULT_HOST)"
 
             # Read user input safely
-            if not read -r SELECTION
+            if not read SELECTION
                 echo
-                echo -e "$YELLOW Input interrupted or cancelled. $NC"
+                echo -e "$_sn_YELLOW Input interrupted or cancelled. $_sn_NC"
                 exit 130
             end
 
@@ -427,19 +431,19 @@ raw-efi-system"
             # Check kernel version for sandbox compatibility
             echo "Command: uname -r"
             set -l KVER (uname -r)
-            set -l NIX_REBUILD_ARGS "switch --flake .#$TARGET --option accept-flake-config true"
+            set -l NIX_REBUILD_ARGS switch --flake .#$TARGET --option accept-flake-config true
 
             if string match -qr '^([0-9]+)\.([0-9]+)' "$KVER"
                 set -l MAJOR (string split '.' "$KVER")[1]
                 set -l MINOR (string split '.' "$KVER")[2]
                 if test "$MAJOR" -lt 5; or (test "$MAJOR" -eq 5; and test "$MINOR" -lt 6)
                     echo "⚠️  Kernel $KVER detected (< 5.6). Disabling sandbox for rebuild."
-                    set NIX_REBUILD_ARGS "$NIX_REBUILD_ARGS --option sandbox false"
+                    set -a NIX_REBUILD_ARGS --option sandbox false
                 end
             end
 
             echo "Command: sudo NIX_CONFIG='$NIX_CONFIG' nixos-rebuild $NIX_REBUILD_ARGS"
-            if failsafe "NixOS rebuild" "sudo NIX_CONFIG='$NIX_CONFIG' nixos-rebuild $NIX_REBUILD_ARGS"
+            if failsafe "NixOS rebuild" sudo NIX_CONFIG="$NIX_CONFIG" nixos-rebuild $NIX_REBUILD_ARGS
                 log_ok "Rebuild successful!"
                 echo
                 echo "System is now running the new configuration."
@@ -482,6 +486,10 @@ raw-efi-system"
             echo "User:     $USERNAME"
         end
     end
+
+    # Clean up globals set for inner function access
+    set -e _sn_BOLD _sn_GREEN _sn_YELLOW _sn_RED _sn_BLUE _sn_CYAN _sn_NC
+    set -e _sn_AUTO_MODE _sn_BACKUP_DIR _sn_CONFIG_DIR _sn_DEBUG
 
     exit 0
 end

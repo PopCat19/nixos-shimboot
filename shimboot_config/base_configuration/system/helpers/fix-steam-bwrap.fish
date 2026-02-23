@@ -12,8 +12,6 @@
 # - Maintains system security while enabling Steam functionality
 
 function fix-steam-bwrap
-    set -euo pipefail
-
     # Colors & Logging
     set -l BOLD "\033[1m"
     set -l GREEN "\033[1;32m"
@@ -33,9 +31,9 @@ function fix-steam-bwrap
 
     echo -e "$BLUE[INFO]$NC Locating srt-bwrap instances..."
     # Find all instances of Steam's internal bwrap
-    set -l steam_bwraps (find "$HOME_DIR/.steam" -name "srt-bwrap" 2>/dev/null)
+    set -l steam_bwraps (find "$HOME_DIR/.steam" -name "srt-bwrap" 2>/dev/null; or true)
 
-    if test -z "$steam_bwraps"
+    if test (count $steam_bwraps) -eq 0
         echo -e "$YELLOW[WARN]$NC No srt-bwrap binaries found. You may need to launch Steam once first."
         exit 0
     end
@@ -52,9 +50,9 @@ function fix-steam-bwrap
     for target in $steam_bwraps
         echo -e "$BLUE[STEP]$NC Patching: $target"
         # Remove the existing binary/symlink
-        rm -f "$target"
+        rm -f -- "$target"
         # Symlink to our SUID wrapper
-        ln -s "$SYSTEM_BWRAP" "$target"
+        ln -s -- "$SYSTEM_BWRAP" "$target"
     end
 
     echo -e "$GREEN[SUCCESS]$NC Steam bwrap patched successfully."

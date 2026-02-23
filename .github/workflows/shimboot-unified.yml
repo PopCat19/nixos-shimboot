@@ -175,8 +175,7 @@ jobs:
           ./tools/push-to-cachix.sh \
             --board "${{ matrix.board }}" \
             --rootfs "${{ github.event.inputs.rootfs || 'minimal' }}" \
-            --drivers "${{ github.event.inputs.drivers_mode || 'vendor' }}" \
-            --skip-image
+            --drivers "${{ github.event.inputs.drivers_mode || 'vendor' }}"
 
       - name: Install Assembly Dependencies
         if: ${{ github.event.inputs.build_mode == 'full' }}

@@ -1095,13 +1095,13 @@ if [ "$PUSH_TO_CACHIX" -eq 1 ]; then
 				log_warn "CACHIX_AUTH_TOKEN not set in CI environment"
 				log_warn "Set it to enable automatic pushing to Cachix"
 			else
-				log_info "Executing: ./tools/push-to-cachix.sh --board $BOARD --profile $PROFILE --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE --image $IMAGE"
-				if bash tools/push-to-cachix.sh --board "$BOARD" --profile "$PROFILE" --rootfs "$ROOTFS_FLAVOR" --drivers "$DRIVERS_MODE" --image "$IMAGE"; then
+				log_info "Executing: ./tools/push-to-cachix.sh --board $BOARD --profile $PROFILE --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE"
+				if bash tools/push-to-cachix.sh --board "$BOARD" --profile "$PROFILE" --rootfs "$ROOTFS_FLAVOR" --drivers "$DRIVERS_MODE"; then
 					log_success "Successfully pushed Nix derivations to Cachix"
 				else
 					log_error "Failed to push Nix derivations to Cachix"
 					log_error "You can manually retry with:"
-					log_error "  ./tools/push-to-cachix.sh --board $BOARD --profile $PROFILE --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE --image $IMAGE"
+					log_error "  ./tools/push-to-cachix.sh --board $BOARD --profile $PROFILE --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE"
 				fi
 			fi
 		else
@@ -1114,7 +1114,7 @@ if [ "$PUSH_TO_CACHIX" -eq 1 ]; then
 else
 	# Show manual instruction only if not auto-pushing
 	log_info "To push Nix derivations to Cachix (shim, recovery, kernel, initramfs, rootfs, chunks), run:"
-	log_info "  ./tools/push-to-cachix.sh --board $BOARD --profile $PROFILE --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE --image $IMAGE"
+	log_info "  ./tools/push-to-cachix.sh --board $BOARD --profile $PROFILE --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE"
 fi
 
 # === Optional inspection ===

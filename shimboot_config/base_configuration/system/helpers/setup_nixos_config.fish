@@ -12,15 +12,14 @@
 # - Creates symlinks to user's flake configuration
 
 function setup_nixos_config
-    set -euo pipefail
-
     if test (id -u) -ne 0
         echo "This script must be run as root."
         exit 1
     end
 
     set -l PROFILE (cat ./shimboot_config/selected-profile.nix 2>/dev/null; or echo "default")
-    set -l USERNAME (nix eval --raw --impure --expr '(import ./shimboot_config/profiles/$PROFILE/user-config.nix {}).user.username' 2>/dev/null; or echo "$USER")
+    # Use double-quoted string so $PROFILE is interpolated by fish before passing to nix eval
+    set -l USERNAME (nix eval --raw --impure --expr "(import ./shimboot_config/profiles/$PROFILE/user-config.nix {}).user.username" 2>/dev/null; or echo "$USER")
     set -l NIXOS_CONFIG_PATH "/home/$USERNAME/nixos-config"
 
     echo "[setup_nixos_config] Configuring /etc/nixos for nixos-rebuild..."
@@ -53,7 +52,7 @@ function setup_nixos_config
         echo
         echo "[setup_nixos_config] ✓ Linked to nixos-shimboot repository"
         echo
-        set -l HOSTNAME_VALUE (set -q HOSTNAME; and echo "$HOSTNAME"; or hostname)
+        set -l HOSTNAME_VALUE (hostname)
         echo "To rebuild:"
         echo "  cd $NIXOS_CONFIG_PATH"
         echo "  sudo nixos-rebuild switch --flake .#$HOSTNAME_VALUE"

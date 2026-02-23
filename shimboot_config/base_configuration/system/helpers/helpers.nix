@@ -13,7 +13,7 @@ let
   # Create shell wrapper for a fish function
   createFishWrapper = name: ''
     if command -v fish >/dev/null 2>&1; then
-      fish -c "${name} $*"
+      exec fish -c '${name} '"$*"
     else
       echo "Error: fish shell is required for this helper"
       exit 1
