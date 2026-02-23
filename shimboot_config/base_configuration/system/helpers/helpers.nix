@@ -10,8 +10,7 @@
 # - No fish dependency required
 { pkgs, ... }:
 let
-  inherit (pkgs) writeShellApplication lib;
-  inherit (lib) getExe;
+  inherit (pkgs) writeShellApplication;
 
   # Core utilities used by multiple scripts
   coreDeps = with pkgs; [
@@ -24,30 +23,37 @@ let
   ];
 
   # expand_rootfs dependencies
-  expandRootfsDeps = coreDeps ++ (with pkgs; [
-    cloud-utils # growpart
-    cryptsetup
-    e2fsprogs # resize2fs
-    fdisk
-  ]);
+  expandRootfsDeps =
+    coreDeps
+    ++ (with pkgs; [
+      cloud-utils # growpart
+      cryptsetup
+      e2fsprogs # resize2fs
+    ]);
 
   # fix-steam-bwrap dependencies
-  fixSteamBwrapDeps = coreDeps ++ (with pkgs; [
-    findutils
-  ]);
+  fixSteamBwrapDeps =
+    coreDeps
+    ++ (with pkgs; [
+      findutils
+    ]);
 
   # setup_nixos dependencies
-  setupNixosDeps = coreDeps ++ (with pkgs; [
-    git
-    networkmanager
-    findutils
-    procps
-  ]);
+  setupNixosDeps =
+    coreDeps
+    ++ (with pkgs; [
+      git
+      networkmanager
+      findutils
+      procps
+    ]);
 
   # setup_nixos_config dependencies
-  setupNixosConfigDeps = coreDeps ++ (with pkgs; [
-    nix
-  ]);
+  setupNixosConfigDeps =
+    coreDeps
+    ++ (with pkgs; [
+      nix
+    ]);
 
 in
 {
