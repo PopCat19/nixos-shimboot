@@ -9,12 +9,15 @@
 # - Configures Nix settings and binary caches
 # - Enables Fish shell and unfree packages
 # - Sets system state version
-{ lib, ... }:
-let
-  selectedProfile = import ../selected-profile.nix;
-  inherit (selectedProfile) profile;
-  userConfig = import ../profiles/${profile}/user-config.nix { };
-in
+#
+# Note: selectedProfile and userConfig are passed as module arguments
+# from the calling configuration (system-configuration.nix or raw-image.nix)
+{
+  lib,
+  selectedProfile,
+  userConfig,
+  ...
+}:
 {
   imports = [
     ./system/environment.nix
