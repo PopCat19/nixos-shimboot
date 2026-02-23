@@ -1,31 +1,19 @@
 # Helpers Module
 #
-# Purpose: Provide shell wrappers for helper scripts
-# Dependencies: fish, ./*.fish files
-# Related: system modules, fish.nix
+# Purpose: Provide system packages for helper scripts
+# Dependencies: bash, ./*.sh files
+# Related: system modules
 #
 # This module:
-# - Provides unified access to helper scripts via shell wrappers
-# - Fish functions are loaded by fish.nix via environment.etc
-# - Maintains portability by keeping logic in fish files
+# - Installs helper scripts as system packages
+# - Scripts are standalone bash executables
+# - No fish dependency required
 { pkgs, ... }:
-let
-  # Create shell wrapper for a fish function
-  createFishWrapper = name: ''
-    if command -v fish >/dev/null 2>&1; then
-      exec fish -c '${name} '"$*"
-    else
-      echo "Error: fish shell is required for this helper"
-      exit 1
-    fi
-  '';
-in
 {
-  environment.systemPackages = with pkgs; [
-    # Shell wrappers for all fish functions in this directory
-    (writeShellScriptBin "fix-steam-bwrap" (createFishWrapper "fix-steam-bwrap"))
-    (writeShellScriptBin "expand_rootfs" (createFishWrapper "expand_rootfs"))
-    (writeShellScriptBin "setup_nixos_config" (createFishWrapper "setup_nixos_config"))
-    (writeShellScriptBin "setup_nixos" (createFishWrapper "setup_nixos"))
+  environment.systemPackages = [
+    (pkgs.writeShellScriptBin "fix-steam-bwrap" (builtins.readFile ./fix-steam-bwrap.sh))
+    (pkgs.writeShellScriptBin "expand_rootfs" (builtins.readFile ./expand_rootfs.sh))
+    (pkgs.writeShellScriptBin "setup_nixos_config" (builtins.readFile ./setup_nixos_config.sh))
+    (pkgs.writeShellScriptBin "setup_nixos" (builtins.readFile ./setup_nixos.sh))
   ];
 }
