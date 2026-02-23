@@ -6,6 +6,7 @@
 # - Exposes minimal and full NixOS configurations with Home Manager integration
 # - Provides compatibility aliases for legacy configuration names
 # - Configures Nix flakes, garbage collection, and proxy settings
+# - Auto-discovers and generates configurations for all profiles
 {
   self,
   nixpkgs,
@@ -21,67 +22,73 @@ let
   system = "x86_64-linux";
   inherit (nixpkgs) lib;
 
-  selectedProfile = import ../shimboot_config/selected-profile.nix;
-  inherit (selectedProfile) profile;
-  userConfig = import ../shimboot_config/profiles/${profile}/user-config.nix { };
-  hn = userConfig.host.hostname;
+  # Auto-discover available profiles from shimboot_config/profiles directory
+  profilesDir = ../shimboot_config/profiles;
+  profileNames = builtins.attrNames (builtins.readDir profilesDir);
 
-  baseModules = [
-    ../shimboot_config/base_configuration/configuration.nix
+  # Generate user config for a given profile
+  getUserConfig = profile: import ../shimboot_config/profiles/${profile}/user-config.nix { };
 
-    (_: {
-      nix.settings.experimental-features = [
-        "nix-command"
-        "flakes"
+  # Create configuration set for a single profile
+  makeProfileConfigurations =
+    profile:
+    let
+      userConfig = getUserConfig profile;
+      hn = userConfig.host.hostname;
+
+      baseModules = [
+        ../shimboot_config/base_configuration/configuration.nix
+
+        (_: {
+          nix.settings.experimental-features = [
+            "nix-command"
+            "flakes"
+          ];
+
+          nix.gc = {
+            automatic = true;
+            dates = "weekly";
+            options = "--delete-older-than 30d";
+          };
+
+          proxy.enable = true;
+        })
       ];
 
-      nix.gc = {
-        automatic = true;
-        dates = "weekly";
-        options = "--delete-older-than 30d";
-      };
+      mainModules = [
+        ../shimboot_config/profiles/${profile}/main_configuration/configuration.nix
 
-      proxy.enable = true;
-    })
-  ];
+        home-manager.nixosModules.home-manager
 
-  mainModules = [
-    ../shimboot_config/profiles/${profile}/main_configuration/configuration.nix
+        (
+          { pkgs, ... }:
+          {
+            home-manager.useGlobalPkgs = false;
+            home-manager.useUserPackages = true;
+            home-manager.extraSpecialArgs = {
+              inherit
+                zen-browser
+                rose-pine-hyprcursor
+                userConfig
+                ;
+              selectedProfile = { inherit profile; };
+              inherit (self) inputs;
+            };
 
-    home-manager.nixosModules.home-manager
+            home-manager.sharedModules = [
+              (_: {
+                nixpkgs.config.allowUnfree = true;
+                nixpkgs.overlays = import ../overlays/overlays.nix pkgs.system;
+                _module.args.userConfig = userConfig;
+              })
+            ];
 
-    (
-      { pkgs, ... }:
-      {
-        home-manager.useGlobalPkgs = false;
-        home-manager.useUserPackages = true;
-        home-manager.extraSpecialArgs = {
-          inherit
-            zen-browser
-            rose-pine-hyprcursor
-            userConfig
-            selectedProfile
-            ;
-          inherit (self) inputs;
-        };
+            home-manager.users."${userConfig.user.username}" =
+              import ../shimboot_config/profiles/${profile}/main_configuration/home/home.nix;
+          }
+        )
+      ];
 
-        home-manager.sharedModules = [
-          (_: {
-            nixpkgs.config.allowUnfree = true;
-            nixpkgs.overlays = import ../overlays/overlays.nix pkgs.system;
-            _module.args.userConfig = userConfig;
-          })
-        ];
-
-        home-manager.users."${userConfig.user.username}" =
-          import ../shimboot_config/profiles/${profile}/main_configuration/home/home.nix;
-      }
-    )
-  ];
-in
-{
-  nixosConfigurations =
-    let
       baseSet = {
         "${hn}-minimal" = nixpkgs.lib.nixosSystem {
           inherit system;
@@ -94,9 +101,9 @@ in
               noctalia
               stylix
               userConfig
-              selectedProfile
               llm-agents
               ;
+            selectedProfile = { inherit profile; };
           };
         };
 
@@ -111,9 +118,9 @@ in
               noctalia
               stylix
               userConfig
-              selectedProfile
               llm-agents
               ;
+            selectedProfile = { inherit profile; };
           };
         };
       };
@@ -130,9 +137,9 @@ in
               noctalia
               stylix
               userConfig
-              selectedProfile
               llm-agents
               ;
+            selectedProfile = { inherit profile; };
           };
         };
       };
@@ -148,12 +155,20 @@ in
               rose-pine-hyprcursor
               stylix
               userConfig
-              selectedProfile
               llm-agents
               ;
+            selectedProfile = { inherit profile; };
           };
         };
       };
     in
     baseSet // compatRaw // compatShimboot;
+
+  # Merge all profile configurations
+  allConfigurations = lib.foldl' (
+    acc: profile: acc // (makeProfileConfigurations profile)
+  ) { } profileNames;
+in
+{
+  nixosConfigurations = allConfigurations;
 }
