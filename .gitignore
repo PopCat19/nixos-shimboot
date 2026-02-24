@@ -18,3 +18,4 @@ vmlinuz
 .shimboot_build_info
 .opencode/
 .kilocode/
+shimboot_config/selected-profile.nix

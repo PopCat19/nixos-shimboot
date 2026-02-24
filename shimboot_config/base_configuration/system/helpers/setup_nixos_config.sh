@@ -18,10 +18,47 @@ if [[ $EUID -ne 0 ]]; then
 	exit 1
 fi
 
-PROFILE=$(cat ./shimboot_config/selected-profile.nix 2>/dev/null || echo "default")
-# Use double-quoted string so $PROFILE is interpolated by bash before passing to nix eval
-USERNAME=$(nix eval --raw --impure --expr "(import ./shimboot_config/profiles/${PROFILE}/user-config.nix {}).user.username" 2>/dev/null || echo "${USER}")
-NIXOS_CONFIG_PATH="/home/${USERNAME}/nixos-config"
+# Function to find nixos-config directory across all users
+find_nixos_config() {
+	local found_path=""
+	# Search in all home directories for nixos-config
+	for home_dir in /home/*; do
+		if [[ -d "${home_dir}/nixos-config" ]] && [[ -f "${home_dir}/nixos-config/flake.nix" ]]; then
+			found_path="${home_dir}/nixos-config"
+			echo "[setup_nixos_config] Found nixos-config at: ${found_path}" >&2
+			break
+		fi
+	done
+	echo "$found_path"
+}
+
+# Try to read the profile from selected-profile.nix in the found nixos-config
+# First, find where nixos-config is located
+NIXOS_CONFIG_PATH=$(find_nixos_config)
+
+if [[ -n "$NIXOS_CONFIG_PATH" ]] && [[ -f "${NIXOS_CONFIG_PATH}/shimboot_config/selected-profile.nix" ]]; then
+	PROFILE=$(cat "${NIXOS_CONFIG_PATH}/shimboot_config/selected-profile.nix" 2>/dev/null || echo "default")
+	echo "[setup_nixos_config] Using profile from selected-profile.nix: ${PROFILE}"
+else
+	# Fallback: try to read from current directory if running from nixos-config
+	PROFILE=$(cat ./shimboot_config/selected-profile.nix 2>/dev/null || echo "default")
+	echo "[setup_nixos_config] Using profile (fallback): ${PROFILE}"
+fi
+
+# Get username from the profile's user-config.nix
+# Use NIXOS_CONFIG_PATH if discovered, otherwise fall back to relative path
+if [[ -n "$NIXOS_CONFIG_PATH" ]]; then
+	USERNAME=$(nix eval --raw --impure --expr "(import ${NIXOS_CONFIG_PATH}/shimboot_config/profiles/${PROFILE}/user-config.nix {}).user.username" 2>/dev/null || echo "${USER}")
+else
+	USERNAME=$(nix eval --raw --impure --expr "(import ./shimboot_config/profiles/${PROFILE}/user-config.nix {}).user.username" 2>/dev/null || echo "${USER}")
+fi
+echo "[setup_nixos_config] Username from profile: ${USERNAME}"
+
+# If nixos-config wasn't found, check the expected path for the current profile
+if [[ -z "$NIXOS_CONFIG_PATH" ]]; then
+	NIXOS_CONFIG_PATH="/home/${USERNAME}/nixos-config"
+	echo "[setup_nixos_config] Expected nixos-config path: ${NIXOS_CONFIG_PATH}"
+fi
 
 echo "[setup_nixos_config] Configuring /etc/nixos for nixos-rebuild..."
 mkdir -p /etc/nixos

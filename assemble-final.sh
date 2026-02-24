@@ -928,6 +928,11 @@ GIT_CHANGES=$GIT_STATUS
 GIT_REMOTE=$GIT_REMOTE
 EOF
 
+	# Create selected-profile.nix to track which profile was used for the build
+	# This file contains just the profile name (no quotes, no comments) for easy parsing by setup_nixos_config.sh
+	echo "$PROFILE" | sudo tee "$NIXOS_CONFIG_DEST/shimboot_config/selected-profile.nix" >/dev/null
+	log_info "Created selected-profile.nix with profile: $PROFILE"
+
 	# Create detailed build metadata file
 	sudo tee "$NIXOS_CONFIG_DEST/.shimboot_build_info" >/dev/null <<EOF
 # Shimboot build metadata
