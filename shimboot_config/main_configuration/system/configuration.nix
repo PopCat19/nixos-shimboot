@@ -11,7 +11,7 @@
 { ... }:
 {
   imports = [
-    ../../../../base_configuration/configuration.nix
+    ../../base_configuration/configuration.nix
     ./fonts.nix
     ./packages.nix
     ./services.nix
