@@ -6,7 +6,6 @@
 # - Exposes minimal and full NixOS configurations with Home Manager integration
 # - Provides compatibility aliases for legacy configuration names
 # - Configures Nix flakes, garbage collection, and proxy settings
-# - Auto-discovers and generates configurations for all profiles
 {
   self,
   nixpkgs,
@@ -22,153 +21,131 @@ let
   system = "x86_64-linux";
   inherit (nixpkgs) lib;
 
-  # Auto-discover available profiles from shimboot_config/profiles directory
-  profilesDir = ../shimboot_config/profiles;
-  profileNames = builtins.attrNames (builtins.readDir profilesDir);
+  # Import user config from flattened location
+  userConfig = import ../shimboot_config/user-config.nix { };
+  hn = userConfig.host.hostname;
 
-  # Generate user config for a given profile
-  getUserConfig = profile: import ../shimboot_config/profiles/${profile}/user-config.nix { };
+  baseModules = [
+    ../shimboot_config/base_configuration/configuration.nix
 
-  # Create configuration set for a single profile
-  makeProfileConfigurations =
-    profile:
-    let
-      userConfig = getUserConfig profile;
-      hn = userConfig.host.hostname;
-
-      baseModules = [
-        ../shimboot_config/base_configuration/configuration.nix
-
-        (_: {
-          nix.settings.experimental-features = [
-            "nix-command"
-            "flakes"
-          ];
-
-          nix.gc = {
-            automatic = true;
-            dates = "weekly";
-            options = "--delete-older-than 30d";
-          };
-
-          proxy.enable = true;
-        })
+    (_: {
+      nix.settings.experimental-features = [
+        "nix-command"
+        "flakes"
       ];
 
-      mainModules = [
-        ../shimboot_config/profiles/${profile}/main_configuration/configuration.nix
-
-        home-manager.nixosModules.home-manager
-
-        (
-          { pkgs, ... }:
-          {
-            home-manager.useGlobalPkgs = false;
-            home-manager.useUserPackages = true;
-            home-manager.extraSpecialArgs = {
-              inherit
-                zen-browser
-                rose-pine-hyprcursor
-                userConfig
-                ;
-              selectedProfile = { inherit profile; };
-              inherit (self) inputs;
-            };
-
-            home-manager.sharedModules = [
-              (_: {
-                nixpkgs.config.allowUnfree = true;
-                nixpkgs.overlays = import ../overlays/overlays.nix pkgs.system;
-                _module.args.userConfig = userConfig;
-              })
-            ];
-
-            home-manager.users."${userConfig.user.username}" =
-              import ../shimboot_config/profiles/${profile}/main_configuration/home/home.nix;
-          }
-        )
-      ];
-
-      baseSet = {
-        "${hn}-minimal" = nixpkgs.lib.nixosSystem {
-          inherit system;
-          modules = baseModules;
-          specialArgs = {
-            inherit
-              self
-              zen-browser
-              rose-pine-hyprcursor
-              noctalia
-              stylix
-              userConfig
-              llm-agents
-              ;
-            selectedProfile = { inherit profile; };
-          };
-        };
-
-        "${hn}" = nixpkgs.lib.nixosSystem {
-          inherit system;
-          modules = mainModules;
-          specialArgs = {
-            inherit
-              self
-              zen-browser
-              rose-pine-hyprcursor
-              noctalia
-              stylix
-              userConfig
-              llm-agents
-              ;
-            selectedProfile = { inherit profile; };
-          };
-        };
+      nix.gc = {
+        automatic = true;
+        dates = "weekly";
+        options = "--delete-older-than 30d";
       };
 
-      compatRaw = lib.optionalAttrs (hn != "raw-efi-system") {
-        raw-efi-system = nixpkgs.lib.nixosSystem {
-          inherit system;
-          modules = baseModules;
-          specialArgs = {
-            inherit
-              self
-              zen-browser
-              rose-pine-hyprcursor
-              noctalia
-              stylix
-              userConfig
-              llm-agents
-              ;
-            selectedProfile = { inherit profile; };
-          };
-        };
-      };
+      proxy.enable = true;
+    })
+  ];
 
-      compatShimboot = lib.optionalAttrs (hn != "nixos-shimboot") {
-        nixos-shimboot = nixpkgs.lib.nixosSystem {
-          inherit system;
-          modules = mainModules;
-          specialArgs = {
-            inherit
-              self
-              zen-browser
-              rose-pine-hyprcursor
-              stylix
-              userConfig
-              llm-agents
-              ;
-            selectedProfile = { inherit profile; };
-          };
-        };
-      };
-    in
-    baseSet // compatRaw // compatShimboot;
+  mainModules = [
+    ../shimboot_config/main_configuration/configuration.nix
 
-  # Merge all profile configurations
-  allConfigurations = lib.foldl' (
-    acc: profile: acc // (makeProfileConfigurations profile)
-  ) { } profileNames;
+    home-manager.nixosModules.home-manager
+
+    (
+      { pkgs, ... }:
+      {
+        home-manager.useGlobalPkgs = false;
+        home-manager.useUserPackages = true;
+        home-manager.extraSpecialArgs = {
+          inherit
+            zen-browser
+            rose-pine-hyprcursor
+            userConfig
+            ;
+          inherit (self) inputs;
+        };
+
+        home-manager.sharedModules = [
+          (_: {
+            nixpkgs.config.allowUnfree = true;
+            nixpkgs.overlays = import ../overlays/overlays.nix pkgs.system;
+            _module.args.userConfig = userConfig;
+          })
+        ];
+
+        home-manager.users."${userConfig.user.username}" =
+          import ../shimboot_config/main_configuration/home/home.nix;
+      }
+    )
+  ];
+
+  baseSet = {
+    "${hn}-minimal" = nixpkgs.lib.nixosSystem {
+      inherit system;
+      modules = baseModules;
+      specialArgs = {
+        inherit
+          self
+          zen-browser
+          rose-pine-hyprcursor
+          noctalia
+          stylix
+          userConfig
+          llm-agents
+          ;
+      };
+    };
+
+    "${hn}" = nixpkgs.lib.nixosSystem {
+      inherit system;
+      modules = mainModules;
+      specialArgs = {
+        inherit
+          self
+          zen-browser
+          rose-pine-hyprcursor
+          noctalia
+          stylix
+          userConfig
+          llm-agents
+          ;
+      };
+    };
+  };
+
+  compatRaw = lib.optionalAttrs (hn != "raw-efi-system") {
+    raw-efi-system = nixpkgs.lib.nixosSystem {
+      inherit system;
+      modules = baseModules;
+      specialArgs = {
+        inherit
+          self
+          zen-browser
+          rose-pine-hyprcursor
+          noctalia
+          stylix
+          userConfig
+          llm-agents
+          ;
+      };
+    };
+  };
+
+  compatShimboot = lib.optionalAttrs (hn != "nixos-shimboot") {
+    nixos-shimboot = nixpkgs.lib.nixosSystem {
+      inherit system;
+      modules = mainModules;
+      specialArgs = {
+        inherit
+          self
+          zen-browser
+          rose-pine-hyprcursor
+          stylix
+          userConfig
+          llm-agents
+          ;
+      };
+    };
+  };
 in
 {
-  nixosConfigurations = allConfigurations;
+  nixosConfigurations = baseSet // compatRaw // compatShimboot;
 }

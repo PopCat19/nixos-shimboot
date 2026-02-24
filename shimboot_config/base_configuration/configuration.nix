@@ -10,11 +10,10 @@
 # - Enables Fish shell and unfree packages
 # - Sets system state version
 #
-# Note: selectedProfile and userConfig are passed as module arguments
+# Note: userConfig is passed as a module argument
 # from the calling configuration (system-configuration.nix or raw-image.nix)
 {
   lib,
-  selectedProfile,
   userConfig,
   ...
 }:
@@ -47,7 +46,6 @@
   ];
 
   _module.args.userConfig = userConfig;
-  _module.args.selectedProfile = selectedProfile;
 
   nix.settings = {
     experimental-features = [

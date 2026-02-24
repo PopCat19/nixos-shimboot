@@ -1,6 +1,5 @@
 {
   userConfig,
-  selectedProfile,
   ...
 }:
 {
@@ -20,7 +19,7 @@
 
     # NixOS configuration paths
     inherit (userConfig.env) NIXOS_CONFIG_DIR;
-    NIXOS_PROFILE_DIR = "${userConfig.env.NIXOS_CONFIG_DIR}/shimboot_config/profiles/${selectedProfile.profile}";
+    NIXOS_CONFIG_PATH = "${userConfig.env.NIXOS_CONFIG_DIR}/shimboot_config";
   };
 
   # Add local bin to PATH
