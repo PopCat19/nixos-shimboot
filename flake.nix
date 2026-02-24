@@ -170,6 +170,9 @@
       nixosConfigurations = systemConfigurationOutputs.nixosConfigurations or { };
     in
     {
+      # Cachix configuration for binary cache
+      nixConfig = (import ./flake_modules/cachix-config.nix { }).nixConfig;
+
       # Export all merged outputs
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-tree;
       inherit
