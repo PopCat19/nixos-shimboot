@@ -8,7 +8,8 @@
 # - Installs helper scripts as system packages with runtime dependencies
 # - Scripts are standalone bash executables
 # - No fish dependency required
-{ pkgs, ... }:
+# - Auto-migrates nixos-config on profile changes
+{ pkgs, lib, userConfig, ... }:
 let
   inherit (pkgs) writeShellApplication;
 
@@ -55,6 +56,9 @@ let
       nix
     ]);
 
+  # migrate_nixos_config dependencies
+  migrateNixosConfigDeps = coreDeps;
+
 in
 {
   environment.systemPackages = [
@@ -82,4 +86,21 @@ in
       text = builtins.readFile ./setup_nixos.sh;
     })
   ];
+
+  # Auto-migrate nixos-config when switching profiles
+  systemd.services.migrate-nixos-config = {
+    description = "Migrate nixos-config to current user's home directory";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "home-manager-${userConfig.user.username}.service" ];
+    wants = [ "home-manager-${userConfig.user.username}.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.writeShellApplication {
+        name = "migrate-nixos-config";
+        runtimeInputs = migrateNixosConfigDeps;
+        text = builtins.readFile ./migrate_nixos_config.sh;
+      }}/bin/migrate-nixos-config ${userConfig.user.username}";
+      RemainAfterExit = true;
+    };
+  };
 }
