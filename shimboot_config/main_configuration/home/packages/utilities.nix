@@ -17,9 +17,12 @@
     keepassxc
     vscodium
     zenity
-    alejandra
     nixd
     nil
+    statix
+    deadnix
+    nixfmt-tree
+    ripgrep
 
     # Android Development
     scrcpy
