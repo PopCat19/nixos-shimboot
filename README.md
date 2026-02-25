@@ -87,10 +87,8 @@ Flake status and roadmap (not a spec) for the current branch:
 - [x] Functional GitHub build CI workflows with caching
 - [x] Show battery SoC in bootstrap menu
 - [x] Implement NixOS generation selector within bootstrapper
-~~ Apply proper recovery firmware patches on a vendor p4 partition to support ChromeOS ROOT_A/B boot; see upstream shimboot for reference ~~ (deprecated)
 - [ ] Fix XDG redirect issues
 - [ ] SDDM greeter support
-- [ ] test systemd watchdog compatibility
 - [ ] Utilize `nixosModules` to modularize various userland options, such as themes and WM/DE.
 - [ ] Refine main_configuration [support bwrap/steam and refine nixos_setup]
 - [ ] Create minimal main_configuration template
@@ -99,7 +97,6 @@ Flake status and roadmap (not a spec) for the current branch:
 - [ ] Build functional NixOS with LUKS2 support (untested)
 
 Current obstacles:
-- ChromeOS ROOT_A/B boot: vendor p4 fails to copy donor modules and firmware to tmpfs, causing ChromeOS init to fail compared to the working upstream debian shimboot. Need to understand how this needs to be handled.
 - SDDM greeter support: previous attempts resulted in a blank backlit screen after kill-frecon. Need to evaluate logs and understand if SDDM can be supported declaratively.
 - bwrap/steam: shim kernel limitations; need to understand how and if this can be patched safely.
 
@@ -108,7 +105,10 @@ Current obstacles:
 This project has a Cachix binary cache for the patched systemd and nixos-shimboot closures:
 
 - Substituter: https://shimboot-systemd-nixos.cachix.org
-- Trusted public key: `shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA=`
+- Trusted public key:
+```
+shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA=
+```
 
 If you wish to use this cache in your own configuration, add:
 ```nix
@@ -117,32 +117,25 @@ If you wish to use this cache in your own configuration, add:
 ```
 
 ## Source
-Bootloader and systemd patches as well as the reference for bootstrapping, partitioning, and workarounds are sourced from: [ading2210/shimboot](https://github.com/ading2210/shimboot) and [ading2210/chromeos-systemd](https://github.com/ading2210/chromeos-systemd)
+Originally, the bootloader and systemd patches as well as the reference for bootstrapping, partitioning, and workarounds are sourced from: [ading2210/shimboot](https://github.com/ading2210/shimboot) and [ading2210/chromeos-systemd](https://github.com/ading2210/chromeos-systemd)
 
 Miscellaneously, my current dev enviroment consists of:
 - [NixOS+Hyprland](https://github.com/PopCat19/popcat19-nixos-hm)
 - [VSCodium](https://github.com/VSCodium/vscodium)
   - [Kilo Code](https://github.com/Kilo-Org/kilocode)
-    - Common APIs: [ChutesAI](https://chutes.ai/), [Kilo](https://kilocode.ai/docs/providers/kilocode), [OpenRouter](https://openrouter.ai/)
-    - Common models:
-      1. [`minimax/minimax-m2`](https://openrouter.ai/minimax/minimax-m2:free)
-      2. [`z-ai/glm-4.6`](https://openrouter.ai/z-ai/glm-4.6)
-      3. [`anthropic/claude-sonnet-4.5`](https://openrouter.ai/anthropic/claude-sonnet-4.5)
-    - Common MCPs:
-      [context7](https://github.com/upstash/context7), [exa](https://github.com/exa-labs/exa-mcp-server), [sequential-thinking](https://github.com/arben-adm/mcp-sequential-thinking), [filesystem](https://github.com/mark3labs/mcp-filesystem-server)
 
 ## Credits:
 - [ading2210](https://github.com/ading2210) - for creating the [original shimboot repository](https://github.com/ading2210/shimboot)
 - [ading2210/shimboot](https://github.com/ading2210/shimboot) - `bootloader/` source
 - [ading2210/chromeos-systemd](https://github.com/ading2210/chromeos-systemd) - systemd `mount_nofollow` patch source to resolve/workaround `Failed to mount API filesystems` error
-- [discussion thread](https://github.com/ading2210/shimboot/discussions/335) - useful feedbacks from my idea
-- [nixos-generators](https://github.com/nix-community/nixos-generators) - builds nixos image from a configuration for use in ROOTFS
+- [discussion thread](https://github.com/ading2210/shimboot/discussions/335) - useful feedbacks from this idea
+- [nixos-generators](https://github.com/nix-community/nixos-generators) - builds nixos image from a configuration for use in ROOTFS (this became deprecated in favor of upstream methods instead)
 
 ## License
 
-### Project Code: GPL-3.0-or-later
+### Project Code
 
-All original code in this repository is licensed under **GPLv3** (see [LICENSE](LICENSE)).
+All original and shimboot derived code in this repository is licensed under **GPLv3** (see [LICENSE](LICENSE)).
 
 This includes:
 - Nix flake configurations (`flake.nix`, `flake_modules/`)
@@ -150,7 +143,7 @@ This includes:
 - Build and utility scripts (`scripts/`, `assemble-final.sh`, etc.)
 - Bootloader integration code (`bootloader/` - originally derived from upstream shimboot)
 
-### Proprietary Components: Unfree
+### Proprietary Components
 
 The following components are **NOT** covered by GPLv3 and remain proprietary:
 - ChromeOS RMA shims
