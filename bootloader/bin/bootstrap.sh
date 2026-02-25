@@ -220,12 +220,15 @@ list_nixos_generations() {
 			version="$(cat "${resolved}/nixos-version")"
 		fi
 
-		out="${out}${gen_num}:${version}:/nix/var/nix/profiles/$(basename "$link")/init
+		# symlink mtime = when nixos-rebuild switch created this generation
+		local build_date="unknown"
+		build_date="$(stat -c '%y' "$link" 2>/dev/null | cut -d' ' -f1)" || build_date="unknown"
+
+		out="${out}${gen_num}:${version}:${build_date}:/nix/var/nix/profiles/$(basename "$link")/init
 "
 	done
 
 	if [ -z "$out" ] && [ -L "${profiles_dir}/system" ]; then
-		# Synthetic fallback: fresh image, no numbered links yet
 		local link_target
 		link_target="$(readlink "${profiles_dir}/system")"
 		local resolved="${root}${link_target}"
@@ -235,7 +238,10 @@ list_nixos_generations() {
 			version="$(cat "${resolved}/nixos-version")"
 		fi
 
-		echo "0:${version}:/nix/var/nix/profiles/system/init"
+		local build_date="unknown"
+		build_date="$(stat -c '%y' "${profiles_dir}/system" 2>/dev/null | cut -d' ' -f1)" || build_date="unknown"
+
+		echo "0:${version}:${build_date}:/nix/var/nix/profiles/system/init"
 		return 0
 	fi
 
@@ -256,11 +262,12 @@ select_nixos_generation() {
 	gen_count="$(echo "$generations" | grep -c .)"
 
 	if [ "$gen_count" -eq 1 ]; then
-		local only_num only_ver only_path
+		local only_num only_ver only_date only_path
 		only_num="$(echo "$generations" | cut -d: -f1)"
 		only_ver="$(echo "$generations" | cut -d: -f2)"
-		only_path="$(echo "$generations" | cut -d: -f3)"
-		echo "NixOS: auto-selecting generation ${only_num} (${only_ver})"
+		only_date="$(echo "$generations" | cut -d: -f3)"
+		only_path="$(echo "$generations" | cut -d: -f4)"
+		echo "NixOS: auto-selecting generation ${only_num} (${only_ver}, ${only_date})"
 		INIT_PATH="${only_path}"
 		return 0
 	fi
@@ -274,7 +281,7 @@ select_nixos_generation() {
 
 	echo "$generations" | awk -F: -v latest="$latest_num" '{
 		suffix = ($1 == latest) ? " (latest)" : ""
-		printf "  gen %-4s %s%s\n", $1, $2, suffix
+		printf "  gen %-4s  %s  %s%s\n", $1, $3, $2, suffix
 	}'
 
 	echo ""
@@ -282,12 +289,10 @@ select_nixos_generation() {
 	echo ""
 	read -p "Generation number: " gen_sel
 
-	# guard against sed injection from untrusted input
 	case "$gen_sel" in
 		''|*[!0-9]*) gen_sel="$latest_num" ;;
 	esac
 
-	# match by generation number, not line index
 	local selected_line
 	selected_line="$(echo "$generations" | awk -F: -v g="$gen_sel" '$1 == g {print; exit}')"
 
@@ -297,7 +302,7 @@ select_nixos_generation() {
 	fi
 
 	local selected_path selected_num
-	selected_path="$(echo "$selected_line" | cut -d: -f3)"
+	selected_path="$(echo "$selected_line" | cut -d: -f4)"
 	selected_num="$(echo "$selected_line" | cut -d: -f1)"
 	echo "booting NixOS generation ${selected_num}"
 	INIT_PATH="${selected_path}"
