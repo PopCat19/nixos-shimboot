@@ -6,9 +6,9 @@
 #
 # This module:
 # - Detect and display bootable shimboot_rootfs partitions
-# - Show RTC time and battery SoC in selector header
+# - Show battery SoC in selector header
 # - Provide NixOS generation selection when NixOS rootfs detected
-# - Support set-default-generation and return-to-menu flows
+# - Support return-to-menu from generation selector
 # - Handle LUKS2 encrypted root filesystems via cryptsetup
 # - Integrate vendor firmware and kernel modules through bind mounting
 # - Execute pivot_root to transition to selected OS as PID 1
@@ -27,8 +27,6 @@ set +x
 rescue_mode=""
 INIT_PATH="/sbin/init"
 
-NIXOS_DEFAULT_GEN=""
-
 invoke_terminal() {
 	local tty="$1"
 	local title="$2"
@@ -40,7 +38,6 @@ invoke_terminal() {
 
 enable_debug_console() {
 	local tty="$1"
-	echo -e "debug console enabled on ${tty}"
 	invoke_terminal "${tty}" "[Bootstrap Debug Console]" "/bin/busybox sh"
 }
 
@@ -74,8 +71,7 @@ find_rootfs_partitions() {
 
 find_vendor_partition() {
 	if [ -e "/dev/disk/by-label/shimboot_vendor" ]; then
-		local dev="/dev/disk/by-label/shimboot_vendor"
-		echo "$dev"
+		echo "/dev/disk/by-label/shimboot_vendor"
 		return 0
 	fi
 
@@ -121,36 +117,36 @@ bind_vendor_into() {
 	local target_root="/newroot"
 	local vendor_part="$(find_vendor_partition)"
 	if [ ! "$vendor_part" ]; then
-		echo "vendor: not found"
+		echo "> vendor: not found"
 		return 0
 	fi
 
-	echo "vendor: device=${vendor_part}"
+	echo "> vendor: device=${vendor_part}"
 	mkdir -p "${target_root}/.vendor"
 	if mount -o ro "$vendor_part" "${target_root}/.vendor"; then
-		echo "vendor: mounted"
+		echo "> vendor: mounted"
 
 		if [ -d "${target_root}/.vendor/lib/modules" ] && find "${target_root}/.vendor/lib/modules" -type f -name "*.ko*" 2>/dev/null | head -n1 | grep -q .; then
 			mkdir -p "${target_root}/lib/modules"
 			if mount -o bind "${target_root}/.vendor/lib/modules" "${target_root}/lib/modules"; then
-				echo "vendor: modules bound"
+				echo "> vendor: modules bound"
 			else
-				echo "vendor: failed to bind modules"
+				echo "> vendor: failed to bind modules"
 			fi
 		fi
 
 		if [ -d "${target_root}/.vendor/lib/firmware" ] && find "${target_root}/.vendor/lib/firmware" -type f 2>/dev/null | head -n1 | grep -q .; then
 			mkdir -p "${target_root}/lib/firmware"
 			if mount -o bind "${target_root}/.vendor/lib/firmware" "${target_root}/lib/firmware"; then
-				echo "vendor: firmware bound"
+				echo "> vendor: firmware bound"
 			else
-				echo "vendor: failed to bind firmware"
+				echo "> vendor: failed to bind firmware"
 			fi
 		fi
 
-		echo "vendor: keeping mounted for active bind mounts"
+		echo "> vendor: keeping mounted for active bind mounts"
 	else
-		echo "vendor: mount failed"
+		echo "> vendor: mount failed"
 	fi
 }
 
@@ -190,30 +186,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 EOF
 }
 
-# Returns true (0) if the mounted root at $1 is a NixOS system.
-# Checks for the bare 'system' profile symlink, which is always present
-# on a NixOS installation regardless of whether numbered generation links exist.
-is_nixos_root() {
-	local root="$1"
-	[ -L "${root}/nix/var/nix/profiles/system" ]
-}
-
-read_rtc_time() {
-	if [ -r /sys/class/rtc/rtc0/time ] && [ -r /sys/class/rtc/rtc0/date ]; then
-		printf "%s %s UTC" \
-			"$(cat /sys/class/rtc/rtc0/date)" \
-			"$(cat /sys/class/rtc/rtc0/time)"
-	elif command -v hwclock >/dev/null 2>&1; then
-		hwclock -r 2>/dev/null | cut -d' ' -f1-2 || echo "unknown"
-	else
-		echo "unknown"
-	fi
-}
-
 read_battery_soc() {
 	local soc_file=""
 	for f in /sys/class/power_supply/*/capacity; do
-		# skip AC adapters — only battery nodes have a capacity file
 		local type_file="${f%capacity}type"
 		if [ -f "$type_file" ] && grep -qi "battery" "$type_file" 2>/dev/null; then
 			soc_file="$f"
@@ -227,16 +202,16 @@ read_battery_soc() {
 	fi
 }
 
-read_default_gen() {
-	local cfg="/proc/cmdline"
-	if grep -q "shimboot_default_gen=" "$cfg" 2>/dev/null; then
-		grep -o "shimboot_default_gen=[^ ]*" "$cfg" | cut -d= -f2
-	else
-		echo ""
-	fi
+# Returns true (0) if the mounted root at $1 is a NixOS system.
+# Checks for the bare 'system' profile symlink, which is always present
+# on a NixOS installation regardless of whether numbered generation links exist.
+is_nixos_root() {
+	local root="$1"
+	[ -L "${root}/nix/var/nix/profiles/system" ]
 }
 
-# output format per line: gen_number:version:build_date:post_pivot_init_path
+# output format per line: gen_num|version|YYYY-MM-DD|HH:MM:SS|post_pivot_init_path
+# Pipe-delimited to avoid colon collision with HH:MM:SS time field.
 # Falls back to a synthetic generation-0 entry from the bare 'system' symlink
 # when no numbered system-N-link profiles exist (fresh image, pre-nixos-rebuild).
 # Absolute symlinks on mounted fs resolve from namespace root, not mount point;
@@ -262,10 +237,15 @@ list_nixos_generations() {
 		fi
 
 		# symlink mtime = when nixos-rebuild switch created this generation
-		local build_date="unknown"
-		build_date="$(stat -c '%y' "$link" 2>/dev/null | cut -d' ' -f1)" || build_date="unknown"
+		local raw_stat
+		raw_stat="$(stat -c '%y' "$link" 2>/dev/null)" || raw_stat=""
+		local build_date build_time
+		build_date="$(echo "$raw_stat" | cut -d' ' -f1)"
+		build_time="$(echo "$raw_stat" | cut -d' ' -f2 | cut -d'.' -f1)"
+		[ -n "$build_date" ] || build_date="unknown"
+		[ -n "$build_time" ] || build_time="unknown"
 
-		out="${out}${gen_num}:${version}:${build_date}:/nix/var/nix/profiles/$(basename "$link")/init
+		out="${out}${gen_num}|${version}|${build_date}|${build_time}|/nix/var/nix/profiles/$(basename "$link")/init
 "
 	done
 
@@ -279,30 +259,25 @@ list_nixos_generations() {
 			version="$(cat "${resolved}/nixos-version")"
 		fi
 
-		local build_date="unknown"
-		build_date="$(stat -c '%y' "${profiles_dir}/system" 2>/dev/null | cut -d' ' -f1)" || build_date="unknown"
+		local raw_stat
+		raw_stat="$(stat -c '%y' "${profiles_dir}/system" 2>/dev/null)" || raw_stat=""
+		local build_date build_time
+		build_date="$(echo "$raw_stat" | cut -d' ' -f1)"
+		build_time="$(echo "$raw_stat" | cut -d' ' -f2 | cut -d'.' -f1)"
+		[ -n "$build_date" ] || build_date="unknown"
+		[ -n "$build_time" ] || build_time="unknown"
 
-		echo "0:${version}:${build_date}:/nix/var/nix/profiles/system/init"
+		echo "0|${version}|${build_date}|${build_time}|/nix/var/nix/profiles/system/init"
 		return 0
 	fi
 
-	echo "$out" | sort -t: -k1 -n -r
-}
-
-save_default_gen() {
-	local gen="$1"
-	local root="$2"
-	local grub_env="${root}/boot/grub/grubenv"
-	local sd_loader="${root}/boot/loader/entries"
-
-	NIXOS_DEFAULT_GEN="$gen"
-	echo "default gen set to ${gen} (session only; persistent storage not available in initramfs)"
+	echo "$out" | sort -t'|' -k1 -n -r
 }
 
 # Sets global INIT_PATH to the selected generation init.
+# Returns 2 if user selected [b] return to main menu.
 select_nixos_generation() {
 	local root="$1"
-	local auto="${2:-0}"
 	local generations
 	generations="$(list_nixos_generations "$root")"
 
@@ -313,80 +288,57 @@ select_nixos_generation() {
 	local gen_count
 	gen_count="$(echo "$generations" | grep -c .)"
 
-	local cmdline_default
-	cmdline_default="$(read_default_gen)"
-	local effective_default
-	if [ -n "$NIXOS_DEFAULT_GEN" ]; then
-		effective_default="$NIXOS_DEFAULT_GEN"
-	elif [ -n "$cmdline_default" ]; then
-		effective_default="$cmdline_default"
-	else
-		effective_default="$(echo "$generations" | head -n1 | cut -d: -f1)"
-	fi
+	local default_num
+	default_num="$(echo "$generations" | head -n1 | cut -d'|' -f1)"
 
 	if [ "$gen_count" -eq 1 ]; then
-		local only_num only_ver only_date only_path
-		only_num="$(echo "$generations" | cut -d: -f1)"
-		only_ver="$(echo "$generations" | cut -d: -f2)"
-		only_date="$(echo "$generations" | cut -d: -f3)"
-		only_path="$(echo "$generations" | cut -d: -f4)"
-		echo "NixOS: auto-selecting generation ${only_num} (${only_ver}, ${only_date})"
+		local only_num only_ver only_date only_time only_path
+		only_num="$(echo "$generations" | cut -d'|' -f1)"
+		only_ver="$(echo "$generations" | cut -d'|' -f2)"
+		only_date="$(echo "$generations" | cut -d'|' -f3)"
+		only_time="$(echo "$generations" | cut -d'|' -f4)"
+		only_path="$(echo "$generations" | cut -d'|' -f5)"
+		echo "> NixOS: auto-selecting generation ${only_num} (${only_ver}, ${only_date} ${only_time})"
 		INIT_PATH="${only_path}"
 		return 0
 	fi
 
 	echo ""
-	echo "NixOS generations (default: ${effective_default}):"
+	echo "Available generations (default: ${default_num}):"
 	echo ""
 
-	echo "$generations" | awk -F: -v def="$effective_default" '{
-		suffix = ($1 == def) ? " *" : ""
-		printf "  gen %-4s  %s  %s  %s%s\n", $1, $3, $4, $2, suffix
+	echo "$generations" | awk -F'|' -v def="$default_num" '{
+		marker = ($1 == def) ? " *" : ""
+		printf "  [gen %-4s] %s %s  %s  %s%s\n", $1, $3, $4, $5, $2, marker
 	}'
 
 	echo ""
-	echo "  enter) boot default (gen ${effective_default})"
-	echo "  d<N>)  set gen N as default for this session"
-	echo "  m)     return to main menu"
+	echo "  [enter] Boot default generation: ${default_num}"
+	echo "  [b]     Return"
 	echo ""
-	read -p "Generation number: " gen_sel
+	read -p "Select generation (or press enter): " gen_sel
 
 	case "$gen_sel" in
-		m|M)
+		b|B)
 			return 2
 			;;
-		d[0-9]*)
-			local new_def="${gen_sel#d}"
-			local check_line
-			check_line="$(echo "$generations" | awk -F: -v g="$new_def" '$1 == g {print; exit}')"
-			if [ -n "$check_line" ]; then
-				save_default_gen "$new_def" "$root"
-				echo "default set to generation ${new_def}"
-			else
-				echo "generation ${new_def} not found"
-			fi
-			sleep 1
-			select_nixos_generation "$root" "$auto"
-			return $?
+		''|*[!0-9]*)
+			gen_sel="$default_num"
 			;;
-	esac
-
-	case "$gen_sel" in
-		''|*[!0-9]*) gen_sel="$effective_default" ;;
 	esac
 
 	local selected_line
-	selected_line="$(echo "$generations" | awk -F: -v g="$gen_sel" '$1 == g {print; exit}')"
+	selected_line="$(echo "$generations" | awk -F'|' -v g="$gen_sel" '$1 == g {print; exit}')"
 
 	if [ -z "$selected_line" ]; then
-		echo "generation ${gen_sel} not found, defaulting to latest"
+		echo "> generation ${gen_sel} not found, defaulting to latest"
 		selected_line="$(echo "$generations" | head -n1)"
 	fi
 
 	local selected_path selected_num
-	selected_path="$(echo "$selected_line" | cut -d: -f4)"
-	selected_num="$(echo "$selected_line" | cut -d: -f1)"
-	echo "booting NixOS generation ${selected_num}"
+	selected_path="$(echo "$selected_line" | cut -d'|' -f5)"
+	selected_num="$(echo "$selected_line" | cut -d'|' -f1)"
+	echo "> booting NixOS generation ${selected_num}"
 	INIT_PATH="${selected_path}"
 }
 
@@ -394,15 +346,14 @@ print_selector() {
 	local rootfs_partitions="$1"
 	local i=1
 
-	local rtc_time battery_soc
-	rtc_time="$(read_rtc_time)"
+	local battery_soc
 	battery_soc="$(read_battery_soc)"
 
-	echo "┌────────────────────────────────────────┐"
-	echo "│           Shimboot OS Selector         │"
-	printf "│  time: %-31s│\n" "$rtc_time"
-	printf "│  battery: %-28s│\n" "$battery_soc"
-	echo "└────────────────────────────────────────┘"
+	echo "# Welcome to NixOS Shimboot!"
+	echo "# Rescue shell: \`rescue <selection>\`"
+	echo "# SoC: ${battery_soc}"
+	echo ""
+	echo "Partition(s):"
 
 	if [ "${rootfs_partitions}" ]; then
 		for rootfs_partition in $rootfs_partitions; do
@@ -411,41 +362,62 @@ print_selector() {
 			if [ "$part_name" = "vendor" ]; then
 				continue
 			fi
-			echo "${i}) ${part_name} on ${part_path}"
+			echo "  [${i}] Boot ${part_name} on ${part_path}"
 			i=$((i + 1))
 		done
 	else
-		echo "no bootable partitions found. see shimboot documentation to mark a partition as bootable."
+		echo "  > No bootable partitions found :c"
 	fi
 
-	echo "q) reboot"
-	echo "p) poweroff"
-	echo "s) enter a shell"
-	echo "l) view license"
+	echo ""
+	echo "Options:"
+	echo "  [0] List Partitions (blkid)"
+	echo "  [s] Initramfs Shell (busybox)"
+	echo "  [r] Reboot"
+	echo "  [q] Power Off"
+	echo "  [l] License"
+	echo ""
 }
 
 get_selection() {
 	local rootfs_partitions="$1"
 	local i=1
 
-	read -p "Your selection: " selection
-	if [ "$selection" = "q" ]; then
-		echo "rebooting now."
-		reboot -f
-	elif [ "$selection" = "p" ]; then
-		echo "powering off."
-		poweroff -f
-	elif [ "$selection" = "s" ]; then
-		reset
-		enable_debug_console "$TTY1"
-		return 0
-	elif [ "$selection" = "l" ]; then
-		clear
-		print_license
-		echo
-		read -p "press [enter] to return to the bootloader menu"
-		return 1
-	fi
+	read -p "Enter partition or option: " selection
+
+	case "$selection" in
+		r)
+			echo "rebooting now."
+			reboot -f
+			;;
+		q)
+			echo "powering off."
+			poweroff -f
+			;;
+		0)
+			echo ""
+			blkid || true
+			echo ""
+			read -p "press [enter] to return"
+			return 1
+			;;
+		s)
+			echo "> This is root busybox in initramfs"
+			echo "> Ctrl+D will leave you in the abyss..."
+			echo "> Run 'exit' to exit shell"
+			enable_debug_console "$TTY1"
+			return 0
+			;;
+		l)
+			clear
+			print_license
+			echo ""
+			echo "  [b] Return"
+			echo ""
+			read -p "Enter selection: " _lic_sel
+			return 1
+			;;
+	esac
 
 	local selection_cmd="$(echo "$selection" | cut -d' ' -f1)"
 	if [ "$selection_cmd" = "rescue" ]; then
@@ -464,7 +436,7 @@ get_selection() {
 		fi
 
 		if [ "$selection" = "$i" ]; then
-			echo "selected $part_path"
+			echo "> Selected ${part_path}"
 			boot_target "$part_path"
 			return 1
 		fi
@@ -472,20 +444,21 @@ get_selection() {
 		i=$((i + 1))
 	done
 
-	echo "invalid selection"
+	echo "> Invalid selection: ${selection}"
 	sleep 1
 	return 1
 }
 
 exec_init() {
 	if [ "$rescue_mode" = "1" ]; then
-		echo "entering rescue shell instead of starting init"
-		echo "run 'exec ${INIT_PATH}' to continue booting"
-		if [ -f "/bin/bash" ]; then
-			exec /bin/bash <"$TTY1" >>"$TTY1" 2>&1
-		else
-			exec /bin/sh <"$TTY1" >>"$TTY1" 2>&1
-		fi
+		local shell_bin="/bin/sh"
+		[ -f "/bin/bash" ] && shell_bin="/bin/bash"
+		echo "> This is root ${shell_bin} in /newroot (post-pivot)"
+		echo "> In NixOS, setup Nix for commands"
+		echo "> Ctrl+D will leave you in the abyss..."
+		echo "> Run 'source /etc/profile' to setup Nix"
+		echo "> Run 'exec ${INIT_PATH}' to exit shell"
+		exec "$shell_bin" <"$TTY1" >>"$TTY1" 2>&1
 	else
 		exec "$INIT_PATH" <"$TTY1" >>"$TTY1" 2>&1
 	fi
@@ -494,17 +467,17 @@ exec_init() {
 boot_target() {
 	local target="$1"
 
-	echo "mounting rootfs"
+	echo "> Mounting rootfs..."
 	mkdir /newroot
 
 	if [ -x "$(command -v cryptsetup)" ] && cryptsetup luksDump "$target" >/dev/null 2>&1; then
 		cryptsetup open $target rootfs
 		if ! mount -t ext4 /dev/mapper/rootfs /newroot 2>/dev/null; then
 			if ! mount /dev/mapper/rootfs /newroot; then
-				echo "mount failed for LUKS rootfs: /dev/mapper/rootfs"
-				echo "available filesystems:"
+				echo "> mount failed for LUKS rootfs: /dev/mapper/rootfs"
+				echo "> available filesystems:"
 				cat /proc/filesystems || true
-				echo "blkid /dev/mapper/rootfs:"
+				echo "> blkid /dev/mapper/rootfs:"
 				blkid /dev/mapper/rootfs || true
 				return 1
 			fi
@@ -512,10 +485,10 @@ boot_target() {
 	else
 		if ! mount -t ext4 $target /newroot 2>/dev/null; then
 			if ! mount $target /newroot; then
-				echo "mount failed for $target"
-				echo "available filesystems:"
+				echo "> mount failed for ${target}"
+				echo "> available filesystems:"
 				cat /proc/filesystems || true
-				echo "blkid $target:"
+				echo "> blkid ${target}:"
 				blkid $target || true
 				return 1
 			fi
@@ -526,7 +499,7 @@ boot_target() {
 	# does not depend on numbered generation links existing.
 	INIT_PATH="/sbin/init"
 	if is_nixos_root "/newroot"; then
-		echo "NixOS rootfs detected"
+		echo "> NixOS rootfs detected: /newroot/nix/var/nix/profiles/system"
 		select_nixos_generation "/newroot"
 		local nixos_sel_ret=$?
 		if [ "$nixos_sel_ret" -eq 2 ]; then
@@ -534,7 +507,7 @@ boot_target() {
 			rmdir /newroot 2>/dev/null || true
 			return 1
 		elif [ "$nixos_sel_ret" -ne 0 ]; then
-			echo "NixOS: no valid generations found, falling back to /sbin/init"
+			echo "> NixOS: no valid generations found, falling back to /sbin/init"
 		fi
 	fi
 
@@ -547,7 +520,7 @@ boot_target() {
 	fi
 	move_mounts /newroot
 
-	echo "switching root (init=${INIT_PATH})"
+	echo "> switching root (init=${INIT_PATH})"
 	mkdir -p /newroot/bootloader
 	pivot_root /newroot /newroot/bootloader
 	exec_init
