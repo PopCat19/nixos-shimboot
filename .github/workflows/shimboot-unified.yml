@@ -1,3 +1,13 @@
+# shimboot-unified.yml
+#
+# Purpose: Multi-board image construction and GitHub release orchestration
+#
+# This module:
+# - Orchestrates parallel builds for multiple ChromeOS boards via matrix
+# - Leverages Nix for reproducible component building and RootFS generation
+# - Assembles final bootable images using custom shell tooling
+# - Automates GitHub Releases with platform-specific flashing instructions
+
 name: shimboot-unified
 
 on:
