@@ -97,7 +97,7 @@ let
           }
           {
             id = "Battery";
-            displayMode = "alwaysShow";
+            displayMode = "icon-always";
             showNoctaliaPerformance = false;
             showPowerProfiles = false;
             warningThreshold = 20;
