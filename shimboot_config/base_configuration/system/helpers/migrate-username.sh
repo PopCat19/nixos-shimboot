@@ -45,7 +45,7 @@ if [[ ! -f "$STATE_FILE" ]]; then
 	echo "$NEW_USERNAME" > "$STATE_FILE"
 
 	# Check if user already exists with different name
-	EXISTING_USER=$(ls /home 2>/dev/null | grep -v '^lost+found$' | head -1 || true)
+	EXISTING_USER=$(find /home -maxdepth 1 -mindepth 1 -type d ! -name 'lost+found' -printf '%f\n' 2>/dev/null | head -1 || true)
 	if [[ -n "$EXISTING_USER" ]] && [[ "$EXISTING_USER" != "$NEW_USERNAME" ]]; then
 		echo "[migrate-username] Found existing user '${EXISTING_USER}', but no migration state."
 		echo "[migrate-username] Preserving existing user. Run manual migration if needed."
