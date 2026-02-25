@@ -554,8 +554,21 @@ wait $ROOTFS_PID || {
 # Get paths (instant since already built)
 ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config ".#extracted-kernel-${BOARD}" --print-out-paths)/p2.bin"
 PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config ".#initramfs-patching-${BOARD}" --print-out-paths)/patched-initramfs"
-# nixpkgs built-in image generation outputs the image file directly (raw-efi variant)
-RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config ".#${RAW_ROOTFS_ATTR}" --print-out-paths)"
+# Resolve rootfs image from derivation output with three-tier fallback
+RAW_ROOTFS_OUT="$(nix build --impure --accept-flake-config ".#${RAW_ROOTFS_ATTR}" --print-out-paths)"
+if [ -f "$RAW_ROOTFS_OUT/nixos.img" ]; then
+	RAW_ROOTFS_IMG="$RAW_ROOTFS_OUT/nixos.img"
+elif [ -f "$RAW_ROOTFS_OUT" ]; then
+	RAW_ROOTFS_IMG="$RAW_ROOTFS_OUT"
+else
+	RAW_ROOTFS_IMG="$(find "$RAW_ROOTFS_OUT" -maxdepth 2 -name '*.img' -type f | head -n1)"
+	if [ -z "$RAW_ROOTFS_IMG" ]; then
+		log_error "No .img file found in rootfs derivation output: $RAW_ROOTFS_OUT"
+		ls -laR "$RAW_ROOTFS_OUT"
+		handle_error "$CURRENT_STEP"
+	fi
+	log_info "Discovered rootfs image at non-standard path: $RAW_ROOTFS_IMG"
+fi
 
 # Validate build results
 if [ ! -f "$ORIGINAL_KERNEL" ]; then
@@ -654,6 +667,10 @@ log_info "Vendor partition size (post-firmware): ${VENDOR_PART_SIZE} MB"
 # === Step 6: Copy raw rootfs image ===
 CURRENT_STEP="6/15"
 log_step "$CURRENT_STEP" "Copy raw rootfs image"
+if [ ! -f "$RAW_ROOTFS_IMG" ]; then
+	log_error "Raw rootfs image is not a file: $RAW_ROOTFS_IMG"
+	handle_error "$CURRENT_STEP"
+fi
 pv "$RAW_ROOTFS_IMG" >"$WORKDIR/rootfs.img"
 
 # === Step 7: Optimize Nix store in raw rootfs ===
