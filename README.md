@@ -85,18 +85,18 @@ Flake status and roadmap (not a spec) for the current branch:
 - [x] Configure base_configuration to be minimal whilst keeping lightdm and hyprland to achive lower image size
 - [x] Utilize systemd cachix store on local `nixos-rebuild` to avoid an eternal compilation on potato hardware (hardware r/w speed bottleneck)
 - [x] Functional GitHub build CI workflows with caching
-- [ ] Show battery SoC in bootstrap menu
+- [x] Show battery SoC in bootstrap menu
+- [x] Implement NixOS generation selector within bootstrapper
+~~ Apply proper recovery firmware patches on a vendor p4 partition to support ChromeOS ROOT_A/B boot; see upstream shimboot for reference ~~ (deprecated)
 - [ ] Fix XDG redirect issues
 - [ ] SDDM greeter support
 - [ ] test systemd watchdog compatibility
-- [ ] Apply proper recovery firmware patches on a vendor p4 partition to support ChromeOS ROOT_A/B boot; see upstream shimboot for reference
 - [ ] Utilize `nixosModules` to modularize various userland options, such as themes and WM/DE.
 - [ ] Refine main_configuration [support bwrap/steam and refine nixos_setup]
 - [ ] Create minimal main_configuration template
 - [ ] Refine and cleanup scripts and helpers
 - [ ] Refine and cleanup base and main configurations
-- [ ] Implement NixOS generation selector within bootstrapper
-- [ ] Build functional NixOS with LUKS2 support
+- [ ] Build functional NixOS with LUKS2 support (untested)
 
 Current obstacles:
 - ChromeOS ROOT_A/B boot: vendor p4 fails to copy donor modules and firmware to tmpfs, causing ChromeOS init to fail compared to the working upstream debian shimboot. Need to understand how this needs to be handled.
