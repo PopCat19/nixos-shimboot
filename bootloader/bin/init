@@ -42,9 +42,24 @@ setup_environment() {
 	/bin/busybox --install /bin || true
 }
 
+setup_console() {
+	export LANG=C.UTF-8
+	export LC_ALL=C.UTF-8
+	export CHARSET=UTF-8
+	# Switch VT to UTF-8 encoding
+	printf '\033%%G'
+	# Load a unicode-capable font if setfont is available
+	if command -v setfont >/dev/null 2>&1; then
+		setfont /usr/share/consolefonts/Uni2-Terminus16.psf.gz 2>/dev/null || \
+		setfont /usr/share/kbd/consolefonts/eurlatgr.psf.gz 2>/dev/null || \
+		true
+	fi
+}
+
 main() {
 	setup_environment
 	detect_tty
+	setup_console
 	# In case an error is not handled by bootstrapping, stop here
 	# so that an operator can see installation stop.
 	exec bootstrap.sh <"$TTY1" >>"$TTY1" 2>&1 || sleep 1d

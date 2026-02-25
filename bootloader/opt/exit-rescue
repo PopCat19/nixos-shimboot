@@ -1,12 +1,15 @@
-#!/bin/busybox sh
+#!/bin/sh
 
 # exit-rescue
 #
-# Purpose: Terminate the current rescue shell and continue boot via INIT_PATH.
+# Purpose: Exec init from rescue shell when sourced; must be sourced to replace shell.
 #
 # This module:
-# - Print intent
-# - Exec INIT_PATH if set, otherwise /sbin/init
+# - Validate sourced context
+# - Exec INIT_PATH replacing the calling shell
+
+# Must be sourced — exec in a subprocess replaces the subprocess, not the shell.
+# Ctrl+D achieves the same result (bootstrap falls through to exec init on shell exit).
 
 target="${INIT_PATH:-/sbin/init}"
 

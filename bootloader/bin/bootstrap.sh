@@ -27,13 +27,13 @@ set +x
 rescue_mode=""
 INIT_PATH="/sbin/init"
 
-GREEN='\033[0;32m'
+GREY='\033[0;37m'
 RESET='\033[0m'
 
-info() { printf "${GREEN}# %s${RESET}\n" "$*"; }
-sep()  { printf "${GREEN}===${RESET}\n"; }
-log()  { printf "> %s\n" "$*"; }
-err()  { printf "> %s\n" "$*"; }
+info() { printf "${GREY}#${RESET} %s\n" "$*"; }
+sep()  { printf "${GREY}===${RESET}\n"; }
+log()  { printf "${GREY}>${RESET} %s\n" "$*"; }
+err()  { printf "${GREY}>${RESET} %s\n" "$*"; }
 
 invoke_terminal() {
 	local tty="$1"
@@ -317,17 +317,18 @@ select_nixos_generation() {
 	fi
 
 	echo ""
-	printf "${GREEN}Available generations (default: ${default_num}):${RESET}\n"
+	echo "Available generations (default: ${default_num}):"
 	echo ""
 
-	echo "$generations" | awk -F'|' -v def="$default_num" -v g="${GREEN}" -v r="${RESET}" '{
+	echo "$generations" | awk -F'|' -v def="$default_num" '{
 		marker = ($1 == def) ? " *" : ""
-		printf "  " g "[gen %-4s]" r " %s %s  %s  %s" g "%s" r "\n", $1, $3, $4, $5, $2, marker
+		printf "  [gen %-4s] %s %s  %s  %s%s\n", $1, $3, $4, $5, $2, marker
 	}'
 
 	echo ""
-	printf "  ${GREEN}[enter]${RESET} Boot default generation: ${default_num}\n"
-	printf "  ${GREEN}[b]    ${RESET} Return\n"
+	echo "  [enter] Boot default generation: ${default_num}"
+	echo "  [b]     Return"
+	echo ""
 	echo ""
 	read -p "Select generation (or press enter): " gen_sel
 
@@ -366,7 +367,7 @@ print_selector() {
 	info "Rescue shell: \`rescue <selection>\`"
 	info "SoC: ${battery_soc}"
 	echo ""
-	printf "${GREEN}Partition(s):${RESET}\n"
+	echo "Partition(s):"
 
 	if [ "${rootfs_partitions}" ]; then
 		for rootfs_partition in $rootfs_partitions; do
@@ -375,7 +376,7 @@ print_selector() {
 			if [ "$part_name" = "vendor" ]; then
 				continue
 			fi
-			printf "  ${GREEN}[${i}]${RESET} Boot ${part_name} on ${part_path}\n"
+			printf "  [${i}] Boot ${part_name} on ${part_path}\n"
 			i=$((i + 1))
 		done
 	else
@@ -383,12 +384,12 @@ print_selector() {
 	fi
 
 	echo ""
-	printf "${GREEN}Options:${RESET}\n"
-	printf "  ${GREEN}[0]${RESET} List Partitions (blkid)\n"
-	printf "  ${GREEN}[s]${RESET} Initramfs Shell (busybox)\n"
-	printf "  ${GREEN}[r]${RESET} Reboot\n"
-	printf "  ${GREEN}[q]${RESET} Power Off\n"
-	printf "  ${GREEN}[l]${RESET} License\n"
+	echo "Options:"
+	echo "  [0] List Partitions (blkid)"
+	echo "  [s] Initramfs Shell (busybox)"
+	echo "  [r] Reboot"
+	echo "  [q] Power Off"
+	echo "  [l] License"
 	echo ""
 }
 
@@ -422,7 +423,7 @@ get_selection() {
 			clear
 			print_license
 			echo ""
-			printf "  ${GREEN}[b]${RESET} Return\n"
+			echo "  [b] Return"
 			echo ""
 			read -p "Enter selection: " _lic_sel
 			return 1
@@ -467,11 +468,12 @@ exec_init() {
 		export PATH="/bootloader/opt:$PATH"
 		export INIT_PATH="$INIT_PATH"
 		sep
-		info "This is root ${shell_bin} in /newroot (post-pivot)"
-		info "In NixOS, setup Nix for commands"
-		info "Ctrl+D will leave you in the abyss..."
-		info "Run '. setup-nix' to load Nix env"
-		info "Run 'exit-rescue' to boot into NixOS"
+		info "root ${shell_bin} | /newroot | post-pivot"
+		info "no return to bootloader menu from here"
+		info "Ctrl+D or 'exit' boots init (same as exit-rescue)"
+		info "use 'poweroff' to shut down safely from this shell"
+		info "run '. setup-nix' to load NixOS env and tools"
+		info "run '. exit-rescue' to immediately exec init"
 		sep
 		"$shell_bin" <"$TTY1" >>"$TTY1" 2>&1 || true
 		log "rescue shell exited, continuing boot (init=${INIT_PATH})"
