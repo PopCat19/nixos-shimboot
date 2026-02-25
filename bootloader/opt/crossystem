@@ -3,10 +3,8 @@
 # ChromeOS System Properties Spoofer
 #
 # Purpose: Intercept and modify ChromeOS system property queries to enable developer features.
-# Dependencies: bash, original crossystem binary
-# Related: bootloader/bin/bootstrap.sh
 #
-# This script:
+# This module:
 # - Intercepts crossystem calls from ChromeOS to spoof system properties
 # - Enables developer mode features by setting cros_debug=1 and block_devmode=1
 # - Maintains compatibility with original crossystem functionality for unknown properties
