@@ -14,6 +14,7 @@
 # from the calling configuration (system-configuration.nix or raw-image.nix)
 {
   lib,
+  pkgs,
   userConfig,
   ...
 }:
@@ -66,17 +67,23 @@
     min-free = 0; # Don't reserve space
   };
 
-  # Garbage collection: keep only 10 generations
+  # Garbage collection: delete generations older than 30 days
   nix.gc = {
     automatic = true;
     dates = "weekly";
     options = "--delete-older-than 30d";
   };
 
-  # Limit generations preserved by nix-collect-garbage -d
-  nix.extraOptions = ''
-    max-old-generations = 10
-  '';
+  # Keep only 10 system generations before garbage collection runs
+  systemd.services.nix-limit-generations = {
+    description = "Limit NixOS system generations to 10";
+    before = [ "nix-gc.service" ];
+    wantedBy = [ "nix-gc.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${lib.getBin pkgs.nix}/bin/nix-env --delete-generations +10 -p /nix/var/nix/profiles/system";
+    };
+  };
 
   nixpkgs.config.allowUnfree = true;
 
