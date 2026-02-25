@@ -947,6 +947,7 @@ fi
 
 # Create build metadata
 log_info "Creating build metadata..."
+safe_exec sudo mkdir -p "$WORKDIR/mnt_rootfs/etc"
 safe_exec sudo tee "$WORKDIR/mnt_rootfs/etc/shimboot-build.json" >/dev/null <<EOF
 {
 	 "build_date": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
