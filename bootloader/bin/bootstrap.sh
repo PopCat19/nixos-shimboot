@@ -468,7 +468,8 @@ exec_init() {
 		info "root ${shell_bin} | /newroot | post-pivot"
 		info "no return to bootloader menu from here"
 		info "Ctrl+D or 'exit' boots init (same as exit-rescue)"
-		info "use 'poweroff' to shut down safely from this shell"
+		info "echo o > /proc/sysrq-trigger to power off"
+		info "echo b > /proc/sysrq-trigger to reboot"
 		info "run '. setup-nix' to load NixOS env and tools"
 		info "run '. exit-rescue' to immediately exec init"
 		sep
