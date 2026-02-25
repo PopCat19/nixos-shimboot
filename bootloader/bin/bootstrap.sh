@@ -453,11 +453,13 @@ exec_init() {
 	if [ "$rescue_mode" = "1" ]; then
 		local shell_bin="/bin/sh"
 		[ -f "/bin/bash" ] && shell_bin="/bin/bash"
+		export PATH="/bootloader/opt:$PATH"
+		export INIT_PATH="$INIT_PATH"
 		echo "> This is root ${shell_bin} in /newroot (post-pivot)"
 		echo "> In NixOS, setup Nix for commands"
 		echo "> Ctrl+D will leave you in the abyss..."
-		echo "> Run 'source /etc/profile' to setup Nix"
-		echo "> Run 'exec ${INIT_PATH}' to exit shell"
+		echo "> Run '. setup-nix' to setup Nix"
+		echo "> Run 'exit-rescue' to exit shell"
 		exec "$shell_bin" <"$TTY1" >>"$TTY1" 2>&1
 	else
 		exec "$INIT_PATH" <"$TTY1" >>"$TTY1" 2>&1

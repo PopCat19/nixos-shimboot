@@ -1,0 +1,20 @@
+#!/bin/busybox sh
+
+# exit-rescue
+#
+# Purpose: Terminate the current rescue shell and continue boot via INIT_PATH.
+#
+# This module:
+# - Print intent
+# - Exec INIT_PATH if set, otherwise /sbin/init
+
+target="${INIT_PATH:-/sbin/init}"
+
+if [ ! -x "$target" ]; then
+	echo "> ${target} not found or not executable"
+	echo "> set INIT_PATH to the correct init and re-run"
+	exit 1
+fi
+
+echo "> exiting rescue shell, exec ${target}"
+exec "$target"
