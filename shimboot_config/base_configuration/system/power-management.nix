@@ -1,19 +1,18 @@
-# Power Management Module
+# power-management.nix
 #
-# Purpose: Configure system power management and optimization for ChromeOS devices
-# Dependencies: auto-cpufreq, upower, networkmanager
-# Related: hardware.nix, services.nix
+# Purpose: Configure system power and CPU scaling for ChromeOS devices
 #
 # This module:
-# - Enables system power management with userspace governor
-# - Configures auto-cpufreq for dynamic CPU scaling
-# - Enables battery monitoring via upower
-# - Configures WiFi power saving through NetworkManager
+# - Enables system-wide power management
+# - Switches intel_pstate to passive mode to resolve resource busy errors
+# - Configures auto-cpufreq for dynamic frequency scaling
+# - Optimizes WiFi and battery monitoring
+
 { lib, ... }:
 {
-  powerManagement = {
-    enable = true;
-  };
+  boot.kernelParams = [ "intel_pstate=passive" ];
+
+  powerManagement.enable = true;
 
   services = {
     upower.enable = lib.mkDefault true;
@@ -22,7 +21,7 @@
       enable = lib.mkDefault true;
       settings = {
         battery = {
-          governor = lib.mkDefault "performance";
+          governor = lib.mkDefault "powersave";
           turbo = lib.mkDefault "auto";
         };
         charger = {
@@ -33,9 +32,5 @@
     };
   };
 
-  networking = {
-    networkmanager = {
-      wifi.powersave = lib.mkDefault true;
-    };
-  };
+  networking.networkmanager.wifi.powersave = lib.mkDefault true;
 }
