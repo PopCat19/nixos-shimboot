@@ -21,9 +21,4 @@ _: {
     "vm.swappiness" = 100;
     "vm.page-cluster" = 0;
   };
-
-  services.journald.extraConfig = ''
-    RuntimeMaxUse=20M
-    SystemMaxUse=50M
-  '';
 }

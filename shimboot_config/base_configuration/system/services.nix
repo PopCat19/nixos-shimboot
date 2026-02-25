@@ -5,15 +5,16 @@
 # Related: hardware.nix, security.nix
 #
 # This module:
-# - Configures systemd journald with size limits
+# - Configures systemd journald with volatile storage to reduce disk writes
 # - Enables libinput for input device handling
 # - Sets up udev rules for brightness control
 # - Enables storage and D-Bus services
 _: {
   services.journald.extraConfig = ''
+    Storage=volatile
     MaxRetentionSec=3day
-    SystemMaxUse=500M
-    SystemKeepFree=100M
+    RuntimeMaxUse=500M
+    RuntimeKeepFree=100M
     Compress=yes
     ForwardToSyslog=no
     ForwardToWall=no
