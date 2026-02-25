@@ -66,6 +66,18 @@
     min-free = 0; # Don't reserve space
   };
 
+  # Garbage collection: keep only 10 generations
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 30d";
+  };
+
+  # Limit generations preserved by nix-collect-garbage -d
+  nix.extraOptions = ''
+    max-old-generations = 10
+  '';
+
   nixpkgs.config.allowUnfree = true;
 
   system.stateVersion = "24.11";

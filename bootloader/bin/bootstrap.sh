@@ -319,7 +319,7 @@ select_nixos_generation() {
 
 	echo "$generations" | awk -F'|' -v def="$default_num" '{
 		marker = ($1 == def) ? " *" : ""
-		printf "  [gen %s] %s %s  %s  %s%s\n", $1, $3, $4, $5, $2, marker
+		printf "  [%s] %s %s  %s  %s%s\n", $1, $3, $4, $5, $2, marker
 	}'
 
 	echo ""
