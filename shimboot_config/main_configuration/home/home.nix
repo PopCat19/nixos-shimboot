@@ -33,6 +33,7 @@
     ./vesktop.nix
     ./vscodium.nix
     ./wallpaper.nix
+    ./tmux.nix
   ];
 
   home.stateVersion = "24.11";
