@@ -252,8 +252,13 @@ if [[ "$SKIP_WIFI" == "false" ]]; then
 					read -r -s -p "Password: " PSK
 					echo
 
+					# Use temp file to avoid password exposure in process list
+					PSK_FILE=$(mktemp)
+					chmod 600 "$PSK_FILE"
+					echo -n "$PSK" > "$PSK_FILE"
+
 					echo "Command: nmcli dev wifi connect '${SSID}' password '***'"
-					if failsafe "Wi-Fi connection" nmcli dev wifi connect "$SSID" password "$PSK"; then
+					if failsafe "Wi-Fi connection" nmcli dev wifi connect "$SSID" password "$(cat "$PSK_FILE")"; then
 						log_ok "Connected to '${SSID}'"
 
 						# Enable autoconnect
@@ -268,6 +273,9 @@ if [[ "$SKIP_WIFI" == "false" ]]; then
 					else
 						log_error "Failed to connect (check password/signal)"
 					fi
+
+					# Securely cleanup password temp file
+					shred -u "$PSK_FILE" 2>/dev/null || rm -f "$PSK_FILE"
 				fi
 			fi
 		fi

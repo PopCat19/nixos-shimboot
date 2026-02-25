@@ -133,16 +133,8 @@ resolve_path() {
 	if command -v readlink >/dev/null 2>&1; then
 		readlink -f -- "$p" 2>/dev/null || true
 	else
-		# Fallback: best effort
-		python - <<'EOF' 2>/dev/null || true
-import os,sys
-p=sys.argv[1]
-try:
-  print(os.path.realpath(p))
-except Exception:
-  pass
-EOF
-		"$p"
+		# Fallback: use python to resolve path
+		python -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$p" 2>/dev/null || echo "$p"
 	fi
 }
 

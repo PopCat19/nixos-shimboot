@@ -9,7 +9,7 @@
 # - Scripts are standalone bash executables
 # - No fish dependency required
 # - Auto-migrates nixos-config on profile changes
-{ pkgs, lib, userConfig, ... }:
+{ pkgs, userConfig, ... }:
 let
   inherit (pkgs) writeShellApplication;
 
@@ -95,11 +95,13 @@ in
     wants = [ "home-manager-${userConfig.user.username}.service" ];
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${pkgs.writeShellApplication {
-        name = "migrate-nixos-config";
-        runtimeInputs = migrateNixosConfigDeps;
-        text = builtins.readFile ./migrate_nixos_config.sh;
-      }}/bin/migrate-nixos-config ${userConfig.user.username}";
+      ExecStart = "${
+        pkgs.writeShellApplication {
+          name = "migrate-nixos-config";
+          runtimeInputs = migrateNixosConfigDeps;
+          text = builtins.readFile ./migrate_nixos_config.sh;
+        }
+      }/bin/migrate-nixos-config ${userConfig.user.username}";
       RemainAfterExit = true;
     };
   };

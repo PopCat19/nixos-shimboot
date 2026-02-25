@@ -63,15 +63,15 @@ prune_unused_firmware() {
 
 	log_info "Keeping essential Chromebook firmware families..."
 
-	# Build find exclusion expression dynamically
-	local find_cmd="find \"$fw_dir\" -type f"
+	# Build find exclusion arguments safely using array (avoids eval injection)
+	local find_args=("$fw_dir" -type f)
 	for family in "${keep_families[@]}"; do
-		find_cmd="$find_cmd ! -path \"*/$family/*\" ! -name \"$family*\""
+		find_args+=(! -path "*/$family/*" ! -name "$family*")
 	done
-	find_cmd="$find_cmd -delete"
+	find_args+=(-delete)
 
 	log_info "Removing unused firmware files..."
-	eval "$find_cmd"
+	find "${find_args[@]}"
 
 	# Remove empty directories
 	find "$fw_dir" -type d -empty -delete 2>/dev/null || true

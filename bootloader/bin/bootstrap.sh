@@ -518,7 +518,7 @@ boot_chromeos() {
 	# ========================================
 	echo "copying modules and firmware to tmpfs (this may take a while)"
 	mkdir -p "$donor_files/lib/modules" "$donor_files/lib/firmware"
-	
+
 	# Copy modules if they exist
 	if [ -d "$donor_mount/lib/modules" ] && ls -1 "$donor_mount/lib/modules" 2>/dev/null | grep -q .; then
 		echo "copying modules to tmpfs (may take a while)"
@@ -532,7 +532,7 @@ boot_chromeos() {
 	else
 		echo "note: no modules found in donor"
 	fi
-	
+
 	# Copy firmware if it exists
 	if [ -d "$donor_mount/lib/firmware" ] && ls -1 "$donor_mount/lib/firmware" 2>/dev/null | grep -q .; then
 		echo "copying firmware to tmpfs (may take a while)"
@@ -546,7 +546,7 @@ boot_chromeos() {
 	else
 		echo "note: no firmware found in donor"
 	fi
-	
+
 	# Now bind from tmpfs (not from donor device)
 	if [ -d "$donor_files/lib/modules" ] && ls -1 "$donor_files/lib/modules" 2>/dev/null | grep -q .; then
 		echo "binding tmpfs modules to /newroot/lib/modules"
@@ -558,7 +558,7 @@ boot_chromeos() {
 		mkdir -p /newroot/lib/firmware
 		mount -o bind "$donor_files/lib/firmware" /newroot/lib/firmware
 	fi
-	
+
 	# Can safely unmount donor now
 	umount $donor_mount
 	rm -rf $donor_mount

@@ -881,12 +881,12 @@ total_bytes=$(sudo du -sb "$WORKDIR/mnt_src_rootfs" | cut -f1)
 (cd "$WORKDIR/mnt_src_rootfs" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_rootfs" && sudo tar xf -)
 
 	# Get username from userConfig using the selected profile
-	USERNAME=$(nix eval "${NIX_BUILD_FLAGS[@]}" --expr "(import ./shimboot_config/profiles/${PROFILE}/user-config.nix {}).user.username" --json | jq -r .)
+	USERNAME="$(nix eval "${NIX_BUILD_FLAGS[@]}" --expr "(import ./shimboot_config/profiles/${PROFILE}/user-config.nix {}).user.username" --json | jq -r .)"
 	log_info "Using username from userConfig: $USERNAME"
 
 # === Step 14: Clone nixos-config repository into rootfs ===
 log_step "$CURRENT_STEP" "Clone nixos-config repository into rootfs"
-NIXOS_CONFIG_DEST="$WORKDIR/mnt_rootfs/home/$USERNAME/nixos-config"
+NIXOS_CONFIG_DEST="$WORKDIR/mnt_rootfs/home/${USERNAME}/nixos-config"
 
 if command -v git >/dev/null 2>&1 && [ -d .git ]; then
 	# Get current git branch/commit info
