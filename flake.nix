@@ -13,11 +13,6 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    nixos-generators = {
-      url = "github:nix-community/nixos-generators";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     zen-browser = {
       url = "github:0xc000022070/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -62,7 +57,6 @@
     {
       self,
       nixpkgs,
-      nixos-generators,
       home-manager,
       zen-browser,
       rose-pine-hyprcursor,
@@ -98,7 +92,6 @@
           inherit
             self
             nixpkgs
-            nixos-generators
             home-manager
             zen-browser
             rose-pine-hyprcursor

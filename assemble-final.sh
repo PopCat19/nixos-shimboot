@@ -554,7 +554,8 @@ wait $ROOTFS_PID || {
 # Get paths (instant since already built)
 ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config ".#extracted-kernel-${BOARD}" --print-out-paths)/p2.bin"
 PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config ".#initramfs-patching-${BOARD}" --print-out-paths)/patched-initramfs"
-RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config ".#${RAW_ROOTFS_ATTR}" --print-out-paths)/nixos.img"
+# nixpkgs built-in image generation outputs the image file directly (raw-efi variant)
+RAW_ROOTFS_IMG="$(nix build --impure --accept-flake-config ".#${RAW_ROOTFS_ATTR}" --print-out-paths)"
 
 # Validate build results
 if [ ! -f "$ORIGINAL_KERNEL" ]; then

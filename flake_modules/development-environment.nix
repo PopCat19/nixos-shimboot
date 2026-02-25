@@ -4,7 +4,7 @@
 #
 # This module:
 # - Configures devShell with Nix tooling, image assembly tools, and utilities
-# - Provides nixos-generators, cgpt, futility, and disk management tools
+# - Provides cgpt, futility, and disk management tools
 # - Displays helpful usage information on shell activation
 { nixpkgs, ... }:
 let
@@ -15,7 +15,6 @@ in
   devShells.${system}.default = pkgs.mkShell {
     buildInputs = with pkgs; [
       # Nix tooling
-      nixos-generators
       nixpkgs-fmt
       alejandra # Better formatter
 
@@ -36,7 +35,6 @@ in
       echo "nixos-shimboot development environment"
       echo ""
       echo "Tools available:"
-      echo "  - nixos-generators    - Generate NixOS images"
       echo "  - cgpt, futility      - ChromeOS GPT utilities"
       echo "  - parted, losetup     - Disk management"
       echo "  - pv, zstd            - Progress & compression"

@@ -6,9 +6,10 @@
 # - Builds full raw rootfs with Home Manager integration
 # - Builds minimal raw rootfs with base configuration only
 # - Configures serial console logging and Nix garbage collection
+# - Uses nixpkgs built-in image generation (nixos-generators upstreamed as of 25.05)
 {
   self,
-  nixos-generators,
+  nixpkgs,
   home-manager,
   zen-browser,
   rose-pine-hyprcursor,
@@ -21,24 +22,46 @@ let
 
   # Import user config from flattened location
   userConfig = import ../shimboot_config/user-config.nix { };
+
+  # Helper function to create NixOS configuration for image generation
+  # This works for both NixOS and non-NixOS builders
+  mkImageConfiguration =
+    { modules }:
+    let
+      # Create a NixOS configuration with the image module
+      nixosConfig = nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = {
+          inherit
+            self
+            zen-browser
+            rose-pine-hyprcursor
+            noctalia
+            stylix
+            userConfig
+            ;
+        };
+
+        modules = modules ++ [
+          # Enable the image builder module from nixpkgs
+          # This is the upstreamed nixos-generators functionality
+          "${nixpkgs}/nixos/modules/image/images.nix"
+
+          # Image configuration for raw-efi
+          {
+            # The raw-efi variant is already defined in image.modules
+            # We just need to access it via system.build.images.raw-efi
+            nixpkgs.hostPlatform = system;
+          }
+        ];
+      };
+    in
+    nixosConfig.config.system.build.images.raw-efi;
 in
 {
   packages.${system} = {
     # Generate a raw image that includes the main configuration (reduces on-target build)
-    raw-rootfs = nixos-generators.nixosGenerate {
-      inherit system;
-      format = "raw";
-      specialArgs = {
-        inherit
-          self
-          zen-browser
-          rose-pine-hyprcursor
-          noctalia
-          stylix
-          userConfig
-          ;
-      };
-
+    raw-rootfs = mkImageConfiguration {
       modules = [
         (
           { config, ... }:
@@ -46,8 +69,6 @@ in
             nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
           }
         )
-      ]
-      ++ [
         ../shimboot_config/main_configuration/configuration.nix
 
         home-manager.nixosModules.home-manager
@@ -87,20 +108,7 @@ in
       ];
     };
 
-    raw-rootfs-minimal = nixos-generators.nixosGenerate {
-      inherit system;
-      format = "raw";
-      specialArgs = {
-        inherit
-          self
-          zen-browser
-          rose-pine-hyprcursor
-          noctalia
-          stylix
-          userConfig
-          ;
-      };
-
+    raw-rootfs-minimal = mkImageConfiguration {
       modules = [
         ../shimboot_config/base_configuration/configuration.nix
 
