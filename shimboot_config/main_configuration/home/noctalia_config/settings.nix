@@ -10,6 +10,7 @@
 # - Matches user's personalized configuration from JSON
 # - Can be imported by the main Noctalia home manager module
 {
+  config,
   pkgs,
   ...
 }:
@@ -205,7 +206,7 @@ let
     wallpaper = {
       enabled = true;
       overviewEnabled = false;
-      directory = "";
+      directory = "${config.home.homeDirectory}/Pictures/Wallpapers";
       monitorDirectories = [ ];
       enableMultiMonitorDirectories = false;
       showHiddenFiles = false;

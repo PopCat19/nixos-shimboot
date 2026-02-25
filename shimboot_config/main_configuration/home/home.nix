@@ -32,6 +32,7 @@
     ./stylix.nix
     ./vesktop.nix
     ./vscodium.nix
+    ./wallpaper.nix
   ];
 
   home.stateVersion = "24.11";
