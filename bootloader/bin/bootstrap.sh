@@ -14,6 +14,10 @@
 # Runs as PID 1 in initramfs using busybox shell.
 # Absolute symlinks on mounted filesystems resolve from namespace root, not
 # mount point. Generation listing resolves them manually via readlink.
+#
+# NixOS detection uses /nix/var/nix/profiles/system symlink, not numbered
+# generation links. Numbered links (system-N-link) are created by nixos-rebuild
+# at runtime; a freshly assembled image only has the bare 'system' symlink.
 
 #original: https://chromium.googlesource.com/chromiumos/platform/initramfs/+/refs/heads/main/factory_shim/bootstrap.sh
 
@@ -183,14 +187,28 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 EOF
 }
 
-# output format per line: gen_number:version:post_pivot_profile_path
-# absolute symlinks on mounted fs resolve from namespace root, not mount point;
-# readlink + manual prepend required to read generation metadata pre-pivot
+# Returns true (0) if the mounted root at $1 is a NixOS system.
+# Checks for the bare 'system' profile symlink, which is always present
+# on a NixOS installation regardless of whether numbered generation links exist.
+is_nixos_root() {
+	local root="$1"
+	[ -L "${root}/nix/var/nix/profiles/system" ]
+}
+
+# output format per line: gen_number:version:post_pivot_init_path
+# Falls back to a synthetic generation-0 entry from the bare 'system' symlink
+# when no numbered system-N-link profiles exist (fresh image, pre-nixos-rebuild).
+# Absolute symlinks on mounted fs resolve from namespace root, not mount point;
+# readlink + manual prepend required to read generation metadata pre-pivot.
 list_nixos_generations() {
 	local root="$1"
 	local profiles_dir="${root}/nix/var/nix/profiles"
+	local found=0
+
 	for link in "${profiles_dir}"/system-*-link; do
 		[ -L "$link" ] || continue
+		found=1
+
 		local gen_num
 		gen_num="$(basename "$link" | sed 's/system-\([0-9]*\)-link/\1/')"
 
@@ -203,12 +221,27 @@ list_nixos_generations() {
 			version="$(cat "${resolved}/nixos-version")"
 		fi
 
-		local profile_path="/nix/var/nix/profiles/$(basename "$link")"
-		echo "${gen_num}:${version}:${profile_path}"
+		echo "${gen_num}:${version}:/nix/var/nix/profiles/$(basename "$link")/init"
 	done | sort -t: -k1 -n -r
+
+	# No numbered links: synthesize from the bare 'system' symlink.
+	# This is the normal state of a freshly assembled image before the user
+	# has run nixos-rebuild for the first time.
+	if [ "$found" -eq 0 ] && [ -L "${profiles_dir}/system" ]; then
+		local link_target
+		link_target="$(readlink "${profiles_dir}/system")"
+		local resolved="${root}${link_target}"
+
+		local version="unknown"
+		if [ -f "${resolved}/nixos-version" ]; then
+			version="$(cat "${resolved}/nixos-version")"
+		fi
+
+		echo "0:${version}:/nix/var/nix/profiles/system/init"
+	fi
 }
 
-# sets global INIT_PATH to the selected generation init
+# Sets global INIT_PATH to the selected generation init.
 select_nixos_generation() {
 	local root="$1"
 	local generations
@@ -227,7 +260,7 @@ select_nixos_generation() {
 		only_ver="$(echo "$generations" | cut -d: -f2)"
 		only_path="$(echo "$generations" | cut -d: -f3)"
 		echo "NixOS: auto-selecting generation ${only_num} (${only_ver})"
-		INIT_PATH="${only_path}/init"
+		INIT_PATH="${only_path}"
 		return 0
 	fi
 
@@ -262,7 +295,7 @@ select_nixos_generation() {
 	selected_path="$(echo "$selected_line" | cut -d: -f3)"
 	selected_num="$(echo "$selected_line" | cut -d: -f1)"
 	echo "booting NixOS generation ${selected_num}"
-	INIT_PATH="${selected_path}/init"
+	INIT_PATH="${selected_path}"
 }
 
 print_selector() {
@@ -387,9 +420,10 @@ boot_target() {
 		fi
 	fi
 
-	# NixOS detection: select generation init or fall back to /sbin/init
+	# NixOS detection via bare 'system' profile symlink — always present on NixOS,
+	# does not depend on numbered generation links existing.
 	INIT_PATH="/sbin/init"
-	if ls /newroot/nix/var/nix/profiles/system-*-link >/dev/null 2>&1; then
+	if is_nixos_root "/newroot"; then
 		echo "NixOS rootfs detected"
 		select_nixos_generation "/newroot" || echo "NixOS: no valid generations found, falling back to /sbin/init"
 	fi
