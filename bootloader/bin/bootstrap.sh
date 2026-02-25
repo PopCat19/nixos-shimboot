@@ -27,13 +27,10 @@ set +x
 rescue_mode=""
 INIT_PATH="/sbin/init"
 
-GREY='\033[0;37m'
-RESET='\033[0m'
-
-info() { printf "${GREY}#${RESET} %s\n" "$*"; }
-sep()  { printf "${GREY}===${RESET}\n"; }
-log()  { printf "${GREY}>${RESET} %s\n" "$*"; }
-err()  { printf "${GREY}>${RESET} %s\n" "$*"; }
+info() { printf "# %s\n" "$*"; }
+sep()  { printf "=== \n"; }
+log()  { printf "> %s\n" "$*"; }
+err()  { printf "> %s\n" "$*"; }
 
 invoke_terminal() {
 	local tty="$1"
@@ -322,7 +319,7 @@ select_nixos_generation() {
 
 	echo "$generations" | awk -F'|' -v def="$default_num" '{
 		marker = ($1 == def) ? " *" : ""
-		printf "  [gen %-4s] %s %s  %s  %s%s\n", $1, $3, $4, $5, $2, marker
+		printf "  [gen %s] %s %s  %s  %s%s\n", $1, $3, $4, $5, $2, marker
 	}'
 
 	echo ""
