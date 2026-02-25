@@ -203,11 +203,10 @@ is_nixos_root() {
 list_nixos_generations() {
 	local root="$1"
 	local profiles_dir="${root}/nix/var/nix/profiles"
-	local found=0
+	local out=""
 
 	for link in "${profiles_dir}"/system-*-link; do
 		[ -L "$link" ] || continue
-		found=1
 
 		local gen_num
 		gen_num="$(basename "$link" | sed 's/system-\([0-9]*\)-link/\1/')"
@@ -221,13 +220,12 @@ list_nixos_generations() {
 			version="$(cat "${resolved}/nixos-version")"
 		fi
 
-		echo "${gen_num}:${version}:/nix/var/nix/profiles/$(basename "$link")/init"
-	done | sort -t: -k1 -n -r
+		out="${out}${gen_num}:${version}:/nix/var/nix/profiles/$(basename "$link")/init
+"
+	done
 
-	# No numbered links: synthesize from the bare 'system' symlink.
-	# This is the normal state of a freshly assembled image before the user
-	# has run nixos-rebuild for the first time.
-	if [ "$found" -eq 0 ] && [ -L "${profiles_dir}/system" ]; then
+	if [ -z "$out" ] && [ -L "${profiles_dir}/system" ]; then
+		# Synthetic fallback: fresh image, no numbered links yet
 		local link_target
 		link_target="$(readlink "${profiles_dir}/system")"
 		local resolved="${root}${link_target}"
@@ -238,7 +236,10 @@ list_nixos_generations() {
 		fi
 
 		echo "0:${version}:/nix/var/nix/profiles/system/init"
+		return 0
 	fi
+
+	echo "$out" | sort -t: -k1 -n -r
 }
 
 # Sets global INIT_PATH to the selected generation init.
@@ -252,7 +253,7 @@ select_nixos_generation() {
 	fi
 
 	local gen_count
-	gen_count="$(echo "$generations" | wc -l)"
+	gen_count="$(echo "$generations" | grep -c .)"
 
 	if [ "$gen_count" -eq 1 ]; then
 		local only_num only_ver only_path
@@ -264,30 +265,34 @@ select_nixos_generation() {
 		return 0
 	fi
 
+	local latest_num
+	latest_num="$(echo "$generations" | head -n1 | cut -d: -f1)"
+
 	echo ""
-	echo "NixOS generations:"
+	echo "NixOS generations (current: ${latest_num}):"
 	echo ""
 
-	echo "$generations" | awk -F: '{
-		suffix = (NR == 1) ? " (latest)" : ""
-		printf "  %d) generation %s - %s%s\n", NR, $1, $2, suffix
+	echo "$generations" | awk -F: -v latest="$latest_num" '{
+		suffix = ($1 == latest) ? " (latest)" : ""
+		printf "  gen %-4s %s%s\n", $1, $2, suffix
 	}'
 
 	echo ""
-	echo "  enter) boot latest"
+	echo "  enter) boot latest (gen ${latest_num})"
 	echo ""
-	read -p "Generation: " gen_sel
+	read -p "Generation number: " gen_sel
 
 	# guard against sed injection from untrusted input
 	case "$gen_sel" in
-		''|*[!0-9]*) gen_sel=1 ;;
+		''|*[!0-9]*) gen_sel="$latest_num" ;;
 	esac
 
+	# match by generation number, not line index
 	local selected_line
-	selected_line="$(echo "$generations" | sed -n "${gen_sel}p")"
+	selected_line="$(echo "$generations" | awk -F: -v g="$gen_sel" '$1 == g {print; exit}')"
 
 	if [ -z "$selected_line" ]; then
-		echo "invalid selection, defaulting to latest"
+		echo "generation ${gen_sel} not found, defaulting to latest"
 		selected_line="$(echo "$generations" | head -n1)"
 	fi
 
