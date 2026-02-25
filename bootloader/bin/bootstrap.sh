@@ -38,15 +38,24 @@ err()  { printf "> %s\n" "$*"; }
 invoke_terminal() {
 	local tty="$1"
 	local title="$2"
-	shift
-	shift
-	echo "${title}" >>${tty}
-	setsid sh -c "exec script -afqc '$*' /dev/null <${tty} >>${tty} 2>&1 &"
+	local cmd="$3"
+	echo "${title}" >>"${tty}"
+	setsid sh -c "exec script -afqc '${cmd}' /dev/null <${tty} >>${tty} 2>&1" &
 }
 
+# Background debug console on TTY2 — non-blocking, for parallel access.
 enable_debug_console() {
 	local tty="$1"
-	sh <"$tty" >"$tty" 2>&1 || true
+	invoke_terminal "${tty}" "[Bootstrap Debug Console]" "/bin/busybox sh"
+}
+
+# Blocking interactive shell on TTY1 — called from menu, returns on exit.
+interactive_shell() {
+	sep
+	info "This is root busybox in initramfs"
+	info "Ctrl+D or 'exit' returns to this menu"
+	sep
+	sh <"$TTY1" >"$TTY1" 2>&1 || true
 }
 
 get_part_dev() {
@@ -406,11 +415,7 @@ get_selection() {
 			return 1
 			;;
 		s)
-			sep
-			info "This is root busybox in initramfs"
-			info "Ctrl+D or 'exit' returns to this menu"
-			sep
-			enable_debug_console "$TTY1"
+			interactive_shell
 			return 1
 			;;
 		l)
