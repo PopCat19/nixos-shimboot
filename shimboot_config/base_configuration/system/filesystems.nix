@@ -18,7 +18,11 @@
   fileSystems."/" = lib.mkForce {
     device = "/dev/disk/by-label/nixos";
     fsType = "ext4";
-    options = [ "noatime" "commit=30" "errors=remount-ro" ];
+    options = [
+      "noatime"
+      "commit=30"
+      "errors=remount-ro"
+    ];
   };
 
   # System-wide tmpfs configuration
@@ -30,6 +34,9 @@
   fileSystems."/var/log" = {
     device = "tmpfs";
     fsType = "tmpfs";
-    options = [ "size=100M" "mode=755" ];
+    options = [
+      "size=100M"
+      "mode=755"
+    ];
   };
 }
