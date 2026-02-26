@@ -1,18 +1,22 @@
 # Security Configuration Module
 #
 # Purpose: Configure system security and authorization
-# Dependencies: polkit, rtkit, bubblewrap
+# Dependencies: polkit, rtkit, bubblewrap, systemd
 # Related: services.nix, users.nix, packages.nix
 #
 # This module:
 # - Enables PolicyKit for system authorization
 # - Enables rtkit for realtime scheduling
+# - Disables systemd coredumps for disk space and privacy
 # - Provides secure privilege escalation mechanisms
 # - Creates SUID wrapper for bubblewrap to bypass ChromeOS kernel restrictions
 { pkgs, ... }:
 {
   security.polkit.enable = true;
   security.rtkit.enable = true;
+
+  # Disable coredumps to save disk space and improve performance
+  systemd.coredump.enable = false;
 
   # Create a Set-UID wrapper for Bubblewrap
   # This allows bwrap to create namespaces even if the kernel
