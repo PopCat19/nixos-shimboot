@@ -189,9 +189,9 @@
 
     "fish/functions/lsa.fish".text = builtins.readFile ./fish_functions/lsa.fish;
 
-    "fish/functions/proxy_on.fish".text = builtins.readFile ./fish_functions/proxy_on.fish;
+    "fish/functions/proxy-on.fish".text = builtins.readFile ./fish_functions/proxy-on.fish;
 
-    "fish/functions/proxy_off.fish".text = builtins.readFile ./fish_functions/proxy_off.fish;
+    "fish/functions/proxy-off.fish".text = builtins.readFile ./fish_functions/proxy-off.fish;
 
     "fish/functions/proxify.fish".text = builtins.readFile ./fish_functions/proxify.fish;
 

@@ -4,7 +4,7 @@
 #
 # Purpose: Run commands detached from PTY with proxy settings.
 # Rationale: Decouples application lifecycle from the shell using systemd scopes.
-# Related: proxy_on.fish, proxy_off.fish
+# Related: proxy-on.fish, proxy-off.fish
 #
 # Note: Leverages uwsm app for scope management and redirects output to /dev/null.
 

@@ -24,7 +24,7 @@ let
     jq
   ];
 
-  # expand_rootfs dependencies
+  # expand-rootfs dependencies
   expandRootfsDeps =
     coreDeps
     ++ (with pkgs; [
@@ -50,14 +50,14 @@ let
       procps
     ]);
 
-  # setup_nixos_config dependencies
+  # setup-nixos-config dependencies
   setupNixosConfigDeps =
     coreDeps
     ++ (with pkgs; [
       nix
     ]);
 
-  # migrate_nixos_config dependencies
+  # migrate-nixos-config dependencies
   migrateNixosConfigDeps = coreDeps;
 
   # migrate_hostname dependencies
@@ -85,21 +85,21 @@ in
     })
 
     (writeShellApplication {
-      name = "expand_rootfs";
+      name = "expand-rootfs";
       runtimeInputs = expandRootfsDeps;
-      text = builtins.readFile ./expand_rootfs.sh;
+      text = builtins.readFile ./expand-rootfs.sh;
     })
 
     (writeShellApplication {
-      name = "setup_nixos_config";
+      name = "setup-nixos-config";
       runtimeInputs = setupNixosConfigDeps;
-      text = builtins.readFile ./setup_nixos_config.sh;
+      text = builtins.readFile ./setup-nixos-config.sh;
     })
 
     (writeShellApplication {
-      name = "setup_nixos";
+      name = "setup-nixos";
       runtimeInputs = setupNixosDeps;
-      text = builtins.readFile ./setup_nixos.sh;
+      text = builtins.readFile ./setup-nixos.sh;
     })
 
     (writeShellApplication {
@@ -182,7 +182,7 @@ in
         pkgs.writeShellApplication {
           name = "migrate-nixos-config";
           runtimeInputs = migrateNixosConfigDeps;
-          text = builtins.readFile ./migrate_nixos_config.sh;
+          text = builtins.readFile ./migrate-nixos-config.sh;
         }
       }/bin/migrate-nixos-config ${userConfig.user.username}";
       RemainAfterExit = true;

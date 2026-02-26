@@ -4,7 +4,7 @@
 # Purpose: Enable proxy variables with overwritable defaults
 # Usage: proxy_on [HOST] [HTTP_PORT] [SOCKS_PORT]
 
-function proxy_on
+function proxy-on
     set -l _host (test -n "$argv[1]"; and echo "$argv[1]"; or echo (set -q PROXY_HOST; and echo $PROXY_HOST; or echo "192.168.49.1"))
     set -l _http_port (test -n "$argv[2]"; and echo "$argv[2]"; or echo (set -q PROXY_HTTP_PORT; and echo $PROXY_HTTP_PORT; or echo "8282"))
     set -l _socks_port (test -n "$argv[3]"; and echo "$argv[3]"; or echo (set -q PROXY_SOCKS_PORT; and echo $PROXY_SOCKS_PORT; or echo "1080"))
