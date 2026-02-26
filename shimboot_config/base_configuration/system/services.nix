@@ -5,11 +5,15 @@
 # Related: hardware.nix, security.nix
 #
 # This module:
+# - Disables systemd coredumps to save disk space
 # - Configures systemd journald with volatile storage to reduce disk writes
 # - Enables libinput for input device handling
 # - Sets up udev rules for brightness control
 # - Enables storage and D-Bus services
 _: {
+  # Disable coredumps to save disk space
+  systemd.coredump.enable = false;
+
   services.journald.extraConfig = ''
     Storage=volatile
     MaxRetentionSec=3day
