@@ -28,7 +28,7 @@ rescue_mode=""
 INIT_PATH="/sbin/init"
 
 info() { printf "# %s\n" "$*"; }
-sep() { printf "=== \n"; }
+sep() { printf "===\n"; }
 log() { printf "> %s\n" "$*"; }
 err() { printf "> %s\n" "$*"; }
 
@@ -48,10 +48,12 @@ enable_debug_console() {
 
 # Blocking interactive shell on TTY1 — called from menu, returns on exit.
 interactive_shell() {
+	echo ""
 	sep
 	info "This is root busybox in initramfs"
-	info "Ctrl+D or 'exit' returns to this menu"
+	info "Ctrl+D or \`exit\` returns to this menu"
 	sep
+	echo ""
 	sh <"$TTY1" >"$TTY1" 2>&1 || true
 }
 
@@ -160,11 +162,13 @@ bind_vendor_into() {
 
 	log "vendor: device=${vendor_part}"
 	mkdir -p "${target_root}/.vendor"
+	log "Running: mount -o ro ${vendor_part} ${target_root}/.vendor"
 	if mount -o ro "$vendor_part" "${target_root}/.vendor"; then
 		log "vendor: mounted"
 
 		if [ -d "${target_root}/.vendor/lib/modules" ] && find "${target_root}/.vendor/lib/modules" -type f -name "*.ko*" 2>/dev/null | head -n1 | grep -q .; then
 			mkdir -p "${target_root}/lib/modules"
+			log "Running: mount -o bind ${target_root}/.vendor/lib/modules ${target_root}/lib/modules"
 			if mount -o bind "${target_root}/.vendor/lib/modules" "${target_root}/lib/modules"; then
 				log "vendor: modules bound"
 			else
@@ -174,6 +178,7 @@ bind_vendor_into() {
 
 		if [ -d "${target_root}/.vendor/lib/firmware" ] && find "${target_root}/.vendor/lib/firmware" -type f 2>/dev/null | head -n1 | grep -q .; then
 			mkdir -p "${target_root}/lib/firmware"
+			log "Running: mount -o bind ${target_root}/.vendor/lib/firmware ${target_root}/lib/firmware"
 			if mount -o bind "${target_root}/.vendor/lib/firmware" "${target_root}/lib/firmware"; then
 				log "vendor: firmware bound"
 			else
@@ -194,6 +199,22 @@ move_mounts() {
 		mkdir -p "$newroot_mnt$mnt"
 		mount -n -o move "$mnt" "$newroot_mnt$mnt"
 	done
+}
+
+show_time() {
+	echo ""
+	echo "  UTC:         $(date -u '+%Y-%m-%d %H:%M:%S')"
+	echo "  US Eastern:  $(TZ=EST5EDT,M3.2.0,M11.1.0 date '+%Y-%m-%d %H:%M:%S')"
+	echo "  US Central:  $(TZ=CST6CDT,M3.2.0,M11.1.0 date '+%Y-%m-%d %H:%M:%S')"
+	echo "  US Mountain: $(TZ=MST7MDT,M3.2.0,M11.1.0 date '+%Y-%m-%d %H:%M:%S')"
+	echo "  US Pacific:  $(TZ=PST8PDT,M3.2.0,M11.1.0 date '+%Y-%m-%d %H:%M:%S')"
+	echo ""
+	if [ -f /proc/driver/rtc ]; then
+		echo "  RTC (hardware):"
+		sed 's/^/    /' /proc/driver/rtc
+		echo ""
+	fi
+	read -p "press [enter] to return"
 }
 
 print_license() {
@@ -304,11 +325,10 @@ list_nixos_generations() {
 		return 0
 	fi
 
-	echo "$out" | sort -t'|' -k1 -n -r
+	echo "$out" | sort -t'|' -k1 -n
 }
 
-# Sets global INIT_PATH to the selected generation init.
-# Returns 2 if user selected [b] return to main menu.
+# Sets global INIT_PATH. Returns 2 if user selected [b] return to main menu.
 select_nixos_generation() {
 	local root="$1"
 	local generations
@@ -322,7 +342,7 @@ select_nixos_generation() {
 	gen_count="$(echo "$generations" | grep -c .)"
 
 	local default_num
-	default_num="$(echo "$generations" | head -n1 | cut -d'|' -f1)"
+	default_num="$(echo "$generations" | tail -n1 | cut -d'|' -f1)"
 
 	if [ "$gen_count" -eq 1 ]; then
 		local only_num only_ver only_date only_time only_path
@@ -366,7 +386,7 @@ select_nixos_generation() {
 
 	if [ -z "$selected_line" ]; then
 		log "generation ${gen_sel} not found, defaulting to latest"
-		selected_line="$(echo "$generations" | head -n1)"
+		selected_line="$(echo "$generations" | tail -n1)"
 	fi
 
 	local selected_path selected_num
@@ -409,6 +429,7 @@ print_selector() {
 	echo "  [s] Initramfs Shell (busybox)"
 	echo "  [r] Reboot"
 	echo "  [q] Power Off"
+	echo "  [t] Time (UTC & US)"
 	echo "  [l] License"
 	echo ""
 }
@@ -421,15 +442,16 @@ get_selection() {
 
 	case "$selection" in
 	r)
-		echo "rebooting now."
+		log "Running: reboot -f"
 		reboot -f
 		;;
 	q)
-		echo "powering off."
+		log "Running: poweroff -f"
 		poweroff -f
 		;;
 	0)
 		echo ""
+		log "Running: blkid"
 		blkid || true
 		echo ""
 		read -p "press [enter] to return"
@@ -437,6 +459,10 @@ get_selection() {
 		;;
 	s)
 		interactive_shell
+		return 1
+		;;
+	t)
+		show_time
 		return 1
 		;;
 	l)
@@ -487,19 +513,23 @@ exec_init() {
 		chmod +x /bootloader/opt/exit-rescue 2>/dev/null || true
 		export PATH="/bootloader/opt:$PATH"
 		export INIT_PATH="$INIT_PATH"
+		echo ""
 		sep
 		info "root ${shell_bin} | /newroot | post-pivot"
 		info "no return to bootloader menu from here"
-		info "Ctrl+D or 'exit' boots init (same as exit-rescue)"
-		info "echo o > /proc/sysrq-trigger to power off"
-		info "echo b > /proc/sysrq-trigger to reboot"
-		info "run '. setup-nix' to load NixOS env and tools"
-		info "run '. exit-rescue' to immediately exec init"
+		info "Ctrl+D or \`exit\` boots init (same as \`exit-rescue\`)"
+		info "\`echo o > /proc/sysrq-trigger\` to power off"
+		info "\`echo b > /proc/sysrq-trigger\` to reboot"
+		info "run \`. setup-nix\` to load NixOS env and tools"
+		info "run \`. exit-rescue\` to immediately exec init"
 		sep
+		echo ""
 		"$shell_bin" <"$TTY1" >>"$TTY1" 2>&1 || true
 		log "rescue shell exited, continuing boot (init=${INIT_PATH})"
+		log "Running: exec ${INIT_PATH}"
 		exec "$INIT_PATH" <"$TTY1" >>"$TTY1" 2>&1
 	else
+		log "Running: exec ${INIT_PATH}"
 		exec "$INIT_PATH" <"$TTY1" >>"$TTY1" 2>&1
 	fi
 }
@@ -522,6 +552,7 @@ boot_target() {
 		local luks_ok=0
 		local attempts=0
 		while [ $attempts -lt 3 ]; do
+			log "Running: cryptsetup open ${target} rootfs"
 			if cryptsetup open "$target" rootfs; then
 				luks_ok=1
 				break
@@ -536,6 +567,7 @@ boot_target() {
 			return 1
 		fi
 
+		log "Running: mount /dev/mapper/rootfs /newroot"
 		if ! mount -t ext4 /dev/mapper/rootfs /newroot 2>/dev/null; then
 			if ! mount /dev/mapper/rootfs /newroot; then
 				err "mount failed for LUKS rootfs: /dev/mapper/rootfs"
@@ -549,7 +581,9 @@ boot_target() {
 			fi
 		fi
 	else
+		log "Running: mount -t ext4 ${target} /newroot"
 		if ! mount -t ext4 $target /newroot 2>/dev/null; then
+			log "Running: mount ${target} /newroot"
 			if ! mount $target /newroot; then
 				err "mount failed for ${target}"
 				echo "> available filesystems:"
@@ -585,6 +619,7 @@ boot_target() {
 	move_mounts /newroot
 
 	log "switching root (init=${INIT_PATH})"
+	log "Running: pivot_root /newroot /newroot/bootloader"
 	mkdir -p /newroot/bootloader
 	pivot_root /newroot /newroot/bootloader
 	exec_init
