@@ -430,12 +430,6 @@ log_info "Upstream firmware: ${FIRMWARE_UPSTREAM} (0=disabled, 1=enabled)"
 log_info "Push to Cachix: ${PUSH_TO_CACHIX} (0=disabled, 1=enabled, derivations only)"
 log_info "LUKS2 encryption: ${LUKS_ENABLED} (0=disabled, 1=enabled)"
 
-# LUKS passphrase already collected during onboarding; validate cryptsetup here
-if [ "$LUKS_ENABLED" -eq 1 ] && ! command -v cryptsetup >/dev/null 2>&1; then
-	log_error "LUKS requested but cryptsetup not found; run: nix develop"
-	exit 1
-fi
-
 # === Setup Workspace Path ===
 # Detect if we're in CI with Nothing but Nix (large /nix mount)
 if [ -d "/nix" ] && mountpoint -q /nix 2>/dev/null; then
