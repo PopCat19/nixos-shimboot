@@ -46,6 +46,269 @@
 
 set -Eeuo pipefail
 
+# === CI Detection ===
+is_ci() {
+	[ "${CI:-}" = "true" ] ||
+		[ -n "${GITHUB_ACTIONS:-}" ] ||
+		[ -n "${GITLAB_CI:-}" ] ||
+		[ -n "${JENKINS_HOME:-}" ]
+}
+
+# === Colors & Logging ===
+ANSI_CLEAR='\033[0m'
+ANSI_BOLD='\033[1m'
+ANSI_GREEN='\033[1;32m'
+ANSI_BLUE='\033[1;34m'
+ANSI_YELLOW='\033[1;33m'
+ANSI_RED='\033[1;31m'
+
+log_step() { printf "${ANSI_BOLD}${ANSI_BLUE}[%s] %s${ANSI_CLEAR}\n" "$1" "$2"; }
+log_info() { printf "${ANSI_GREEN}  → %s${ANSI_CLEAR}\n" "$1"; }
+log_warn() { printf "${ANSI_YELLOW}  ! %s${ANSI_CLEAR}\n" "$1"; }
+log_error() { printf "${ANSI_RED}  ✗ %s${ANSI_CLEAR}\n" "$1"; }
+log_success() { printf "${ANSI_GREEN}  ✓ %s${ANSI_CLEAR}\n" "$1"; }
+
+show_help() {
+	cat <<'HELPTEXT'
+Usage: ./assemble-final.sh [OPTIONS]
+
+Build and assemble a shimboot image with Nix outputs, drivers, and partitioning.
+
+Options:
+  --board BOARD            Target board (dedede, octopus, etc.) [default: dedede]
+  --rootfs FLAVOR          Rootfs variant: full, minimal [interactive if omitted]
+  --drivers MODE           Driver placement: vendor, inject, both, none [default: vendor]
+  --firmware-upstream      Enable upstream firmware [default]
+  --no-firmware-upstream   Disable upstream firmware
+  --luks                   Enable LUKS2 encryption on rootfs partition
+  --luks-passphrase PW     Passphrase for LUKS2 (prompted interactively if omitted)
+  --inspect                Inspect final image after build
+  --dry-run                Show full execution plan without building or modifying anything
+  --prewarm-cache          Attempt to fetch from Cachix before building
+  --push-to-cachix         Push Nix derivations to Cachix after build
+  --cleanup-rootfs         Prune older shimboot rootfs generations
+  --cleanup-keep N         Keep last N generations [default: 3]
+  --no-dry-run             Actually delete in cleanup (default is dry-run)
+  -h, --help               Show this help and exit
+
+Environment variables:
+  BOARD                    Same as --board
+  LUKS_PASSPHRASE          Same as --luks-passphrase
+  CACHIX_AUTH_TOKEN         Authenticate with Cachix for push
+  SKIP_RECOVERY            Set to 1 to skip recovery image
+  NIXPKGS_ALLOW_UNFREE     Allow unfree packages [default: 1]
+
+Examples:
+  ./assemble-final.sh --board dedede --rootfs full
+  ./assemble-final.sh --board dedede --rootfs minimal --drivers vendor
+  ./assemble-final.sh --board dedede --rootfs full --luks
+  ./assemble-final.sh --board dedede --rootfs full --dry-run
+HELPTEXT
+	exit 0
+}
+
+# === Config (env-aware for sudo re-entry) ===
+SYSTEM="x86_64-linux"
+BOARD="${BOARD:-}"
+BOARD_EXPLICITLY_SET="${BOARD_EXPLICITLY_SET:-}"
+ROOTFS_NAME="${ROOTFS_NAME:-nixos}"
+ROOTFS_FLAVOR="${ROOTFS_FLAVOR:-}"
+DRIVERS_MODE="${DRIVERS_MODE:-}"
+INSPECT_AFTER="${INSPECT_AFTER:-}"
+DRY_RUN="${DRY_RUN:-0}"
+FIRMWARE_UPSTREAM="${FIRMWARE_UPSTREAM:-1}"
+FIRMWARE_UPSTREAM_SET="${FIRMWARE_UPSTREAM_SET:-}"
+CLEANUP_ROOTFS="${CLEANUP_ROOTFS:-0}"
+CLEANUP_NO_DRY_RUN="${CLEANUP_NO_DRY_RUN:-0}"
+CLEANUP_KEEP="${CLEANUP_KEEP:-}"
+PREWARM_CACHE="${PREWARM_CACHE:-0}"
+PUSH_TO_CACHIX="${PUSH_TO_CACHIX:-0}"
+LUKS_ENABLED="${LUKS_ENABLED:-0}"
+LUKS_PASSPHRASE="${LUKS_PASSPHRASE:-}"
+LUKS_MAPPER_NAME="rootfs_assembly"
+
+# === Argument Parsing ===
+while [ $# -gt 0 ]; do
+	case "${1:-}" in
+	-h | --help) show_help ;;
+	--board)
+		BOARD="${2:-}"
+		BOARD_EXPLICITLY_SET="set"
+		shift 2
+		;;
+	--rootfs)
+		ROOTFS_FLAVOR="${2:-}"
+		shift 2
+		;;
+	--drivers)
+		DRIVERS_MODE="${2:-vendor}"
+		shift 2
+		;;
+	--firmware-upstream)
+		FIRMWARE_UPSTREAM="1"
+		FIRMWARE_UPSTREAM_SET=1
+		shift
+		;;
+	--no-firmware-upstream)
+		FIRMWARE_UPSTREAM="0"
+		FIRMWARE_UPSTREAM_SET=1
+		shift
+		;;
+	--inspect)
+		INSPECT_AFTER="--inspect"
+		shift
+		;;
+	--cleanup-rootfs)
+		CLEANUP_ROOTFS=1
+		shift
+		;;
+	--cleanup-no-dry-run | --no-dry-run)
+		CLEANUP_NO_DRY_RUN=1
+		shift
+		;;
+	--cleanup-keep | --keep)
+		CLEANUP_KEEP="${2:-}"
+		shift 2
+		;;
+	--dry-run)
+		DRY_RUN=1
+		shift
+		;;
+	--prewarm-cache)
+		PREWARM_CACHE=1
+		shift
+		;;
+	--push-to-cachix)
+		PUSH_TO_CACHIX=1
+		shift
+		;;
+	--luks)
+		LUKS_ENABLED=1
+		shift
+		;;
+	--luks-passphrase)
+		LUKS_PASSPHRASE="${2:-}"
+		shift 2
+		;;
+	*)
+		log_error "Unknown option: ${1:-}"
+		log_error "Run with --help for usage."
+		exit 1
+		;;
+	esac
+done
+
+# === Interactive Onboarding (unprivileged, tty only) ===
+if [ -z "$BOARD" ]; then
+	BOARD="dedede"
+fi
+if [ -z "$BOARD_EXPLICITLY_SET" ]; then
+	log_warn "No --board specified; defaulting to 'dedede'."
+	log_warn "If this is unintended, rerun with --board <name>."
+fi
+if [ -z "$BOARD" ]; then
+	log_error "Board name cannot be empty; use --board <name>."
+	exit 1
+fi
+
+if [ -z "${ROOTFS_FLAVOR:-}" ] && [ -t 0 ]; then
+	echo
+	echo "[assemble-final] Select rootfs flavor to build:"
+	echo "  1) full     (recommended) → complete desktop with Home Manager, Rose Pine theme, and user applications (~16-20GB)"
+	echo "  2) minimal  (lightweight) → base system with LightDM + Hyprland, network, and shell utilities (~6-8GB)"
+	read -rp "Enter choice [1/2, default=1]: " choice
+	case "${choice:-1}" in
+	2) ROOTFS_FLAVOR="minimal" ;;
+	*) ROOTFS_FLAVOR="full" ;;
+	esac
+elif [ -z "${ROOTFS_FLAVOR:-}" ]; then
+	ROOTFS_FLAVOR="full"
+fi
+
+if [ "${ROOTFS_FLAVOR}" != "full" ] && [ "${ROOTFS_FLAVOR}" != "minimal" ]; then
+	log_error "Invalid --rootfs value: '${ROOTFS_FLAVOR}'. Use 'full' or 'minimal'."
+	exit 1
+fi
+
+if [ -z "${DRIVERS_MODE:-}" ] && [ -t 0 ]; then
+	echo
+	echo "[assemble-final] Select driver placement mode:"
+	echo "  1) vendor  (default) → separate vendor partition, mounted at boot"
+	echo "  2) inject            → copy drivers directly into rootfs"
+	echo "  3) both              → vendor partition AND inject (redundant but safe)"
+	echo "  4) none              → skip driver handling entirely"
+	read -rp "Enter choice [1-4, default=1]: " drv_choice
+	case "${drv_choice:-1}" in
+	2) DRIVERS_MODE="inject" ;;
+	3) DRIVERS_MODE="both" ;;
+	4) DRIVERS_MODE="none" ;;
+	*) DRIVERS_MODE="vendor" ;;
+	esac
+fi
+DRIVERS_MODE="${DRIVERS_MODE:-vendor}"
+
+if [ -z "$FIRMWARE_UPSTREAM_SET" ] && [ -t 0 ]; then
+	read -rp "[assemble-final] Include upstream ChromiumOS linux-firmware? [Y/n]: " fw_choice
+	case "${fw_choice:-y}" in
+	[Nn]*) FIRMWARE_UPSTREAM="0" ;;
+	esac
+fi
+
+if [ -z "$INSPECT_AFTER" ] && [ -t 0 ]; then
+	read -rp "[assemble-final] Inspect final image after build? [y/N]: " inspect_choice
+	case "${inspect_choice:-n}" in
+	[Yy]*) INSPECT_AFTER="--inspect" ;;
+	esac
+fi
+
+# LUKS passphrase: collect before sudo so no root needed for tty prompt
+if [ "$LUKS_ENABLED" -eq 0 ] && [ -t 0 ]; then
+	read -rp "[assemble-final] Enable LUKS2 encryption on rootfs? [y/N]: " luks_choice
+	case "${luks_choice:-n}" in
+	[Yy]*) LUKS_ENABLED=1 ;;
+	esac
+fi
+
+if [ "$LUKS_ENABLED" -eq 1 ] && [ -z "$LUKS_PASSPHRASE" ]; then
+	if [ -t 0 ]; then
+		echo
+		while true; do
+			read -rsp "[LUKS] Enter passphrase for encrypted rootfs: " LUKS_PASSPHRASE
+			echo
+			read -rsp "[LUKS] Confirm passphrase: " pw_confirm
+			echo
+			if [ "$LUKS_PASSPHRASE" = "$pw_confirm" ]; then
+				break
+			fi
+			log_error "Passphrases do not match, try again."
+		done
+		unset pw_confirm
+	else
+		log_error "LUKS enabled but LUKS_PASSPHRASE not set and stdin is not a tty."
+		exit 1
+	fi
+fi
+
+# === Sudo Elevation ===
+# Elevate to root so nix-daemon treats this client as trusted.
+# Skip for --dry-run: no destructive ops, no privilege required.
+if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+	if [ "$DRY_RUN" -eq 1 ]; then
+		log_info "Dry-run mode: skipping sudo elevation"
+	else
+		echo "[assemble-final] Re-executing with sudo -H..."
+		echo "[assemble-final] Please enter your sudo password when prompted..."
+		SUDO_ENV=()
+		for var in BOARD BOARD_EXPLICITLY_SET ROOTFS_FLAVOR DRIVERS_MODE \
+			FIRMWARE_UPSTREAM FIRMWARE_UPSTREAM_SET INSPECT_AFTER DRY_RUN \
+			LUKS_ENABLED LUKS_PASSPHRASE CLEANUP_ROOTFS CLEANUP_NO_DRY_RUN \
+			CLEANUP_KEEP PREWARM_CACHE PUSH_TO_CACHIX CACHIX_AUTH_TOKEN; do
+			if [ -n "${!var:-}" ]; then SUDO_ENV+=("$var=${!var}"); fi
+		done
+		exec sudo -E -H env "${SUDO_ENV[@]}" "$0" "$@"
+	fi
+fi
+
 # === Error Handling ===
 handle_error() {
 	local exit_code=$?
@@ -97,275 +360,73 @@ handle_error() {
 # Set up error trap
 trap 'handle_error "${CURRENT_STEP:-unknown}"' ERR
 
-# Elevate to root so nix-daemon treats this client as trusted; required for substituters/trusted-public-keys
-# Use -H to set HOME to /root to avoid "$HOME is not owned by you" warnings under sudo.
-if [ "${EUID:-$(id -u)}" -ne 0 ]; then
-	echo "[assemble-final] Re-executing with sudo -H..."
-	echo "[assemble-final] Please enter your sudo password when prompted..."
-	SUDO_ENV=()
-	for var in BOARD BOARD_EXPLICITLY_SET CACHIX_AUTH_TOKEN LUKS_PASSPHRASE; do
-		if [ -n "${!var:-}" ]; then SUDO_ENV+=("$var=${!var}"); fi
-	done
-	exec sudo -E -H "${SUDO_ENV[@]}" "$0" "$@"
-fi
+# === Dry-run: print execution plan and exit ===
+if [ "$DRY_RUN" -eq 1 ]; then
+	RAW_ROOTFS_ATTR="raw-rootfs"
+	[ "${ROOTFS_FLAVOR}" = "minimal" ] && RAW_ROOTFS_ATTR="raw-rootfs-minimal"
 
-# === CI Detection ===
-is_ci() {
-	[ "${CI:-}" = "true" ] ||
-		[ -n "${GITHUB_ACTIONS:-}" ] ||
-		[ -n "${GITLAB_CI:-}" ] ||
-		[ -n "${JENKINS_HOME:-}" ]
-}
-
-# === Colors & Logging ===
-ANSI_CLEAR='\033[0m'
-ANSI_BOLD='\033[1m'
-ANSI_GREEN='\033[1;32m'
-ANSI_BLUE='\033[1;34m'
-ANSI_YELLOW='\033[1;33m'
-ANSI_RED='\033[1;31m'
-
-log_step() {
-	printf "${ANSI_BOLD}${ANSI_BLUE}[%s] %s${ANSI_CLEAR}\n" "$1" "$2"
-}
-
-log_info() {
-	printf "${ANSI_GREEN}  → %s${ANSI_CLEAR}\n" "$1"
-}
-
-log_warn() {
-	printf "${ANSI_YELLOW}  ! %s${ANSI_CLEAR}\n" "$1"
-}
-
-log_error() {
-	printf "${ANSI_RED}  ✗ %s${ANSI_CLEAR}\n" "$1"
-}
-
-log_success() {
-	printf "${ANSI_GREEN}  ✓ %s${ANSI_CLEAR}\n" "$1"
-}
-
-show_help() {
-	cat <<'HELPTEXT'
-Usage: ./assemble-final.sh [OPTIONS]
-
-Build and assemble a shimboot image with Nix outputs, drivers, and partitioning.
-
-Options:
-  --board BOARD            Target board (dedede, octopus, etc.) [default: dedede]
-  --rootfs FLAVOR          Rootfs variant: full, minimal [interactive if omitted]
-  --drivers MODE           Driver placement: vendor, inject, both, none [default: vendor]
-  --firmware-upstream      Enable upstream firmware [default]
-  --no-firmware-upstream   Disable upstream firmware
-  --luks                   Enable LUKS2 encryption on rootfs partition
-  --luks-passphrase PW     Passphrase for LUKS2 (prompted interactively if omitted)
-  --inspect                Inspect final image after build
-  --dry-run                Show what would be done without executing destructive operations
-  --prewarm-cache          Attempt to fetch from Cachix before building
-  --push-to-cachix         Push Nix derivations to Cachix after build
-  --cleanup-rootfs         Prune older shimboot rootfs generations
-  --cleanup-keep N         Keep last N generations [default: 3]
-  --no-dry-run             Actually delete in cleanup (default is dry-run)
-  -h, --help               Show this help and exit
-
-Environment variables:
-  BOARD                    Same as --board
-  LUKS_PASSPHRASE          Same as --luks-passphrase
-  CACHIX_AUTH_TOKEN         Authenticate with Cachix for push
-  SKIP_RECOVERY            Set to 1 to skip recovery image
-  NIXPKGS_ALLOW_UNFREE     Allow unfree packages [default: 1]
-
-Examples:
-  ./assemble-final.sh --board dedede --rootfs full
-  ./assemble-final.sh --board dedede --rootfs minimal --drivers vendor
-  ./assemble-final.sh --board dedede --rootfs full --luks
-  ./assemble-final.sh --board dedede --rootfs full --dry-run
-  ./assemble-final.sh --board dedede --rootfs full --push-to-cachix
-HELPTEXT
+	log_step "Dry Run" "Execution plan for shimboot image assembly"
+	echo
+	log_info "Board:              $BOARD"
+	log_info "Rootfs flavor:      $ROOTFS_FLAVOR (attr: .#${RAW_ROOTFS_ATTR})"
+	log_info "Drivers mode:       $DRIVERS_MODE"
+	log_info "Upstream firmware:  $FIRMWARE_UPSTREAM"
+	log_info "LUKS encryption:    $LUKS_ENABLED"
+	log_info "Inspect after:      ${INSPECT_AFTER:-no}"
+	log_info "Push to Cachix:     $PUSH_TO_CACHIX"
+	log_info "Cleanup rootfs:     $CLEANUP_ROOTFS"
+	echo
+	log_step "1/15" "nix build .#extracted-kernel-${BOARD}"
+	log_step "1/15" "nix build .#initramfs-patching-${BOARD}"
+	log_step "1/15" "nix build .#${RAW_ROOTFS_ATTR}"
+	log_step "1/15" "nix build .#chromeos-shim-${BOARD}"
+	log_step "1/15" "nix build .#chromeos-recovery-${BOARD}"
+	log_step "2/15" "harvest-drivers.sh --shim <shim> [--recovery <recovery>] --out work/${BOARD}/harvested"
+	[ "$FIRMWARE_UPSTREAM" != "0" ] &&
+		log_step "3/15" "git clone chromiumos/third_party/linux-firmware → merge into harvested firmware"
+	log_step "4/15" "Prune unused firmware files"
+	log_step "5/15" "Calculate vendor partition size"
+	log_step "6/15" "Copy raw rootfs image to work/${BOARD}/rootfs.img"
+	log_step "7/15" "nix-store --optimise on raw rootfs"
+	log_step "8/15" "Calculate rootfs content size + partition sizing"
+	log_step "9/15" "fallocate shimboot.img"
+	log_step "10/15" "parted: GPT partition table (STATE, KERNEL, BOOT, ${DRIVERS_MODE:+VENDOR, }ROOTFS)"
+	log_step "11/15" "losetup + cgpt boot flags on p2"
+	log_step "12/15" "mkfs.ext4/ext2, dd kernel${LUKS_ENABLED:+, cryptsetup luksFormat rootfs}"
+	log_step "13/15" "Populate bootloader (p3) with patched initramfs"
+	log_step "14/15" "Populate rootfs (p${ROOTFS_PARTITION_INDEX:-5}) from raw image + git clone nixos-config"
+	log_step "15/15" "Driver handling: ${DRIVERS_MODE}"
+	[ "$PUSH_TO_CACHIX" -eq 1 ] &&
+		log_step "Cachix" "push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE"
+	[ "$CLEANUP_ROOTFS" -eq 1 ] &&
+		log_step "Cleanup" "cleanup-shimboot-rootfs.sh --keep ${CLEANUP_KEEP:-3}"
+	echo
+	log_info "Output: work/${BOARD}/shimboot.img"
+	log_success "Dry run complete. Remove --dry-run to execute."
 	exit 0
-}
-
-# === Cachix Configuration (fixed cache, CI-safe) ===
-CACHIX_CACHE="shimboot-systemd-nixos"
-CACHIX_PUBKEY="shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA="
-export CACHIX_CACHE CACHIX_PUBKEY
-
-# Enable caching if cachix is available
-if command -v cachix >/dev/null 2>&1; then
-	log_info "Using Cachix cache: ${CACHIX_CACHE}"
-
-	# Authenticate if token is provided (recommended for CI)
-	if [ -n "${CACHIX_AUTH_TOKEN:-}" ]; then
-		cachix authtoken "$CACHIX_AUTH_TOKEN" 2>/dev/null || true
-	fi
-
-	# Configure trusted cache only if writable (skip on NixOS read-only systems)
-	if [ -w /etc/nix/nix.conf ] 2>/dev/null; then
-		mkdir -p /etc/nix
-		if ! grep -q "$CACHIX_CACHE" /etc/nix/nix.conf 2>/dev/null; then
-			echo "substituters = https://cache.nixos.org https://${CACHIX_CACHE}.cachix.org" | sudo tee -a /etc/nix/nix.conf >/dev/null
-			echo "trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ${CACHIX_PUBKEY}" | sudo tee -a /etc/nix/nix.conf >/dev/null
-			log_info "Configured nix.conf for Cachix trust"
-		fi
-	elif [ -f /etc/nix/nix.conf ]; then
-		log_info "nix.conf is read-only (NixOS); cache should be configured in system config"
-	else
-		log_warn "nix.conf not accessible; ensure Cachix is configured via NixOS config or user settings"
-	fi
-else
-	log_warn "cachix CLI not installed; skipping cache integration"
 fi
 
-# Add after Cachix configuration section in assemble-final.sh
-verify_cachix_config() {
-	log_step "Pre-check" "Verifying Cachix configuration"
-
-	# Check if Cachix is in substituters
-	if nix config show | grep -q "shimboot-systemd-nixos.cachix.org"; then
-		log_info "✓ Cachix configured in Nix settings"
-	else
-		log_warn "Cachix not found in Nix settings; builds may not use cache"
-		log_warn "This is normal if using flake-based config"
-	fi
-
-	# Test Cachix connectivity
-	if command -v curl >/dev/null 2>&1; then
-		if curl -sf "https://${CACHIX_CACHE}.cachix.org/nix-cache-info" >/dev/null; then
-			log_info "✓ Cachix endpoint reachable"
-		else
-			log_warn "Cannot reach Cachix endpoint; falling back to local builds"
-		fi
-	fi
-
-	# Show current substituters
-	log_info "Active substituters:"
-	nix config show | grep "^substituters" | sed 's/^/    /'
-}
-
-# Ensure unfree packages are allowed for nix builds that require ChromeOS tools/firmware
-export NIXPKGS_ALLOW_UNFREE="${NIXPKGS_ALLOW_UNFREE:-1}"
-
-# === Config ===
-SYSTEM="x86_64-linux"
-
-# Initialize BOARD_EXPLICITLY_SET before CLI parsing
-BOARD="${BOARD:-}"
-BOARD_EXPLICITLY_SET="${BOARD_EXPLICITLY_SET:-}"
-ROOTFS_NAME="${ROOTFS_NAME:-nixos}"
-ROOTFS_FLAVOR="${ROOTFS_FLAVOR:-}"
-INSPECT_AFTER=""
-
-# Dry run option
-DRY_RUN=0
-
-# Firmware options
-FIRMWARE_UPSTREAM="${FIRMWARE_UPSTREAM:-1}"
-
-# Cleanup options
-CLEANUP_ROOTFS=0
-CLEANUP_NO_DRY_RUN=0
-CLEANUP_KEEP=""
-
-# Cache options
-PREWARM_CACHE=0
-PUSH_TO_CACHIX=0
-
-# LUKS options
-LUKS_ENABLED=0
-LUKS_PASSPHRASE="${LUKS_PASSPHRASE:-}"
-LUKS_MAPPER_NAME="rootfs_assembly"
-
-while [ $# -gt 0 ]; do
-	case "${1:-}" in
-	-h | --help)
-		show_help
-		;;
-	--board)
-		BOARD="${2:-}"
-		BOARD_EXPLICITLY_SET="set"
-		shift 2
-		;;
-	--rootfs)
-		ROOTFS_FLAVOR="${2:-}"
-		shift 2
-		;;
-	--drivers)
-		DRIVERS_MODE="${2:-vendor}"
-		shift 2
-		;;
-	--firmware-upstream)
-		FIRMWARE_UPSTREAM="1"
-		FIRMWARE_UPSTREAM_SET=1
-		shift
-		;;
-	--no-firmware-upstream)
-		FIRMWARE_UPSTREAM="0"
-		FIRMWARE_UPSTREAM_SET=1
-		shift
-		;;
-	--inspect)
-		INSPECT_AFTER="--inspect"
-		shift
-		;;
-	--cleanup-rootfs)
-		CLEANUP_ROOTFS=1
-		shift
-		;;
-	--cleanup-no-dry-run | --no-dry-run)
-		CLEANUP_NO_DRY_RUN=1
-		shift
-		;;
-	--cleanup-keep | --keep)
-		CLEANUP_KEEP="${2:-}"
-		shift 2
-		;;
-
-	--dry-run)
-		DRY_RUN=1
-		shift
-		;;
-	--prewarm-cache)
-		PREWARM_CACHE=1
-		shift
-		;;
-	--push-to-cachix)
-		PUSH_TO_CACHIX=1
-		shift
-		;;
-	--luks)
-		LUKS_ENABLED=1
-		shift
-		;;
-	--luks-passphrase)
-		LUKS_PASSPHRASE="${2:-}"
-		shift 2
-		;;
-	*)
-		log_error "Unknown option: ${1:-}"
-		log_error "Run with --help for usage."
-		exit 1
-		;;
-	esac
-done
-
-# NOW set default board if not provided
-if [ -z "$BOARD" ]; then
-	BOARD="dedede"
+# === Post-sudo privileged section starts here ===
+# Build raw-rootfs attribute name based on flavor
+RAW_ROOTFS_ATTR="raw-rootfs"
+if [ "${ROOTFS_FLAVOR}" = "minimal" ]; then
+	RAW_ROOTFS_ATTR="raw-rootfs-minimal"
 fi
 
-# Warn only if board wasn't explicitly provided
-if [ -z "$BOARD_EXPLICITLY_SET" ]; then
-	log_warn "No --board specified; defaulting to 'dedede'."
-	log_warn "If this is unintended, rerun with --board <name>."
-	sleep 1
-fi
+log_info "Rootfs flavor: ${ROOTFS_FLAVOR} (attr: .#${RAW_ROOTFS_ATTR})"
+log_info "Board: ${BOARD}"
+log_info "Drivers mode: ${DRIVERS_MODE} (vendor|inject|none)"
+log_info "Upstream firmware: ${FIRMWARE_UPSTREAM} (0=disabled, 1=enabled)"
+log_info "Push to Cachix: ${PUSH_TO_CACHIX} (0=disabled, 1=enabled, derivations only)"
+log_info "LUKS2 encryption: ${LUKS_ENABLED} (0=disabled, 1=enabled)"
 
-if [ -z "$BOARD" ]; then
-	log_error "Board name cannot be empty; use --board <name>."
+# LUKS passphrase already collected during onboarding; validate cryptsetup here
+if [ "$LUKS_ENABLED" -eq 1 ] && ! command -v cryptsetup >/dev/null 2>&1; then
+	log_error "LUKS requested but cryptsetup not found; run: nix develop"
 	exit 1
 fi
 
-# === Setup Workspace Path (Now that BOARD is known) ===
+# === Setup Workspace Path ===
 # Detect if we're in CI with Nothing but Nix (large /nix mount)
 if [ -d "/nix" ] && mountpoint -q /nix 2>/dev/null; then
 	# Check if /nix has >50GB free (indicates CI environment)
@@ -383,119 +444,7 @@ fi
 
 IMAGE="$WORKDIR/shimboot.img"
 
-# Interactive prompt if not provided, default to full
-if [ -z "${ROOTFS_FLAVOR:-}" ]; then
-	if [ -t 0 ]; then
-		echo
-		echo "[assemble-final] Select rootfs flavor to build:"
-		echo "  1) full     (recommended) → complete desktop with Home Manager, Rose Pine theme, and user applications (~16-20GB)"
-		echo "  2) minimal  (lightweight) → base system with LightDM + Hyprland, network, and shell utilities (~6-8GB)"
-		read -rp "Enter choice [1/2, default=1]: " choice
-		case "${choice:-1}" in
-		2) ROOTFS_FLAVOR="minimal" ;;
-		*) ROOTFS_FLAVOR="full" ;;
-		esac
-	else
-		ROOTFS_FLAVOR="full"
-	fi
-fi
-
-# Interactive: drivers mode
-if [ -z "${DRIVERS_MODE:-}" ] && [ -t 0 ]; then
-	echo
-	echo "[assemble-final] Select driver placement mode:"
-	echo "  1) vendor  (default) → separate vendor partition, mounted at boot"
-	echo "  2) inject            → copy drivers directly into rootfs"
-	echo "  3) both              → vendor partition AND inject (redundant but safe)"
-	echo "  4) none              → skip driver handling entirely"
-	read -rp "Enter choice [1-4, default=1]: " drv_choice
-	case "${drv_choice:-1}" in
-	2) DRIVERS_MODE="inject" ;;
-	3) DRIVERS_MODE="both" ;;
-	4) DRIVERS_MODE="none" ;;
-	*) DRIVERS_MODE="vendor" ;;
-	esac
-fi
-
-# Interactive: LUKS encryption
-if [ "$LUKS_ENABLED" -eq 0 ] && [ -t 0 ]; then
-	read -rp "[assemble-final] Enable LUKS2 encryption on rootfs? [y/N]: " luks_choice
-	case "${luks_choice:-n}" in
-	[Yy]*) LUKS_ENABLED=1 ;;
-	esac
-fi
-
-# Interactive: upstream firmware
-if [ -t 0 ] && [ -z "${FIRMWARE_UPSTREAM_SET:-}" ]; then
-	read -rp "[assemble-final] Include upstream ChromiumOS linux-firmware? [Y/n]: " fw_choice
-	case "${fw_choice:-y}" in
-	[Nn]*) FIRMWARE_UPSTREAM="0" ;;
-	esac
-fi
-
-# Interactive: inspect
-if [ -z "$INSPECT_AFTER" ] && [ -t 0 ]; then
-	read -rp "[assemble-final] Inspect final image after build? [y/N]: " inspect_choice
-	case "${inspect_choice:-n}" in
-	[Yy]*) INSPECT_AFTER="--inspect" ;;
-	esac
-fi
-
-if [ "${ROOTFS_FLAVOR}" != "full" ] && [ "${ROOTFS_FLAVOR}" != "minimal" ]; then
-	log_error "Invalid --rootfs value: '${ROOTFS_FLAVOR}'. Use 'full' or 'minimal'."
-	exit 1
-fi
-
-# Build raw-rootfs attribute name based on flavor
-RAW_ROOTFS_ATTR="raw-rootfs"
-if [ "${ROOTFS_FLAVOR}" = "minimal" ]; then
-	RAW_ROOTFS_ATTR="raw-rootfs-minimal"
-fi
-
-log_info "Rootfs flavor: ${ROOTFS_FLAVOR} (attr: .#${RAW_ROOTFS_ATTR})"
-log_info "Board: ${BOARD}"
-# Default drivers mode to 'vendor' unless overridden by --drivers or env
-DRIVERS_MODE="${DRIVERS_MODE:-vendor}"
-log_info "Drivers mode: ${DRIVERS_MODE} (vendor|inject|none)"
-log_info "Upstream firmware: ${FIRMWARE_UPSTREAM} (0=disabled, 1=enabled)"
-log_info "Push to Cachix: ${PUSH_TO_CACHIX} (0=disabled, 1=enabled, derivations only)"
-log_info "LUKS2 encryption: ${LUKS_ENABLED} (0=disabled, 1=enabled)"
-if [ "$DRY_RUN" -eq 1 ]; then
-	log_warn "DRY RUN MODE: No destructive operations will be performed"
-fi
-
 # === Safe execution wrapper for destructive operations ===
-safe_exec() {
-	if [ "$DRY_RUN" -eq 1 ]; then
-		log_info "[DRY-RUN] Would execute: $*"
-	else
-		"$@"
-	fi
-}
-
-# === Cleanup workspace ===
-if [ -d "$WORKDIR" ]; then
-	log_warn "Cleaning up old work directory..."
-	safe_exec sudo rm -rf "$WORKDIR"
-fi
-mkdir -p "$WORKDIR" "$WORKDIR/mnt_src_rootfs" "$WORKDIR/mnt_bootloader" "$WORKDIR/mnt_rootfs"
-
-# Add after workspace creation (before Step 1)
-check_disk_space() {
-	local required_gb="${1:-30}"
-	local path="${2:-.}"
-	local available_gb=$(df -BG "$path" | awk 'NR==2 {print $4}' | sed 's/G//')
-
-	if [ "${available_gb:-0}" -lt "$required_gb" ]; then
-		log_error "Insufficient disk space: ${available_gb}GB available, ${required_gb}GB required"
-		log_error "Free up space or use --workdir /path/to/larger/partition"
-		exit 1
-	fi
-	log_info "Disk space check: ${available_gb}GB available (${required_gb}GB required)"
-}
-
-# Usage
-check_disk_space 30 "$(dirname "$WORKDIR")"
 
 # === Track loop devices for cleanup ===
 LOOPDEV=""
@@ -818,31 +767,8 @@ log_info "Vendor partition size: ${VENDOR_PART_SIZE} MB"
 log_info "Rootfs partition size: ${ROOTFS_PART_SIZE} MB (initial, expandable)"
 log_info "Total image size: ${TOTAL_SIZE_MB} MB"
 
-# === LUKS passphrase collection (before image creation) ===
+# LUKS passphrase already collected during onboarding; just validate cryptsetup here
 if [ "$LUKS_ENABLED" -eq 1 ]; then
-	if ! command -v cryptsetup >/dev/null 2>&1; then
-		log_error "LUKS requested but cryptsetup not found; run: nix develop"
-		exit 1
-	fi
-	if [ -z "$LUKS_PASSPHRASE" ]; then
-		if [ -t 0 ]; then
-			echo
-			while true; do
-				read -rsp "[LUKS] Enter passphrase for encrypted rootfs: " LUKS_PASSPHRASE
-				echo
-				read -rsp "[LUKS] Confirm passphrase: " LUKS_PASSPHRASE_CONFIRM
-				echo
-				if [ "$LUKS_PASSPHRASE" = "$LUKS_PASSPHRASE_CONFIRM" ]; then
-					break
-				fi
-				log_error "Passphrases do not match, try again."
-			done
-			unset LUKS_PASSPHRASE_CONFIRM
-		else
-			log_error "LUKS enabled but LUKS_PASSPHRASE not set and stdin is not a tty."
-			exit 1
-		fi
-	fi
 	log_info "LUKS2 passphrase accepted; encryption will be applied to rootfs partition"
 fi
 
