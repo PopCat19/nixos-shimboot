@@ -370,6 +370,66 @@ handle_error() {
 # Set up error trap
 trap 'handle_error "${CURRENT_STEP:-unknown}"' ERR
 
+# === Cachix Configuration (fixed cache, CI-safe) ===
+CACHIX_CACHE="shimboot-systemd-nixos"
+CACHIX_PUBKEY="shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA="
+export CACHIX_CACHE CACHIX_PUBKEY
+
+# Enable caching if cachix is available
+if command -v cachix >/dev/null 2>&1; then
+	log_info "Using Cachix cache: ${CACHIX_CACHE}"
+
+	# Authenticate if token is provided (recommended for CI)
+	if [ -n "${CACHIX_AUTH_TOKEN:-}" ]; then
+		cachix authtoken "$CACHIX_AUTH_TOKEN" 2>/dev/null || true
+	fi
+
+	# Configure trusted cache only if writable (skip on NixOS read-only systems)
+	if [ -w /etc/nix/nix.conf ] 2>/dev/null; then
+		mkdir -p /etc/nix
+		if ! grep -q "$CACHIX_CACHE" /etc/nix/nix.conf 2>/dev/null; then
+			echo "substituters = https://cache.nixos.org https://${CACHIX_CACHE}.cachix.org" | sudo tee -a /etc/nix/nix.conf >/dev/null
+			echo "trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= ${CACHIX_PUBKEY}" | sudo tee -a /etc/nix/nix.conf >/dev/null
+			log_info "Configured nix.conf for Cachix trust"
+		fi
+	elif [ -f /etc/nix/nix.conf ]; then
+		log_info "nix.conf is read-only (NixOS); cache should be configured in system config"
+	else
+		log_warn "nix.conf not accessible; ensure Cachix is configured via NixOS config or user settings"
+	fi
+else
+	log_warn "cachix CLI not installed; skipping cache integration"
+fi
+
+# Add after Cachix configuration section in assemble-final.sh
+verify_cachix_config() {
+	log_step "Pre-check" "Verifying Cachix configuration"
+
+	# Check if Cachix is in substituters
+	if nix config show | grep -q "shimboot-systemd-nixos.cachix.org"; then
+		log_info "✓ Cachix configured in Nix settings"
+	else
+		log_warn "Cachix not found in Nix settings; builds may not use cache"
+		log_warn "This is normal if using flake-based config"
+	fi
+
+	# Test Cachix connectivity
+	if command -v curl >/dev/null 2>&1; then
+		if curl -sf "https://${CACHIX_CACHE}.cachix.org/nix-cache-info" >/dev/null; then
+			log_info "✓ Cachix endpoint reachable"
+		else
+			log_warn "Cannot reach Cachix endpoint; falling back to local builds"
+		fi
+	fi
+
+	# Show current substituters
+	log_info "Active substituters:"
+	nix config show | grep "^substituters" | sed 's/^/    /'
+}
+
+# Ensure unfree packages are allowed for nix builds that require ChromeOS tools/firmware
+export NIXPKGS_ALLOW_UNFREE="${NIXPKGS_ALLOW_UNFREE:-1}"
+
 # === Dry-run: print execution plan and exit ===
 if [ "$DRY_RUN" -eq 1 ]; then
 	RAW_ROOTFS_ATTR="raw-rootfs"
