@@ -145,6 +145,46 @@ log_success() {
 	printf "${ANSI_GREEN}  ✓ %s${ANSI_CLEAR}\n" "$1"
 }
 
+show_help() {
+	cat <<'HELPTEXT'
+Usage: ./assemble-final.sh [OPTIONS]
+
+Build and assemble a shimboot image with Nix outputs, drivers, and partitioning.
+
+Options:
+  --board BOARD            Target board (dedede, octopus, etc.) [default: dedede]
+  --rootfs FLAVOR          Rootfs variant: full, minimal [interactive if omitted]
+  --drivers MODE           Driver placement: vendor, inject, both, none [default: vendor]
+  --firmware-upstream      Enable upstream firmware [default]
+  --no-firmware-upstream   Disable upstream firmware
+  --luks                   Enable LUKS2 encryption on rootfs partition
+  --luks-passphrase PW     Passphrase for LUKS2 (prompted interactively if omitted)
+  --inspect                Inspect final image after build
+  --dry-run                Show what would be done without executing destructive operations
+  --prewarm-cache          Attempt to fetch from Cachix before building
+  --push-to-cachix         Push Nix derivations to Cachix after build
+  --cleanup-rootfs         Prune older shimboot rootfs generations
+  --cleanup-keep N         Keep last N generations [default: 3]
+  --no-dry-run             Actually delete in cleanup (default is dry-run)
+  -h, --help               Show this help and exit
+
+Environment variables:
+  BOARD                    Same as --board
+  LUKS_PASSPHRASE          Same as --luks-passphrase
+  CACHIX_AUTH_TOKEN         Authenticate with Cachix for push
+  SKIP_RECOVERY            Set to 1 to skip recovery image
+  NIXPKGS_ALLOW_UNFREE     Allow unfree packages [default: 1]
+
+Examples:
+  ./assemble-final.sh --board dedede --rootfs full
+  ./assemble-final.sh --board dedede --rootfs minimal --drivers vendor
+  ./assemble-final.sh --board dedede --rootfs full --luks
+  ./assemble-final.sh --board dedede --rootfs full --dry-run
+  ./assemble-final.sh --board dedede --rootfs full --push-to-cachix
+HELPTEXT
+	exit 0
+}
+
 # === Cachix Configuration (fixed cache, CI-safe) ===
 CACHIX_CACHE="shimboot-systemd-nixos"
 CACHIX_PUBKEY="shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA="
@@ -237,6 +277,9 @@ LUKS_MAPPER_NAME="rootfs_assembly"
 
 while [ $# -gt 0 ]; do
 	case "${1:-}" in
+	-h | --help)
+		show_help
+		;;
 	--board)
 		BOARD="${2:-}"
 		BOARD_EXPLICITLY_SET="set"
@@ -252,10 +295,12 @@ while [ $# -gt 0 ]; do
 		;;
 	--firmware-upstream)
 		FIRMWARE_UPSTREAM="1"
+		FIRMWARE_UPSTREAM_SET=1
 		shift
 		;;
 	--no-firmware-upstream)
 		FIRMWARE_UPSTREAM="0"
+		FIRMWARE_UPSTREAM_SET=1
 		shift
 		;;
 	--inspect)
@@ -296,11 +341,9 @@ while [ $# -gt 0 ]; do
 		shift 2
 		;;
 	*)
-		# Backward compat: if a single arg was passed previously as inspect flag
-		if [ "${1:-}" = "--inspect" ]; then
-			INSPECT_AFTER="--inspect"
-		fi
-		shift
+		log_error "Unknown option: ${1:-}"
+		log_error "Run with --help for usage."
+		exit 1
 		;;
 	esac
 done
@@ -355,6 +398,47 @@ if [ -z "${ROOTFS_FLAVOR:-}" ]; then
 	else
 		ROOTFS_FLAVOR="full"
 	fi
+fi
+
+# Interactive: drivers mode
+if [ -z "${DRIVERS_MODE:-}" ] && [ -t 0 ]; then
+	echo
+	echo "[assemble-final] Select driver placement mode:"
+	echo "  1) vendor  (default) → separate vendor partition, mounted at boot"
+	echo "  2) inject            → copy drivers directly into rootfs"
+	echo "  3) both              → vendor partition AND inject (redundant but safe)"
+	echo "  4) none              → skip driver handling entirely"
+	read -rp "Enter choice [1-4, default=1]: " drv_choice
+	case "${drv_choice:-1}" in
+	2) DRIVERS_MODE="inject" ;;
+	3) DRIVERS_MODE="both" ;;
+	4) DRIVERS_MODE="none" ;;
+	*) DRIVERS_MODE="vendor" ;;
+	esac
+fi
+
+# Interactive: LUKS encryption
+if [ "$LUKS_ENABLED" -eq 0 ] && [ -t 0 ]; then
+	read -rp "[assemble-final] Enable LUKS2 encryption on rootfs? [y/N]: " luks_choice
+	case "${luks_choice:-n}" in
+	[Yy]*) LUKS_ENABLED=1 ;;
+	esac
+fi
+
+# Interactive: upstream firmware
+if [ -t 0 ] && [ -z "${FIRMWARE_UPSTREAM_SET:-}" ]; then
+	read -rp "[assemble-final] Include upstream ChromiumOS linux-firmware? [Y/n]: " fw_choice
+	case "${fw_choice:-y}" in
+	[Nn]*) FIRMWARE_UPSTREAM="0" ;;
+	esac
+fi
+
+# Interactive: inspect
+if [ -z "$INSPECT_AFTER" ] && [ -t 0 ]; then
+	read -rp "[assemble-final] Inspect final image after build? [y/N]: " inspect_choice
+	case "${inspect_choice:-n}" in
+	[Yy]*) INSPECT_AFTER="--inspect" ;;
+	esac
 fi
 
 if [ "${ROOTFS_FLAVOR}" != "full" ] && [ "${ROOTFS_FLAVOR}" != "minimal" ]; then
@@ -660,11 +744,9 @@ fi
 if [ -d "$HARVEST_OUT/lib/firmware" ]; then
 	CURRENT_STEP="4/15"
 	log_step "$CURRENT_STEP" "Prune unused firmware files"
-	# More robust path resolution
 	SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 	if [ -f "$SCRIPT_DIR/tools/harvest-drivers.sh" ]; then
-		source "$SCRIPT_DIR/tools/harvest-drivers.sh"
-		prune_unused_firmware "$HARVEST_OUT/lib/firmware"
+		bash -c "source '$SCRIPT_DIR/tools/harvest-drivers.sh' && prune_unused_firmware '$HARVEST_OUT/lib/firmware'"
 	else
 		log_warn "harvest-drivers.sh not found; skipping firmware pruning"
 	fi
@@ -761,7 +843,7 @@ if [ "$LUKS_ENABLED" -eq 1 ]; then
 			exit 1
 		fi
 	fi
-	log_info "LUKS2 passphrase accepted; encryption will be applied to p${ROOTFS_PARTITION_INDEX}"
+	log_info "LUKS2 passphrase accepted; encryption will be applied to rootfs partition"
 fi
 
 # === Step 9: Create empty image ===
@@ -869,8 +951,8 @@ safe_exec sudo cgpt add -i 2 -S 1 -T 5 -P 10 "$LOOPDEV" || {
 CURRENT_STEP="12/15"
 log_step "$CURRENT_STEP" "Format partitions"
 # Use conservative ext4 features for ChromeOS kernel compatibility (avoid EINVAL on mount)
-MKFS_EXT4_FLAGS="-O ^orphan_file,^metadata_csum_seed"
-safe_exec sudo mkfs.ext4 -q "$MKFS_EXT4_FLAGS" "${LOOPDEV}p1"
+MKFS_EXT4_OPTS=(-O "^orphan_file,^metadata_csum_seed")
+safe_exec sudo mkfs.ext4 -q "${MKFS_EXT4_OPTS[@]}" "${LOOPDEV}p1"
 safe_exec sudo dd if="$ORIGINAL_KERNEL" of="${LOOPDEV}p2" bs=1M conv=fsync status=progress
 safe_exec sudo mkfs.ext2 -q "${LOOPDEV}p3"
 
@@ -888,10 +970,10 @@ if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
 		log_info "LUKS2: opening container as ${LUKS_MAPPER_NAME}..."
 		echo -n "$LUKS_PASSPHRASE" | safe_exec sudo cryptsetup open \
 			"${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "${LUKS_MAPPER_NAME}" --key-file=-
-		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" $MKFS_EXT4_FLAGS \
+		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_OPTS[@]}" \
 			"/dev/mapper/${LUKS_MAPPER_NAME}"
 	else
-		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" $MKFS_EXT4_FLAGS \
+		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_OPTS[@]}" \
 			"${LOOPDEV}p${ROOTFS_PARTITION_INDEX}"
 	fi
 else
@@ -905,10 +987,10 @@ else
 		log_info "LUKS2: opening container as ${LUKS_MAPPER_NAME}..."
 		echo -n "$LUKS_PASSPHRASE" | safe_exec sudo cryptsetup open \
 			"${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "${LUKS_MAPPER_NAME}" --key-file=-
-		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" $MKFS_EXT4_FLAGS \
+		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_OPTS[@]}" \
 			"/dev/mapper/${LUKS_MAPPER_NAME}"
 	else
-		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" $MKFS_EXT4_FLAGS \
+		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_OPTS[@]}" \
 			"${LOOPDEV}p${ROOTFS_PARTITION_INDEX}"
 	fi
 fi
@@ -967,8 +1049,7 @@ total_bytes=$(sudo du -sb "$WORKDIR/mnt_src_rootfs" | cut -f1)
 USERNAME="$(nix eval "${NIX_BUILD_FLAGS[@]}" --expr "(import ./shimboot_config/user-config.nix {}).user.username" --json | jq -r .)"
 log_info "Using username from userConfig: $USERNAME"
 
-# === Step 14: Clone nixos-config repository into rootfs ===
-log_step "$CURRENT_STEP" "Clone nixos-config repository into rootfs"
+log_info "Cloning nixos-config repository into rootfs..."
 NIXOS_CONFIG_DEST="$WORKDIR/mnt_rootfs/home/${USERNAME}/nixos-config"
 
 if command -v git >/dev/null 2>&1 && [ -d .git ]; then
