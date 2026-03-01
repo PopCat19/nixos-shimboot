@@ -17,7 +17,14 @@
       initScript.enable = lib.mkForce true;
     };
     initrd = {
-      availableKernelModules = [ ];
+      availableKernelModules = [
+        "dm-mod"
+        "dm-crypt"
+        "aesni_intel"
+        "cryptd"
+        "xts"
+        "aes_generic"
+      ];
       kernelModules = [ ];
     };
     kernelParams = [ ];

@@ -1,14 +1,15 @@
-# LUKS2 Encryption Configuration Module
+# LUKS2 Encrypted Root Configuration Module
 #
-# Purpose: Configure LUKS2 encrypted root filesystem support for shimboot
-# Dependencies: cryptsetup, kmod
-# Related: boot.nix, filesystems.nix, security.nix
+# Purpose: Configure NixOS to expect LUKS2-encrypted root filesystem
 #
 # This module:
-# - Configures initrd to include cryptsetup and required kernel modules
-# - Sets up filesystem to expect decrypted mapper device
-# - Provides options for LUKS2 configuration customization
-# - Integrates with shimboot bootloader LUKS handling
+# - Override root device to /dev/mapper/<name> matching bootstrap.sh mapper name
+# - Include dm-crypt kernel modules for ChromeOS kernel compatibility
+# - Provide cryptsetup in running system for maintenance and re-keying
+#
+# Encryption is handled pre-pivot by bootstrap.sh in the ChromeOS initramfs,
+# NOT by NixOS initrd. This module only configures the post-pivot expectations.
+# Build images with: assemble-final.sh --luks
 {
   lib,
   pkgs,
@@ -23,16 +24,10 @@ in
   options.shimboot.luks2 = {
     enable = lib.mkEnableOption "LUKS2 encrypted root filesystem support";
 
-    device = lib.mkOption {
-      type = lib.types.str;
-      default = "/dev/disk/by-label/nixos-encrypted";
-      description = "Path to the LUKS2 encrypted device";
-    };
-
     mapperName = lib.mkOption {
       type = lib.types.str;
       default = "rootfs";
-      description = "Name for the decrypted mapper device";
+      description = "Mapper device name (must match bootstrap.sh 'cryptsetup open ... <name>')";
     };
 
     filesystem = lib.mkOption {
@@ -42,39 +37,44 @@ in
         "xfs"
       ];
       default = "ext4";
-      description = "Filesystem type for the decrypted root";
-    };
-
-    keyFile = lib.mkOption {
-      type = lib.types.nullOr lib.types.path;
-      default = null;
-      description = "Optional keyfile for automatic unlocking";
+      description = "Filesystem type inside the LUKS2 container";
     };
   };
 
   config = lib.mkIf cfg.enable {
-    # Add cryptsetup to initrd
-    boot.initrd = {
-      availableKernelModules = [
-        "dm-crypt"
-        "dm-mod"
-        "aesni_intel"
-        "cryptd"
-      ];
+    # dm-crypt modules for ChromeOS kernel — loaded at runtime, not in initrd
+    # (ChromeOS initramfs handles unlock before pivot_root)
+    boot.kernelModules = [
+      "dm-crypt"
+      "dm-mod"
+      "aesni_intel"
+      "cryptd"
+      "xts"
+      "aes_generic"
+    ];
 
-      # Include cryptsetup in initrd for LUKS handling
-      extraUtilsCommands = ''
-        copy_bin_and_libs ${pkgs.cryptsetup}/bin/cryptsetup
-      '';
-    };
+    # Also include in availableKernelModules for initrd generation
+    boot.initrd.availableKernelModules = [
+      "dm-crypt"
+      "dm-mod"
+      "aesni_intel"
+      "cryptd"
+      "xts"
+      "aes_generic"
+    ];
 
-    # Configure filesystem for decrypted mapper device
+    # Root device is the opened mapper, not the raw partition label
     fileSystems."/" = lib.mkForce {
       device = "/dev/mapper/${cfg.mapperName}";
       fsType = cfg.filesystem;
+      options = [
+        "noatime"
+        "commit=30"
+        "errors=remount-ro"
+      ];
     };
 
-    # Add cryptsetup to system packages for management
+    # cryptsetup in running system for re-keying and header backup
     environment.systemPackages = with pkgs; [
       cryptsetup
     ];

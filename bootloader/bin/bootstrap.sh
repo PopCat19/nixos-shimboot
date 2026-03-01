@@ -28,9 +28,9 @@ rescue_mode=""
 INIT_PATH="/sbin/init"
 
 info() { printf "# %s\n" "$*"; }
-sep()  { printf "=== \n"; }
-log()  { printf "> %s\n" "$*"; }
-err()  { printf "> %s\n" "$*"; }
+sep() { printf "=== \n"; }
+log() { printf "> %s\n" "$*"; }
+err() { printf "> %s\n" "$*"; }
 
 invoke_terminal() {
 	local tty="$1"
@@ -125,6 +125,29 @@ find_vendor_partition() {
 	fi
 
 	return 1
+}
+
+ensure_dm_crypt() {
+	[ -e /sys/module/dm_crypt ] && return 0
+	modprobe dm-crypt 2>/dev/null && return 0
+	modprobe dm_crypt 2>/dev/null && return 0
+
+	[ -e /sys/module/dm_mod ] || modprobe dm-mod 2>/dev/null || modprobe dm_mod 2>/dev/null || true
+
+	local vendor_dev
+	vendor_dev="$(find_vendor_partition 2>/dev/null)" || return 1
+	local tmp_mnt="/tmp/_vendor_dm"
+	mkdir -p "$tmp_mnt"
+	if mount -o ro "$vendor_dev" "$tmp_mnt" 2>/dev/null; then
+		local ko
+		ko="$(find "$tmp_mnt/lib/modules" -name 'dm-mod.ko*' 2>/dev/null | head -n1)"
+		[ -n "$ko" ] && [ ! -e /sys/module/dm_mod ] && insmod "$ko" 2>/dev/null || true
+		ko="$(find "$tmp_mnt/lib/modules" -name 'dm-crypt.ko*' 2>/dev/null | head -n1)"
+		[ -n "$ko" ] && insmod "$ko" 2>/dev/null || true
+		umount "$tmp_mnt" 2>/dev/null || true
+	fi
+	rmdir "$tmp_mnt" 2>/dev/null || true
+	[ -e /sys/module/dm_crypt ]
 }
 
 bind_vendor_into() {
@@ -330,12 +353,12 @@ select_nixos_generation() {
 	read -p "Select generation (or press enter): " gen_sel
 
 	case "$gen_sel" in
-		b|B)
-			return 2
-			;;
-		''|*[!0-9]*)
-			gen_sel="$default_num"
-			;;
+	b | B)
+		return 2
+		;;
+	'' | *[!0-9]*)
+		gen_sel="$default_num"
+		;;
 	esac
 
 	local selected_line
@@ -397,34 +420,34 @@ get_selection() {
 	read -p "Enter partition or option: " selection
 
 	case "$selection" in
-		r)
-			echo "rebooting now."
-			reboot -f
-			;;
-		q)
-			echo "powering off."
-			poweroff -f
-			;;
-		0)
-			echo ""
-			blkid || true
-			echo ""
-			read -p "press [enter] to return"
-			return 1
-			;;
-		s)
-			interactive_shell
-			return 1
-			;;
-		l)
-			clear
-			print_license
-			echo ""
-			echo "  [b] Return"
-			echo ""
-			read -p "Enter selection: " _lic_sel
-			return 1
-			;;
+	r)
+		echo "rebooting now."
+		reboot -f
+		;;
+	q)
+		echo "powering off."
+		poweroff -f
+		;;
+	0)
+		echo ""
+		blkid || true
+		echo ""
+		read -p "press [enter] to return"
+		return 1
+		;;
+	s)
+		interactive_shell
+		return 1
+		;;
+	l)
+		clear
+		print_license
+		echo ""
+		echo "  [b] Return"
+		echo ""
+		read -p "Enter selection: " _lic_sel
+		return 1
+		;;
 	esac
 
 	local selection_cmd="$(echo "$selection" | cut -d' ' -f1)"
@@ -488,7 +511,31 @@ boot_target() {
 	mkdir /newroot
 
 	if [ -x "$(command -v cryptsetup)" ] && cryptsetup luksDump "$target" >/dev/null 2>&1; then
-		cryptsetup open $target rootfs
+		log "LUKS2 container detected on ${target}"
+		if ! ensure_dm_crypt; then
+			err "dm-crypt module unavailable — cannot open LUKS container"
+			umount /newroot 2>/dev/null || true
+			rmdir /newroot 2>/dev/null || true
+			return 1
+		fi
+
+		local luks_ok=0
+		local attempts=0
+		while [ $attempts -lt 3 ]; do
+			if cryptsetup open "$target" rootfs; then
+				luks_ok=1
+				break
+			fi
+			attempts=$((attempts + 1))
+			[ $attempts -lt 3 ] && err "Wrong passphrase, try again ($((3 - attempts)) left):"
+		done
+
+		if [ $luks_ok -eq 0 ]; then
+			err "Failed to unlock LUKS container after 3 attempts"
+			rmdir /newroot 2>/dev/null || true
+			return 1
+		fi
+
 		if ! mount -t ext4 /dev/mapper/rootfs /newroot 2>/dev/null; then
 			if ! mount /dev/mapper/rootfs /newroot; then
 				err "mount failed for LUKS rootfs: /dev/mapper/rootfs"
@@ -496,6 +543,8 @@ boot_target() {
 				cat /proc/filesystems || true
 				echo "> blkid /dev/mapper/rootfs:"
 				blkid /dev/mapper/rootfs || true
+				cryptsetup close rootfs 2>/dev/null || true
+				rmdir /newroot 2>/dev/null || true
 				return 1
 			fi
 		fi
