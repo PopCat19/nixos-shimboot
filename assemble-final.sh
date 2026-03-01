@@ -126,6 +126,7 @@ PUSH_TO_CACHIX="${PUSH_TO_CACHIX:-0}"
 LUKS_ENABLED="${LUKS_ENABLED:-0}"
 LUKS_PASSPHRASE="${LUKS_PASSPHRASE:-}"
 LUKS_MAPPER_NAME="rootfs_assembly"
+ONBOARDING_DONE="${ONBOARDING_DONE:-0}"
 
 # === Argument Parsing ===
 while [ $# -gt 0 ]; do
@@ -199,19 +200,24 @@ while [ $# -gt 0 ]; do
 done
 
 # === Interactive Onboarding (unprivileged, tty only) ===
-if [ -z "$BOARD" ]; then
-	BOARD="dedede"
+# Board selection — only prompt/default when not supplied and not re-entering after sudo
+if [ -z "$BOARD_EXPLICITLY_SET" ] && [ "${ONBOARDING_DONE:-0}" -eq 0 ]; then
+	if [ -t 0 ]; then
+		echo
+		read -rp "[assemble-final] Target board [default: dedede]: " board_choice
+		BOARD="${board_choice:-dedede}"
+	else
+		log_warn "No --board specified; defaulting to 'dedede'."
+		BOARD="dedede"
+	fi
 fi
-if [ -z "$BOARD_EXPLICITLY_SET" ]; then
-	log_warn "No --board specified; defaulting to 'dedede'."
-	log_warn "If this is unintended, rerun with --board <name>."
-fi
+BOARD="${BOARD:-dedede}"
 if [ -z "$BOARD" ]; then
 	log_error "Board name cannot be empty; use --board <name>."
 	exit 1
 fi
 
-if [ -z "${ROOTFS_FLAVOR:-}" ] && [ -t 0 ]; then
+if [ -z "${ROOTFS_FLAVOR:-}" ] && [ -t 0 ] && [ "${ONBOARDING_DONE:-0}" -eq 0 ]; then
 	echo
 	echo "[assemble-final] Select rootfs flavor to build:"
 	echo "  1) full     (recommended) → complete desktop with Home Manager, Rose Pine theme, and user applications (~16-20GB)"
@@ -221,8 +227,8 @@ if [ -z "${ROOTFS_FLAVOR:-}" ] && [ -t 0 ]; then
 	2) ROOTFS_FLAVOR="minimal" ;;
 	*) ROOTFS_FLAVOR="full" ;;
 	esac
-elif [ -z "${ROOTFS_FLAVOR:-}" ]; then
-	ROOTFS_FLAVOR="full"
+else
+	ROOTFS_FLAVOR="${ROOTFS_FLAVOR:-full}"
 fi
 
 if [ "${ROOTFS_FLAVOR}" != "full" ] && [ "${ROOTFS_FLAVOR}" != "minimal" ]; then
@@ -230,7 +236,7 @@ if [ "${ROOTFS_FLAVOR}" != "full" ] && [ "${ROOTFS_FLAVOR}" != "minimal" ]; then
 	exit 1
 fi
 
-if [ -z "${DRIVERS_MODE:-}" ] && [ -t 0 ]; then
+if [ -z "${DRIVERS_MODE:-}" ] && [ -t 0 ] && [ "${ONBOARDING_DONE:-0}" -eq 0 ]; then
 	echo
 	echo "[assemble-final] Select driver placement mode:"
 	echo "  1) vendor  (default) → separate vendor partition, mounted at boot"
@@ -247,14 +253,14 @@ if [ -z "${DRIVERS_MODE:-}" ] && [ -t 0 ]; then
 fi
 DRIVERS_MODE="${DRIVERS_MODE:-vendor}"
 
-if [ -z "$FIRMWARE_UPSTREAM_SET" ] && [ -t 0 ]; then
+if [ -z "$FIRMWARE_UPSTREAM_SET" ] && [ -t 0 ] && [ "${ONBOARDING_DONE:-0}" -eq 0 ]; then
 	read -rp "[assemble-final] Include upstream ChromiumOS linux-firmware? [Y/n]: " fw_choice
 	case "${fw_choice:-y}" in
 	[Nn]*) FIRMWARE_UPSTREAM="0" ;;
 	esac
 fi
 
-if [ -z "$INSPECT_AFTER" ] && [ -t 0 ]; then
+if [ -z "$INSPECT_AFTER" ] && [ -t 0 ] && [ "${ONBOARDING_DONE:-0}" -eq 0 ]; then
 	read -rp "[assemble-final] Inspect final image after build? [y/N]: " inspect_choice
 	case "${inspect_choice:-n}" in
 	[Yy]*) INSPECT_AFTER="--inspect" ;;
@@ -262,14 +268,14 @@ if [ -z "$INSPECT_AFTER" ] && [ -t 0 ]; then
 fi
 
 # LUKS passphrase: collect before sudo so no root needed for tty prompt
-if [ "$LUKS_ENABLED" -eq 0 ] && [ -t 0 ]; then
+if [ "$LUKS_ENABLED" -eq 0 ] && [ -t 0 ] && [ "${ONBOARDING_DONE:-0}" -eq 0 ]; then
 	read -rp "[assemble-final] Enable LUKS2 encryption on rootfs? [y/N]: " luks_choice
 	case "${luks_choice:-n}" in
 	[Yy]*) LUKS_ENABLED=1 ;;
 	esac
 fi
 
-if [ "$LUKS_ENABLED" -eq 1 ] && [ -z "$LUKS_PASSPHRASE" ]; then
+if [ "$LUKS_ENABLED" -eq 1 ] && [ -z "$LUKS_PASSPHRASE" ] && [ "${ONBOARDING_DONE:-0}" -eq 0 ]; then
 	if [ -t 0 ]; then
 		echo
 		while true; do
@@ -289,6 +295,9 @@ if [ "$LUKS_ENABLED" -eq 1 ] && [ -z "$LUKS_PASSPHRASE" ]; then
 	fi
 fi
 
+# Mark onboarding complete so sudo re-entry skips all interactive prompts
+ONBOARDING_DONE=1
+
 # === Sudo Elevation ===
 # Elevate to root so nix-daemon treats this client as trusted.
 # Skip for --dry-run: no destructive ops, no privilege required.
@@ -302,10 +311,11 @@ if [ "${EUID:-$(id -u)}" -ne 0 ]; then
 		for var in BOARD BOARD_EXPLICITLY_SET ROOTFS_FLAVOR DRIVERS_MODE \
 			FIRMWARE_UPSTREAM FIRMWARE_UPSTREAM_SET INSPECT_AFTER DRY_RUN \
 			LUKS_ENABLED LUKS_PASSPHRASE CLEANUP_ROOTFS CLEANUP_NO_DRY_RUN \
-			CLEANUP_KEEP PREWARM_CACHE PUSH_TO_CACHIX CACHIX_AUTH_TOKEN; do
+			CLEANUP_KEEP PREWARM_CACHE PUSH_TO_CACHIX CACHIX_AUTH_TOKEN \
+			ONBOARDING_DONE ROOTFS_NAME; do
 			if [ -n "${!var:-}" ]; then SUDO_ENV+=("$var=${!var}"); fi
 		done
-		exec sudo -E -H env "${SUDO_ENV[@]}" "$0" "$@"
+		exec sudo -E -H env "${SUDO_ENV[@]}" "$0"
 	fi
 fi
 
