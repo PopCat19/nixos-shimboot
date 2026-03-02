@@ -11,8 +11,6 @@ Contributions and feedbacks are welcome by opening a [discussion](https://github
 
 To get started, follow the [quickstart guide](QUICKSTART.md). (assuming you are in a linux environment)
 
-For LLM assistants working with this repository, see [AGENTS.md](AGENTS.md) for project conventions.
-
 # NixOS Shimboot
 I like NixOS. I've started this project since no one else released NixOS shimboot until now. This repository took place with flake approach over the existing scripts from [ading2210/shimboot](https://github.com/ading2210/shimboot), which is mostly incompatible to build with a non-FHS distro like NixOS.
 
@@ -52,7 +50,7 @@ A helpful excerpt from [ading2210/shimboot](https://github.com/ading2210/shimboo
 ## Why vibecode?
 - Sunk cost fallacy.
 - To explore how the models perform at specified tasks.
-- Lackluster experience in programming.
+- Lack of programming background.
 
 ## Why flake?
 [nixos-shimboot-legacy](https://github.com/PopCat19/nixos-shimboot-legacy) barely worked to build a bootable NixOS with frankenstein scripts running on hopes and dreams, yet it wasn't functional enough to even get past LightDM.
@@ -94,7 +92,7 @@ Flake status and roadmap (not a spec) for the current branch:
 - [ ] Create minimal main_configuration template
 - [ ] Refine and cleanup scripts and helpers
 - [ ] Refine and cleanup base and main configurations
-- [ ] Build functional NixOS with LUKS2 support (untested)
+- [ ] Build functional NixOS with LUKS2 support 
 
 Current obstacles:
 - SDDM greeter support: previous attempts resulted in a blank backlit screen after kill-frecon. Need to evaluate logs and understand if SDDM can be supported declaratively.
