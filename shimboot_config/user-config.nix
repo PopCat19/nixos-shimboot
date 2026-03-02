@@ -14,7 +14,6 @@
   hostname ? null,
   system ? "x86_64-linux",
   username ? "nixos-user",
-  luks ? false,
 }:
 {
   # Host configuration
@@ -124,12 +123,5 @@
   # Environment variables
   env = {
     NIXOS_CONFIG_DIR = "$HOME/nixos-config";
-  };
-
-  # LUKS2 encryption settings
-  encryption = {
-    enable = luks;
-    mapperName = "rootfs";
-    filesystem = "ext4";
   };
 }

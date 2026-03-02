@@ -25,7 +25,6 @@ in
       pv # progress viewer
       zstd # compression
       vboot_reference # cgpt, futility
-      cryptsetup # LUKS encryption
 
       # Development utilities
       git
@@ -39,7 +38,6 @@ in
       echo "  - cgpt, futility      - ChromeOS GPT utilities"
       echo "  - parted, losetup     - Disk management"
       echo "  - pv, zstd            - Progress & compression"
-      echo "  - cryptsetup          - LUKS encryption"
       echo ""
       echo "Common commands:"
       echo "  nix build .#raw-rootfs-minimal          # Build minimal rootfs"

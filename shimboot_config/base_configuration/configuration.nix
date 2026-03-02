@@ -41,7 +41,6 @@
     ./system/users.nix
     ./system/audio.nix
     ./system/fish.nix
-    ./system/luks2.nix
     ./system/services.nix
     ./system/zram.nix
   ];
@@ -88,11 +87,4 @@
   nixpkgs.config.allowUnfree = true;
 
   system.stateVersion = "24.11";
-
-  # Wire LUKS2 options from userConfig.encryption
-  shimboot.luks2 = {
-    enable = userConfig.encryption.enable or false;
-    mapperName = userConfig.encryption.mapperName or "rootfs";
-    filesystem = userConfig.encryption.filesystem or "ext4";
-  };
 }
