@@ -104,6 +104,7 @@
             noctalia
             stylix
             pmd
+            nixvim
             board
             ;
         };
@@ -118,6 +119,7 @@
           stylix
           pmd
           llm-agents
+          nixvim
           ;
       };
       developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix {
