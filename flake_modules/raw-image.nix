@@ -15,6 +15,7 @@
   rose-pine-hyprcursor,
   noctalia,
   stylix,
+  nixvim,
   ...
 }:
 let
@@ -82,6 +83,7 @@ in
                 zen-browser
                 rose-pine-hyprcursor
                 userConfig
+                nixvim
                 ;
               inherit (self) inputs;
             };

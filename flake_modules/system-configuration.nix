@@ -15,6 +15,7 @@
   noctalia,
   stylix,
   llm-agents,
+  nixvim,
   ...
 }:
 let
@@ -53,6 +54,7 @@ let
             zen-browser
             rose-pine-hyprcursor
             userConfig
+            nixvim
             ;
           inherit (self) inputs;
         };

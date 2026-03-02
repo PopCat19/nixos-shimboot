@@ -5,8 +5,10 @@
 # Related: fish.nix
 #
 # This module:
-# - Placeholder for home-manager programs configuration
-_: {
-  programs.neovim.enable = true;
-
+# - Imports program configurations
+{ nixvim, ... }:
+{
+  imports = [
+    ./nvim
+  ];
 }
