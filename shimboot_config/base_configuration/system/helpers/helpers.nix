@@ -29,7 +29,6 @@ let
     coreDeps
     ++ (with pkgs; [
       cloud-utils # growpart
-      cryptsetup
       e2fsprogs # resize2fs
     ]);
 
