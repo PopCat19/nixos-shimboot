@@ -34,6 +34,7 @@
     ./vscodium.nix
     ./wallpaper.nix
     ./tmux.nix
+    ./programs.nix
   ];
 
   home.stateVersion = "24.11";
