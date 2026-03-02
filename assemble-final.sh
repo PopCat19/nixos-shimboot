@@ -480,9 +480,17 @@ cleanup_loop_devices() {
 	# Explicit cleanup of tracked devices
 	for dev in "$LOOPDEV" "$LOOPROOT"; do
 		if [ -n "$dev" ] && losetup "$dev" &>/dev/null; then
-			safe_exec sudo losetup -d "$dev" 2>/dev/null || true
+			sudo losetup -d "$dev" 2>/dev/null || true
 		fi
 	done
+}
+
+safe_exec() {
+	if [ "$DRY_RUN" -eq 1 ]; then
+		log_info "[DRY-RUN] Would execute: $*"
+	else
+		"$@"
+	fi
 }
 
 # Update main cleanup function
