@@ -6,9 +6,8 @@
 #
 # This module:
 # - Imports program configurations
-{ nixvim, ... }:
-{
+_: {
   imports = [
-    ./nvim
+    ./nvim/nvim.nix
   ];
 }
