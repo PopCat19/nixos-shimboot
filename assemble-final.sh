@@ -892,10 +892,11 @@ safe_exec sudo cgpt add -i 2 -S 1 -T 5 -P 10 "$LOOPDEV" || {
 CURRENT_STEP="12/15"
 log_step "$CURRENT_STEP" "Format partitions"
 # Use conservative ext4 features for ChromeOS kernel compatibility (avoid EINVAL on mount)
-MKFS_EXT4_OPTS=(-O "^orphan_file,^metadata_csum_seed")
+# -F forces mkfs to run without prompting when filesystem exists
+MKFS_EXT4_OPTS=(-F -O "^orphan_file,^metadata_csum_seed")
 safe_exec sudo mkfs.ext4 -q "${MKFS_EXT4_OPTS[@]}" "${LOOPDEV}p1"
 safe_exec sudo dd if="$ORIGINAL_KERNEL" of="${LOOPDEV}p2" bs=1M conv=fsync status=progress
-safe_exec sudo mkfs.ext2 -q "${LOOPDEV}p3"
+safe_exec sudo mkfs.ext2 -F -q "${LOOPDEV}p3"
 
 if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
 	# Vendor partition (drivers/firmware donor) - p4
