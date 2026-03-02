@@ -25,8 +25,6 @@
 #   --dry-run              Show what would be done without executing destructive operations
 #   --prewarm-cache        Attempt to fetch from Cachix before building
 #   --push-to-cachix       Automatically push Nix derivations to Cachix after successful build (image upload no longer supported)
-#   --luks                 Enable LUKS2 encryption on rootfs partition
-#   --luks-passphrase PW   Passphrase for LUKS2 container (prompted interactively if omitted)
 #
 # Examples:
 #   # Build dedede with full rootfs
@@ -80,8 +78,6 @@ Options:
   --drivers MODE           Driver placement: vendor, inject, both, none [default: vendor]
   --firmware-upstream      Enable upstream firmware [default]
   --no-firmware-upstream   Disable upstream firmware
-  --luks                   Enable LUKS2 encryption on rootfs partition
-  --luks-passphrase PW     Passphrase for LUKS2 (prompted interactively if omitted)
   --inspect                Inspect final image after build
   --dry-run                Show full execution plan without building or modifying anything
   --prewarm-cache          Attempt to fetch from Cachix before building
@@ -93,7 +89,6 @@ Options:
 
 Environment variables:
   BOARD                    Same as --board
-  LUKS_PASSPHRASE          Same as --luks-passphrase
   CACHIX_AUTH_TOKEN         Authenticate with Cachix for push
   SKIP_RECOVERY            Set to 1 to skip recovery image
   NIXPKGS_ALLOW_UNFREE     Allow unfree packages [default: 1]
@@ -101,7 +96,6 @@ Environment variables:
 Examples:
   ./assemble-final.sh --board dedede --rootfs full
   ./assemble-final.sh --board dedede --rootfs minimal --drivers vendor
-  ./assemble-final.sh --board dedede --rootfs full --luks
   ./assemble-final.sh --board dedede --rootfs full --dry-run
 HELPTEXT
 	exit 0
@@ -123,9 +117,6 @@ CLEANUP_NO_DRY_RUN="${CLEANUP_NO_DRY_RUN:-0}"
 CLEANUP_KEEP="${CLEANUP_KEEP:-}"
 PREWARM_CACHE="${PREWARM_CACHE:-0}"
 PUSH_TO_CACHIX="${PUSH_TO_CACHIX:-0}"
-LUKS_ENABLED="${LUKS_ENABLED:-0}"
-LUKS_PASSPHRASE="${LUKS_PASSPHRASE:-}"
-LUKS_MAPPER_NAME="rootfs_assembly"
 ONBOARDING_DONE="${ONBOARDING_DONE:-0}"
 
 # === Argument Parsing ===
@@ -182,14 +173,6 @@ while [ $# -gt 0 ]; do
 	--push-to-cachix)
 		PUSH_TO_CACHIX=1
 		shift
-		;;
-	--luks)
-		LUKS_ENABLED=1
-		shift
-		;;
-	--luks-passphrase)
-		LUKS_PASSPHRASE="${2:-}"
-		shift 2
 		;;
 	*)
 		log_error "Unknown option: ${1:-}"
@@ -267,34 +250,6 @@ if [ -z "$INSPECT_AFTER" ] && [ -t 0 ] && [ "${ONBOARDING_DONE:-0}" -eq 0 ]; the
 	esac
 fi
 
-# LUKS passphrase: collect before sudo so no root needed for tty prompt
-if [ "$LUKS_ENABLED" -eq 0 ] && [ -t 0 ] && [ "${ONBOARDING_DONE:-0}" -eq 0 ]; then
-	read -rp "[assemble-final] Enable LUKS2 encryption on rootfs? [y/N]: " luks_choice
-	case "${luks_choice:-n}" in
-	[Yy]*) LUKS_ENABLED=1 ;;
-	esac
-fi
-
-if [ "$LUKS_ENABLED" -eq 1 ] && [ -z "$LUKS_PASSPHRASE" ] && [ "${ONBOARDING_DONE:-0}" -eq 0 ]; then
-	if [ -t 0 ]; then
-		echo
-		while true; do
-			read -rsp "[LUKS] Enter passphrase for encrypted rootfs: " LUKS_PASSPHRASE
-			echo
-			read -rsp "[LUKS] Confirm passphrase: " pw_confirm
-			echo
-			if [ "$LUKS_PASSPHRASE" = "$pw_confirm" ]; then
-				break
-			fi
-			log_error "Passphrases do not match, try again."
-		done
-		unset pw_confirm
-	else
-		log_error "LUKS enabled but LUKS_PASSPHRASE not set and stdin is not a tty."
-		exit 1
-	fi
-fi
-
 # Mark onboarding complete so sudo re-entry skips all interactive prompts
 ONBOARDING_DONE=1
 
@@ -310,7 +265,7 @@ if [ "${EUID:-$(id -u)}" -ne 0 ]; then
 		SUDO_ENV=()
 		for var in BOARD BOARD_EXPLICITLY_SET ROOTFS_FLAVOR DRIVERS_MODE \
 			FIRMWARE_UPSTREAM FIRMWARE_UPSTREAM_SET INSPECT_AFTER DRY_RUN \
-			LUKS_ENABLED LUKS_PASSPHRASE CLEANUP_ROOTFS CLEANUP_NO_DRY_RUN \
+			CLEANUP_ROOTFS CLEANUP_NO_DRY_RUN \
 			CLEANUP_KEEP PREWARM_CACHE PUSH_TO_CACHIX CACHIX_AUTH_TOKEN \
 			ONBOARDING_DONE ROOTFS_NAME; do
 			if [ -n "${!var:-}" ]; then SUDO_ENV+=("$var=${!var}"); fi
@@ -441,7 +396,6 @@ if [ "$DRY_RUN" -eq 1 ]; then
 	log_info "Rootfs flavor:      $ROOTFS_FLAVOR (attr: .#${RAW_ROOTFS_ATTR})"
 	log_info "Drivers mode:       $DRIVERS_MODE"
 	log_info "Upstream firmware:  $FIRMWARE_UPSTREAM"
-	log_info "LUKS encryption:    $LUKS_ENABLED"
 	log_info "Inspect after:      ${INSPECT_AFTER:-no}"
 	log_info "Push to Cachix:     $PUSH_TO_CACHIX"
 	log_info "Cleanup rootfs:     $CLEANUP_ROOTFS"
@@ -462,7 +416,7 @@ if [ "$DRY_RUN" -eq 1 ]; then
 	log_step "9/15" "fallocate shimboot.img"
 	log_step "10/15" "parted: GPT partition table (STATE, KERNEL, BOOT, ${DRIVERS_MODE:+VENDOR, }ROOTFS)"
 	log_step "11/15" "losetup + cgpt boot flags on p2"
-	log_step "12/15" "mkfs.ext4/ext2, dd kernel${LUKS_ENABLED:+, cryptsetup luksFormat rootfs}"
+	log_step "12/15" "mkfs.ext4/ext2, dd kernel"
 	log_step "13/15" "Populate bootloader (p3) with patched initramfs"
 	log_step "14/15" "Populate rootfs (p${ROOTFS_PARTITION_INDEX:-5}) from raw image + git clone nixos-config"
 	log_step "15/15" "Driver handling: ${DRIVERS_MODE}"
@@ -488,7 +442,6 @@ log_info "Board: ${BOARD}"
 log_info "Drivers mode: ${DRIVERS_MODE} (vendor|inject|none)"
 log_info "Upstream firmware: ${FIRMWARE_UPSTREAM} (0=disabled, 1=enabled)"
 log_info "Push to Cachix: ${PUSH_TO_CACHIX} (0=disabled, 1=enabled, derivations only)"
-log_info "LUKS2 encryption: ${LUKS_ENABLED} (0=disabled, 1=enabled)"
 
 # === Setup Workspace Path ===
 # Detect if we're in CI with Nothing but Nix (large /nix mount)
@@ -536,11 +489,6 @@ cleanup_loop_devices() {
 cleanup() {
 	log_info "Cleanup: unmounting and detaching loop devices..."
 	set +e
-
-	# Close LUKS container if open
-	if [ -e "/dev/mapper/${LUKS_MAPPER_NAME}" ]; then
-		sudo cryptsetup close "${LUKS_MAPPER_NAME}" 2>/dev/null || true
-	fi
 
 	# Unmount with retries
 	for mnt in "$WORKDIR/mnt_rootfs" "$WORKDIR/mnt_bootloader" \
@@ -831,11 +779,6 @@ log_info "Vendor partition size: ${VENDOR_PART_SIZE} MB"
 log_info "Rootfs partition size: ${ROOTFS_PART_SIZE} MB (initial, expandable)"
 log_info "Total image size: ${TOTAL_SIZE_MB} MB"
 
-# LUKS passphrase already collected during onboarding; just validate cryptsetup here
-if [ "$LUKS_ENABLED" -eq 1 ]; then
-	log_info "LUKS2 passphrase accepted; encryption will be applied to rootfs partition"
-fi
-
 # === Step 9: Create empty image ===
 CURRENT_STEP="9/15"
 log_step "$CURRENT_STEP" "Create empty image"
@@ -951,38 +894,12 @@ if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
 	safe_exec sudo mkfs.ext4 -q -O ^has_journal,^orphan_file,^metadata_csum_seed \
 		-L "shimboot_vendor" "${LOOPDEV}p4"
 	# Rootfs is p5
-	if [ "$LUKS_ENABLED" -eq 1 ]; then
-		log_info "LUKS2: formatting p${ROOTFS_PARTITION_INDEX}..."
-		echo -n "$LUKS_PASSPHRASE" | safe_exec sudo cryptsetup luksFormat \
-			--type luks2 --cipher aes-xts-plain64 --key-size 256 \
-			--hash sha256 --iter-time 2000 --batch-mode \
-			"${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" -
-		log_info "LUKS2: opening container as ${LUKS_MAPPER_NAME}..."
-		echo -n "$LUKS_PASSPHRASE" | safe_exec sudo cryptsetup open \
-			"${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "${LUKS_MAPPER_NAME}" --key-file=-
-		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_OPTS[@]}" \
-			"/dev/mapper/${LUKS_MAPPER_NAME}"
-	else
-		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_OPTS[@]}" \
-			"${LOOPDEV}p${ROOTFS_PARTITION_INDEX}"
-	fi
+	safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_OPTS[@]}" \
+		"${LOOPDEV}p${ROOTFS_PARTITION_INDEX}"
 else
 	# Rootfs directly as p4
-	if [ "$LUKS_ENABLED" -eq 1 ]; then
-		log_info "LUKS2: formatting p${ROOTFS_PARTITION_INDEX}..."
-		echo -n "$LUKS_PASSPHRASE" | safe_exec sudo cryptsetup luksFormat \
-			--type luks2 --cipher aes-xts-plain64 --key-size 256 \
-			--hash sha256 --iter-time 2000 --batch-mode \
-			"${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" -
-		log_info "LUKS2: opening container as ${LUKS_MAPPER_NAME}..."
-		echo -n "$LUKS_PASSPHRASE" | safe_exec sudo cryptsetup open \
-			"${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "${LUKS_MAPPER_NAME}" --key-file=-
-		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_OPTS[@]}" \
-			"/dev/mapper/${LUKS_MAPPER_NAME}"
-	else
-		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_OPTS[@]}" \
-			"${LOOPDEV}p${ROOTFS_PARTITION_INDEX}"
-	fi
+	safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_OPTS[@]}" \
+		"${LOOPDEV}p${ROOTFS_PARTITION_INDEX}"
 fi
 
 # After Step 12: Format partitions
@@ -1022,16 +939,7 @@ CURRENT_STEP="14/15"
 log_step "$CURRENT_STEP" "Populate rootfs partition (now p${ROOTFS_PARTITION_INDEX})"
 LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
 safe_exec sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs"
-if [ "$LUKS_ENABLED" -eq 1 ]; then
-	if [ ! -e "/dev/mapper/${LUKS_MAPPER_NAME}" ]; then
-		log_info "LUKS2: re-opening container for rootfs population..."
-		echo -n "$LUKS_PASSPHRASE" | safe_exec sudo cryptsetup open \
-			"${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "${LUKS_MAPPER_NAME}" --key-file=-
-	fi
-	safe_exec sudo mount "/dev/mapper/${LUKS_MAPPER_NAME}" "$WORKDIR/mnt_rootfs"
-else
-	safe_exec sudo mount "${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "$WORKDIR/mnt_rootfs"
-fi
+safe_exec sudo mount "${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "$WORKDIR/mnt_rootfs"
 total_bytes=$(sudo du -sb "$WORKDIR/mnt_src_rootfs" | cut -f1)
 (cd "$WORKDIR/mnt_src_rootfs" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_rootfs" && sudo tar xf -)
 
@@ -1124,11 +1032,6 @@ EOF
 safe_exec sudo umount "$WORKDIR/mnt_src_rootfs"
 safe_exec sudo losetup -d "$LOOPROOT"
 LOOPROOT=""
-
-if [ "$LUKS_ENABLED" -eq 1 ] && [ -e "/dev/mapper/${LUKS_MAPPER_NAME}" ]; then
-	safe_exec sudo cryptsetup close "${LUKS_MAPPER_NAME}"
-	log_info "LUKS2: container closed"
-fi
 
 # === Step 15: Driver handling functions ===
 # Extract functions first to eliminate code duplication
@@ -1282,13 +1185,7 @@ if [ "$INSPECT_AFTER" = "--inspect" ]; then
 	safe_exec sudo partx -o NR,START,END,SIZE,TYPE,NAME,UUID -g --show "$IMAGE"
 	LOOPDEV=$(sudo losetup --show -fP "$IMAGE")
 	mkdir -p "$WORKDIR/inspect_rootfs"
-	if [ "$LUKS_ENABLED" -eq 1 ]; then
-		echo -n "$LUKS_PASSPHRASE" | safe_exec sudo cryptsetup open \
-			"${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "${LUKS_MAPPER_NAME}_inspect" --key-file=-
-		safe_exec sudo mount "/dev/mapper/${LUKS_MAPPER_NAME}_inspect" "$WORKDIR/inspect_rootfs"
-	else
-		safe_exec sudo mount "${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "$WORKDIR/inspect_rootfs"
-	fi
+	safe_exec sudo mount "${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "$WORKDIR/inspect_rootfs"
 
 	sudo ls -l "$WORKDIR/inspect_rootfs"
 	if [ -f "$WORKDIR/inspect_rootfs/sbin/init" ]; then
@@ -1299,9 +1196,6 @@ if [ "$INSPECT_AFTER" = "--inspect" ]; then
 		log_error "Init missing"
 	fi
 	safe_exec sudo umount "$WORKDIR/inspect_rootfs"
-	if [ "$LUKS_ENABLED" -eq 1 ] && [ -e "/dev/mapper/${LUKS_MAPPER_NAME}_inspect" ]; then
-		safe_exec sudo cryptsetup close "${LUKS_MAPPER_NAME}_inspect" 2>/dev/null || true
-	fi
 
 	safe_exec sudo losetup -d "$LOOPDEV"
 fi

@@ -9,7 +9,6 @@
 # - Show battery SoC in selector header
 # - Provide NixOS generation selection when NixOS rootfs detected
 # - Support return-to-menu from generation selector
-# - Handle LUKS2 encrypted root filesystems via cryptsetup
 # - Integrate vendor firmware and kernel modules through bind mounting
 # - Execute pivot_root to transition to selected OS as PID 1
 
@@ -127,29 +126,6 @@ find_vendor_partition() {
 	fi
 
 	return 1
-}
-
-ensure_dm_crypt() {
-	[ -e /sys/module/dm_crypt ] && return 0
-	modprobe dm-crypt 2>/dev/null && return 0
-	modprobe dm_crypt 2>/dev/null && return 0
-
-	[ -e /sys/module/dm_mod ] || modprobe dm-mod 2>/dev/null || modprobe dm_mod 2>/dev/null || true
-
-	local vendor_dev
-	vendor_dev="$(find_vendor_partition 2>/dev/null)" || return 1
-	local tmp_mnt="/tmp/_vendor_dm"
-	mkdir -p "$tmp_mnt"
-	if mount -o ro "$vendor_dev" "$tmp_mnt" 2>/dev/null; then
-		local ko
-		ko="$(find "$tmp_mnt/lib/modules" -name 'dm-mod.ko*' 2>/dev/null | head -n1)"
-		[ -n "$ko" ] && [ ! -e /sys/module/dm_mod ] && insmod "$ko" 2>/dev/null || true
-		ko="$(find "$tmp_mnt/lib/modules" -name 'dm-crypt.ko*' 2>/dev/null | head -n1)"
-		[ -n "$ko" ] && insmod "$ko" 2>/dev/null || true
-		umount "$tmp_mnt" 2>/dev/null || true
-	fi
-	rmdir "$tmp_mnt" 2>/dev/null || true
-	[ -e /sys/module/dm_crypt ]
 }
 
 bind_vendor_into() {
@@ -538,60 +514,19 @@ boot_target() {
 	local target="$1"
 
 	log "Mounting rootfs..."
-	mkdir /newroot
+	mkdir -p /newroot
 
-	if [ -x "$(command -v cryptsetup)" ] && cryptsetup luksDump "$target" >/dev/null 2>&1; then
-		log "LUKS2 container detected on ${target}"
-		if ! ensure_dm_crypt; then
-			err "dm-crypt module unavailable — cannot open LUKS container"
-			umount /newroot 2>/dev/null || true
+	log "Running: mount -t ext4 ${target} /newroot"
+	if ! mount -t ext4 $target /newroot 2>/dev/null; then
+		log "Running: mount ${target} /newroot"
+		if ! mount $target /newroot; then
+			err "mount failed for ${target}"
+			echo "> available filesystems:"
+			cat /proc/filesystems || true
+			echo "> blkid ${target}:"
+			blkid "$target" || true
 			rmdir /newroot 2>/dev/null || true
 			return 1
-		fi
-
-		local luks_ok=0
-		local attempts=0
-		while [ $attempts -lt 3 ]; do
-			log "Running: cryptsetup open ${target} rootfs"
-			if cryptsetup open "$target" rootfs; then
-				luks_ok=1
-				break
-			fi
-			attempts=$((attempts + 1))
-			[ $attempts -lt 3 ] && err "Wrong passphrase, try again ($((3 - attempts)) left):"
-		done
-
-		if [ $luks_ok -eq 0 ]; then
-			err "Failed to unlock LUKS container after 3 attempts"
-			rmdir /newroot 2>/dev/null || true
-			return 1
-		fi
-
-		log "Running: mount /dev/mapper/rootfs /newroot"
-		if ! mount -t ext4 /dev/mapper/rootfs /newroot 2>/dev/null; then
-			if ! mount /dev/mapper/rootfs /newroot; then
-				err "mount failed for LUKS rootfs: /dev/mapper/rootfs"
-				echo "> available filesystems:"
-				cat /proc/filesystems || true
-				echo "> blkid /dev/mapper/rootfs:"
-				blkid /dev/mapper/rootfs || true
-				cryptsetup close rootfs 2>/dev/null || true
-				rmdir /newroot 2>/dev/null || true
-				return 1
-			fi
-		fi
-	else
-		log "Running: mount -t ext4 ${target} /newroot"
-		if ! mount -t ext4 $target /newroot 2>/dev/null; then
-			log "Running: mount ${target} /newroot"
-			if ! mount $target /newroot; then
-				err "mount failed for ${target}"
-				echo "> available filesystems:"
-				cat /proc/filesystems || true
-				echo "> blkid ${target}:"
-				blkid $target || true
-				return 1
-			fi
 		fi
 	fi
 
