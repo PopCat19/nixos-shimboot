@@ -13,18 +13,20 @@
 #   ./assemble-final.sh [OPTIONS]
 #
 # Options:
-#   --board BOARD          Target board (dedede, octopus, etc.)
-#   --rootfs FLAVOR        Rootfs variant (full, minimal)
-#   --drivers MODE         Driver placement (vendor, inject, both, none)
-#   --firmware-upstream    Enable upstream firmware (default: 1)
-#   --no-firmware-upstream Disable upstream firmware
-#   --inspect              Inspect final image after build
-#   --cleanup-rootfs       Clean up old rootfs generations
-#   --cleanup-keep N       Keep last N generations (default: 3)
-#   --no-dry-run           Actually delete in cleanup (default: dry-run)
-#   --dry-run              Show what would be done without executing destructive operations
-#   --prewarm-cache        Attempt to fetch from Cachix before building
-#   --push-to-cachix       Automatically push Nix derivations to Cachix after successful build (image upload no longer supported)
+#   -h, --help               Show this help message
+#   --board BOARD            Target board (dedede, octopus, etc.)
+#   --rootfs FLAVOR         Rootfs variant (full, minimal)
+#   --drivers MODE           Driver placement (vendor, inject, both, none)
+#   --firmware-upstream      Enable upstream firmware (default: 1)
+#   --no-firmware-upstream   Disable upstream firmware
+#   --inspect                Inspect final image after build
+#   --cleanup-rootfs         Clean up old rootfs generations
+#   --cleanup-keep N        Keep last N generations (default: 3)
+#   --no-dry-run            Actually delete in cleanup (default: dry-run)
+#   --dry-run               Show what would be done without executing destructive operations
+#   --prewarm-cache         Attempt to fetch from Cachix before building
+#   --push-to-cachix        Automatically push Nix derivations to Cachix after successful build (image upload no longer supported)
+#   --no-sudo               Skip sudo elevation (for testing or already-root users)
 #
 # Examples:
 #   # Build dedede with full rootfs
@@ -44,68 +46,203 @@
 
 set -Eeuo pipefail
 
-# === Error Handling ===
-handle_error() {
-	local exit_code=$?
-	local step="$1"
-
-	log_error "Build failed at step $step with exit code $exit_code"
-
-	case "$step" in
-	"1/15")
-		log_error "Troubleshooting:"
-		log_error "  1. Check Nix daemon: systemctl status nix-daemon"
-		log_error "  2. Clear build cache: nix-collect-garbage -d"
-		log_error "  3. Verify board exists: ls manifests/${BOARD}-manifest.nix"
-		;;
-	"2/15")
-		log_error "Driver harvest failed. Check:"
-		log_error "  1. Shim file exists: $SHIM_BIN"
-		log_error "  2. Recovery image valid (if used)"
-		;;
-	"12/15")
-		log_error "Partition formatting failed. Possible causes:"
-		log_error "  1. Loop device issues: sudo losetup -D"
-		log_error "  2. Insufficient permissions"
-		log_error "  3. Corrupted image file"
-		;;
-	"13/15")
-		log_error "Bootloader population failed. Check:"
-		log_error "  1. Patched initramfs exists: $PATCHED_INITRAMFS"
-		log_error "  2. Bootloader partition mounted: ${LOOPDEV}p3"
-		log_error "  3. Sufficient disk space"
-		;;
-	"14/15")
-		log_error "Rootfs population failed. Check:"
-		log_error "  1. Raw rootfs image exists: $WORKDIR/rootfs.img"
-		log_error "  2. Target partition mounted: ${LOOPDEV}p5"
-		log_error "  3. User configuration valid"
-		;;
-	"15/15")
-		log_error "Driver handling failed. Check:"
-		log_error "  1. Harvested drivers exist: $HARVEST_OUT"
-		log_error "  2. DRIVERS_MODE value: $DRIVERS_MODE"
-		log_error "  3. Partition permissions"
-		;;
-	esac
-
-	exit $exit_code
+# === Help Display ===
+show_help() {
+	head -n 43 "$0" | tail -n 31
+	exit 0
 }
 
-# Set up error trap
-trap 'handle_error "${CURRENT_STEP:-unknown}"' ERR
+# === Early Argument Parsing (before sudo) ===
+# Parse for --help and any flags that should work without sudo
+HELP_MODE=0
+SKIP_SUDO=0
+REMAINING_ARGS=()
 
-# Elevate to root so nix-daemon treats this client as trusted; required for substituters/trusted-public-keys
-# Use -H to set HOME to /root to avoid "$HOME is not owned by you" warnings under sudo.
-if [ "${EUID:-$(id -u)}" -ne 0 ]; then
-	echo "[assemble-final] Re-executing with sudo -H..."
-	echo "[assemble-final] Please enter your sudo password when prompted..."
-	SUDO_ENV=()
-	for var in BOARD BOARD_EXPLICITLY_SET CACHIX_AUTH_TOKEN; do
-		if [ -n "${!var:-}" ]; then SUDO_ENV+=("$var=${!var}"); fi
-	done
-	exec sudo -E -H "${SUDO_ENV[@]}" "$0" "$@"
+while [ $# -gt 0 ]; do
+	case "${1:-}" in
+	-h | --help)
+		HELP_MODE=1
+		shift
+		;;
+	--no-sudo)
+		SKIP_SUDO=1
+		shift
+		;;
+	*)
+		REMAINING_ARGS+=("$1")
+		shift
+		;;
+	esac
+done
+
+# Handle help display early (no sudo required)
+if [ "$HELP_MODE" -eq 1 ]; then
+	show_help
 fi
+
+# Restore args for further processing
+set -- "${REMAINING_ARGS[@]}"
+
+# === Initialize Config (before sudo) ===
+SYSTEM="x86_64-linux"
+
+BOARD="${BOARD:-}"
+BOARD_EXPLICITLY_SET="${BOARD_EXPLICITLY_SET:-}"
+ROOTFS_NAME="${ROOTFS_NAME:-nixos}"
+ROOTFS_FLAVOR="${ROOTFS_FLAVOR:-}"
+INSPECT_AFTER=""
+DRY_RUN=0
+FIRMWARE_UPSTREAM="${FIRMWARE_UPSTREAM:-1}"
+CLEANUP_ROOTFS=0
+CLEANUP_NO_DRY_RUN=0
+CLEANUP_KEEP=""
+PREWARM_CACHE=0
+PUSH_TO_CACHIX=0
+DRIVERS_MODE=""
+
+# === Main Argument Parsing (onboarding + args work together) ===
+# If args provided, use them; otherwise prompt interactively
+while [ $# -gt 0 ]; do
+	case "${1:-}" in
+	--board)
+		BOARD="${2:-}"
+		BOARD_EXPLICITLY_SET="set"
+		shift 2
+		;;
+	--rootfs)
+		ROOTFS_FLAVOR="${2:-}"
+		shift 2
+		;;
+	--drivers)
+		DRIVERS_MODE="${2:-vendor}"
+		shift 2
+		;;
+	--firmware-upstream)
+		FIRMWARE_UPSTREAM="1"
+		shift
+		;;
+	--no-firmware-upstream)
+		FIRMWARE_UPSTREAM="0"
+		shift
+		;;
+	--inspect)
+		INSPECT_AFTER="--inspect"
+		shift
+		;;
+	--cleanup-rootfs)
+		CLEANUP_ROOTFS=1
+		shift
+		;;
+	--cleanup-no-dry-run | --no-dry-run)
+		CLEANUP_NO_DRY_RUN=1
+		shift
+		;;
+	--cleanup-keep | --keep)
+		CLEANUP_KEEP="${2:-}"
+		shift 2
+		;;
+	--dry-run)
+		DRY_RUN=1
+		shift
+		;;
+	--prewarm-cache)
+		PREWARM_CACHE=1
+		shift
+		;;
+	--push-to-cachix)
+		PUSH_TO_CACHIX=1
+		shift
+		;;
+	*)
+		shift
+		;;
+	esac
+done
+
+# === Onboarding: Prompt for missing required args ===
+# Board onboarding
+if [ -z "$BOARD" ]; then
+	if [ -t 0 ]; then
+		echo
+		echo "[assemble-final] No board specified. Available boards:"
+		echo "  dedede      - HP ElitePad 1000 G2"
+		echo "  octopus     - Samsung Chromebox"
+		echo "  zork        - Lenovo ThinkPad X130e"
+		read -rp "Enter board name [default=dedede]: " BOARD
+		BOARD="${BOARD:-dedede}"
+		[ -n "$BOARD" ] && BOARD_EXPLICITLY_SET="set"
+	else
+		BOARD="dedede"
+	fi
+fi
+
+# Rootfs flavor onboarding (mutually exclusive with --rootfs arg)
+if [ -z "$ROOTFS_FLAVOR" ]; then
+	if [ -t 0 ]; then
+		echo
+		echo "[assemble-final] Select rootfs flavor to build:"
+		echo "  1) full     (recommended) → complete desktop with Home Manager, Rose Pine theme, and user applications (~16-20GB)"
+		echo "  2) minimal  (lightweight) → base system with LightDM + Hyprland, network, and shell utilities (~6-8GB)"
+		read -rp "Enter choice [1/2, default=1]: " choice
+		case "${choice:-1}" in
+		2) ROOTFS_FLAVOR="minimal" ;;
+		*) ROOTFS_FLAVOR="full" ;;
+		esac
+	else
+		ROOTFS_FLAVOR="full"
+	fi
+fi
+
+# Drivers mode onboarding
+if [ -z "$DRIVERS_MODE" ]; then
+	if [ -t 0 ]; then
+		echo
+		echo "[assemble-final] Select driver mode:"
+		echo "  1) vendor   (recommended) → place drivers in separate vendor partition"
+		echo "  2) inject  → inject drivers directly into rootfs"
+		echo "  3) both    → vendor + inject (redundant but safe)"
+		echo "  4) none    → skip driver handling"
+		read -rp "Enter choice [1/2/3/4, default=1]: " choice
+		case "${choice:-1}" in
+		2) DRIVERS_MODE="inject" ;;
+		3) DRIVERS_MODE="both" ;;
+		4) DRIVERS_MODE="none" ;;
+		*) DRIVERS_MODE="vendor" ;;
+		esac
+	else
+		DRIVERS_MODE="vendor"
+	fi
+fi
+
+# Validate args after onboarding
+if [ -z "$BOARD" ]; then
+	echo "[assemble-final] Error: Board name cannot be empty. Use --board <name>." >&2
+	exit 1
+fi
+
+# Warn if board wasn't explicitly provided via arg
+if [ -z "$BOARD_EXPLICITLY_SET" ]; then
+	echo "[assemble-final] Warning: No --board specified; defaulting to '$BOARD'." >&2
+	sleep 1
+fi
+
+# === Deferred Sudo Check (only when needed) ===
+# Only require sudo for actual build operations, not for help/onboarding
+require_sudo() {
+	if [ "${SKIP_SUDO:-0}" -eq 1 ]; then
+		log_info "sudo elevation skipped (--no-sudo specified)"
+		return 0
+	fi
+	if [ "${EUID:-$(id -u)}" -ne 0 ]; then
+		echo "[assemble-final] Re-executing with sudo -H..."
+		echo "[assemble-final] Please enter your sudo password when prompted..."
+		SUDO_ENV=()
+		for var in BOARD BOARD_EXPLICITLY_SET CACHIX_AUTH_TOKEN ROOTFS_FLAVOR DRIVERS_MODE; do
+			if [ -n "${!var:-}" ]; then SUDO_ENV+=("$var=${!var}"); fi
+		done
+		exec sudo -E -H "${SUDO_ENV[@]}" "$0" --no-sudo "$@"
+	fi
+}
 
 # === CI Detection ===
 is_ci() {
@@ -203,110 +340,6 @@ verify_cachix_config() {
 # Ensure unfree packages are allowed for nix builds that require ChromeOS tools/firmware
 export NIXPKGS_ALLOW_UNFREE="${NIXPKGS_ALLOW_UNFREE:-1}"
 
-# === Config ===
-SYSTEM="x86_64-linux"
-
-# Initialize BOARD_EXPLICITLY_SET before CLI parsing
-BOARD="${BOARD:-}"
-BOARD_EXPLICITLY_SET="${BOARD_EXPLICITLY_SET:-}"
-ROOTFS_NAME="${ROOTFS_NAME:-nixos}"
-ROOTFS_FLAVOR="${ROOTFS_FLAVOR:-}"
-INSPECT_AFTER=""
-
-# Dry run option
-DRY_RUN=0
-
-# Firmware options
-FIRMWARE_UPSTREAM="${FIRMWARE_UPSTREAM:-1}"
-
-# Cleanup options
-CLEANUP_ROOTFS=0
-CLEANUP_NO_DRY_RUN=0
-CLEANUP_KEEP=""
-
-# Cache options
-PREWARM_CACHE=0
-PUSH_TO_CACHIX=0
-
-while [ $# -gt 0 ]; do
-	case "${1:-}" in
-	--board)
-		BOARD="${2:-}"
-		BOARD_EXPLICITLY_SET="set"
-		shift 2
-		;;
-	--rootfs)
-		ROOTFS_FLAVOR="${2:-}"
-		shift 2
-		;;
-	--drivers)
-		DRIVERS_MODE="${2:-vendor}"
-		shift 2
-		;;
-	--firmware-upstream)
-		FIRMWARE_UPSTREAM="1"
-		shift
-		;;
-	--no-firmware-upstream)
-		FIRMWARE_UPSTREAM="0"
-		shift
-		;;
-	--inspect)
-		INSPECT_AFTER="--inspect"
-		shift
-		;;
-	--cleanup-rootfs)
-		CLEANUP_ROOTFS=1
-		shift
-		;;
-	--cleanup-no-dry-run | --no-dry-run)
-		CLEANUP_NO_DRY_RUN=1
-		shift
-		;;
-	--cleanup-keep | --keep)
-		CLEANUP_KEEP="${2:-}"
-		shift 2
-		;;
-
-	--dry-run)
-		DRY_RUN=1
-		shift
-		;;
-	--prewarm-cache)
-		PREWARM_CACHE=1
-		shift
-		;;
-	--push-to-cachix)
-		PUSH_TO_CACHIX=1
-		shift
-		;;
-	*)
-		# Backward compat: if a single arg was passed previously as inspect flag
-		if [ "${1:-}" = "--inspect" ]; then
-			INSPECT_AFTER="--inspect"
-		fi
-		shift
-		;;
-	esac
-done
-
-# NOW set default board if not provided
-if [ -z "$BOARD" ]; then
-	BOARD="dedede"
-fi
-
-# Warn only if board wasn't explicitly provided
-if [ -z "$BOARD_EXPLICITLY_SET" ]; then
-	log_warn "No --board specified; defaulting to 'dedede'."
-	log_warn "If this is unintended, rerun with --board <name>."
-	sleep 1
-fi
-
-if [ -z "$BOARD" ]; then
-	log_error "Board name cannot be empty; use --board <name>."
-	exit 1
-fi
-
 # === Setup Workspace Path (Now that BOARD is known) ===
 # Detect if we're in CI with Nothing but Nix (large /nix mount)
 if [ -d "/nix" ] && mountpoint -q /nix 2>/dev/null; then
@@ -325,25 +358,9 @@ fi
 
 IMAGE="$WORKDIR/shimboot.img"
 
-# Interactive prompt if not provided, default to full
-if [ -z "${ROOTFS_FLAVOR:-}" ]; then
-	if [ -t 0 ]; then
-		echo
-		echo "[assemble-final] Select rootfs flavor to build:"
-		echo "  1) full     (recommended) → complete desktop with Home Manager, Rose Pine theme, and user applications (~16-20GB)"
-		echo "  2) minimal  (lightweight) → base system with LightDM + Hyprland, network, and shell utilities (~6-8GB)"
-		read -rp "Enter choice [1/2, default=1]: " choice
-		case "${choice:-1}" in
-		2) ROOTFS_FLAVOR="minimal" ;;
-		*) ROOTFS_FLAVOR="full" ;;
-		esac
-	else
-		ROOTFS_FLAVOR="full"
-	fi
-fi
-
+# Validate rootfs flavor
 if [ "${ROOTFS_FLAVOR}" != "full" ] && [ "${ROOTFS_FLAVOR}" != "minimal" ]; then
-	log_error "Invalid --rootfs value: '${ROOTFS_FLAVOR}'. Use 'full' or 'minimal'."
+	echo "[assemble-final] Error: Invalid --rootfs value: '${ROOTFS_FLAVOR}'. Use 'full' or 'minimal'." >&2
 	exit 1
 fi
 
@@ -355,9 +372,7 @@ fi
 
 log_info "Rootfs flavor: ${ROOTFS_FLAVOR} (attr: .#${RAW_ROOTFS_ATTR})"
 log_info "Board: ${BOARD}"
-# Default drivers mode to 'vendor' unless overridden by --drivers or env
-DRIVERS_MODE="${DRIVERS_MODE:-vendor}"
-log_info "Drivers mode: ${DRIVERS_MODE} (vendor|inject|none)"
+log_info "Drivers mode: ${DRIVERS_MODE:-vendor} (vendor|inject|none)"
 log_info "Upstream firmware: ${FIRMWARE_UPSTREAM} (0=disabled, 1=enabled)"
 log_info "Push to Cachix: ${PUSH_TO_CACHIX} (0=disabled, 1=enabled, derivations only)"
 if [ "$DRY_RUN" -eq 1 ]; then
@@ -372,6 +387,9 @@ safe_exec() {
 		"$@"
 	fi
 }
+
+# === Require sudo before first destructive operation ===
+require_sudo "$@"
 
 # === Cleanup workspace ===
 if [ -d "$WORKDIR" ]; then
@@ -684,9 +702,9 @@ safe_exec sudo mount "${LOOPROOT}p1" "$WORKDIR/mnt_src_rootfs" || {
 	log_error "Failed to mount rootfs for optimization"
 	handle_error "$CURRENT_STEP"
 }
-	log_info "Running nix-store --optimise on raw rootfs (may take a while)..."
-	safe_exec sudo "$(which nix-store)" --store "$WORKDIR/mnt_src_rootfs" --optimise || true
-	log_info "Store optimization complete"
+log_info "Running nix-store --optimise on raw rootfs (may take a while)..."
+safe_exec sudo "$(which nix-store)" --store "$WORKDIR/mnt_src_rootfs" --optimise || true
+log_info "Store optimization complete"
 safe_exec sudo umount "$WORKDIR/mnt_src_rootfs"
 safe_exec sudo losetup -d "$LOOPROOT"
 LOOPROOT=""
@@ -877,9 +895,9 @@ safe_exec sudo mount "${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "$WORKDIR/mnt_rootfs
 total_bytes=$(sudo du -sb "$WORKDIR/mnt_src_rootfs" | cut -f1)
 (cd "$WORKDIR/mnt_src_rootfs" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_rootfs" && sudo tar xf -)
 
-	# Get username from userConfig
-	USERNAME="$(nix eval "${NIX_BUILD_FLAGS[@]}" --expr "(import ./shimboot_config/user-config.nix {}).user.username" --json | jq -r .)"
-	log_info "Using username from userConfig: $USERNAME"
+# Get username from userConfig
+USERNAME="$(nix eval "${NIX_BUILD_FLAGS[@]}" --expr "(import ./shimboot_config/user-config.nix {}).user.username" --json | jq -r .)"
+log_info "Using username from userConfig: $USERNAME"
 
 # === Step 14: Clone nixos-config repository into rootfs ===
 log_step "$CURRENT_STEP" "Clone nixos-config repository into rootfs"
