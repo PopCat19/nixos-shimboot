@@ -12,6 +12,8 @@ Purpose: Non-obvious conventions only. Assumes standard SWE practices.
 
 - Max 6 levels deep from repo root (monorepo: from app root)
 - Every module must be imported somewhere (wire in on create, remove refs before delete)
+- Add `context.md` to folders with 5+ non-obvious files: one bullet per file, present-tense, no subdirectory entries (those get their own). Update in the same commit as any file addition, removal, or rename — treat drift as broken.
+- **Single source of truth:** context.md entries derive from file header `Purpose:` lines. Files in context.md must have headers. The drift check validates both structure and content.
 
 ## Comments & Docs
 
