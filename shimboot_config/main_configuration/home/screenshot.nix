@@ -25,6 +25,8 @@ let
     FILE="$(date +%Y-%m-%d_%H-%M-%S).png"
 
     SHADER=""
+    RESTORE=0
+
     if command -v hyprshade >/dev/null 2>&1; then
       SHADER=$(hyprshade current 2>/dev/null || true)
     fi
@@ -39,10 +41,13 @@ let
     if [[ -n "$SHADER" && "$SHADER" != "Off" ]]; then
       sleep 0.01
       hyprshade off >/dev/null 2>&1 || true
-      wait "$pid"
+      RESTORE=1
+    fi
+
+    wait "$pid"
+
+    if [[ "$RESTORE" = 1 ]]; then
       hyprshade on "$SHADER" >/dev/null 2>&1 || true
-    else
-      wait "$pid"
     fi
   '';
 in
