@@ -121,6 +121,6 @@
     Theme=Papirus-Dark
 
     [UiSettings]
-    ColorScheme=kvantum
+    ColorScheme=Stylix
   '';
 }
