@@ -1,6 +1,6 @@
 # screenshot.nix
 #
-# Purpose: Provide simple hyprshot wrapper avoiding double-shader on freeze
+# Purpose: Provide simple hyprshot wrapper with predictable shader handling
 #
 # This module:
 # - Installs hyprshot
@@ -19,29 +19,28 @@ let
       monitor) MODE="output" ;;
       region) MODE="region" ;;
       window) MODE="window" ;;
-      *) echo "Unknown mode: $1" >&2; exit 1 ;;
+      *) echo "Usage: screenshot [monitor|region|window]" >&2; exit 1 ;;
     esac
 
-    FILE="$(date +%Y-%m-%d_%H-%M-%S).png"
+    shader=""
+    restore_shader() {
+      if [[ -n "$shader" && "$shader" != "Off" ]]; then
+        hyprshade on "$shader"
+      fi
+    }
 
-    SHADER=""
     if command -v hyprshade >/dev/null 2>&1; then
-      SHADER=$(hyprshade current 2>/dev/null || true)
+      shader=$(hyprshade current 2>/dev/null || true)
+      if [[ -n "$shader" && "$shader" != "Off" ]]; then
+        hyprshade off
+        trap restore_shader EXIT
+      fi
     fi
 
     ${pkgs.hyprshot}/bin/hyprshot \
-      --mode "$MODE" \
       --freeze \
-      -o "$SCREENSHOTS_DIR" \
-      -f "$FILE" &
-    pid=$!
-
-    if [[ -n "$SHADER" && "$SHADER" != "Off" ]]; then
-      sleep 0.01
-      hyprshade off >/dev/null 2>&1 || true
-    fi
-
-    wait "$pid"
+      --mode "$MODE" \
+      -o "$SCREENSHOTS_DIR"
   '';
 in
 {

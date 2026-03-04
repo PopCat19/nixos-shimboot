@@ -89,6 +89,7 @@
   stylix.targets.nixcord.enable = true;
   stylix.targets.zed.enable = true;
   stylix.targets.vscode.enable = true;
+  stylix.targets.helix.enable = true;
 
   # Cursor theme configuration using Stylix native option
   stylix.cursor = {

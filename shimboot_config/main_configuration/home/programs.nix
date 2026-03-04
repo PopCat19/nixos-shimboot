@@ -9,5 +9,7 @@
 _: {
   imports = [
     ./nvim/nvim.nix
+    ./helix.nix
+    ./zathura.nix
   ];
 }
