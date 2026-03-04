@@ -20,7 +20,7 @@
 }:
 {
   imports = [
-    ./nix-options.nix
+    ../nix-options.nix
     ./system/environment.nix
     ./system/boot.nix
     ./system/networking.nix
