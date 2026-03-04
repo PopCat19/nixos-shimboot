@@ -1,6 +1,6 @@
 # screenshot.nix
 #
-# Purpose: Provide simple hyprshot wrapper with predictable hyprshade handling
+# Purpose: Provide simple hyprshot wrapper with shader-safe freeze handling
 #
 # This module:
 # - Installs hyprshot
@@ -14,38 +14,35 @@ let
     mkdir -p "$SCREENSHOTS_DIR"
 
     MODE="output"
-    INCLUDE_SHADER=false
 
-    while [[ $# -gt 0 ]]; do
-      case "$1" in
-        monitor|"") MODE="output" ;;
-        region) MODE="region" ;;
-        window) MODE="window" ;;
-        --include-shader) INCLUDE_SHADER=true ;;
-        *) echo "Unknown arg: $1" >&2; exit 1 ;;
-      esac
-      shift
-    done
+    case "''${1:-monitor}" in
+      monitor) MODE="output" ;;
+      region) MODE="region" ;;
+      window) MODE="window" ;;
+      *) echo "Unknown mode: $1" >&2; exit 1 ;;
+    esac
+
+    FILE="$(date +%Y-%m-%d_%H-%M-%S).png"
 
     SHADER=""
     if command -v hyprshade >/dev/null 2>&1; then
       SHADER=$(hyprshade current 2>/dev/null || true)
     fi
 
+    ${pkgs.hyprshot}/bin/hyprshot \
+      --mode "$MODE" \
+      --freeze \
+      -o "$SCREENSHOTS_DIR" \
+      -f "$FILE" &
+    pid=$!
+
     if [[ -n "$SHADER" && "$SHADER" != "Off" ]]; then
-      if [[ "$INCLUDE_SHADER" = true ]]; then
-        hyprshade on "$SHADER" >/dev/null 2>&1 || true
-        hyprshade off >/dev/null 2>&1 || true
-        hyprshot -m "$MODE" -o "$SCREENSHOTS_DIR"
-        sleep 0.1
-        hyprshade on "$SHADER" >/dev/null 2>&1 || true
-      else
-        hyprshade off >/dev/null 2>&1 || true
-        hyprshot -m "$MODE" -o "$SCREENSHOTS_DIR"
-        hyprshade on "$SHADER" >/dev/null 2>&1 || true
-      fi
+      sleep 0.01
+      hyprshade off >/dev/null 2>&1 || true
+      wait "$pid"
+      hyprshade on "$SHADER" >/dev/null 2>&1 || true
     else
-      hyprshot -m "$MODE" -o "$SCREENSHOTS_DIR"
+      wait "$pid"
     fi
   '';
 in
