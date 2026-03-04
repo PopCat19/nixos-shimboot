@@ -84,8 +84,6 @@ fi
 set -- "${REMAINING_ARGS[@]}"
 
 # === Initialize Config (before sudo) ===
-SYSTEM="x86_64-linux"
-
 BOARD="${BOARD:-}"
 BOARD_EXPLICITLY_SET="${BOARD_EXPLICITLY_SET:-}"
 ROOTFS_NAME="${ROOTFS_NAME:-nixos}"
@@ -402,7 +400,8 @@ mkdir -p "$WORKDIR" "$WORKDIR/mnt_src_rootfs" "$WORKDIR/mnt_bootloader" "$WORKDI
 check_disk_space() {
 	local required_gb="${1:-30}"
 	local path="${2:-.}"
-	local available_gb=$(df -BG "$path" | awk 'NR==2 {print $4}' | sed 's/G//')
+	local available_gb
+	available_gb=$(df -BG "$path" | awk 'NR==2 {print $4}' | sed 's/G//')
 
 	if [ "${available_gb:-0}" -lt "$required_gb" ]; then
 		log_error "Insufficient disk space: ${available_gb}GB available, ${required_gb}GB required"
@@ -451,7 +450,7 @@ cleanup() {
 			for i in {1..3}; do
 				safe_exec sudo umount "$mnt" 2>/dev/null && break
 				sleep 0.5
-				[ $i -eq 3 ] && safe_exec sudo umount -l "$mnt" 2>/dev/null
+				[ "$i" -eq 3 ] && safe_exec sudo umount -l "$mnt" 2>/dev/null
 			done
 		fi
 	done
@@ -491,14 +490,14 @@ retry_command() {
 	shift 2
 	local attempt=1
 
-	while [ $attempt -le $max_attempts ]; do
+	while [ "$attempt" -le "$max_attempts" ]; do
 		log_info "Attempt $attempt/$max_attempts: $*"
 		if "$@"; then
 			return 0
 		fi
 
 		local exit_code=$?
-		if [ $attempt -lt $max_attempts ]; then
+		if [ "$attempt" -lt "$max_attempts" ]; then
 			log_warn "Command failed with exit code $exit_code, retrying in ${wait_time}s..."
 			sleep "$wait_time"
 		else
@@ -537,9 +536,9 @@ if [ "$PREWARM_CACHE" -eq 1 ]; then
 
 	# Try to substitute without building
 	nix build --dry-run \
-		.#extracted-kernel-${BOARD} \
-		.#initramfs-patching-${BOARD} \
-		.#${RAW_ROOTFS_ATTR} \
+		."#extracted-kernel-${BOARD}" \
+		."#initramfs-patching-${BOARD}" \
+		."#${RAW_ROOTFS_ATTR}" \
 		2>&1 | grep "will be fetched" || log_info "Nothing to fetch"
 fi
 
@@ -548,11 +547,11 @@ CURRENT_STEP="1/15"
 log_step "$CURRENT_STEP" "Building Nix outputs (parallel)"
 
 # Build all in parallel, capture PIDs
-nix build "${NIX_BUILD_FLAGS[@]}" .#extracted-kernel-${BOARD} &
+nix build "${NIX_BUILD_FLAGS[@]}" ."#extracted-kernel-${BOARD}" &
 KERNEL_PID=$!
-nix build "${NIX_BUILD_FLAGS[@]}" .#initramfs-patching-${BOARD} &
+nix build "${NIX_BUILD_FLAGS[@]}" ."#initramfs-patching-${BOARD}" &
 INITRAMFS_PID=$!
-nix build "${NIX_BUILD_FLAGS[@]}" .#${RAW_ROOTFS_ATTR} &
+nix build "${NIX_BUILD_FLAGS[@]}" ."#${RAW_ROOTFS_ATTR}" &
 ROOTFS_PID=$!
 
 # Wait and check each
@@ -599,8 +598,8 @@ log_info "Patched initramfs dir: $PATCHED_INITRAMFS"
 log_info "Raw rootfs: $RAW_ROOTFS_IMG"
 
 # Build ChromeOS SHIM and RECOVERY (always build recovery for Cachix caching)
-SHIM_BIN="$(nix build "${NIX_BUILD_FLAGS[@]}" .#chromeos-shim-${BOARD} --print-out-paths)"
-RECOVERY_BIN_PATH="$(nix build "${NIX_BUILD_FLAGS[@]}" .#chromeos-recovery-${BOARD} --print-out-paths)"
+SHIM_BIN="$(nix build "${NIX_BUILD_FLAGS[@]}" ."#chromeos-shim-${BOARD}" --print-out-paths)"
+RECOVERY_BIN_PATH="$(nix build "${NIX_BUILD_FLAGS[@]}" ."#chromeos-recovery-${BOARD}" --print-out-paths)"
 RECOVERY_PATH=""
 if [ "${SKIP_RECOVERY:-0}" != "1" ]; then
 	if [ -n "${RECOVERY_BIN:-}" ]; then
@@ -660,6 +659,7 @@ if [ -d "$HARVEST_OUT/lib/firmware" ]; then
 	# More robust path resolution
 	SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 	if [ -f "$SCRIPT_DIR/tools/harvest-drivers.sh" ]; then
+		# shellcheck disable=SC1091
 		source "$SCRIPT_DIR/tools/harvest-drivers.sh"
 		prune_unused_firmware "$HARVEST_OUT/lib/firmware"
 	else
@@ -819,7 +819,8 @@ if ! command -v cgpt >/dev/null 2>&1; then
 	if [ -n "$CGPT_PATH" ]; then
 		log_info "Found cgpt at: $CGPT_PATH"
 		# Create a temporary wrapper to ensure cgpt is available
-		export PATH="$(dirname "$CGPT_PATH"):${PATH}"
+		CGPT_DIR=$(dirname "$CGPT_PATH")
+		export PATH="$CGPT_DIR:${PATH}"
 	else
 		log_error "cgpt not found in Nix store. Please ensure vboot_reference is installed."
 		log_error "Try running: nix develop"
