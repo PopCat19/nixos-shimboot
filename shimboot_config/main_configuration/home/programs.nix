@@ -11,5 +11,6 @@ _: {
     ./nvim/nvim.nix
     ./helix.nix
     ./zathura.nix
+    ./broot.nix
   ];
 }
