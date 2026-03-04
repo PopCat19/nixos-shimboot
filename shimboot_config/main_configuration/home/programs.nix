@@ -13,5 +13,6 @@ _: {
     ./zathura.nix
     ./broot.nix
     ./lazygit.nix
+    ./vivid.nix
   ];
 }
