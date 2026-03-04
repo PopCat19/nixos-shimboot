@@ -1,218 +1,153 @@
-# Screenshot Module
+# screenshot.nix
 #
-# Purpose: Configure screenshot tools and wrapper script for Hyprland using grimblast
+# Purpose: Configure screenshot tools and wrapper script for Hyprland
 #
 # This module:
 # - Installs screenshot tools (grimblast, gwenview, libnotify, jq)
-# - Creates Screenshots directory
-# - Installs screenshot wrapper script with hyprshade integration
+# - Creates wrapper script with hyprshade integration
 { pkgs, ... }:
 let
   screenshotScript = pkgs.writeShellScriptBin "screenshot" ''
     set -euo pipefail
 
-    # Configuration
-    DEFAULT_DIR="$HOME/Pictures/Screenshots"
-    XDG_SCREENSHOTS_DIR="''${XDG_SCREENSHOTS_DIR:-$DEFAULT_DIR}"
-    mkdir -p "$XDG_SCREENSHOTS_DIR"
+    SCREENSHOTS_DIR="''${XDG_SCREENSHOTS_DIR:-$HOME/Pictures/Screenshots}"
+    mkdir -p "$SCREENSHOTS_DIR"
 
-    # Parse arguments
     MODE="output"
     KEEP_SHADER=false
-    POSITIONAL_ARGS=()
+
+    usage() {
+      echo "Usage: screenshot [monitor|region|window|both] [--keep-shader]"
+      echo ""
+      echo "Modes:"
+      echo "  monitor   Capture the current output (default)"
+      echo "  region    Select a region to capture"
+      echo "  window    Capture the active window"
+      echo "  both      Capture output, then select a region"
+      echo ""
+      echo "Options:"
+      echo "  --keep-shader   Don't disable hyprshade during capture"
+      exit 0
+    }
 
     while [[ $# -gt 0 ]]; do
       case $1 in
-        --keep-shader)
-          KEEP_SHADER=true
-          shift
-          ;;
-        -*)
-          echo "Unknown option: $1" >&2
-          exit 1
-          ;;
-        *)
-          POSITIONAL_ARGS+=("$1")
-          shift
-          ;;
+        --keep-shader)  KEEP_SHADER=true ;;
+        --help|-h)      usage ;;
+        -*)             echo "Unknown option: $1" >&2; exit 1 ;;
+        monitor|"")     MODE="output" ;;
+        region)         MODE="area" ;;
+        window)         MODE="active" ;;
+        both)           MODE="both" ;;
+        *)              echo "Error: unknown mode '$1'" >&2; exit 1 ;;
       esac
+      shift
     done
 
-    if [[ ''${#POSITIONAL_ARGS[@]} -gt 0 ]]; then
-      set -- "''${POSITIONAL_ARGS[@]}"
-    else
-      set --
-    fi
+    # -- Hyprshade management --------------------------------------------------
 
-    if [[ $# -gt 0 ]]; then
-      case $1 in
-        monitor|full) MODE="output" ;;
-        region|area) MODE="area" ;;
-        window|active) MODE="active" ;;
-        both) MODE="both" ;;
-        *)
-          echo "Usage: screenshot [monitor|region|window|both] [--keep-shader]" >&2
-          echo ""
-          echo "Modes:"
-          echo "  monitor - Screenshot current monitor (default)"
-          echo "  region  - Screenshot selected region"
-          echo "  window  - Screenshot active window"
-          echo "  both    - Screenshot both monitor and region"
-          echo ""
-          echo "Options:"
-          echo "  --keep-shader - Preserve hyprshade effects in screenshot"
-          exit 1
-          ;;
-      esac
-    fi
+    SAVED_SHADER=""
 
-    slugify_app_name() {
-      local s="''${1:-}"
-      if [[ -z "$s" ]]; then
-        echo "screen"
+    save_hyprshade() {
+      if [[ "$KEEP_SHADER" == "true" ]]; then
         return
       fi
-      s="''${s,,}"
-      s="''${s//[^a-z0-9._-]/-}"
-      while [[ "$s" == *--* ]]; do
-        s="''${s//--/-}"
-      done
-      s="''${s#-}"
-      s="''${s%-}"
-      if [[ -z "$s" ]]; then
-        echo "screen"
+      if ! command -v hyprshade >/dev/null 2>&1; then
+        return
+      fi
+      SAVED_SHADER=$(hyprshade current 2>/dev/null || true)
+      if [[ -n "$SAVED_SHADER" && "$SAVED_SHADER" != "Off" ]]; then
+        hyprshade off >/dev/null 2>&1 || true
+        sleep 0.15
       else
-        echo "$s"
+        SAVED_SHADER=""
       fi
     }
 
-    get_app_name() {
-      local app="screen"
-      if command -v hyprctl >/dev/null 2>&1; then
-        local json
-        json=$(hyprctl activewindow -j 2>/dev/null || true)
-        if [[ -n "$json" ]]; then
-          local cls
-          cls=$(echo "$json" | ${pkgs.jq}/bin/jq -r '.class // empty' 2>/dev/null || true)
-          if [[ -n "$cls" && "$cls" != "null" ]]; then
-            app="$cls"
-          fi
-        fi
+    restore_hyprshade() {
+      if [[ -n "$SAVED_SHADER" ]]; then
+        local shader="$SAVED_SHADER"
+        SAVED_SHADER=""
+        hyprshade on "$shader" >/dev/null 2>&1 || true
       fi
-      slugify_app_name "$app"
+    }
+
+    trap restore_hyprshade EXIT
+
+    # -- Helpers ---------------------------------------------------------------
+
+    get_app_name() {
+      if command -v hyprctl >/dev/null 2>&1; then
+        hyprctl activewindow -j 2>/dev/null \
+          | ${pkgs.jq}/bin/jq -r '.class // "screen"' 2>/dev/null \
+          | tr '[:upper:]' '[:lower:]' \
+          | tr -c 'a-z0-9._-' '-'
+      else
+        echo "screen"
+      fi
     }
 
     next_filename() {
-      local dir="$1"
-      local app="$2"
+      local dir="$1" app="$2" suffix="''${3:-}"
       local date
       date=$(date +%Y%m%d)
       local prefix="''${app}_''${date}-"
       local n=1
-      while [[ -e "$dir/''${prefix}''${n}.png" ]] || \
-            [[ -e "$dir/''${prefix}''${n}_output.png" ]] || \
-            [[ -e "$dir/''${prefix}''${n}_area.png" ]]; do
+      while [[ -e "$dir/''${prefix}''${n}''${suffix}.png" ]]; do
         ((n++))
       done
-      echo "''${prefix}''${n}.png"
-    }
-
-    run_with_hyprshade() {
-      local keep_shader="$1"
-      shift
-
-      if [[ "$keep_shader" == "true" ]]; then
-        "$@"
-        return $?
-      fi
-
-      if command -v hyprshade >/dev/null 2>&1; then
-        local shader
-        shader=$(hyprshade current 2>/dev/null || echo "")
-        if [[ -n "$shader" && "$shader" != "Off" ]]; then
-          hyprshade off >/dev/null 2>&1
-          "$@"
-          local ret=$?
-          hyprshade on "$shader" >/dev/null 2>&1 || true
-          return $ret
-        fi
-      fi
-
-      "$@"
+      echo "''${prefix}''${n}''${suffix}.png"
     }
 
     take_screenshot() {
-      local mode="$1"
-      local dir="$2"
-      local filename="$3"
-      local keep_shader="$4"
-      local screenshot_path="$dir/$filename"
+      local mode="$1" dir="$2" filename="$3"
+      local filepath="$dir/$filename"
 
-      local grimblast_cmd=(
-        ${pkgs.grimblast}/bin/grimblast
-        --freeze
-        copysave
-        "$mode"
-        "$screenshot_path"
-      )
+      local -a cmd=(${pkgs.grimblast}/bin/grimblast)
+      [[ "$mode" == "area" ]] && cmd+=(--freeze)
+      cmd+=(copysave "$mode" "$filepath")
 
-      if run_with_hyprshade "$keep_shader" "''${grimblast_cmd[@]}"; then
-        if [[ -f "$screenshot_path" ]]; then
-          ${pkgs.libnotify}/bin/notify-send \
-            "Screenshot" \
-            "$mode screenshot saved: $filename" \
-            -i camera-photo \
-            2>/dev/null || true
-          echo "Saved: $screenshot_path"
-        else
-          echo "Screenshot cancelled - no file created"
-          return 1
-        fi
-      else
-        if [[ -f "$screenshot_path" ]]; then
-          rm -f "$screenshot_path"
-          echo "Screenshot cancelled - cleaned up partial file"
-        else
-          echo "Screenshot cancelled"
-        fi
-        return 1
+      if "''${cmd[@]}" && [[ -f "$filepath" ]]; then
+        ${pkgs.libnotify}/bin/notify-send \
+          "Screenshot" "$filename saved" \
+          -i camera-photo 2>/dev/null || true
+        echo "Saved: $filepath"
+        return 0
       fi
+
+      rm -f "$filepath"
+      echo "Screenshot cancelled ($mode)" >&2
+      return 1
     }
 
-    take_both_screenshots() {
-      local dir="$1"
-      local base_filename="$2"
-      local keep_shader="$3"
-      local base_name="''${base_filename%.png}"
-
-      local output_filename="''${base_name}_output.png"
-      take_screenshot "output" "$dir" "$output_filename" "$keep_shader"
-
-      local area_filename="''${base_name}_area.png"
-      take_screenshot "area" "$dir" "$area_filename" "$keep_shader"
-    }
+    # -- Main ------------------------------------------------------------------
 
     APP_NAME=$(get_app_name)
-    FILENAME=$(next_filename "$XDG_SCREENSHOTS_DIR" "$APP_NAME")
+    save_hyprshade
 
     case "$MODE" in
       output|area|active)
-        take_screenshot "$MODE" "$XDG_SCREENSHOTS_DIR" "$FILENAME" "$KEEP_SHADER"
+        FILENAME=$(next_filename "$SCREENSHOTS_DIR" "$APP_NAME")
+        take_screenshot "$MODE" "$SCREENSHOTS_DIR" "$FILENAME"
         ;;
       both)
-        take_both_screenshots "$XDG_SCREENSHOTS_DIR" "$FILENAME" "$KEEP_SHADER"
+        FILENAME=$(next_filename "$SCREENSHOTS_DIR" "$APP_NAME" "_output")
+        take_screenshot "output" "$SCREENSHOTS_DIR" "$FILENAME"
+
+        FILENAME=$(next_filename "$SCREENSHOTS_DIR" "$APP_NAME" "_area")
+        take_screenshot "area" "$SCREENSHOTS_DIR" "$FILENAME"
         ;;
     esac
   '';
 in
 {
+  home.file."Pictures/Screenshots/.keep".text = "";
+
   home.packages = with pkgs; [
     grimblast
+    jq
     kdePackages.gwenview
     libnotify
-    jq
     screenshotScript
   ];
-
-  home.file."Pictures/Screenshots/.keep".text = "";
 }
