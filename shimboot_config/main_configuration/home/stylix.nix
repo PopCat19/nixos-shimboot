@@ -24,7 +24,7 @@
 {
   imports = [
     inputs.stylix.homeModules.stylix
-    inputs.pmd.homeManagerModules.pmd
+    inputs.pmd.homeModules.pmd
   ];
 
   # Enable Stylix with auto-enable for better compatibility
