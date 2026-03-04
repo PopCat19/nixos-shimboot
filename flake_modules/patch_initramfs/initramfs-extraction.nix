@@ -42,10 +42,11 @@ in
       xz
       zstd
       vboot_reference # futility/vbutil_kernel
+      xxd
     ];
 
     buildPhase = ''
-      set -euo pipefail
+      set -Eeuo pipefail
       runHook preBuild
 
       mkdir -p work
@@ -58,50 +59,85 @@ in
         local infile="$1"
         local outfile="$2"
         local offset
-        offset=$(binwalk "$infile" | awk '/gzip compressed data|XZ compressed data|LZ4 compressed data|Zstandard compressed data/ {print $1; exit}')
-        if [ -z "$offset" ]; then
+        set +e
+        offset=$(binwalk "$infile" 2>/dev/null | awk '/gzip compressed data|XZ compressed data|LZ4 compressed data|Zstandard compressed data/ {print $1; exit}')
+        local binwalk_status=$?
+        set -e
+        if [ -z "$offset" ] || [ "$binwalk_status" -ne 0 ]; then
           echo "No further compression found in $infile, copying as-is"
           cp "$infile" "$outfile"
           return
         fi
         echo "Found compression at offset $offset in $infile"
-        dd if="$infile" of=work/tmp.bin bs=1 skip="$offset" status=none
-        if file work/tmp.bin | grep -q 'gzip compressed'; then
-          gzip -dc work/tmp.bin > "$outfile" || true
-        elif file work/tmp.bin | grep -q 'XZ compressed'; then
-          xz -dc work/tmp.bin > "$outfile" || true
-        elif file work/tmp.bin | grep -q 'LZ4'; then
-          lz4 -dc work/tmp.bin "$outfile" || true
-        elif file work/tmp.bin | grep -q 'Zstandard'; then
-          zstd -dc work/tmp.bin > "$outfile" || true
-        else
-          echo "ERROR: Unknown compression type in $infile"
+        dd if="$infile" of=work/tmp.bin bs=1 skip="$offset" status=none conv=notrunc 2>/dev/null || true
+        MAGIC=$(xxd -l 4 -p work/tmp.bin 2>/dev/null || echo "")
+        echo "Magic bytes: $MAGIC"
+        case "$MAGIC" in
+          1f8b*)
+            echo "Detected: gzip"
+            set +e
+            gzip -dc work/tmp.bin > "$outfile" 2>&1
+            set -e
+            ;;
+          fd377a58|fd37*)
+            echo "Detected: xz"
+            set +e
+            xz -dc work/tmp.bin > "$outfile" 2>&1
+            set -e
+            ;;
+          02224b18*)
+            echo "Detected: lz4"
+            set +e
+            lz4 -dc work/tmp.bin "$outfile" 2>&1
+            set -e
+            ;;
+          28b52ffd*)
+            echo "Detected: zstd"
+            set +e
+            zstd -dc work/tmp.bin > "$outfile" 2>&1
+            set -e
+            ;;
+          *)
+            echo "Unknown magic: $MAGIC, trying gzip as fallback"
+            set +e
+            gzip -dc work/tmp.bin > "$outfile" 2>&1
+            set -e
+            ;;
+        esac
+        if [ ! -s "$outfile" ]; then
+          echo "ERROR: Decompression produced empty file"
           exit 1
         fi
         if [ ! -s "$outfile" ]; then
-          echo "ERROR: Decompression produced empty file from $infile"
+          echo "ERROR: Decompression produced empty file"
           exit 1
+        fi
+        ls -la "$outfile" || true
+        if [ ! -s "$outfile" ]; then
+          echo "WARNING: Decompression produced empty file, copying input"
+          cp "$infile" "$outfile"
         fi
       }
 
       echo "Decompressing first layer from vmlinuz..."
-      decompress_layer work/vmlinuz work/decompressed1.bin
+      decompress_layer work/vmlinuz work/decompressed1.bin || true
 
       echo "Decompressing second layer if present..."
-      decompress_layer work/decompressed1.bin work/decompressed2.bin
+      decompress_layer work/decompressed1.bin work/decompressed2.bin || cp work/decompressed1.bin work/decompressed2.bin || true
 
-      echo "Searching for CPIO archive with retry handling (binwalk sometimes panics)..."
+      echo "Searching for CPIO archive with retry handling..."
       BINWALK_ATTEMPTS=3
+      CPIO_OFFSET=""
       for attempt in $(seq 1 "$BINWALK_ATTEMPTS"); do
         set +e
-        CPIO_OFFSET=$(binwalk work/decompressed2.bin 2>/dev/null | awk '/CPIO ASCII archive/ {print $1; exit}')
+        CPIO_OFFSET=$(binwalk work/decompressed2.bin 2>&1 | awk '/CPIO ASCII archive/ {print $1; exit}')
         status=$?
         set -e
         if [ "$status" -eq 0 ] && [ -n "$CPIO_OFFSET" ]; then
           echo "Found CPIO archive at offset $CPIO_OFFSET (attempt $attempt)"
           break
         else
-          echo "binwalk attempt $attempt failed or panic detected; retrying..."
+          echo "binwalk attempt $attempt/$BINWALK_ATTEMPTS failed (status=$status); retrying..."
           sleep 2
         fi
       done
