@@ -12,5 +12,6 @@ _: {
     ./helix.nix
     ./zathura.nix
     ./broot.nix
+    ./lazygit.nix
   ];
 }
