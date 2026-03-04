@@ -119,5 +119,8 @@
   home.file.".config/kdeglobals".text = ''
     [Icons]
     Theme=Papirus-Dark
+
+    [UiSettings]
+    ColorScheme=kvantum
   '';
 }
