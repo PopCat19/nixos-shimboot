@@ -157,9 +157,18 @@
         // (initramfsExtractionOutputs board).packages.${system} or { }
         // (initramfsPatchingOutputs board).packages.${system} or { };
 
+      # Import nixpkgs with overlays for systemd and other custom packages
+      pkgsWithOverlays = import nixpkgs {
+        inherit system;
+        overlays = import ./overlays/overlays.nix system;
+      };
+
       # Merge packages from all modules
       packages = {
-        ${system} = nixpkgs.lib.foldl' (acc: board: acc // (boardPackages board)) { } supportedBoards;
+        ${system} = nixpkgs.lib.foldl' (acc: board: acc // (boardPackages board)) { } supportedBoards // {
+          # Expose systemd 258.3 with patches for cachix caching
+          inherit (pkgsWithOverlays) systemd;
+        };
       };
 
       # Merge devShells from all modules

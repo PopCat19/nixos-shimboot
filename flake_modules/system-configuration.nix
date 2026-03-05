@@ -26,6 +26,9 @@ let
   userConfig = import ../shimboot_config/user-config.nix { };
   hn = userConfig.host.hostname;
 
+  # Import overlays for system packages (includes systemd 258.3 patch)
+  systemOverlays = import ../overlays/overlays.nix system;
+
   baseModules = [
     ../shimboot_config/base_configuration/configuration.nix
 
@@ -35,6 +38,8 @@ let
         "flakes"
       ];
 
+      nixpkgs.overlays = systemOverlays;
+
       proxy.enable = true;
     })
   ];
@@ -42,10 +47,14 @@ let
   mainModules = [
     ../shimboot_config/main_configuration/configuration.nix
 
+    (_: {
+      nixpkgs.overlays = systemOverlays;
+    })
+
     home-manager.nixosModules.home-manager
 
     (
-      { pkgs, ... }:
+      { ... }:
       {
         home-manager.useGlobalPkgs = false;
         home-manager.useUserPackages = true;
@@ -62,7 +71,7 @@ let
         home-manager.sharedModules = [
           (_: {
             nixpkgs.config.allowUnfree = true;
-            nixpkgs.overlays = import ../overlays/overlays.nix pkgs.system;
+            nixpkgs.overlays = systemOverlays;
             _module.args.userConfig = userConfig;
           })
         ];
