@@ -832,6 +832,49 @@ configuration/
 - Tree structure should encourage exploration
 - Optimize for newcomer comprehension
 
+### Directory Index Files (`context.md`)
+
+Add a `context.md` to any folder where filenames alone don't convey the full picture — typically 5+ files forming a non-obvious module grouping.
+
+**When to create:**
+- Folder has multiple files whose purpose isn't evident from names alone
+- Folder is a module group, not a flat self-documenting config dir or single-purpose leaf
+
+**When to skip:**
+- Filenames are self-documenting (`audio.nix`, `networking.nix`)
+- Fewer than ~5 files with obvious names
+- Single-purpose leaf folders (`shaders/`, `wallpaper/`)
+
+**Format:**
+```markdown
+# Context
+
+- `filename.ext` — One-line present-tense purpose
+- `other-file.ext` — One-line present-tense purpose
+```
+
+**Single source of truth:**
+- **Derive from file headers:** Each entry must match the file's header `Purpose:` line verbatim (or near-verbatim if truncated for length)
+- The file header is the authoritative source; `context.md` is a derived surface
+- This enables automated drift detection — updating a header without updating `context.md` triggers the hook
+
+**Files in context.md require headers:**
+- Any file listed in `context.md` **must** have a file header with a `Purpose:` line
+- This is required for the drift check to validate content, not just structure
+- Files without headers (shell scripts, configs, non-module files) cannot be listed in `context.md`
+
+**Rules:**
+- One line per file, present-tense verb phrase (from header `Purpose:`)
+- Directories are excluded — they own their own `context.md`
+- Always tracked in git; never gitignored
+- **Must be updated atomically with file additions, removals, and renames** — same commit, no exceptions
+- Treat an outdated `context.md` as broken as a missing import
+
+**Drift detection:**
+- See `src/check-context.sh` for automated verification
+- Validates both structure (listed files exist) and content (entry matches header `Purpose:`)
+- Can be installed as pre-commit hook: `dev-conventions.sh lint --install-context-hook`
+
 ## 5. Comments
 
 **Rationale:** Comments should explain *why*, not *what*. Code should be self-documenting for the "what". Redundant comments increase maintenance burden.

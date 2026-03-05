@@ -94,6 +94,127 @@ func process(data string) error {
 }
 ```
 
+## CLI Presentation (Rule 2 / Rule 5)
+
+**Source a shared lib rather than inline ANSI:**
+```bash
+# Bad: inline color strings scattered across scripts
+printf '\033[1;32m  ✓ %s\033[0m\n' "$1"
+
+# Good: source once, use named functions
+source "$(dirname "$0")/../tools/libcli.sh"
+log_success "Rootfs mounted"
+```
+
+**Log level conventions:**
+```bash
+log_step  "2/8" "Format partitions"   # [2/8] Format partitions   (bold blue)
+log_info  "Loop device: /dev/loop0"   #   →   (green)
+log_warn  "Cache miss, building..."   #   !   (yellow)
+log_error "Mount failed: EBUSY"       #   ✗   (red, stderr)
+log_success "Image ready"             #   ✓   (green)
+log_cmd   "parted --script img ..."   #   $   (dim)
+log_sep                               # ────  (dim rule, terminal width)
+```
+
+**Step counter — declare total upfront:**
+```bash
+cli_steps_init 8
+CURRENT_STEP="$(cli_step_next)"   # → "1/8"
+log_step "$CURRENT_STEP" "Build Nix outputs"
+
+CURRENT_STEP="$(cli_step_next)"   # → "2/8"
+log_step "$CURRENT_STEP" "Harvest drivers"
+```
+
+**Banner for script entry points:**
+```bash
+cli_banner "Deploy Tool" "env: staging · version: 1.4.2"
+# Output:
+# ────────────────────────────────────────────────────────────────────────────
+#   Deploy Tool
+#   env: staging · version: 1.4.2
+# ────────────────────────────────────────────────────────────────────────────
+```
+
+**safe_exec respects DRY_RUN automatically:**
+```bash
+# Bad: manual dry-run guards repeated everywhere
+if [ "$DRY_RUN" -eq 1 ]; then
+    echo "[dry-run] sudo parted ..."
+else
+    sudo parted --script "$IMAGE" mklabel gpt
+fi
+
+# Good: single wrapper
+safe_exec sudo parted --script "$IMAGE" mklabel gpt
+# dry-run:  prints  →  $ sudo parted --script ...  (no-op)
+# live:     prints then executes
+```
+
+**Retry transient failures:**
+```bash
+# Bad: silent retry with manual loop
+for i in 1 2 3; do cmd && break; sleep 5; done
+
+# Good
+cli_retry 3 5 curl -fsSL "$URL" -o "$DEST"
+# Output:
+#   → Attempt 1/3: curl ...
+#   ! Failed (exit 22), retrying in 5s...
+#   → Attempt 2/3: curl ...
+#   ✓ (success)
+```
+
+**Prompts degrade gracefully in non-tty:**
+```bash
+# cli_prompt_yn returns 1 (no) silently when stdin is not a tty
+# Safe to call unconditionally — no hang in CI
+
+cli_prompt_yn "Enable LUKS2 encryption?" "n" && LUKS_ENABLED=1
+
+cli_prompt_choice "Select flavor:" "1" "full" "minimal" "custom"
+log_info "Selected: ${CLI_CHOICE}"
+```
+
+**CI color suppression is automatic:**
+```bash
+# No guard needed — _cli_use_color() checks:
+#   isatty, $NO_COLOR, $CI, $GITHUB_ACTIONS
+# Plain text emitted automatically in CI pipelines
+```
+
+**Fish — same API surface:**
+```fish
+source (dirname (status filename))/../tools/libcli.fish
+
+cli_banner "NixOS Rebuild" "flake: $NIXOS_CONFIG_DIR"
+cli_steps_init 3
+
+log_step (cli_step_next) "Validate environment"
+cli_prompt_yn "Disable sandbox?" n
+and set -a nix_args --option sandbox false
+
+safe_exec sudo nixos-rebuild switch --flake .
+```
+
+**Contextual error blocks pair with log_error:**
+```bash
+handle_error() {
+    local step="$1"
+    log_error "Failed at step $step"
+    case "$step" in
+    "3/8")
+        log_error "Troubleshooting:"
+        log_error "  1. Check loop devices: losetup -l"
+        log_error "  2. Verify free space: df -h"
+        ;;
+    esac
+    exit 1
+}
+trap 'handle_error "${CURRENT_STEP:-unknown}"' ERR
+```
+
 ## Naming (Rule 3)
 
 **File naming conventions:**
