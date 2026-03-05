@@ -68,8 +68,8 @@ Options:
   --inspect                Inspect final image after build
   --cleanup-rootfs         Clean up old rootfs generations
   --cleanup-keep N         Keep last N generations (default: 3)
-  --no-dry-run             Actually delete in cleanup (default: dry-run)
-  --dry-run                Show what would be done without executing destructive operations
+  --cleanup-no-dry-run     Actually delete in cleanup (default: dry-run)
+  --dry-run                Show what would be done without executing destructive operations (global)
   --prewarm-cache          Attempt to fetch from Cachix before building
   --push-to-cachix         Automatically push Nix derivations to Cachix after successful build
   --no-sudo                Skip sudo elevation (for testing or already-root users)
@@ -161,7 +161,7 @@ while [ $# -gt 0 ]; do
 		CLEANUP_ROOTFS=1
 		shift
 		;;
-	--cleanup-no-dry-run | --no-dry-run)
+	--cleanup-no-dry-run)
 		CLEANUP_NO_DRY_RUN=1
 		shift
 		;;
@@ -194,9 +194,13 @@ if [ -z "$BOARD" ]; then
 	if [ -t 0 ]; then
 		echo
 		echo "[assemble-final] No board specified. Available boards:"
-		echo "  dedede      - HP ElitePad 1000 G2"
-		echo "  octopus     - Samsung Chromebox"
-		echo "  zork        - Lenovo ThinkPad X130e"
+		mapfile -t AVAILABLE_BOARDS < <(
+			ls manifests/*-manifest.nix 2>/dev/null |
+				sed 's|manifests/||;s|-manifest.nix||' | sort
+		)
+		for b in "${AVAILABLE_BOARDS[@]}"; do
+			echo "  $b"
+		done
 		read -rp "Enter board name [default=dedede]: " BOARD
 		BOARD="${BOARD:-dedede}"
 		[ -n "$BOARD" ] && BOARD_EXPLICITLY_SET="set"
@@ -401,13 +405,16 @@ if [ "${ROOTFS_FLAVOR}" = "minimal" ]; then
 	RAW_ROOTFS_ATTR="raw-rootfs-minimal"
 fi
 
-log_info "Rootfs flavor: ${ROOTFS_FLAVOR} (attr: .#${RAW_ROOTFS_ATTR})"
-log_info "Board: ${BOARD}"
-log_info "Drivers mode: ${DRIVERS_MODE:-vendor} (vendor|inject|none)"
-log_info "Upstream firmware: ${FIRMWARE_UPSTREAM} (0=disabled, 1=enabled)"
-log_info "Push to Cachix: ${PUSH_TO_CACHIX} (0=disabled, 1=enabled, derivations only)"
-if [ "$DRY_RUN" -eq 1 ]; then
-	log_warn "DRY RUN MODE: No destructive operations will be performed"
+# Only print summary in elevated context to avoid double output on sudo re-exec
+if [ "${SKIP_SUDO:-0}" -eq 1 ]; then
+	log_info "Rootfs flavor: ${ROOTFS_FLAVOR} (attr: .#${RAW_ROOTFS_ATTR})"
+	log_info "Board: ${BOARD}"
+	log_info "Drivers mode: ${DRIVERS_MODE:-vendor} (vendor|inject|none)"
+	log_info "Upstream firmware: ${FIRMWARE_UPSTREAM} (0=disabled, 1=enabled)"
+	log_info "Push to Cachix: ${PUSH_TO_CACHIX} (0=disabled, 1=enabled, derivations only)"
+	if [ "$DRY_RUN" -eq 1 ]; then
+		log_warn "DRY RUN MODE: No destructive operations will be performed"
+	fi
 fi
 
 # === Safe execution wrapper for destructive operations ===
@@ -420,11 +427,11 @@ safe_exec() {
 }
 
 # === Require sudo before first destructive operation ===
-require_sudo "$@"
+require_sudo
 
 # === Cleanup workspace ===
 if [ -d "$WORKDIR" ]; then
-	log_warn "Cleaning up old work directory..."
+	log_info "Cleaning up old work directory..."
 	safe_exec sudo rm -rf "$WORKDIR"
 fi
 mkdir -p "$WORKDIR" "$WORKDIR/mnt_src_rootfs" "$WORKDIR/mnt_bootloader" "$WORKDIR/mnt_rootfs"
@@ -454,12 +461,12 @@ LOOPROOT=""
 cleanup_loop_devices() {
 	log_info "Cleaning up loop devices..."
 
-	# Find all loops associated with our work directory
+	# Find all loops associated with our image file
 	while read -r dev; do
 		[ -n "$dev" ] || continue
 		log_info "Detaching $dev..."
 		safe_exec sudo losetup -d "$dev" 2>/dev/null || safe_exec sudo losetup -d "$dev" -f 2>/dev/null || true
-	done < <(losetup -j "$WORKDIR" 2>/dev/null | cut -d: -f1)
+	done < <(losetup -j "$IMAGE" 2>/dev/null | cut -d: -f1)
 
 	# Explicit cleanup of tracked devices
 	for dev in "$LOOPDEV" "$LOOPROOT"; do
@@ -576,7 +583,7 @@ if [ "$PREWARM_CACHE" -eq 1 ]; then
 fi
 
 # === Step 1: Build Nix outputs (parallel) ===
-CURRENT_STEP="1/16"
+CURRENT_STEP="1/17"
 log_step "$CURRENT_STEP" "Building Nix outputs (parallel)"
 
 # Build all in parallel, capture PIDs
@@ -652,7 +659,7 @@ fi
 # === Step 2: Harvest ChromeOS drivers (modules/firmware/modprobe.d) ===
 HARVEST_OUT="$WORKDIR/harvested"
 mkdir -p "$HARVEST_OUT"
-CURRENT_STEP="2/16"
+CURRENT_STEP="2/17"
 log_step "$CURRENT_STEP" "Harvest ChromeOS drivers"
 if [ -n "$RECOVERY_PATH" ]; then
 	bash tools/harvest-drivers.sh --shim "$SHIM_BIN" --recovery "$RECOVERY_PATH" --out "$HARVEST_OUT" || {
@@ -668,7 +675,7 @@ fi
 
 # === Step 3: Augment firmware with upstream ChromiumOS linux-firmware ===
 if [ "${FIRMWARE_UPSTREAM:-1}" != "0" ]; then
-	CURRENT_STEP="3/16"
+	CURRENT_STEP="3/17"
 	log_step "$CURRENT_STEP" "Augment firmware with upstream linux-firmware"
 	log_info "Cloning upstream linux-firmware repository..."
 	UPSTREAM_FW_DIR="$WORKDIR/linux-firmware.upstream"
@@ -687,23 +694,20 @@ fi
 
 # === Step 4: Prune unused firmware files ===
 if [ -d "$HARVEST_OUT/lib/firmware" ]; then
-	CURRENT_STEP="4/16"
+	CURRENT_STEP="4/17"
 	log_step "$CURRENT_STEP" "Prune unused firmware files"
-	# More robust path resolution
 	SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-	if [ -f "$SCRIPT_DIR/tools/harvest-drivers.sh" ]; then
-		# Source with guard to prevent main body execution
-		HARVEST_DRIVERS_SOURCED=1
+	if [ -f "$SCRIPT_DIR/tools/prune-firmware.sh" ]; then
 		# shellcheck disable=SC1091
-		source "$SCRIPT_DIR/tools/harvest-drivers.sh"
+		source "$SCRIPT_DIR/tools/prune-firmware.sh"
 		prune_unused_firmware "$HARVEST_OUT/lib/firmware"
 	else
-		log_warn "harvest-drivers.sh not found; skipping firmware pruning"
+		log_warn "prune-firmware.sh not found; skipping firmware pruning"
 	fi
 fi
 
 # === Step 5: Calculate vendor partition size AFTER firmware augmentation ===
-CURRENT_STEP="5/16"
+CURRENT_STEP="5/17"
 log_step "$CURRENT_STEP" "Calculate vendor partition size after firmware merge"
 VENDOR_SRC_SIZE_MB=0
 if [ -d "$HARVEST_OUT/lib/modules" ]; then
@@ -718,7 +722,7 @@ VENDOR_PART_SIZE=$(((VENDOR_SRC_SIZE_MB * 115 / 100) + 20))
 log_info "Vendor partition size (post-firmware): ${VENDOR_PART_SIZE} MB"
 
 # === Step 6: Copy raw rootfs image ===
-CURRENT_STEP="6/16"
+CURRENT_STEP="6/17"
 log_step "$CURRENT_STEP" "Copy raw rootfs image"
 if [ ! -f "$RAW_ROOTFS_IMG" ]; then
 	log_error "Raw rootfs image is not a file: $RAW_ROOTFS_IMG"
@@ -727,7 +731,7 @@ fi
 pv "$RAW_ROOTFS_IMG" >"$WORKDIR/rootfs.img"
 
 # === Step 7: Optimize Nix store in raw rootfs ===
-CURRENT_STEP="7/16"
+CURRENT_STEP="7/17"
 log_step "$CURRENT_STEP" "Optimize Nix store in raw rootfs"
 LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img") || {
 	log_error "Failed to setup loop device for rootfs optimization"
@@ -747,7 +751,7 @@ safe_exec sudo losetup -d "$LOOPROOT"
 LOOPROOT=""
 
 # === Step 8: Calculate rootfs size ===
-CURRENT_STEP="8/16"
+CURRENT_STEP="8/17"
 log_step "$CURRENT_STEP" "Calculate rootfs size"
 LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
 RAW_ROOTFS_PART=$(detect_rootfs_partition "$LOOPROOT")
@@ -780,7 +784,7 @@ log_info "Rootfs partition size: ${ROOTFS_PART_SIZE} MB (initial, expandable)"
 log_info "Total image size: ${TOTAL_SIZE_MB} MB"
 
 # === Step 9: Create empty image ===
-CURRENT_STEP="9/16"
+CURRENT_STEP="9/17"
 log_step "$CURRENT_STEP" "Create empty image"
 fallocate -l ${TOTAL_SIZE_MB}M "$IMAGE"
 
@@ -796,7 +800,7 @@ else
 fi
 
 # === Step 10: Partition image ===
-CURRENT_STEP="10/16"
+CURRENT_STEP="10/17"
 log_step "$CURRENT_STEP" "Partition image (GPT, ChromeOS GUIDs, vendor before rootfs)"
 if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
 	log_info "Partition layout: vendor (p4), rootfs (p5)"
@@ -849,7 +853,7 @@ log_info "Partition table:"
 sudo partx -o NR,START,END,SIZE,TYPE,NAME,UUID -g --show "$IMAGE"
 
 # === Step 11: Setup loop device ===
-CURRENT_STEP="11/16"
+CURRENT_STEP="11/17"
 log_step "$CURRENT_STEP" "Setup loop device"
 LOOPDEV=$(sudo losetup --show -fP "$IMAGE") || {
 	log_error "Failed to setup loop device for $IMAGE"
@@ -882,11 +886,11 @@ safe_exec sudo cgpt add -i 2 -S 1 -T 5 -P 10 "$LOOPDEV" || {
 }
 
 # === Step 12: Format partitions ===
-CURRENT_STEP="12/16"
+CURRENT_STEP="12/17"
 log_step "$CURRENT_STEP" "Format partitions"
 # Use conservative ext4 features for ChromeOS kernel compatibility (avoid EINVAL on mount)
-MKFS_EXT4_FLAGS="-O ^orphan_file,^metadata_csum_seed"
-safe_exec sudo mkfs.ext4 -q "$MKFS_EXT4_FLAGS" "${LOOPDEV}p1"
+MKFS_EXT4_FLAGS=(-O ^orphan_file,^metadata_csum_seed)
+safe_exec sudo mkfs.ext4 -q "${MKFS_EXT4_FLAGS[@]}" "${LOOPDEV}p1"
 safe_exec sudo dd if="$ORIGINAL_KERNEL" of="${LOOPDEV}p2" bs=1M conv=fsync status=progress
 safe_exec sudo mkfs.ext2 -q "${LOOPDEV}p3"
 
@@ -895,10 +899,10 @@ if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
 	safe_exec sudo mkfs.ext4 -q -O ^has_journal,^orphan_file,^metadata_csum_seed \
 		-L "shimboot_vendor" "${LOOPDEV}p4"
 	# Rootfs is p5
-	safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "$MKFS_EXT4_FLAGS" "${LOOPDEV}p5"
+	safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_FLAGS[@]}" "${LOOPDEV}p5"
 else
 	# Rootfs directly as p4
-	safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "$MKFS_EXT4_FLAGS" "${LOOPDEV}p4"
+	safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_FLAGS[@]}" "${LOOPDEV}p4"
 fi
 
 # After Step 12: Format partitions
@@ -920,7 +924,7 @@ else
 fi
 
 # === Step 13: Populate bootloader partition ===
-CURRENT_STEP="13/16"
+CURRENT_STEP="13/17"
 log_step "$CURRENT_STEP" "Populate bootloader partition"
 safe_exec sudo mount "${LOOPDEV}p3" "$WORKDIR/mnt_bootloader" || {
 	log_error "Failed to mount bootloader partition"
@@ -934,22 +938,23 @@ total_bytes=$(sudo du -sb "$PATCHED_INITRAMFS" | cut -f1)
 safe_exec sudo umount "$WORKDIR/mnt_bootloader"
 
 # === Step 14: Populate rootfs partition ===
-CURRENT_STEP="14/16"
+CURRENT_STEP="14/17"
 log_step "$CURRENT_STEP" "Populate rootfs partition (now p${ROOTFS_PARTITION_INDEX})"
 LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
 RAW_ROOTFS_PART=$(detect_rootfs_partition "$LOOPROOT")
 log_info "Source rootfs partition: p${RAW_ROOTFS_PART}"
 safe_exec sudo mount "${LOOPROOT}p${RAW_ROOTFS_PART}" "$WORKDIR/mnt_src_rootfs"
 safe_exec sudo mount "${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "$WORKDIR/mnt_rootfs"
-total_bytes=$(sudo du -sb "$WORKDIR/mnt_src_rootfs" | cut -f1)
+# Use partition block size for accurate pv progress (avoids >100% due to fs metadata)
+total_bytes=$(blockdev --getsize64 "${LOOPROOT}p${RAW_ROOTFS_PART}")
 (cd "$WORKDIR/mnt_src_rootfs" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_rootfs" && sudo tar xf -)
 
 # Get username from userConfig
-USERNAME="$(nix eval "${NIX_BUILD_FLAGS[@]}" --expr "(import ./shimboot_config/user-config.nix {}).user.username" --json | jq -r .)"
+USERNAME="$(nix eval --impure --accept-flake-config --expr "(import ./shimboot_config/user-config.nix {}).user.username" --json | jq -r .)"
 log_info "Using username from userConfig: $USERNAME"
 
-# === Step 14b/16: Clone nixos-config repository into rootfs ===
-CURRENT_STEP="14b/16"
+# === Step 15/17: Clone nixos-config repository into rootfs ===
+CURRENT_STEP="15/17"
 log_step "$CURRENT_STEP" "Clone nixos-config repository into rootfs"
 NIXOS_CONFIG_DEST="$WORKDIR/mnt_rootfs/home/${USERNAME}/nixos-config"
 
@@ -1045,7 +1050,7 @@ populate_vendor() {
 		handle_error "$CURRENT_STEP"
 	fi
 
-	log_step "15/16" "Populate vendor partition (p4) with harvested drivers (/lib/modules, /lib/firmware)"
+	log_step "16/17" "Populate vendor partition (p4) with harvested drivers (/lib/modules, /lib/firmware)"
 	safe_exec sudo mkdir -p "$WORKDIR/mnt_vendor"
 	safe_exec sudo mount "${LOOPDEV}p4" "$WORKDIR/mnt_vendor"
 	safe_exec sudo mkdir -p "$WORKDIR/mnt_vendor/lib/modules" "$WORKDIR/mnt_vendor/lib/firmware"
@@ -1069,7 +1074,7 @@ populate_vendor() {
 }
 
 inject_drivers() {
-	log_step "15/16" "Inject drivers into rootfs (p${ROOTFS_PARTITION_INDEX}) (/lib/modules, /lib/firmware, modprobe.d)"
+	log_step "16/17" "Inject drivers into rootfs (p${ROOTFS_PARTITION_INDEX}) (/lib/modules, /lib/firmware, modprobe.d)"
 	if [ -d "$HARVEST_OUT/lib/modules" ]; then
 		safe_exec sudo rm -rf "$WORKDIR/mnt_rootfs/lib/modules"
 		safe_exec sudo mkdir -p "$WORKDIR/mnt_rootfs/lib"
@@ -1127,7 +1132,13 @@ safe_exec sudo umount "$WORKDIR/mnt_rootfs"
 # Detach loop devices used for target image
 safe_exec sudo losetup -d "$LOOPDEV"
 LOOPDEV=""
-log_info "✅ Final image created at: $IMAGE"
+
+# === Completion Summary ===
+log_step "Done" "Build complete"
+log_info "Image:   $IMAGE"
+log_info "Size:    $(du -sh "$IMAGE" | cut -f1)"
+log_info "Board:   $BOARD  |  Flavor: $ROOTFS_FLAVOR  |  Drivers: $DRIVERS_MODE"
+log_info "Elapsed: $((SECONDS / 60))m $((SECONDS % 60))s"
 
 # === Optional cleanup of old shimboot rootfs generations ===
 if [ "${CLEANUP_ROOTFS:-0}" -eq 1 ]; then
