@@ -16,6 +16,7 @@
   stylix,
   llm-agents,
   nixvim,
+  patchedSystemd,
   ...
 }:
 let
@@ -86,6 +87,7 @@ let
           stylix
           userConfig
           llm-agents
+          patchedSystemd
           ;
       };
     };
@@ -102,6 +104,7 @@ let
           stylix
           userConfig
           llm-agents
+          patchedSystemd
           ;
       };
     };
@@ -120,6 +123,7 @@ let
           stylix
           userConfig
           llm-agents
+          patchedSystemd
           ;
       };
     };
@@ -137,6 +141,7 @@ let
           stylix
           userConfig
           llm-agents
+          patchedSystemd
           ;
       };
     };

@@ -13,6 +13,9 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    # Pinned nixpkgs for systemd 258.3 — do not update without verifying version
+    nixpkgs-systemd.url = "github:NixOS/nixpkgs/0182a361324364ae3f436a63005877674cf45efb";
+
     zen-browser = {
       url = "github:0xc000022070/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -62,6 +65,7 @@
     {
       self,
       nixpkgs,
+      nixpkgs-systemd,
       home-manager,
       zen-browser,
       rose-pine-hyprcursor,
@@ -90,6 +94,16 @@
       # Import user configuration
       # Extract username for easier access
 
+      # Import nixpkgs for systemd pinning
+      pkgsSystemd = import nixpkgs-systemd { inherit system; };
+
+      # Pinned systemd 258.3 with ChromeOS compatibility patch
+      patchedSystemd = pkgsSystemd.systemd.overrideAttrs (old: {
+        patches = (old.patches or [ ]) ++ [
+          ./patches/systemd-mountpoint-util-chromeos.patch
+        ];
+      });
+
       # Import module outputs
       # Core system and development modules
       rawImageOutputs =
@@ -117,10 +131,10 @@
           rose-pine-hyprcursor
           noctalia
           stylix
-          pmd
           llm-agents
           nixvim
           ;
+        inherit patchedSystemd;
       };
       developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix {
         inherit self nixpkgs;
@@ -159,7 +173,9 @@
 
       # Merge packages from all modules
       packages = {
-        ${system} = nixpkgs.lib.foldl' (acc: board: acc // (boardPackages board)) { } supportedBoards;
+        ${system} = nixpkgs.lib.foldl' (acc: board: acc // (boardPackages board)) {
+          systemd = patchedSystemd;
+        } supportedBoards;
       };
 
       # Merge devShells from all modules
