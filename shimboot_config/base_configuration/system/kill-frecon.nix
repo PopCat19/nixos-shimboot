@@ -2,7 +2,7 @@
 #
 # Purpose: Configure service to kill frecon and prepare for X11
 # Dependencies: systemd, util-linux, procps
-# Related: systemd-patch.nix, display-manager.nix
+# Related: display-manager.nix
 #
 # This module:
 # - Provides systemd service to kill frecon-lite

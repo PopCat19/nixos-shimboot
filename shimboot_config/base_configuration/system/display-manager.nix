@@ -2,7 +2,7 @@
 #
 # Purpose: Configure X server, LightDM, and systemd logind for ChromeOS devices
 # Dependencies: lightdm, systemd
-# Related: hyprland.nix, hardware.nix, systemd-patch.nix, kill-frecon.nix
+# Related: hyprland.nix, hardware.nix, kill-frecon.nix
 #
 # This module:
 # - Enables X server with basic configuration

@@ -29,7 +29,6 @@
     ./system/packages.nix
     ./system/helpers/helpers.nix
     ./system/security.nix
-    ./system/systemd-patch.nix
     ./system/kill-frecon.nix
     ./system/localization.nix
     ./system/hardware.nix
