@@ -1,9 +1,18 @@
+# shimboot-unified.yml
+#
+# Purpose: Multi-board image construction and GitHub release orchestration
+#
+# This module:
+# - Orchestrate parallel builds for multiple ChromeOS boards via matrix
+# - Leverage Nix for reproducible component building and RootFS generation
+# - Assemble final bootable images using custom shell tooling
+# - Automate GitHub Releases with platform-specific flashing instructions
+
 name: shimboot-unified
 
 on:
   workflow_dispatch:
     inputs:
-      # --- Scoping ---
       board:
         description: 'Target Board'
         required: true
@@ -15,8 +24,7 @@ on:
         required: false
         default: false
         type: boolean
-      
-      # --- Build Configuration ---
+
       rootfs:
         description: 'Rootfs Variant'
         required: true
@@ -34,16 +42,15 @@ on:
         required: false
         default: true
         type: boolean
-      
-      # --- Advanced / Debug ---
+
       build_mode:
         description: 'Build Mode'
         required: true
         default: 'full'
         type: choice
         options:
-          - full          # Build, assemble, artifact
-          - cachix-only   # Build Nix derivation only, push to cache
+          - full
+          - cachix-only
       runner_type:
         description: 'Runner'
         required: true
@@ -65,18 +72,15 @@ env:
   NIXPKGS_ALLOW_UNFREE: 1
 
 jobs:
-  # ==================================================================
-  # JOB 1: BUILD & ASSEMBLE
-  # ==================================================================
   build:
     runs-on: ${{ github.event.inputs.runner_type || 'ubuntu-latest' }}
     permissions:
-      contents: write # Required for caching/uploads
+      contents: write
 
     strategy:
       fail-fast: false
       matrix:
-        # JSON logic to handle 'all' vs single board selection
+        # Handle 'all' vs single board selection
         board: >-
           ${{
             github.event.inputs.board == 'all'
@@ -92,7 +96,7 @@ jobs:
           sudo docker image prune --all --force
           df -h
 
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -117,55 +121,72 @@ jobs:
         with:
           name: shimboot-systemd-nixos
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          # Manual push controls exactly what gets cached
+          skipPush: true
+
+      - name: Prewarm Cachix
+        run: |
+          nix build --dry-run --impure --accept-flake-config \
+            .#chromeos-shim-${{ matrix.board }} \
+            .#chromeos-recovery-${{ matrix.board }} \
+            .#extracted-kernel-${{ matrix.board }} \
+            .#initramfs-patching-${{ matrix.board }} \
+            .#raw-rootfs \
+            2>&1 | grep -E "will be fetched|will be built" || true
 
       - name: Build Nix components
         run: |
           BOARD="${{ matrix.board }}"
           ROOTFS="${{ github.event.inputs.rootfs || 'minimal' }}"
 
-          echo "🔨 Building core components for: $BOARD"
-
-          # 3-Attempt Retry Loop for Nix Build
           success=false
           for i in {1..3}; do
-            echo "🔄 [Attempt $i/3] Building..."
+            echo "[Attempt $i/3] Building core components for: $BOARD"
             if nix build --impure --accept-flake-config \
               .#chromeos-shim-${BOARD} \
+              .#chromeos-recovery-${BOARD} \
               .#extracted-kernel-${BOARD} \
               .#initramfs-patching-${BOARD} \
               --print-out-paths; then
               success=true
-              echo "✅ Core build successful."
               break
             fi
-            echo "⚠️ [Attempt $i/3] Failed. Retrying in 10s..."
+            echo "[Attempt $i/3] Failed. Retrying in 10s..."
             sleep 10
           done
 
-          if [ "$success" = "false" ]; then echo "❌ Core build failed."; exit 1; fi
+          if [ "$success" = "false" ]; then echo "Core build failed."; exit 1; fi
 
-          # Build RootFS (Separate step)
           ROOTFS_ATTR="raw-rootfs"
           [ "$ROOTFS" = "minimal" ] && ROOTFS_ATTR="raw-rootfs-minimal"
-          
-          echo "🔨 Building RootFS: $ROOTFS_ATTR"
+
+          echo "Building RootFS: $ROOTFS_ATTR"
           nix build --impure --accept-flake-config ".#${ROOTFS_ATTR}" --print-out-paths
 
-      - name: Install Assembly Dependencies
+      - name: Push to Cachix
+        if: ${{ github.event.inputs.build_mode == 'cachix-only' || github.event.inputs.build_mode == 'full' }}
+        env:
+          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+        run: |
+          chmod +x tools/push-to-cachix.sh
+          ./tools/push-to-cachix.sh \
+            --board "${{ matrix.board }}" \
+            --rootfs "${{ github.event.inputs.rootfs || 'minimal' }}" \
+            --drivers "${{ github.event.inputs.drivers_mode || 'vendor' }}"
+
+      - name: Install assembly dependencies
         if: ${{ github.event.inputs.build_mode == 'full' }}
         run: |
           sudo apt-get update
           sudo apt-get install -y parted gdisk e2fsprogs util-linux pv zstd vboot-utils
 
-      - name: Assemble Image
+      - name: Assemble image
         if: ${{ github.event.inputs.build_mode == 'full' }}
         run: |
-          # Load Nix environment
           if [ -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]; then
             source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
           fi
 
-          # Construct Command
           ASSEMBLE_CMD=(
             ./assemble-final.sh
             --board "${{ matrix.board }}"
@@ -173,31 +194,27 @@ jobs:
             --drivers "${{ github.event.inputs.drivers_mode || 'vendor' }}"
           )
 
-          # Add Boolean Flags
           [ "${{ github.event.inputs.firmware_upstream }}" = "false" ] && ASSEMBLE_CMD+=(--no-firmware-upstream) || ASSEMBLE_CMD+=(--firmware-upstream)
           [ "${{ github.event.inputs.inspect_after }}" = "true" ] && ASSEMBLE_CMD+=(--inspect)
 
-          # 3-Attempt Retry Loop for Assembly
           success=false
           for i in {1..3}; do
-            echo "🚀 [Attempt $i/3] Assembling..."
+            echo "[Attempt $i/3] Assembling..."
             if sudo -E env "PATH=$PATH" "NIX_PATH=$NIX_PATH" BOARD="${{ matrix.board }}" "${ASSEMBLE_CMD[@]}"; then
               success=true
-              echo "✅ Assembly successful."
               break
             fi
-            echo "⚠️ [Attempt $i/3] Failed. Retrying in 10s..."
+            echo "[Attempt $i/3] Failed. Retrying in 10s..."
             sleep 10
           done
 
-          if [ "$success" = "false" ]; then echo "❌ Assembly failed."; exit 1; fi
+          if [ "$success" = "false" ]; then echo "Assembly failed."; exit 1; fi
 
-      - name: Compress and Artifact
+      - name: Compress and artifact
         if: ${{ github.event.inputs.build_mode == 'full' }}
         run: |
           set -e
 
-          # Detect working directory
           CI_WORKDIR="/nix/work/${{ matrix.board }}"
           LOCAL_WORKDIR="work/${{ matrix.board }}"
 
@@ -206,7 +223,7 @@ jobs:
           elif [ -f "$LOCAL_WORKDIR/shimboot.img" ]; then
             WORKDIR="$LOCAL_WORKDIR"
           else
-            echo "❌ shimboot.img not found"; exit 1
+            echo "shimboot.img not found"; exit 1
           fi
 
           sudo chown -R $(whoami):$(whoami) "$WORKDIR"
@@ -214,36 +231,29 @@ jobs:
 
           ARTIFACT_BASE="${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs }}"
 
-          echo "📦 Compressing..."
-          stdbuf -oL pv shimboot.img | stdbuf -oL zstd -19 --long -T0 -o "${ARTIFACT_BASE}.img.zst"
+          stdbuf -oL pv shimboot.img | stdbuf -oL zstd -15 --long -T0 -o "${ARTIFACT_BASE}.img.zst"
 
-          # Save checksum
           if [ "${{ github.event.inputs.include_checksum }}" = "true" ]; then
             sha256sum "${ARTIFACT_BASE}.img.zst" > "${ARTIFACT_BASE}.img.zst.sha256"
           fi
 
-          # Safe writable upload location
           ARTIFACT_DIR="${GITHUB_WORKSPACE}/artifacts/${{ matrix.board }}"
           mkdir -p "$ARTIFACT_DIR"
-
           mv "${ARTIFACT_BASE}.img.zst"* "$ARTIFACT_DIR/"
 
-          # Cleanup
           sudo rm -f shimboot.img
 
-      - name: Upload Artifact
+      - name: Upload artifact
         if: ${{ github.event.inputs.build_mode == 'full' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.board }}-shimboot-${{ github.event.inputs.rootfs }}
           path: artifacts/${{ matrix.board }}/*
 
-  # ==================================================================
-  # JOB 2: RELEASE (Conditional)
-  # ==================================================================
   create-release:
     needs: build
-    if: ${{ github.event.inputs.create_release == 'true' && github.event.inputs.build_mode == 'full' }}
+    if: ${{ github.event.inputs.create_release == 'true' &&
+            github.event.inputs.build_mode == 'full' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -252,37 +262,75 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Download Artifacts
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           path: release-artifacts
           merge-multiple: true
 
-      - name: Generate Release Metadata
+      - name: Generate release metadata
         id: metadata
         run: |
           TIMESTAMP=$(date -u '+%Y.%m.%d.%H%M-UTC')
           COMMIT=$(git rev-parse --short HEAD)
           BRANCH="${GITHUB_REF#refs/heads/}"
-          
+
           echo "timestamp=${TIMESTAMP}" >> "$GITHUB_OUTPUT"
-          
-          # Generate Release Body
+
           EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
           echo "body<<$EOF" >> "$GITHUB_OUTPUT"
-          echo "## Shimboot Release (${TIMESTAMP})" >> "$GITHUB_OUTPUT"
-          echo "Built from branch **${BRANCH}** at commit \`${COMMIT}\`." >> "$GITHUB_OUTPUT"
-          echo "" >> "$GITHUB_OUTPUT"
-          echo "### Configuration" >> "$GITHUB_OUTPUT"
-          echo "- **Rootfs**: ${{ github.event.inputs.rootfs }}" >> "$GITHUB_OUTPUT"
-          echo "- **Drivers**: ${{ github.event.inputs.drivers_mode }}" >> "$GITHUB_OUTPUT"
-          echo "- **Firmware Upstream**: ${{ github.event.inputs.firmware_upstream }}" >> "$GITHUB_OUTPUT"
-          echo "" >> "$GITHUB_OUTPUT"
-          echo "### Usage" >> "$GITHUB_OUTPUT"
-          echo '```bash' >> "$GITHUB_OUTPUT"
-          echo "zstd -d <board>-shimboot-${{ github.event.inputs.rootfs }}.img.zst" >> "$GITHUB_OUTPUT"
-          echo "sudo dd if=<board>-shimboot-${{ github.event.inputs.rootfs }}.img of=/dev/sdX bs=4M status=progress" >> "$GITHUB_OUTPUT"
-          echo '```' >> "$GITHUB_OUTPUT"
+          cat >> "$GITHUB_OUTPUT" <<RELEASE_BODY
+          ## Shimboot Release (${TIMESTAMP})
+          Built from branch **${BRANCH}** at commit \`${COMMIT}\`.
+
+          ### Config
+          - **Rootfs**: ${{ github.event.inputs.rootfs }}
+          - **Drivers**: ${{ github.event.inputs.drivers_mode }}
+          - **Firmware Upstream**: ${{ github.event.inputs.firmware_upstream }}
+
+          ### Usage (replace BOARD and sdX with actual values)
+          - **BOARD**: Replace with the downloaded board name (e.g., dedede, octopus, etc.)
+          - **sdX**: Replace with the actual USB drive device (e.g., sdb, sdc, etc.)
+
+          #### Linux/macOS
+          **WARNING: Requires root privileges (sudo/su)**
+
+          **Prerequisites:** Install zstd utility if not already available
+          - **Package Manager (preferred):**
+            - Arch and derivatives: \`sudo pacman -Sy zstd\`
+            - Ubuntu/Debian: \`sudo apt install zstd\`
+            - macOS: \`brew install zstd\` or \`sudo port install zstd\`
+            - Fedora/RHEL: \`sudo dnf install zstd\` or \`sudo yum install zstd\`
+          - **Nix (if available):** \`nix-shell -p zstd\`
+          - **Manual install:** Download from https://facebook.github.io/zstd/
+
+          1. Extract the image:
+          \`\`\`bash
+          zstd -d BOARD-shimboot-${{ github.event.inputs.rootfs }}.img.zst
+          \`\`\`
+
+          2. List devices to find target USB drive:
+          \`\`\`bash
+          lsblk
+          \`\`\`
+
+          3. **Triple-check the \`of=\` device** before writing to the target USB drive:
+          \`\`\`bash
+          sudo dd if=BOARD-shimboot-${{ github.event.inputs.rootfs }}.img of=/dev/sdX bs=4M oflag=direct conv=fdatasync status=progress
+          \`\`\`
+
+          #### Windows
+          1. Extract the image (use **7-Zip**):
+             - Install 7-Zip: https://www.7-zip.org/
+             - Right-click BOARD-shimboot-${{ github.event.inputs.rootfs }}.img.zst -> 7-Zip -> Extract Here
+
+          2. Write to USB drive (use **Rufus**):
+             - Install Rufus: https://rufus.ie/
+             - Select the extracted BOARD-shimboot-${{ github.event.inputs.rootfs }}.img file
+             (select \`list all file types\` on lower right dropdown of the file picker)
+             - Verify that the correct target USB drive is set
+             - Click START and confirm the overwrite notice
+          RELEASE_BODY
           echo "$EOF" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
