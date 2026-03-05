@@ -51,6 +51,12 @@ on:
         options:
           - full
           - cachix-only
+          - systemd-only
+      build_patched_systemd:
+        description: 'Build and push patched systemd to Cachix'
+        required: false
+        default: true
+        type: boolean
       runner_type:
         description: 'Runner'
         required: true
@@ -124,7 +130,40 @@ jobs:
           # Manual push controls exactly what gets cached
           skipPush: true
 
+      - name: Build patched systemd
+        if: ${{ github.event.inputs.build_patched_systemd == 'true' }}
+        run: |
+          echo "Building patched systemd..."
+          success=false
+          for i in {1..3}; do
+            echo "[Attempt $i/3] Building systemd..."
+            if nix build --impure --accept-flake-config \
+              .#systemd --print-out-paths | tee /tmp/systemd-store-paths; then
+              success=true
+              break
+            fi
+            echo "[Attempt $i/3] Failed. Retrying in 10s..."
+            sleep 10
+          done
+          if [ "$success" = "false" ]; then
+            echo "Systemd build failed after 3 attempts."
+            exit 1
+          fi
+
+      - name: Push patched systemd to Cachix
+        if: ${{ github.event.inputs.build_patched_systemd == 'true' && env.CACHIX_AUTH_TOKEN != '' }}
+        env:
+          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+        run: |
+          if [ -f /tmp/systemd-store-paths ]; then
+            echo "Pushing patched systemd to Cachix..."
+            cat /tmp/systemd-store-paths | cachix push shimboot-systemd-nixos
+            nix path-info --recursive $(cat /tmp/systemd-store-paths) \
+              | cachix push shimboot-systemd-nixos
+          fi
+
       - name: Prewarm Cachix
+        if: ${{ github.event.inputs.build_mode != 'systemd-only' }}
         run: |
           nix build --dry-run --impure --accept-flake-config \
             .#chromeos-shim-${{ matrix.board }} \
@@ -135,6 +174,7 @@ jobs:
             2>&1 | grep -E "will be fetched|will be built" || true
 
       - name: Build Nix components
+        if: ${{ github.event.inputs.build_mode != 'systemd-only' }}
         run: |
           BOARD="${{ matrix.board }}"
           ROOTFS="${{ github.event.inputs.rootfs || 'minimal' }}"
@@ -253,7 +293,8 @@ jobs:
   create-release:
     needs: build
     if: ${{ github.event.inputs.create_release == 'true' &&
-            github.event.inputs.build_mode == 'full' }}
+            github.event.inputs.build_mode == 'full' &&
+            github.event.inputs.build_mode != 'systemd-only' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
