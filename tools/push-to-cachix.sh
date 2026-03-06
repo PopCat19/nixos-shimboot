@@ -5,7 +5,7 @@
 # Purpose: Push Nix derivations to Cachix binary cache
 #
 # This module:
-# - Pushes runtime derivations (systemd, noctalia, kernel)
+# - Pushes runtime derivations (kernel)
 # - Excludes build artifacts (shim, recovery, initramfs) - too large or available elsewhere
 # - Supports dry-run and selective rootfs push
 
@@ -25,9 +25,7 @@ log_error() { printf "${RED}[ERROR]${NC} %s\n" "$*" >&2; }
 # Configuration
 CACHE="shimboot-systemd-nixos"
 BOARD=""
-PROFILE="default"
 ROOTFS_FLAVOR="full"
-DRIVERS_MODE="vendor"
 SKIP_ROOTFS=0
 DRY_RUN=0
 
@@ -37,18 +35,16 @@ Usage: push-to-cachix.sh --board BOARD [OPTIONS]
 
 Options:
     --board BOARD              Target board (required)
-    --profile PROFILE          Build profile (default, nixos-popcat19, etc.)
     --rootfs FLAVOR            Rootfs variant (full, minimal)
-    --drivers MODE             Driver mode (vendor, inject, both, none)
     --skip-rootfs              Skip pushing rootfs (large, often cached elsewhere)
     --dry-run                  Show what would be done
 
 Examples:
-    # Push runtime derivations (systemd, noctalia, kernel)
-    ./push-to-cachix.sh --board dedede --profile default
+    # Push kernel for board
+    ./push-to-cachix.sh --board dedede
 
     # Push with rootfs (large, optional)
-    ./push-to-cachix.sh --board dedede --profile default
+    ./push-to-cachix.sh --board dedede
 EOF
 }
 
@@ -59,16 +55,8 @@ while [[ $# -gt 0 ]]; do
 		BOARD="${2:-}"
 		shift 2
 		;;
-	--profile)
-		PROFILE="${2:-default}"
-		shift 2
-		;;
 	--rootfs)
 		ROOTFS_FLAVOR="${2:-full}"
-		shift 2
-		;;
-	--drivers)
-		DRIVERS_MODE="${2:-vendor}"
 		shift 2
 		;;
 	--skip-rootfs)
@@ -126,19 +114,18 @@ safe_exec() {
 # Push Nix derivations (excluding large images like shim/recovery)
 push_derivations() {
 	local board="$1"
-	local rootfs_attr="raw-rootfs-${PROFILE}"
+	local rootfs_attr="raw-rootfs"
 
 	if [[ "$ROOTFS_FLAVOR" == "minimal" ]]; then
-		rootfs_attr="raw-rootfs-${PROFILE}-minimal"
+		rootfs_attr="raw-rootfs-minimal"
 	fi
 
-	log_info "Pushing Nix derivations for board: $board, profile: $PROFILE"
+	log_info "Pushing Nix derivations for board: $board"
 
-	# Push only runtime derivations not on Hydra (systemd, noctalia, kernel)
-	# Exclude build artifacts: shim, recovery, initramfs (too large or available elsewhere)
+	# Push runtime derivations not on Hydra
+	# Available: extracted-kernel-*
+	# Excluded: shim, recovery, initramfs (too large or available elsewhere)
 	local derivations=(
-		".#nixosConfigurations.${PROFILE}.config.system.build.toplevel"
-		".#nixosConfigurations.${PROFILE}.pkgs.noctalia"
 		".#extracted-kernel-${board}"
 	)
 
@@ -201,15 +188,13 @@ main() {
 	log_info "Cachix Push Tool"
 	log_info "Cache: $CACHE"
 	log_info "Board: $BOARD"
-	log_info "Profile: $PROFILE"
 	log_info "Rootfs: $ROOTFS_FLAVOR (skip: $SKIP_ROOTFS)"
-	log_info "Drivers: $DRIVERS_MODE"
 
 	if is_ci; then
 		log_info "CI environment detected"
 	fi
 
-	# Push runtime derivations (systemd, noctalia, kernel, optional rootfs)
+	# Push runtime derivations (kernel, optional rootfs)
 	push_derivations "$BOARD"
 
 	log_success "Cachix push complete"
