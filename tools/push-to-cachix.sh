@@ -149,14 +149,18 @@ push_derivations() {
 			store_path=$(nix path-info --impure --accept-flake-config "$drv" 2>/dev/null || echo "")
 			log_info "[DRY-RUN] Would push: $store_path"
 		else
-			# Ensure it is built (should be cached from previous step)
-			if ! nix build --quiet --impure --accept-flake-config "$drv" 2>/dev/null; then
-				log_warn "Failed to resolve $drv, skipping push"
-				continue
-			fi
-
+			# Try to get existing store path without building (may already be cached)
 			local store_path
 			store_path=$(nix path-info --impure --accept-flake-config "$drv" 2>/dev/null || echo "")
+
+			# If not cached, try building
+			if [[ -z "$store_path" ]]; then
+				if ! nix build --quiet --impure --accept-flake-config "$drv" 2>/dev/null; then
+					log_warn "Failed to resolve $drv, skipping push"
+					continue
+				fi
+				store_path=$(nix path-info --impure --accept-flake-config "$drv" 2>/dev/null || echo "")
+			fi
 
 			if [[ -z "$store_path" ]]; then
 				log_warn "Could not get store path for $drv"
