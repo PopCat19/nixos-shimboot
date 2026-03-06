@@ -126,8 +126,8 @@ push_derivations() {
 	# Available: systemd, noctalia, extracted-kernel-*
 	# Excluded: shim, recovery, initramfs (too large or available elsewhere)
 	local derivations=(
-		".#x86_64-linux.systemd"
-		".#x86_64-linux.noctalia"
+		".#packages.x86_64-linux.systemd"
+		".#packages.x86_64-linux.noctalia"
 		".#extracted-kernel-${board}"
 	)
 
