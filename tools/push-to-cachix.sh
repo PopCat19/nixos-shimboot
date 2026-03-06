@@ -5,7 +5,7 @@
 # Purpose: Push Nix derivations to Cachix binary cache
 #
 # This module:
-# - Pushes runtime derivations (kernel)
+# - Pushes runtime derivations (systemd, noctalia, kernel)
 # - Excludes build artifacts (shim, recovery, initramfs) - too large or available elsewhere
 # - Supports dry-run and selective rootfs push
 
@@ -40,7 +40,7 @@ Options:
     --dry-run                  Show what would be done
 
 Examples:
-    # Push kernel for board
+    # Push systemd, noctalia, kernel for board
     ./push-to-cachix.sh --board dedede
 
     # Push with rootfs (large, optional)
@@ -123,9 +123,11 @@ push_derivations() {
 	log_info "Pushing Nix derivations for board: $board"
 
 	# Push runtime derivations not on Hydra
-	# Available: extracted-kernel-*
+	# Available: systemd, noctalia, extracted-kernel-*
 	# Excluded: shim, recovery, initramfs (too large or available elsewhere)
 	local derivations=(
+		".#x86_64-linux.systemd"
+		".#x86_64-linux.noctalia"
 		".#extracted-kernel-${board}"
 	)
 
