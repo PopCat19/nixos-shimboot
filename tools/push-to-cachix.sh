@@ -5,8 +5,8 @@
 # Purpose: Push Nix derivations to Cachix binary cache
 #
 # This module:
-# - Pushes Nix derivations (shim, recovery, kernel, initramfs, rootfs)
-# - Optionally pushes ChromeOS chunk derivations to cache CDN pulls
+# - Pushes Nix derivations (kernel, initramfs, rootfs, systemd, noctalia)
+# - Excludes large images (shim, recovery) - available elsewhere or too large
 # - Supports dry-run and selective push modes
 
 set -Eeuo pipefail
@@ -28,8 +28,7 @@ BOARD=""
 PROFILE="default"
 ROOTFS_FLAVOR="full"
 DRIVERS_MODE="vendor"
-SKIP_DERIVATIONS=0
-SKIP_CHUNKS=0
+SKIP_ROOTFS=0
 DRY_RUN=0
 
 usage() {
@@ -41,16 +40,15 @@ Options:
     --profile PROFILE          Build profile (default, nixos-popcat19, etc.)
     --rootfs FLAVOR            Rootfs variant (full, minimal)
     --drivers MODE             Driver mode (vendor, inject, both, none)
-    --skip-derivations         Skip pushing Nix derivations
-    --skip-chunks              Skip pushing ChromeOS chunk derivations
+    --skip-rootfs              Skip pushing rootfs (large, often cached elsewhere)
     --dry-run                  Show what would be done
 
 Examples:
-    # Push all derivations (shim, recovery, kernel, initramfs, rootfs, chunks)
+    # Push non-Hydra derivations (systemd, noctalia, kernel, initramfs, rootfs)
     ./push-to-cachix.sh --board dedede --profile default
 
-    # Push derivations without chunks
-    ./push-to-cachix.sh --board dedede --profile default --skip-chunks
+    # Push without rootfs (large, typically cached elsewhere)
+    ./push-to-cachix.sh --board dedede --profile default --skip-rootfs
 EOF
 }
 
@@ -73,12 +71,8 @@ while [[ $# -gt 0 ]]; do
 		DRIVERS_MODE="${2:-vendor}"
 		shift 2
 		;;
-	--skip-derivations)
-		SKIP_DERIVATIONS=1
-		shift
-		;;
-	--skip-chunks)
-		SKIP_CHUNKS=1
+	--skip-rootfs)
+		SKIP_ROOTFS=1
 		shift
 		;;
 	--dry-run)
@@ -129,7 +123,7 @@ safe_exec() {
 	fi
 }
 
-# Push Nix derivations
+# Push Nix derivations (excluding large images like shim/recovery)
 push_derivations() {
 	local board="$1"
 	local rootfs_attr="raw-rootfs-${PROFILE}"
@@ -140,13 +134,19 @@ push_derivations() {
 
 	log_info "Pushing Nix derivations for board: $board, profile: $PROFILE"
 
+	# Push only derivations not on Hydra (systemd, noctalia, kernel, initramfs)
+	# Exclude shim/recovery (large images, available elsewhere or on Hydra)
 	local derivations=(
-		".#chromeos-shim-${board}"
-		".#chromeos-recovery-${board}"
+		".#nixosConfigurations.${PROFILE}.config.system.build.toplevel"
+		".#nixosConfigurations.${PROFILE}.pkgs.noctalia"
 		".#extracted-kernel-${board}"
 		".#initramfs-patching-${board}"
-		".#${rootfs_attr}"
 	)
+
+	# Add rootfs only if not skipped
+	if [[ "$SKIP_ROOTFS" -eq 0 ]]; then
+		derivations+=(".#${rootfs_attr}")
+	fi
 
 	for drv in "${derivations[@]}"; do
 		log_info "Pushing $drv..."
@@ -189,24 +189,12 @@ push_derivations() {
 }
 
 # Push ChromeOS chunk derivations (caches CDN pulls)
+# DISABLED: Large downloads, typically not needed as CDN is fast
 push_chunks() {
 	local board="$1"
 
-	log_info "Pushing ChromeOS chunk derivations for board: $board"
-
-	# Get the realized output path of the shim derivation
-	local shim_path
-	shim_path=$(nix build --impure --accept-flake-config --print-out-paths \
-		".#chromeos-shim-${board}" 2>/dev/null || echo "")
-
-	if [[ -z "$shim_path" ]]; then
-		log_warn "Could not build shim for chunk discovery"
-		return 0
-	fi
-
-	# Push the entire closure (includes all fetched chunks)
-	log_info "Pushing shim closure (includes chunks)..."
-	nix-store --query --requisites "$shim_path" | cachix push "$CACHE"
+	log_info "ChromeOS chunk pushing disabled (use --skip-chunks if flag exists)"
+	log_info "CDN pulls are typically fast enough; chunks are large"
 }
 
 # Main execution
@@ -215,26 +203,15 @@ main() {
 	log_info "Cache: $CACHE"
 	log_info "Board: $BOARD"
 	log_info "Profile: $PROFILE"
-	log_info "Rootfs: $ROOTFS_FLAVOR"
+	log_info "Rootfs: $ROOTFS_FLAVOR (skip: $SKIP_ROOTFS)"
 	log_info "Drivers: $DRIVERS_MODE"
 
 	if is_ci; then
 		log_info "CI environment detected"
 	fi
 
-	# Push derivations
-	if [[ "$SKIP_DERIVATIONS" -eq 0 ]]; then
-		push_derivations "$BOARD"
-	else
-		log_info "Skipping derivation push (--skip-derivations)"
-	fi
-
-	# Push ChromeOS chunk derivations (caches CDN pulls)
-	if [[ "$SKIP_CHUNKS" -eq 0 ]]; then
-		push_chunks "$BOARD"
-	else
-		log_info "Skipping chunk push (--skip-chunks)"
-	fi
+	# Push derivations (systemd, noctalia, kernel, initramfs, optional rootfs)
+	push_derivations "$BOARD"
 
 	log_success "Cachix push complete"
 }
