@@ -5,9 +5,9 @@
 # Purpose: Push Nix derivations to Cachix binary cache
 #
 # This module:
-# - Pushes Nix derivations (kernel, initramfs, rootfs, systemd, noctalia)
-# - Excludes large images (shim, recovery) - available elsewhere or too large
-# - Supports dry-run and selective push modes
+# - Pushes runtime derivations (systemd, noctalia, kernel)
+# - Excludes build artifacts (shim, recovery, initramfs) - too large or available elsewhere
+# - Supports dry-run and selective rootfs push
 
 set -Eeuo pipefail
 
@@ -44,11 +44,11 @@ Options:
     --dry-run                  Show what would be done
 
 Examples:
-    # Push non-Hydra derivations (systemd, noctalia, kernel, initramfs, rootfs)
+    # Push runtime derivations (systemd, noctalia, kernel)
     ./push-to-cachix.sh --board dedede --profile default
 
-    # Push without rootfs (large, typically cached elsewhere)
-    ./push-to-cachix.sh --board dedede --profile default --skip-rootfs
+    # Push with rootfs (large, optional)
+    ./push-to-cachix.sh --board dedede --profile default
 EOF
 }
 
@@ -134,13 +134,12 @@ push_derivations() {
 
 	log_info "Pushing Nix derivations for board: $board, profile: $PROFILE"
 
-	# Push only derivations not on Hydra (systemd, noctalia, kernel, initramfs)
-	# Exclude shim/recovery (large images, available elsewhere or on Hydra)
+	# Push only runtime derivations not on Hydra (systemd, noctalia, kernel)
+	# Exclude build artifacts: shim, recovery, initramfs (too large or available elsewhere)
 	local derivations=(
 		".#nixosConfigurations.${PROFILE}.config.system.build.toplevel"
 		".#nixosConfigurations.${PROFILE}.pkgs.noctalia"
 		".#extracted-kernel-${board}"
-		".#initramfs-patching-${board}"
 	)
 
 	# Add rootfs only if not skipped
@@ -210,7 +209,7 @@ main() {
 		log_info "CI environment detected"
 	fi
 
-	# Push derivations (systemd, noctalia, kernel, initramfs, optional rootfs)
+	# Push runtime derivations (systemd, noctalia, kernel, optional rootfs)
 	push_derivations "$BOARD"
 
 	log_success "Cachix push complete"
