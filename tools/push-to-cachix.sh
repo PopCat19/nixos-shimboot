@@ -123,11 +123,12 @@ push_derivations() {
 	log_info "Pushing Nix derivations for board: $board"
 
 	# Push runtime derivations not on Hydra
-	# Available: systemd, noctalia, extracted-kernel-*
+	# Available: systemd, noctalia, zen, extracted-kernel-*
 	# Excluded: shim, recovery, initramfs (too large or available elsewhere)
 	local derivations=(
 		".#packages.x86_64-linux.systemd"
 		".#packages.x86_64-linux.noctalia"
+		".#packages.x86_64-linux.zen"
 		".#extracted-kernel-${board}"
 	)
 

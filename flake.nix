@@ -176,6 +176,7 @@
         ${system} = nixpkgs.lib.foldl' (acc: board: acc // (boardPackages board)) {
           systemd = patchedSystemd;
           noctalia = noctalia.packages.${system}.default;
+          zen = zen-browser.packages.${system}.default;
         } supportedBoards;
       };
 
