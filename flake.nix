@@ -120,6 +120,7 @@
             pmd
             nixvim
             board
+            patchedSystemd
             ;
         };
       systemConfigurationOutputs = import ./flake_modules/system-configuration.nix {

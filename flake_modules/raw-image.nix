@@ -16,6 +16,7 @@
   noctalia,
   stylix,
   nixvim,
+  patchedSystemd,
   ...
 }:
 let
@@ -40,6 +41,7 @@ let
             noctalia
             stylix
             userConfig
+            patchedSystemd
             ;
         };
 
