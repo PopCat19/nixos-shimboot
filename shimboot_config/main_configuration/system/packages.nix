@@ -16,5 +16,6 @@
     usbutils
     android-tools
     tree
+    xdg-utils
   ];
 }
