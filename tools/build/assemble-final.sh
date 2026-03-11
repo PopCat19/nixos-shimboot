@@ -14,6 +14,14 @@
 
 set -Eeuo pipefail
 
+# Source shared libs
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$(cd "$SCRIPT_DIR/../lib" && pwd)"
+# shellcheck source=logging.sh
+source "$LIB_DIR/logging.sh"
+# shellcheck source=runtime.sh
+source "$LIB_DIR/runtime.sh"
+
 # === Error Handler ===
 handle_error() {
 	local step="${1:-unknown}"

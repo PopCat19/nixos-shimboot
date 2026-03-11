@@ -14,6 +14,13 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$(cd "$SCRIPT_DIR/../lib" && pwd)"
+# shellcheck source=logging.sh
+source "$LIB_DIR/logging.sh"
+# shellcheck source=runtime.sh
+source "$LIB_DIR/runtime.sh"
+
 # ---------- Defaults ----------
 # Auto-detect board from work directory or use first available board
 detect_default_board() {
