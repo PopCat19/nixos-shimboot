@@ -1,7 +1,7 @@
 # Context
 
 - cnup.fish — NixOS user profile update helper
-- completions/ — Fish shell completions
+- completions/proxify.fish — Fish completion for proxify command
 - fish-greeting.fish — Fish shell greeting
 - fix-fish-history.fish — Fixes Fish history issues
 - list-fish-helpers.fish — Lists available Fish helpers
