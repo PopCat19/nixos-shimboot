@@ -19,7 +19,7 @@ _: {
   };
 
   boot.kernel.sysctl = {
-    "vm.swappiness" = 100;
+    "vm.swappiness" = 30;
     "vm.page-cluster" = 3;
     "vm.oom-kill" = 1;
     "vm.admin_reserve_kbytes" = 1024;
@@ -27,7 +27,5 @@ _: {
     "vm.vfs_cache_pressure" = 50;
     "vm.dirty_ratio" = 15;
     "vm.dirty_background_ratio" = 5;
-    "vm.watermark_boost_factor" = 6000;
-    "vm.watermark_scale_factor" = 125;
   };
 }
