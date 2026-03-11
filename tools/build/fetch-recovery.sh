@@ -12,12 +12,12 @@
 set -Eeuo pipefail
 
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+readonly PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 readonly SOURCES_FILE="$PROJECT_ROOT/flake_modules/chromeos-sources.nix"
 readonly BACKUP_DIR="$PROJECT_ROOT/.backup"
 readonly TEMP_DIR="$(mktemp -d)"
 
-source "${SCRIPT_DIR}/lib/logging.sh"
+source "${SCRIPT_DIR}/../lib/logging.sh"
 
 readonly RELEASES_URL="https://cdn.jsdelivr.net/gh/MercuryWorkshop/chromeos-releases-data/data.json"
 readonly GOOGLE_API_URL="https://dl.google.com/dl/edgedl/chromeos/recovery/recovery2.json"

@@ -12,8 +12,8 @@
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/lib/logging.sh"
-source "${SCRIPT_DIR}/lib/firmware.sh"
+source "${SCRIPT_DIR}/../lib/logging.sh"
+source "${SCRIPT_DIR}/../lib/firmware.sh"
 
 usage() {
 	echo "Usage: $0 <firmware-directory>"
