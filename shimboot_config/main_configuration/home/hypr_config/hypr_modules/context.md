@@ -7,4 +7,5 @@
 - general.nix — Hyprland general settings
 - hyprlock.nix — Hyprlock screen locker configuration
 - keybinds.nix — Hyprland keybindings
+- scrolling.nix — Hyprland scrolling layout configuration
 - window-rules.nix — Hyprland window rules

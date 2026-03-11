@@ -181,6 +181,28 @@
       # cat: Debug
       # desc: Inspect layer surfaces
       "$mainMod+Shift, N, exec, sh -c 'hyprctl layers > ~/hyprctl-layer-out.txt && $term $editor ~/hyprctl-layer-out.txt'"
+
+      # cat: Scrolling Layout
+      # desc: Move layout right (next column)
+      "$mainMod, period, layoutmsg, move +col"
+      # desc: Move layout left (previous column)
+      "$mainMod, comma, layoutmsg, move -col"
+      # desc: Swap column left
+      "$mainMod+Shift, comma, layoutmsg, swapcol l"
+      # desc: Swap column right
+      "$mainMod+Shift, period, layoutmsg, swapcol r"
+      # desc: Resize column to 50%
+      "$mainMod+Ctrl, equal, layoutmsg, colresize 0.5"
+      # desc: Resize column to 100% (fullscreen column)
+      "$mainMod+Ctrl, bracketright, layoutmsg, colresize 1.0"
+      # desc: Cycle column widths
+      "$mainMod+Ctrl, bracketleft, layoutmsg, colresize +conf"
+      # desc: Fit active window
+      "$mainMod+Alt, F, layoutmsg, fit active"
+      # desc: Promote window to own column
+      "$mainMod, P, layoutmsg, promote"
+      # desc: Focus and center layout
+      "$mainMod, F, layoutmsg, focus right"
     ];
 
     binde = [
