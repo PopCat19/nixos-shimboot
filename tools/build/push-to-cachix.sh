@@ -34,10 +34,10 @@ Options:
 
 Examples:
     # Push systemd, noctalia, kernel for board
-    ./push-to-cachix.sh --board dedede
+    ./tools/build/push-to-cachix.sh --board dedede
 
     # Push with rootfs (large, optional)
-    ./push-to-cachix.sh --board dedede
+    ./tools/build/push-to-cachix.sh --board dedede
 EOF
 }
 

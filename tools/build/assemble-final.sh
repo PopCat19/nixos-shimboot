@@ -690,12 +690,12 @@ mkdir -p "$HARVEST_OUT"
 CURRENT_STEP="2/17"
 log_step "$CURRENT_STEP" "Harvest ChromeOS drivers"
 if [ -n "$RECOVERY_PATH" ]; then
-	bash tools/harvest-drivers.sh --shim "$SHIM_BIN" --recovery "$RECOVERY_PATH" --out "$HARVEST_OUT" || {
+	bash tools/build/harvest-drivers.sh --shim "$SHIM_BIN" --recovery "$RECOVERY_PATH" --out "$HARVEST_OUT" || {
 		log_error "Driver harvest failed with recovery image"
 		handle_error "$CURRENT_STEP"
 	}
 else
-	bash tools/harvest-drivers.sh --shim "$SHIM_BIN" --out "$HARVEST_OUT" || {
+	bash tools/build/harvest-drivers.sh --shim "$SHIM_BIN" --out "$HARVEST_OUT" || {
 		log_error "Driver harvest failed without recovery image"
 		handle_error "$CURRENT_STEP"
 	}
@@ -734,9 +734,9 @@ if [ -d "$HARVEST_OUT/lib/firmware" ]; then
 	CURRENT_STEP="4/17"
 	log_step "$CURRENT_STEP" "Prune unused firmware files"
 	SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-	if [ -f "$SCRIPT_DIR/tools/prune-firmware.sh" ]; then
+	if [ -f "$SCRIPT_DIR/prune-firmware.sh" ]; then
 		# shellcheck disable=SC1091
-		source "$SCRIPT_DIR/tools/prune-firmware.sh"
+		source "$SCRIPT_DIR/prune-firmware.sh"
 		prune_unused_firmware "$HARVEST_OUT/lib/firmware"
 	else
 		log_warn "prune-firmware.sh not found; skipping firmware pruning"
@@ -1182,7 +1182,7 @@ if [ "${CLEANUP_ROOTFS:-0}" -eq 1 ]; then
 	CURRENT_STEP="Cleanup"
 	log_step "$CURRENT_STEP" "Pruning older shimboot rootfs generations"
 	# Build arguments for cleanup script
-	CLEANUP_CMD=(sudo bash tools/cleanup-shimboot-rootfs.sh --results-dir "$(pwd)")
+	CLEANUP_CMD=(sudo bash tools/rescue/cleanup-shimboot-rootfs.sh --results-dir "$(pwd)")
 	if [ -n "${CLEANUP_KEEP:-}" ]; then
 		CLEANUP_CMD+=("--keep" "$CLEANUP_KEEP")
 	fi
@@ -1199,7 +1199,7 @@ if [ "$PUSH_TO_CACHIX" -eq 1 ]; then
 	log_step "Cachix" "Pushing Nix derivations to Cachix (shim, recovery, kernel, initramfs, rootfs, chunks)..."
 
 	# Check if push script exists
-	if [ -f "tools/push-to-cachix.sh" ]; then
+	if [ -f "tools/build/push-to-cachix.sh" ]; then
 		# Check if cachix command is available
 		if command -v cachix >/dev/null 2>&1; then
 			# Check for CACHIX_AUTH_TOKEN in CI environments
@@ -1207,13 +1207,13 @@ if [ "$PUSH_TO_CACHIX" -eq 1 ]; then
 				log_warn "CACHIX_AUTH_TOKEN not set in CI environment"
 				log_warn "Set it to enable automatic pushing to Cachix"
 			else
-				log_info "Executing: ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR"
-				if bash tools/push-to-cachix.sh --board "$BOARD" --rootfs "$ROOTFS_FLAVOR"; then
+				log_info "Executing: ./tools/build/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR"
+				if bash ./tools/build/push-to-cachix.sh --board "$BOARD" --rootfs "$ROOTFS_FLAVOR"; then
 					log_success "Successfully pushed Nix derivations to Cachix"
 				else
 					log_error "Failed to push Nix derivations to Cachix"
 					log_error "You can manually retry with:"
-					log_error "  ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR"
+					log_error "  ./tools/build/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR"
 				fi
 			fi
 		else
@@ -1226,7 +1226,7 @@ if [ "$PUSH_TO_CACHIX" -eq 1 ]; then
 else
 	# Show manual instruction only if not auto-pushing
 	log_info "To push Nix derivations to Cachix (shim, recovery, kernel, initramfs, rootfs, chunks), run:"
-	log_info "  ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR"
+	log_info "  ./tools/build/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR"
 fi
 
 # === Optional inspection ===

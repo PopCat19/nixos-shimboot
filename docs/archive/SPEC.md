@@ -83,7 +83,7 @@ The configuration is tiered to allow easy customization without touching core lo
     *   Populates bootloader and rootfs.
 
 ### Caching Strategy (Cachix)
-- **Push**: `tools/push-to-cachix.sh` uploads derivations and final compressed images/manifests.
+- **Push**: `tools/build/push-to-cachix.sh` uploads derivations and final compressed images/manifests.
 - **Pull**: `assemble-final.sh` can fetch pre-built images or pre-warm the Nix store to speed up local builds.
 - **CI**: GitHub Actions workflows validate builds and push to the binary cache.
 
@@ -148,14 +148,14 @@ The configuration is tiered to allow easy customization without touching core lo
 ## 8. Extension Points
 
 ### Adding a New Board
-1.  Run `tools/fetch-manifest.sh <board>`.
-2.  Run `tools/fetch-recovery.sh --board <board>`.
+1.  Run `tools/build/fetch-manifest.sh <board>`.
+2.  Run `tools/build/fetch-recovery.sh --board <board>`.
 3.  Add board name to `supportedBoards` in `flake.nix`.
 4.  Build: `./assemble-final.sh --board <board>`.
 
 ### Customizing Drivers
 - **Mode**: Select between `vendor` (separate partition, cleaner) or `inject` (direct rootfs copy) via `--drivers` flag in build script.
-- **Firmware Pruning**: Edit `tools/harvest-drivers.sh` to adjust the allowlist of firmware families.
+- **Firmware Pruning**: Edit `tools/build/harvest-drivers.sh` to adjust the allowlist of firmware families.
 
 ---
 

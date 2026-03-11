@@ -216,13 +216,13 @@ Options:
 
 Examples:
   # Auto-detect board and write to device
-  sudo ./write-shimboot-image.sh -o /dev/sdd
+  sudo ./tools/write/write-shimboot-image.sh -o /dev/sdd
 
   # Specify board to use work/dedede/shimboot.img
-  sudo ./write-shimboot-image.sh --board dedede -o /dev/sdd
+  sudo ./tools/write/write-shimboot-image.sh --board dedede -o /dev/sdd
 
   # Use custom image path
-  sudo ./write-shimboot-image.sh -i /path/to/shimboot.img -o /dev/sdd
+  sudo ./tools/write/write-shimboot-image.sh -i /path/to/shimboot.img -o /dev/sdd
 EOF
 }
 
