@@ -6,7 +6,6 @@
 #
 # This module:
 # - Installs Hyprland, hyprshade, hyprpaper, hyprpanel, and related tools
-# - Enables hyprscrolling layout plugin
 { pkgs, ... }:
 {
   home.packages = with pkgs; [
@@ -14,9 +13,5 @@
     hyprpolkitagent
     hyprutils
     hyprlock
-  ];
-
-  wayland.windowManager.hyprland.plugins = [
-    pkgs.hyprlandPlugins.hyprscrolling
   ];
 }
