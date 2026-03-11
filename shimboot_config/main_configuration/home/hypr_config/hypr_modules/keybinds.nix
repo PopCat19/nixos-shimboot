@@ -196,7 +196,7 @@
       # desc: Resize column +10%
       "$mainMod+Shift, bracketright, layoutmsg, colresize +0.1"
       # desc: Resize column to 50%
-      "$mainMod+Ctrl+Shift, o, layoutmsg, colresize 0.5"
+      "$mainMod, o, layoutmsg, colresize 0.5"
       # desc: Resize column to 100%
       "$mainMod+Shift, O, layoutmsg, colresize 1.0"
       # desc: Fit active window
