@@ -45,28 +45,24 @@
       desktop = "zen-twilight.desktop";
       package = "zen-browser";
       command = "zen-twilight";
-      class = "zen";
     };
 
     terminal = {
       desktop = "kitty.desktop";
       package = "kitty";
       command = "kitty";
-      class = "kitty";
     };
 
     editor = {
       desktop = "micro.desktop";
       package = "micro";
       command = "micro";
-      class = "micro";
     };
 
     fileManager = {
       desktop = "org.kde.dolphin.desktop";
       package = "kdePackages.dolphin";
       command = "dolphin";
-      class = "dolphin";
     };
 
     imageViewer = {

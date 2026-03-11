@@ -17,12 +17,6 @@
       "no_focus on, match:class ^$, match:title ^$, match:xwayland 1, match:float 1, match:fullscreen 0, match:pin 0"
       "min_size 1024 600, match:class ^(org.pulseaudio.pavucontrol)$"
 
-      # Window size rules (percent of monitor)
-      "size 100% 100%, class:^(kitty)$"
-      "size 100% 100%, class:^(zen|Zen)$"
-      "size 100% 100%, class:^(micro|helix|nvim|Neovim)$"
-      "size 100% 100%, class:^(dolphin)$"
-
       # Floating rules - Dolphin
       "float on, match:class ^(org.kde.dolphin)$, match:title ^(Progress Dialog — Dolphin)$"
       "float on, match:class ^(org.kde.dolphin)$, match:title ^(Copying — Dolphin)$"
