@@ -124,8 +124,8 @@ FIRMWARE_UPSTREAM="${FIRMWARE_UPSTREAM:-1}"
 CLEANUP_ROOTFS=0
 CLEANUP_NO_DRY_RUN=0
 CLEANUP_KEEP=""
-PREWARM_CACHE=0
-PUSH_TO_CACHIX=0
+PREWARM_CACHE="${PREWARM_CACHE:-0}"
+PUSH_TO_CACHIX="${PUSH_TO_CACHIX:-0}"
 DRIVERS_MODE="${DRIVERS_MODE:-}"
 
 # === Main Argument Parsing (onboarding + args work together) ===
@@ -432,6 +432,15 @@ require_sudo
 # === Cleanup workspace ===
 if [ -d "$WORKDIR" ]; then
 	log_info "Cleaning up old work directory..."
+	# Detach any loops left over from a previous run before unlinking the files;
+	# otherwise the backing files become '(deleted)' and the loop persists until reboot.
+	while read -r _stale_dev; do
+		[ -n "$_stale_dev" ] || continue
+		log_info "Detaching stale loop device $_stale_dev from previous run..."
+		sudo losetup -d "$_stale_dev" 2>/dev/null || true
+	done < <(losetup -l --noheadings -O NAME,BACK-FILE 2>/dev/null |
+		awk -v d="$WORKDIR" '$2 ~ "^" d {print $1}')
+	unset _stale_dev
 	safe_exec sudo rm -rf "$WORKDIR"
 fi
 mkdir -p "$WORKDIR" "$WORKDIR/mnt_src_rootfs" "$WORKDIR/mnt_bootloader" "$WORKDIR/mnt_rootfs"
@@ -461,17 +470,24 @@ LOOPROOT=""
 cleanup_loop_devices() {
 	log_info "Cleaning up loop devices..."
 
-	# Find all loops associated with our image file
-	while read -r dev; do
-		[ -n "$dev" ] || continue
-		log_info "Detaching $dev..."
-		safe_exec sudo losetup -d "$dev" 2>/dev/null || safe_exec sudo losetup -d "$dev" -f 2>/dev/null || true
-	done < <(losetup -j "$IMAGE" 2>/dev/null | cut -d: -f1)
+	# Detach loops for all known backing files in the workspace
+	local backing_files=()
+	[ -f "$IMAGE" ] && backing_files+=("$IMAGE")
+	[ -f "$WORKDIR/rootfs.img" ] && backing_files+=("$WORKDIR/rootfs.img")
 
-	# Explicit cleanup of tracked devices
+	for f in "${backing_files[@]}"; do
+		while read -r dev; do
+			[ -n "$dev" ] || continue
+			log_info "Detaching $dev (backed by $(basename "$f"))..."
+			sudo losetup -d "$dev" 2>/dev/null || sudo losetup -d "$dev" -f 2>/dev/null || true
+		done < <(losetup -j "$f" 2>/dev/null | cut -d: -f1)
+	done
+
+	# Explicit cleanup of tracked devices (fallback if backing file was already removed)
 	for dev in "$LOOPDEV" "$LOOPROOT"; do
 		if [ -n "$dev" ] && losetup "$dev" &>/dev/null; then
-			safe_exec sudo losetup -d "$dev" 2>/dev/null || true
+			log_info "Detaching tracked device $dev..."
+			sudo losetup -d "$dev" 2>/dev/null || true
 		fi
 	done
 }
@@ -499,6 +515,12 @@ cleanup() {
 	sleep 1 # Give kernel time to settle
 
 	cleanup_loop_devices
+
+	# Remove working subdirectories; preserve the final image
+	for d in mnt_rootfs mnt_bootloader mnt_src_rootfs mnt_vendor inspect_rootfs \
+		harvested linux-firmware.upstream; do
+		rm -rf "${WORKDIR:?}/$d" 2>/dev/null || true
+	done
 
 	set -e
 }
@@ -672,6 +694,15 @@ else
 		handle_error "$CURRENT_STEP"
 	}
 fi
+
+# Detach any loops left by harvest-drivers.sh (shim/recovery are Nix store files)
+for _img in "$SHIM_BIN" "$RECOVERY_PATH"; do
+	[ -f "$_img" ] || continue
+	while read -r _dev; do
+		[ -n "$_dev" ] && sudo losetup -d "$_dev" 2>/dev/null || true
+	done < <(losetup -j "$_img" 2>/dev/null | cut -d: -f1)
+done
+unset _img _dev
 
 # === Step 3: Augment firmware with upstream ChromiumOS linux-firmware ===
 if [ "${FIRMWARE_UPSTREAM:-1}" != "0" ]; then
@@ -1170,13 +1201,13 @@ if [ "$PUSH_TO_CACHIX" -eq 1 ]; then
 				log_warn "CACHIX_AUTH_TOKEN not set in CI environment"
 				log_warn "Set it to enable automatic pushing to Cachix"
 			else
-				log_info "Executing: ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE"
-				if bash tools/push-to-cachix.sh --board "$BOARD" --rootfs "$ROOTFS_FLAVOR" --drivers "$DRIVERS_MODE"; then
+				log_info "Executing: ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR"
+				if bash tools/push-to-cachix.sh --board "$BOARD" --rootfs "$ROOTFS_FLAVOR"; then
 					log_success "Successfully pushed Nix derivations to Cachix"
 				else
 					log_error "Failed to push Nix derivations to Cachix"
 					log_error "You can manually retry with:"
-					log_error "  ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE"
+					log_error "  ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR"
 				fi
 			fi
 		else
@@ -1189,7 +1220,7 @@ if [ "$PUSH_TO_CACHIX" -eq 1 ]; then
 else
 	# Show manual instruction only if not auto-pushing
 	log_info "To push Nix derivations to Cachix (shim, recovery, kernel, initramfs, rootfs, chunks), run:"
-	log_info "  ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR --drivers $DRIVERS_MODE"
+	log_info "  ./tools/push-to-cachix.sh --board $BOARD --rootfs $ROOTFS_FLAVOR"
 fi
 
 # === Optional inspection ===
