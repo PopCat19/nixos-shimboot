@@ -191,12 +191,14 @@
       "$mainMod+Shift, comma, layoutmsg, swapcol l"
       # desc: Swap column right
       "$mainMod+Shift, period, layoutmsg, swapcol r"
+      # desc: Resize column -10%
+      "$mainMod+Shift, bracketleft, layoutmsg, colresize -0.1"
+      # desc: Resize column +10%
+      "$mainMod+Shift, bracketright, layoutmsg, colresize +0.1"
       # desc: Resize column to 50%
-      "$mainMod+Ctrl, equal, layoutmsg, colresize 0.5"
-      # desc: Resize column to 100% (fullscreen column)
-      "$mainMod+Ctrl, bracketright, layoutmsg, colresize 1.0"
-      # desc: Cycle column widths
-      "$mainMod+Ctrl, bracketleft, layoutmsg, colresize +conf"
+      "$mainMod+Shift, o, layoutmsg, colresize 0.5"
+      # desc: Resize column to 100%
+      "$mainMod+Shift, O, layoutmsg, colresize 1.0"
       # desc: Fit active window
       "$mainMod+Alt, F, layoutmsg, fit active"
       # desc: Promote window to own column
