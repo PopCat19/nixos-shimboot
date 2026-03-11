@@ -202,7 +202,7 @@
       # desc: Fit active window
       "$mainMod+Alt, F, layoutmsg, fit active"
       # desc: Promote window to own column
-      "$mainMod, P, layoutmsg, promote"
+      "$mainMod, period, layoutmsg, promote"
       # desc: Focus and center layout
       "$mainMod, F, layoutmsg, focus right"
     ];
