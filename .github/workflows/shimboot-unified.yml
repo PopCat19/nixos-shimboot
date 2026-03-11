@@ -208,8 +208,8 @@ jobs:
         env:
           CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
         run: |
-          chmod +x tools/push-to-cachix.sh
-          ./tools/push-to-cachix.sh \
+          chmod +x tools/build/push-to-cachix.sh
+          ./tools/build/push-to-cachix.sh \
             --board "${{ matrix.board }}" \
             --rootfs "${{ github.event.inputs.rootfs || 'minimal' }}" \
             --drivers "${{ github.event.inputs.drivers_mode || 'vendor' }}"
@@ -228,7 +228,7 @@ jobs:
           fi
 
           ASSEMBLE_CMD=(
-            ./assemble-final.sh
+            ./tools/build/assemble-final.sh
             --board "${{ matrix.board }}"
             --rootfs "${{ github.event.inputs.rootfs || 'minimal' }}"
             --drivers "${{ github.event.inputs.drivers_mode || 'vendor' }}"
