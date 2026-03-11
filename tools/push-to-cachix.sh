@@ -11,16 +11,9 @@
 
 set -Eeuo pipefail
 
-readonly BLUE='\033[0;34m'
-readonly GREEN='\033[0;32m'
-readonly YELLOW='\033[1;33m'
-readonly RED='\033[0;31m'
-readonly NC='\033[0m'
-
-log_info() { printf "${BLUE}[INFO]${NC} %s\n" "$*" >&2; }
-log_success() { printf "${GREEN}[SUCCESS]${NC} %s\n" "$*" >&2; }
-log_warn() { printf "${YELLOW}[WARN]${NC} %s\n" "$*" >&2; }
-log_error() { printf "${RED}[ERROR]${NC} %s\n" "$*" >&2; }
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/lib/logging.sh"
+source "${SCRIPT_DIR}/lib/runtime.sh"
 
 # Configuration
 CACHE="shimboot-systemd-nixos"
@@ -93,23 +86,6 @@ for cmd in cachix nix; do
 		exit 1
 	fi
 done
-
-# CI detection
-is_ci() {
-	[[ "${CI:-}" == "true" ]] ||
-		[[ -n "${GITHUB_ACTIONS:-}" ]] ||
-		[[ -n "${GITLAB_CI:-}" ]] ||
-		[[ -n "${JENKINS_HOME:-}" ]]
-}
-
-# Safe execution wrapper
-safe_exec() {
-	if [[ "$DRY_RUN" -eq 1 ]]; then
-		log_info "[DRY-RUN] Would execute: $*"
-	else
-		"$@"
-	fi
-}
 
 # Push Nix derivations (excluding large images like shim/recovery)
 push_derivations() {
