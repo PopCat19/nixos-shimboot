@@ -95,11 +95,11 @@
       # desc: Focus window left
       "$mainMod+Shift, h, movefocus, l"
       # desc: Focus window right
-      "$mainMod+Shift, j, movefocus, r"
+      "$mainMod+Shift, l, movefocus, r"
       # desc: Focus window up
       "$mainMod+Shift, k, movefocus, u"
       # desc: Focus window down
-      "$mainMod+Shift, l, movefocus, d"
+      "$mainMod+Shift, j, movefocus, d"
       # desc: Cycle through windows
       "Alt, Tab, movefocus, d"
 
