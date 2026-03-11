@@ -21,14 +21,14 @@ cd nixos-shimboot
 
 ### 2. Build the Complete Shimboot Image
 
-Use the `assemble-final.sh` script (will prompt sudo/root for mount loops and work directory) to build a complete shimboot image that combines the NixOS rootfs with the ChromeOS shim. Replace `BOARD` with your Chromebook's board name:
+Use the `tools/build/assemble-final.sh` script (will prompt sudo/root for mount loops and work directory) to build a complete shimboot image that combines the NixOS rootfs with the ChromeOS shim. Replace `BOARD` with your Chromebook's board name:
 
 ```bash
 # For dedede board (e.g., HP Chromebook 11 G9 EE) - full image (recommended)
-sudo ./assemble-final.sh --board dedede --rootfs full
+sudo ./tools/build/assemble-final.sh --board dedede --rootfs full
 
 # For minimal image (base configuration only; useful for testing critical configurations)
-sudo ./assemble-final.sh --board dedede --rootfs minimal
+sudo ./tools/build/assemble-final.sh --board dedede --rootfs minimal
 
 # For other boards, replace 'dedede' with your board name:
 # grunt, hatch, nissa, octopus, snappy, zork
@@ -63,7 +63,7 @@ The script will:
 
 Interactive device selection with predefined image input:
 ```bash
-sudo ./write-shimboot-image.sh
+sudo ./tools/write/write-shimboot-image.sh
 ```
 
 Afterwards, the imaged usb/sd is ready to boot.
@@ -111,20 +111,20 @@ sudo resize2fs /dev/sdXN
 - If you get impure errors, try: `nix build --impure`
 - Ensure you're using the correct board name (case-sensitive): dedede, grunt, hatch, nissa, octopus, snappy, zork
 - For ChromeOS artifacts, ensure you have the correct board manifest
-- Check cache health before building: `./tools/check-cachix.sh dedede`
+- Check cache health before building: `./tools/build/check-cachix.sh dedede`
 - Use `--dry-run` to test the build process without destructive operations
 - Enable cache pre-warming: `--prewarm-cache` to fetch derivations before building
 
 ### Cache Management
 - Built-in Cachix integration for faster builds
-- Check cache coverage: `./tools/check-cachix.sh [BOARD]`
+- Check cache coverage: `./tools/build/check-cachix.sh [BOARD]`
 - Cache automatically configured in Nix settings
 - Push built derivations to cache for faster subsequent builds
 
 ### Boot Issues
 - Verify your Chromebook board is in the supported list above
 - Confirm the shim image matches your exact device model
-- Try the minimal image if the full image fails: `sudo ./assemble-final.sh --board BOARD --rootfs minimal`
+- Try the minimal image if the full image fails: `sudo ./tools/build/assemble-final.sh --board BOARD --rootfs minimal`
 - Check that recovery mode key combination is correct for your model
 - Inspect build metadata: `cat /etc/shimboot-build.json` on the running system
 

@@ -138,7 +138,7 @@ All original and shimboot derived code in this repository is licensed under **GP
 This includes:
 - Nix flake configurations (`flake.nix`, `flake_modules/`)
 - NixOS system modules (`shimboot_config/`)
-- Build and utility scripts (`scripts/`, `assemble-final.sh`, etc.)
+- Build and utility scripts (`tools/build/assemble-final.sh`, etc.)
 - Bootloader integration code (`bootloader/` - originally derived from upstream shimboot)
 
 ### Proprietary Components
