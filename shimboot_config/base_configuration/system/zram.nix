@@ -23,8 +23,7 @@ _: {
     "vm.page-cluster" = 3;
     "vm.oom-kill" = 1;
     "vm.admin_reserve_kbytes" = 1024;
-    "vm.overcommit_memory" = 1;
-    "vm.overcommit_ratio" = 50;
+    "vm.overcommit_memory" = 0;
     "vm.vfs_cache_pressure" = 50;
     "vm.dirty_ratio" = 15;
     "vm.dirty_background_ratio" = 5;
