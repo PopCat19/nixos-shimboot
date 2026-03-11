@@ -24,7 +24,7 @@ ChromeOS Firmware → Shim Kernel (patched) → Bootloader → NixOS
 ## Build
 
 ```bash
-sudo ./assemble-final.sh --board <board> --rootfs full
+sudo ./tools/build/assemble-final.sh --board <board> --rootfs full
 ```
 
 Supported boards: dedede, octopus, zork, nissa, hatch, grunt, snappy

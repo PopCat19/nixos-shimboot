@@ -42,7 +42,7 @@ in
       echo "Common commands:"
       echo "  nix build .#raw-rootfs-minimal          # Build minimal rootfs"
       echo "  nix build .#chromeos-shim-dedede        # Build shim"
-      echo "  sudo ./assemble-final.sh --board dedede --rootfs minimal"
+      echo "  sudo ./tools/build/assemble-final.sh --board dedede --rootfs minimal"
       echo ""
       echo "Formatting:"
       echo "  nix fmt                # Format all Nix files"
