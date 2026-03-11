@@ -20,7 +20,7 @@
       # Window size rules (percent of monitor)
       "size 100% 100%, class:^(kitty)$"
       "size 100% 100%, class:^(zen|Zen)$"
-      "size 100% 100%, class:^(micro)$"
+      "size 100% 100%, class:^(micro|helix|nvim|Neovim)$"
       "size 100% 100%, class:^(dolphin)$"
 
       # Floating rules - Dolphin
