@@ -93,13 +93,13 @@
 
       # cat: Focus
       # desc: Focus window left
-      "$mainMod+Shift, h, movefocus, l"
+      "$mainMod, h, movefocus, l"
       # desc: Focus window right
-      "$mainMod+Shift, l, movefocus, r"
+      "$mainMod, l, movefocus, r"
       # desc: Focus window up
-      "$mainMod+Shift, k, movefocus, u"
+      "$mainMod, k, movefocus, u"
       # desc: Focus window down
-      "$mainMod+Shift, j, movefocus, d"
+      "$mainMod, j, movefocus, d"
       # desc: Cycle through windows
       "Alt, Tab, movefocus, d"
 
@@ -183,14 +183,14 @@
       "$mainMod+Shift, N, exec, sh -c 'hyprctl layers > ~/hyprctl-layer-out.txt && $term $editor ~/hyprctl-layer-out.txt'"
 
       # cat: Scrolling Layout
-      # desc: Move layout right (next column)
-      "$mainMod, period, layoutmsg, move +col"
-      # desc: Move layout left (previous column)
-      "$mainMod, comma, layoutmsg, move -col"
+      # desc: Move layout left (join column)
+      "$mainMod+Shift, h, layoutmsg, move -col"
+      # desc: Move layout right (separate to new column)
+      "$mainMod+Shift, l, layoutmsg, promote"
       # desc: Swap column left
-      "$mainMod+Shift, comma, layoutmsg, swapcol l"
+      "$mainMod+Ctrl+Shift, h, layoutmsg, swapcol l"
       # desc: Swap column right
-      "$mainMod+Shift, period, layoutmsg, swapcol r"
+      "$mainMod+Ctrl+Shift, l, layoutmsg, swapcol r"
       # desc: Resize column -10%
       "$mainMod+Shift, bracketleft, layoutmsg, colresize -0.1"
       # desc: Resize column +10%
