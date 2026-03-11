@@ -1,7 +1,7 @@
 # Scrolling Layout Configuration
 #
 # Purpose: Configure Hyprland scrolling layout plugin
-# Dependencies: hyprlandPlugins.scrolling
+# Dependencies: hyprlandPlugins.hyprscrolling
 # Related: keybinds.nix
 #
 # This module:
