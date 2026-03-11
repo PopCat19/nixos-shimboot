@@ -31,7 +31,7 @@
       # desc: Exit Hyprland
       "$mainMod, Delete, exit"
       # desc: Lock screen
-      "$mainMod+Shift, L, exec, hyprlock"
+      "$mainMod+Ctrl, L, exec, hyprlock"
 
       # cat: Window State
       # desc: Toggle floating mode
