@@ -29,6 +29,8 @@ in
       # Development utilities
       git
       jq
+      bun
+      rustup
     ];
 
     shellHook = ''

@@ -28,5 +28,9 @@ in
     btop
     fastfetch
     jql
+
+    # Development tools
+    bun
+    rustup
   ];
 }

@@ -19,7 +19,7 @@ _: {
   };
 
   boot.kernel.sysctl = {
-    "vm.swappiness" = 30;
+    "vm.swappiness" = 80;
     "vm.page-cluster" = 3;
     "vm.oom-kill" = 1;
     "vm.admin_reserve_kbytes" = 1024;
