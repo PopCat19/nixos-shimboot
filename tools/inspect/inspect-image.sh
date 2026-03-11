@@ -1,18 +1,13 @@
 #!/usr/bin/env bash
 
-# Inspect Shimboot Image Script v2.0
+# inspect-image.sh
 #
-# Purpose: Inspect shimboot image structure and verify rootfs and vendor contents,
-# using colorized output, auto-detection of partitions, and read-only mounting.
-# Dependencies: sudo, losetup, mount, umount, lsblk, gdisk, blkid, file, numfmt
-# Related: assemble-final.sh, write-shimboot-image.sh
+# Purpose: Inspect shimboot image structure and verify rootfs and vendor contents
 #
-# Usage:
-#   ./inspect-image.sh [IMAGE_PATH]
-#   ./inspect-image.sh work/shimboot.img
-#
-# Example:
-#   ./inspect-image.sh /nix/work/shimboot.img --details
+# This module:
+# - Detects partitions automatically
+# - Verifies rootfs and vendor contents
+# - Provides colorized output
 
 set -Eeuo pipefail
 

@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
 
-# Write Shimboot Image Script
+# write-shimboot-image.sh
 #
-# Purpose: Safely write shimboot image to target disk with interactive device selection and validation
-# Dependencies: sudo, dd, lsblk, findmnt, udisksctl, parted, cgpt, numfmt, curl, zstd
-# Related: assemble-final.sh, inspect-image.sh
+# Purpose: Safely write shimboot image to target disk with interactive device selection
 #
-# This script provides a safe, interactive interface for writing shimboot images to disks,
-# with automatic system disk detection, UDisks integration, and comprehensive validation.
-#
-# Usage:
-#   sudo ./write-shimboot-image.sh -o /dev/sdX
+# This module:
+# - Provides interactive device selection
+# - Validates target disk before writing
+# - Supports download and decompression of images
 
 set -euo pipefail
 

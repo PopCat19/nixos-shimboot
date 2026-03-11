@@ -1,28 +1,15 @@
 #!/usr/bin/env bash
-# NixOS Shimboot Rescue Helper
+
+# rescue-helper.sh
 #
-# Purpose: Provide a unified interactive toolkit for inspecting and repairing
-#          shimboot-based NixOS systems directly from a live environment.
-# Dependencies: mount, umount, losetup, cgpt, nix, zstd, chroot
-# Related: assemble-final.sh, write-shimboot-image.sh
+# Purpose: Provide interactive toolkit for inspecting and repairing shimboot-based NixOS systems
 #
-# This script:
-# - Mounts or repairs shimboot rootfs partitions
+# This module:
+# - Mounts and repairs shimboot rootfs partitions
 # - Manages and rolls back NixOS generations
-# - Provides filesystem and rescue operations (chroot, fsck, usage)
+# - Provides filesystem and rescue operations
 # - Handles home backup, export, and import
-# - Inspects and manages bootloader (kernel/initramfs/bootstrap scripts)
-# - Detects automatically partition mapping across ChromeOS layouts
-#
-# Usage:
-#   sudo ./tools/rescue-helper.sh [DEVICE|auto]
-# Example:
-#   sudo ./tools/rescue-helper.sh /dev/sdc5
-#
-# Notes:
-#   - Runs read-only by default
-#   - Write operations require confirmation
-#   - Colorized output improves readability
+# - Inspects and manages bootloader
 
 set -euo pipefail
 

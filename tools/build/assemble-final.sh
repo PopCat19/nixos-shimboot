@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 
-# Assemble Final Script
+# assemble-final.sh
 #
 # Purpose: Build and assemble final shimboot image with Nix outputs, drivers, and partitioning
-# Dependencies: nix, sudo, parted, mkfs.ext4, dd, pv, losetup, mount, umount, cgpt
-# Related: write-shimboot-image.sh, harvest-drivers.sh
 #
 # This module:
 # - Orchestrates complete shimboot image creation
