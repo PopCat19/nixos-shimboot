@@ -93,13 +93,13 @@
 
       # cat: Focus
       # desc: Focus window left
-      "$mainMod, Left, movefocus, l"
+      "$mainMod+Shift, h, movefocus, l"
       # desc: Focus window right
-      "$mainMod, Right, movefocus, r"
+      "$mainMod+Shift, j, movefocus, r"
       # desc: Focus window up
-      "$mainMod, Up, movefocus, u"
+      "$mainMod+Shift, k, movefocus, u"
       # desc: Focus window down
-      "$mainMod, Down, movefocus, d"
+      "$mainMod+Shift, l, movefocus, d"
       # desc: Cycle through windows
       "Alt, Tab, movefocus, d"
 
@@ -196,7 +196,7 @@
       # desc: Resize column +10%
       "$mainMod+Shift, bracketright, layoutmsg, colresize +0.1"
       # desc: Resize column to 50%
-      "$mainMod+Shift, o, layoutmsg, colresize 0.5"
+      "$mainMod+Ctrl+Shift, o, layoutmsg, colresize 0.5"
       # desc: Resize column to 100%
       "$mainMod+Shift, O, layoutmsg, colresize 1.0"
       # desc: Fit active window
