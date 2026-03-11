@@ -186,7 +186,7 @@
       # desc: Move layout left (join column)
       "$mainMod+Shift, h, layoutmsg, move -col"
       # desc: Move layout right (separate to new column)
-      "$mainMod+Shift, l, layoutmsg, promote"
+      "$mainMod+Shift, l, layoutmsg, move +col"
       # desc: Swap column left
       "$mainMod+Ctrl+Shift, h, layoutmsg, swapcol l"
       # desc: Swap column right
