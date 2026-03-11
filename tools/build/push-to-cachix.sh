@@ -147,7 +147,7 @@ push_derivations() {
 			log_info "Pushing to $CACHE: $(basename "$store_path")"
 
 			# Use authToken from env (CACHIX_AUTH_TOKEN) if set, handled by cachix CLI automatically
-			if safe_exec cachix push "$CACHE" "$store_path" 2>&1 | grep -v "Compressing"; then
+			if safe_exec cachix push "$CACHE" "$store_path" 2>&1 | grep -v -E "(Compressing|All done)"; then
 				log_success "Pushed $drv"
 			else
 				log_error "Failed to push $drv"
