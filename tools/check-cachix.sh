@@ -53,7 +53,7 @@ fi
 # Validate profile exists
 if [ ! -d "shimboot_config/profiles/$PROFILE" ]; then
 	log_error "Profile '$PROFILE' not found in shimboot_config/profiles/"
-	log_error "Available profiles: $(ls -1 shimboot_config/profiles/ 2>/dev/null | tr '\n' ' ')"
+	log_error "Available profiles: $(find shimboot_config/profiles -maxdepth 1 -mindepth 1 -type d -printf '%f\n' 2>/dev/null | tr '\n' ' ')"
 	exit 1
 fi
 
