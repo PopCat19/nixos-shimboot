@@ -28,7 +28,8 @@
 
       "$mainMod, W, togglefloating"
       "$mainMod, G, togglegroup"
-      "$mainMod, F, fullscreen"
+      "$mainMod, F, exec, $browser"
+      "Alt, Return, fullscreen"
       "$mainMod+Ctrl, J, togglesplit"
 
       "$mainMod, T, exec, $term"
