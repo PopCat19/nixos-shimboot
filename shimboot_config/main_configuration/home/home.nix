@@ -35,6 +35,7 @@
     ./wallpaper.nix
     ./tmux.nix
     ./programs.nix
+    ./libreoffice.nix
   ];
 
   home.stateVersion = "24.11";
