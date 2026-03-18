@@ -4,9 +4,10 @@
 # Dependencies: None
 #
 # This module:
-# - Enables LibreOffice via home-manager
-_: {
-  programs.libreoffice = {
-    enable = true;
-  };
+# - Installs LibreOffice via home-manager packages
+{ pkgs, ... }:
+{
+  home.packages = with pkgs; [
+    libreoffice
+  ];
 }
