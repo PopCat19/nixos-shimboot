@@ -30,7 +30,7 @@ in
     jql
 
     # Development tools
-    bun
+    nodejs
     rustup
   ];
 }
