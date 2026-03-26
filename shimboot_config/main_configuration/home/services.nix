@@ -24,8 +24,8 @@
   systemd.user.services = {
     cliphist = {
       Unit = {
-        After = lib.mkForce "hyprland-session.target";
-        PartOf = lib.mkForce "hyprland-session.target";
+        After = lib.mkForce [ "hyprland-session.target" ];
+        PartOf = lib.mkForce [ "hyprland-session.target" ];
       };
       Service = {
         ExecStartPre = lib.mkForce "${pkgs.bash}/bin/bash -c 'until systemctl --user show-environment | grep -q WAYLAND_DISPLAY; do sleep 0.5; done'";
@@ -35,8 +35,8 @@
     };
     cliphist-images = {
       Unit = {
-        After = lib.mkForce "hyprland-session.target";
-        PartOf = lib.mkForce "hyprland-session.target";
+        After = lib.mkForce [ "hyprland-session.target" ];
+        PartOf = lib.mkForce [ "hyprland-session.target" ];
       };
       Service = {
         ExecStartPre = lib.mkForce "${pkgs.bash}/bin/bash -c 'until systemctl --user show-environment | grep -q WAYLAND_DISPLAY; do sleep 0.5; done'";
@@ -46,15 +46,21 @@
     };
     xdg-desktop-portal-hyprland = {
       Unit = {
-        After = lib.mkForce "hyprland-session.target";
-        PartOf = lib.mkForce "hyprland-session.target";
+        After = lib.mkForce [ "hyprland-session.target" ];
+        PartOf = lib.mkForce [ "hyprland-session.target" ];
         ConditionEnvironment = lib.mkForce "";
       };
     };
     xdg-desktop-portal = {
       Unit = {
-        After = lib.mkForce "xdg-desktop-portal-hyprland.service xdg-desktop-portal-gtk.service";
-        Wants = "xdg-desktop-portal-hyprland.service xdg-desktop-portal-gtk.service";
+        After = lib.mkForce [
+          "xdg-desktop-portal-hyprland.service"
+          "xdg-desktop-portal-gtk.service"
+        ];
+        Wants = lib.mkForce [
+          "xdg-desktop-portal-hyprland.service"
+          "xdg-desktop-portal-gtk.service"
+        ];
       };
     };
   };
