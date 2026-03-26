@@ -20,6 +20,8 @@
       "systemctl --user start hyprpolkitagent"
       "openrgb -p orang-full"
       "hyprctl plugin load ~/.local/share/hyprland/$(uname -m)/libscrolling.so"
+      "wl-paste --type text --watch cliphist store"
+      "wl-paste --type image --watch cliphist store"
     ];
   };
 }
