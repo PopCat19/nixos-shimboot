@@ -24,7 +24,6 @@
     ./system/environment.nix
     ./system/boot.nix
     ./system/networking.nix
-    ./system/proxy.nix
     ./system/filesystems.nix
     ./system/packages.nix
     ./system/helpers/helpers.nix

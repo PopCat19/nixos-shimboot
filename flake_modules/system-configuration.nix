@@ -35,8 +35,6 @@ let
         "nix-command"
         "flakes"
       ];
-
-      proxy.enable = true;
     })
   ];
 
