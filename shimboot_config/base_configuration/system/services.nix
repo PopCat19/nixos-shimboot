@@ -31,33 +31,4 @@
     udisks2.enable = true;
     dbus.enable = true;
   };
-
-  systemd.user.services = {
-    cliphist = {
-      unitConfig = {
-        After = lib.mkForce "hyprland-session.target";
-        PartOf = lib.mkForce "hyprland-session.target";
-      };
-      serviceConfig = {
-        RestartSec = lib.mkForce "3";
-        StartLimitIntervalSec = lib.mkForce "0";
-      };
-    };
-    cliphist-images = {
-      unitConfig = {
-        After = lib.mkForce "hyprland-session.target";
-        PartOf = lib.mkForce "hyprland-session.target";
-      };
-      serviceConfig = {
-        RestartSec = lib.mkForce "3";
-        StartLimitIntervalSec = lib.mkForce "0";
-      };
-    };
-    mpris-proxy = {
-      unitConfig = {
-        After = lib.mkForce "hyprland-session.target";
-        PartOf = lib.mkForce "hyprland-session.target";
-      };
-    };
-  };
 }

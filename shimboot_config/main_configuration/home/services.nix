@@ -8,6 +8,7 @@
 # - Enables media player control services
 # - Configures storage management and clipboard tools
 # - Sets up audio effects processing
+{ lib, ... }:
 {
   services = {
     playerctld.enable = true;
@@ -18,5 +19,28 @@
     easyeffects.enable = true;
 
     cliphist.enable = true;
+  };
+
+  systemd.user.services = {
+    cliphist = {
+      Unit = {
+        After = lib.mkForce "hyprland-session.target";
+        PartOf = lib.mkForce "hyprland-session.target";
+      };
+      Service = {
+        RestartSec = lib.mkForce "3";
+        StartLimitIntervalSec = lib.mkForce "0";
+      };
+    };
+    cliphist-images = {
+      Unit = {
+        After = lib.mkForce "hyprland-session.target";
+        PartOf = lib.mkForce "hyprland-session.target";
+      };
+      Service = {
+        RestartSec = lib.mkForce "3";
+        StartLimitIntervalSec = lib.mkForce "0";
+      };
+    };
   };
 }
