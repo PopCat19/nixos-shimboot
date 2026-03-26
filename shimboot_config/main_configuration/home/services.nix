@@ -8,7 +8,7 @@
 # - Enables media player control services
 # - Configures storage management and clipboard tools
 # - Sets up audio effects processing
-{ lib, ... }:
+{ lib, pkgs, ... }:
 {
   services = {
     playerctld.enable = true;
@@ -28,6 +28,7 @@
         PartOf = lib.mkForce "hyprland-session.target";
       };
       Service = {
+        ExecStartPre = lib.mkForce "${pkgs.bash}/bin/bash -c 'until systemctl --user show-environment | grep -q WAYLAND_DISPLAY; do sleep 0.5; done'";
         RestartSec = lib.mkForce "3";
         StartLimitIntervalSec = lib.mkForce "0";
       };
@@ -38,6 +39,7 @@
         PartOf = lib.mkForce "hyprland-session.target";
       };
       Service = {
+        ExecStartPre = lib.mkForce "${pkgs.bash}/bin/bash -c 'until systemctl --user show-environment | grep -q WAYLAND_DISPLAY; do sleep 0.5; done'";
         RestartSec = lib.mkForce "3";
         StartLimitIntervalSec = lib.mkForce "0";
       };

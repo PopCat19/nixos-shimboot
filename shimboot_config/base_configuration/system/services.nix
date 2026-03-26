@@ -10,8 +10,7 @@
 # - Enables libinput for input device handling
 # - Sets up udev rules for brightness control
 # - Enables storage and D-Bus services
-{ ... }:
-{
+_: {
   # Disable coredumps to save disk space
   systemd.coredump.enable = false;
 
