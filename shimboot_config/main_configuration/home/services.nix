@@ -8,41 +8,15 @@
 # - Enables media player control services
 # - Configures storage management and clipboard tools
 # - Sets up audio effects processing
-{ lib, ... }:
+{ pkgs, ... }:
 {
   services = {
     playerctld.enable = true;
     udiskie.enable = true;
     easyeffects.enable = true;
-    cliphist.enable = true;
   };
 
-  systemd.user.services = {
-    cliphist = {
-      Unit = {
-        After = lib.mkForce [ "hyprland-session.target" ];
-        PartOf = lib.mkForce [ "hyprland-session.target" ];
-      };
-      Service = {
-        Restart = lib.mkForce "on-failure";
-        RestartSec = lib.mkForce "2";
-        StartLimitIntervalSec = lib.mkForce "0";
-        StartLimitBurst = lib.mkForce "0";
-      };
-    };
-    cliphist-images = {
-      Unit = {
-        After = lib.mkForce [ "hyprland-session.target" ];
-        PartOf = lib.mkForce [ "hyprland-session.target" ];
-      };
-      Service = {
-        Restart = lib.mkForce "on-failure";
-        RestartSec = lib.mkForce "2";
-        StartLimitIntervalSec = lib.mkForce "0";
-        StartLimitBurst = lib.mkForce "0";
-      };
-    };
-  };
+  home.packages = [ pkgs.cliphist ];
 
   xdg.configFile."systemd/user/xdg-desktop-portal-hyprland.service.d/override.conf".text = ''
     [Unit]

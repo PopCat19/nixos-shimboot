@@ -31,17 +31,16 @@ in
     inherit ((import ./settings.nix { inherit pkgs config userConfig; })) settings;
   };
 
-  # Custom systemd service with 10-second delay
   systemd.user.services.noctalia-shell = {
     Unit = {
       Description = "Noctalia Shell (with delay)";
-      After = [ "graphical-session.target" ];
-      PartOf = [ "graphical-session.target" ];
+      After = [ "hyprland-session.target" ];
+      PartOf = [ "hyprland-session.target" ];
     };
 
     Service = {
       Type = "simple";
-      ExecStartPre = "${pkgs.coreutils}/bin/sleep 10";
+      ExecStartPre = "${pkgs.coreutils}/bin/sleep 3";
       ExecStart = "${pkgs.noctalia-shell}/bin/noctalia-shell";
       Restart = "on-failure";
       RestartSec = "5s";
