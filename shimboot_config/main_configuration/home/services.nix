@@ -8,16 +8,12 @@
 # - Enables media player control services
 # - Configures storage management and clipboard tools
 # - Sets up audio effects processing
-{ lib, pkgs, ... }:
+{ lib, ... }:
 {
   services = {
     playerctld.enable = true;
-    mpris-proxy.enable = true;
-
     udiskie.enable = true;
-
     easyeffects.enable = true;
-
     cliphist.enable = true;
   };
 
@@ -28,10 +24,10 @@
         PartOf = lib.mkForce [ "hyprland-session.target" ];
       };
       Service = {
-        ExecStartPre = lib.mkForce "${pkgs.bash}/bin/bash -c 'until systemctl --user show-environment | grep -q WAYLAND_DISPLAY; do sleep 0.5; done'";
-        TimeoutStartSec = lib.mkForce "infinity";
-        RestartSec = lib.mkForce "3";
+        Restart = lib.mkForce "on-failure";
+        RestartSec = lib.mkForce "2";
         StartLimitIntervalSec = lib.mkForce "0";
+        StartLimitBurst = lib.mkForce "0";
       };
     };
     cliphist-images = {
@@ -40,9 +36,10 @@
         PartOf = lib.mkForce [ "hyprland-session.target" ];
       };
       Service = {
-        ExecStartPre = lib.mkForce "${pkgs.bash}/bin/bash -c 'until systemctl --user show-environment | grep -q WAYLAND_DISPLAY; do sleep 0.5; done'";
-        RestartSec = lib.mkForce "3";
+        Restart = lib.mkForce "on-failure";
+        RestartSec = lib.mkForce "2";
         StartLimitIntervalSec = lib.mkForce "0";
+        StartLimitBurst = lib.mkForce "0";
       };
     };
   };
