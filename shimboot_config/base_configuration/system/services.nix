@@ -34,20 +34,30 @@
 
   systemd.user.services = {
     cliphist = {
-      Unit.After = lib.mkForce "hyprland-session.target";
-      Unit.PartOf = lib.mkForce "hyprland-session.target";
-      serviceConfig.RestartSec = lib.mkForce "3";
-      serviceConfig.StartLimitIntervalSec = lib.mkForce "0";
+      unitConfig = {
+        After = lib.mkForce "hyprland-session.target";
+        PartOf = lib.mkForce "hyprland-session.target";
+      };
+      serviceConfig = {
+        RestartSec = lib.mkForce "3";
+        StartLimitIntervalSec = lib.mkForce "0";
+      };
     };
     cliphist-images = {
-      Unit.After = lib.mkForce "hyprland-session.target";
-      Unit.PartOf = lib.mkForce "hyprland-session.target";
-      serviceConfig.RestartSec = lib.mkForce "3";
-      serviceConfig.StartLimitIntervalSec = lib.mkForce "0";
+      unitConfig = {
+        After = lib.mkForce "hyprland-session.target";
+        PartOf = lib.mkForce "hyprland-session.target";
+      };
+      serviceConfig = {
+        RestartSec = lib.mkForce "3";
+        StartLimitIntervalSec = lib.mkForce "0";
+      };
     };
     mpris-proxy = {
-      Unit.After = lib.mkForce "hyprland-session.target";
-      Unit.PartOf = lib.mkForce "hyprland-session.target";
+      unitConfig = {
+        After = lib.mkForce "hyprland-session.target";
+        PartOf = lib.mkForce "hyprland-session.target";
+      };
     };
   };
 }

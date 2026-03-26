@@ -38,8 +38,10 @@
 
   # Ensure portal starts with session
   systemd.user.services.xdg-desktop-portal-hyprland = {
-    Unit.After = lib.mkForce "hyprland-session.target";
-    Unit.PartOf = lib.mkForce "hyprland-session.target";
-    Unit.ConditionEnvironment = lib.mkForce "";
+    unitConfig = {
+      After = lib.mkForce "hyprland-session.target";
+      PartOf = lib.mkForce "hyprland-session.target";
+      ConditionEnvironment = lib.mkForce "";
+    };
   };
 }
