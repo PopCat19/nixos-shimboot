@@ -29,6 +29,7 @@
       };
       Service = {
         ExecStartPre = lib.mkForce "${pkgs.bash}/bin/bash -c 'until systemctl --user show-environment | grep -q WAYLAND_DISPLAY; do sleep 0.5; done'";
+        TimeoutStartSec = lib.mkForce "infinity";
         RestartSec = lib.mkForce "3";
         StartLimitIntervalSec = lib.mkForce "0";
       };
@@ -44,24 +45,18 @@
         StartLimitIntervalSec = lib.mkForce "0";
       };
     };
-    xdg-desktop-portal-hyprland = {
-      Unit = {
-        After = lib.mkForce [ "hyprland-session.target" ];
-        PartOf = lib.mkForce [ "hyprland-session.target" ];
-        ConditionEnvironment = lib.mkForce "";
-      };
-    };
-    xdg-desktop-portal = {
-      Unit = {
-        After = lib.mkForce [
-          "xdg-desktop-portal-hyprland.service"
-          "xdg-desktop-portal-gtk.service"
-        ];
-        Wants = lib.mkForce [
-          "xdg-desktop-portal-hyprland.service"
-          "xdg-desktop-portal-gtk.service"
-        ];
-      };
-    };
   };
+
+  xdg.configFile."systemd/user/xdg-desktop-portal-hyprland.service.d/override.conf".text = ''
+    [Unit]
+    After=hyprland-session.target
+    PartOf=hyprland-session.target
+    ConditionEnvironment=
+  '';
+
+  xdg.configFile."systemd/user/xdg-desktop-portal.service.d/override.conf".text = ''
+    [Unit]
+    After=xdg-desktop-portal-hyprland.service xdg-desktop-portal-gtk.service
+    Wants=xdg-desktop-portal-hyprland.service xdg-desktop-portal-gtk.service
+  '';
 }
