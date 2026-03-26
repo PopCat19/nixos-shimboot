@@ -14,16 +14,24 @@ function proxy-on
     set -gx all_proxy "socks5h://$_host:$_socks_port"
     set -gx no_proxy "localhost,127.0.0.1,::1"
 
-    # UWSM/Systemd Integration: Use systemctl to set user session env vars
-    # This makes the proxy available to apps launched via uwsm app, rofi, etc.
     if command -q systemctl
-        systemctl --user set-environment http_proxy=$http_proxy
-        systemctl --user set-environment https_proxy=$https_proxy
-        systemctl --user set-environment all_proxy=$all_proxy
-        systemctl --user set-environment no_proxy=$no_proxy
+        systemctl --user set-environment \
+            http_proxy=$http_proxy \
+            https_proxy=$https_proxy \
+            all_proxy=$all_proxy \
+            no_proxy=$no_proxy
+
+        # System-level for nix-daemon
+        sudo systemctl set-environment \
+            http_proxy=$http_proxy \
+            https_proxy=$https_proxy \
+            HTTP_PROXY=$http_proxy \
+            HTTPS_PROXY=$https_proxy \
+            no_proxy=$no_proxy \
+            NO_PROXY=$no_proxy
+        sudo systemctl restart nix-daemon
     end
 
-    # Backup for non-systemd setups
     if command -q dbus-update-activation-environment
         dbus-update-activation-environment --systemd http_proxy https_proxy all_proxy no_proxy 2>/dev/null
     end

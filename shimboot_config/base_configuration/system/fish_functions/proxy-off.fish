@@ -12,7 +12,13 @@ function proxy-off
 
     if command -q systemctl
         systemctl --user unset-environment http_proxy https_proxy all_proxy no_proxy
+
+        # System-level for nix-daemon
+        sudo systemctl unset-environment \
+            http_proxy https_proxy all_proxy no_proxy \
+            HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY
+        sudo systemctl restart nix-daemon
     end
 
-    set_color red; echo "[OK]"; set_color normal; echo " Proxy disabled"
+    set_color red; echo -n "[OK]"; set_color normal; echo " Proxy disabled"
 end

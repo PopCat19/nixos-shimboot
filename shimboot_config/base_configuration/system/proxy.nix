@@ -75,14 +75,6 @@ in
   config = lib.mkIf cfg.enable {
     networking.nameservers = cfg.nameservers;
 
-    # Configure Nix to use proxy
-    # Nix doesn't inherit systemd environment variables, so we must configure it directly
-    nix.settings = {
-      proxy = cfg.urls.http;
-      # Note: Nix uses the same proxy for HTTP and HTTPS
-      # SOCKS proxy is not directly supported by Nix, but HTTP proxy works for both
-    };
-
     environment.systemPackages = [
       (pkgs.writeShellScriptBin "proxy-toggle" ''
         # Check for Android WiFi Direct SSID
@@ -114,31 +106,35 @@ in
             if echo "$SSID" | grep -q '^${patternBase}'; then
               # 1. System-level (for nix-daemon)
               systemctl set-environment \
+                http_proxy="${cfg.urls.http}" \
+                https_proxy="${cfg.urls.https}" \
                 HTTP_PROXY="${cfg.urls.http}" \
                 HTTPS_PROXY="${cfg.urls.https}" \
-                ALL_PROXY="${cfg.urls.socks}" \
+                no_proxy="${cfg.urls.noProxy}" \
                 NO_PROXY="${cfg.urls.noProxy}"
 
               # 2. User-level (for Electron apps & Desktop Environment)
               for user_id in $(loginctl list-users --no-legend | awk '{print $1}'); do
                 sudo -u "#$user_id" DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$user_id/bus \
                   systemctl --user set-environment \
-                    HTTP_PROXY="${cfg.urls.http}" \
-                    HTTPS_PROXY="${cfg.urls.https}" \
-                    ALL_PROXY="${cfg.urls.socks}" \
-                    NO_PROXY="${cfg.urls.noProxy}"
+                    http_proxy="${cfg.urls.http}" \
+                    https_proxy="${cfg.urls.https}" \
+                    all_proxy="${cfg.urls.socks}" \
+                    no_proxy="${cfg.urls.noProxy}"
               done
 
               systemctl restart nix-daemon
               logger "Nix Proxy: Enabled for $SSID and User Sessions"
             else
               # 1. System-level
-              systemctl unset-environment HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY
+              systemctl unset-environment \
+                http_proxy https_proxy all_proxy no_proxy \
+                HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY
 
               # 2. User-level
               for user_id in $(loginctl list-users --no-legend | awk '{print $1}'); do
                 sudo -u "#$user_id" DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$user_id/bus \
-                  systemctl --user unset-environment HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY
+                  systemctl --user unset-environment http_proxy https_proxy all_proxy no_proxy
               done
 
               systemctl restart nix-daemon
