@@ -10,7 +10,8 @@
 # - Enables libinput for input device handling
 # - Sets up udev rules for brightness control
 # - Enables storage and D-Bus services
-_: {
+{ lib, ... }:
+{
   # Disable coredumps to save disk space
   systemd.coredump.enable = false;
 
@@ -29,5 +30,12 @@ _: {
   services = {
     udisks2.enable = true;
     dbus.enable = true;
+  };
+
+  systemd.user.services.cliphist = {
+    Unit.After = lib.mkForce "hyprland-session.target";
+    Unit.PartOf = lib.mkForce "hyprland-session.target";
+    Service.RestartSec = lib.mkForce "3";
+    Service.StartLimitIntervalSec = lib.mkForce "0";
   };
 }
