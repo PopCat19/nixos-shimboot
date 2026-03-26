@@ -75,6 +75,14 @@ in
   config = lib.mkIf cfg.enable {
     networking.nameservers = cfg.nameservers;
 
+    # Configure Nix to use proxy
+    # Nix doesn't inherit systemd environment variables, so we must configure it directly
+    nix.settings = {
+      proxy = cfg.urls.http;
+      # Note: Nix uses the same proxy for HTTP and HTTPS
+      # SOCKS proxy is not directly supported by Nix, but HTTP proxy works for both
+    };
+
     environment.systemPackages = [
       (pkgs.writeShellScriptBin "proxy-toggle" ''
         # Check for Android WiFi Direct SSID

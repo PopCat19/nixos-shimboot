@@ -4,7 +4,7 @@
 # Purpose: Disable proxy environment variables
 # Usage: proxy_off
 
-function proxy_off
+function proxy-off
     set -e http_proxy
     set -e https_proxy
     set -e all_proxy
