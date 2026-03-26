@@ -42,5 +42,18 @@
         StartLimitIntervalSec = lib.mkForce "0";
       };
     };
+    xdg-desktop-portal-hyprland = {
+      Unit = {
+        After = lib.mkForce "hyprland-session.target";
+        PartOf = lib.mkForce "hyprland-session.target";
+        ConditionEnvironment = lib.mkForce "";
+      };
+    };
+    xdg-desktop-portal = {
+      Unit = {
+        After = lib.mkForce "xdg-desktop-portal-hyprland.service xdg-desktop-portal-gtk.service";
+        Wants = "xdg-desktop-portal-hyprland.service xdg-desktop-portal-gtk.service";
+      };
+    };
   };
 }
