@@ -36,14 +36,14 @@
     cliphist = {
       Unit.After = lib.mkForce "hyprland-session.target";
       Unit.PartOf = lib.mkForce "hyprland-session.target";
-      Service.RestartSec = lib.mkForce "3";
-      Service.StartLimitIntervalSec = lib.mkForce "0";
+      serviceConfig.RestartSec = lib.mkForce "3";
+      serviceConfig.StartLimitIntervalSec = lib.mkForce "0";
     };
     cliphist-images = {
       Unit.After = lib.mkForce "hyprland-session.target";
       Unit.PartOf = lib.mkForce "hyprland-session.target";
-      Service.RestartSec = lib.mkForce "3";
-      Service.StartLimitIntervalSec = lib.mkForce "0";
+      serviceConfig.RestartSec = lib.mkForce "3";
+      serviceConfig.StartLimitIntervalSec = lib.mkForce "0";
     };
     mpris-proxy = {
       Unit.After = lib.mkForce "hyprland-session.target";
