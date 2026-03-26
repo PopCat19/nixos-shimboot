@@ -35,4 +35,12 @@
       };
     };
   };
+
+  systemd.user.services.xdg-desktop-portal-hyprland = {
+    overrideStrategy = "asDropin";
+    wantedBy = [ "hyprland-session.target" ];
+    after = [ "hyprland-session.target" ];
+    partOf = [ "hyprland-session.target" ];
+    unitConfig.ConditionEnvironment = "";
+  };
 }

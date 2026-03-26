@@ -18,15 +18,6 @@
 
   home.packages = [ pkgs.cliphist ];
 
-  xdg.configFile."systemd/user/xdg-desktop-portal-hyprland.service.d/override.conf".text = ''
-    [Unit]
-    After=hyprland-session.target
-    ConditionEnvironment=
-
-    [Install]
-    WantedBy=hyprland-session.target
-  '';
-
   xdg.configFile."systemd/user/xdg-desktop-portal.service.d/override.conf".text = ''
     [Unit]
     After=xdg-desktop-portal-hyprland.service xdg-desktop-portal-gtk.service
