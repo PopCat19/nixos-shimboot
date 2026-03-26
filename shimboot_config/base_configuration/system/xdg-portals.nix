@@ -37,11 +37,19 @@
   };
 
   # Ensure portal starts with session
-  systemd.user.services.xdg-desktop-portal-hyprland = {
-    unitConfig = {
-      After = lib.mkForce "hyprland-session.target";
-      PartOf = lib.mkForce "hyprland-session.target";
-      ConditionEnvironment = lib.mkForce "";
+  systemd.user.services = {
+    xdg-desktop-portal-hyprland = {
+      unitConfig = {
+        After = lib.mkForce "hyprland-session.target";
+        PartOf = lib.mkForce "hyprland-session.target";
+        ConditionEnvironment = lib.mkForce "";
+      };
+    };
+    xdg-desktop-portal = {
+      unitConfig = {
+        After = lib.mkForce "xdg-desktop-portal-hyprland.service xdg-desktop-portal-gtk.service";
+        Wants = "xdg-desktop-portal-hyprland.service xdg-desktop-portal-gtk.service";
+      };
     };
   };
 }
