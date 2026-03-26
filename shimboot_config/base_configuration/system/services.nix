@@ -32,10 +32,22 @@
     dbus.enable = true;
   };
 
-  systemd.user.services.cliphist = {
-    Unit.After = lib.mkForce "hyprland-session.target";
-    Unit.PartOf = lib.mkForce "hyprland-session.target";
-    Service.RestartSec = lib.mkForce "3";
-    Service.StartLimitIntervalSec = lib.mkForce "0";
+  systemd.user.services = {
+    cliphist = {
+      Unit.After = lib.mkForce "hyprland-session.target";
+      Unit.PartOf = lib.mkForce "hyprland-session.target";
+      Service.RestartSec = lib.mkForce "3";
+      Service.StartLimitIntervalSec = lib.mkForce "0";
+    };
+    cliphist-images = {
+      Unit.After = lib.mkForce "hyprland-session.target";
+      Unit.PartOf = lib.mkForce "hyprland-session.target";
+      Service.RestartSec = lib.mkForce "3";
+      Service.StartLimitIntervalSec = lib.mkForce "0";
+    };
+    mpris-proxy = {
+      Unit.After = lib.mkForce "hyprland-session.target";
+      Unit.PartOf = lib.mkForce "hyprland-session.target";
+    };
   };
 }
