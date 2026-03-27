@@ -382,7 +382,7 @@ cmd_sync() {
 			echo ""
 			if [[ "$auto_commit" == "true" ]]; then
 				log_info "Auto-committing changes..."
-				[[ ${#needs_commit[@]} -gt 0 ]] && git add "${needs_commit[@]}"
+				git add conventions/
 				[[ -d ".dev-conventions-sync-cache" ]] && git add .dev-conventions-sync-cache/
 
 				git commit -m "chore: sync dev-conventions"
