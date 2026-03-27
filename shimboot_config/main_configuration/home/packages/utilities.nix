@@ -11,6 +11,7 @@
   home.packages = with pkgs; [
     eza
     wl-clipboard
+    cliphist
     pavucontrol
     playerctl
     localsend

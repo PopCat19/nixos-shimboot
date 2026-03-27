@@ -8,13 +8,11 @@
 # - Enables media player control services
 # - Configures storage management and clipboard tools
 # - Sets up audio effects processing
-{ pkgs, ... }:
+{ ... }:
 {
   services = {
     playerctld.enable = true;
     udiskie.enable = true;
     easyeffects.enable = true;
   };
-
-  home.packages = [ pkgs.cliphist ];
 }
