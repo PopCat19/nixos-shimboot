@@ -17,10 +17,4 @@
   };
 
   home.packages = [ pkgs.cliphist ];
-
-  xdg.configFile."systemd/user/xdg-desktop-portal.service.d/override.conf".text = ''
-    [Unit]
-    After=xdg-desktop-portal-hyprland.service xdg-desktop-portal-gtk.service
-    Wants=xdg-desktop-portal-hyprland.service xdg-desktop-portal-gtk.service
-  '';
 }
