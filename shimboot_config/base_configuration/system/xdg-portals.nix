@@ -18,22 +18,9 @@
   xdg.portal = {
     enable = lib.mkDefault true;
     xdgOpenUsePortal = lib.mkDefault true;
-    extraPortals = [
-      pkgs.xdg-desktop-portal-hyprland
-      pkgs.xdg-desktop-portal-gtk
-    ];
-    # choose handlers; Hyprland first, fallback to GTK; default GTK for non-Hyprland
+    extraPortals = [ pkgs.xdg-desktop-portal-hyprland ];
     config = {
-      common = {
-        default = [ "gtk" ];
-      };
-      hyprland = {
-        default = [
-          "hyprland"
-          "gtk"
-        ];
-        "org.freedesktop.impl.portal.OpenURI" = [ "hyprland" ];
-      };
+      hyprland.default = [ "hyprland" ];
     };
   };
 
@@ -45,22 +32,13 @@
     unitConfig.ConditionEnvironment = "";
   };
 
-  # Force GTK portal to use Wayland backend
-  # GTK prefers X11 when both WAYLAND_DISPLAY and DISPLAY are set
-  systemd.user.services.xdg-desktop-portal-gtk = {
-    overrideStrategy = "asDropin";
-    serviceConfig.Environment = [ "GDK_BACKEND=wayland" ];
-    after = [ "hyprland-session.target" ];
-    partOf = [ "hyprland-session.target" ];
-  };
-
   # Drop-in for main portal to wait for hyprland backend
   # Prevents race condition where DBus-activated portal starts before backend is ready
   systemd.user.services.xdg-desktop-portal = {
     overrideStrategy = "asDropin";
     unitConfig = {
-      After = "xdg-desktop-portal-hyprland.service xdg-desktop-portal-gtk.service";
-      Wants = "xdg-desktop-portal-hyprland.service xdg-desktop-portal-gtk.service";
+      After = "xdg-desktop-portal-hyprland.service";
+      Wants = "xdg-desktop-portal-hyprland.service";
     };
     serviceConfig.ExecStartPre = "/bin/sh -c 'until systemctl --user is-active xdg-desktop-portal-hyprland.service; do sleep 0.5; done'";
   };
