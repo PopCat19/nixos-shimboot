@@ -40,6 +40,20 @@ let
       findutils
     ]);
 
+  # bwrap-lsm-workaround dependencies
+  bwrapLsmWorkaroundDeps =
+    coreDeps
+    ++ (with pkgs; [
+      bubblewrap
+    ]);
+
+  # setup-bwrap-workaround dependencies
+  setupBwrapWorkaroundDeps =
+    coreDeps
+    ++ (with pkgs; [
+      bubblewrap
+    ]);
+
   # setup_nixos dependencies
   setupNixosDeps =
     coreDeps
@@ -82,6 +96,18 @@ in
       name = "fix-steam-bwrap";
       runtimeInputs = fixSteamBwrapDeps;
       text = builtins.readFile ./fix-steam-bwrap.sh;
+    })
+
+    (writeShellApplication {
+      name = "bwrap-lsm-workaround";
+      runtimeInputs = bwrapLsmWorkaroundDeps;
+      text = builtins.readFile ./bwrap-lsm-workaround.sh;
+    })
+
+    (writeShellApplication {
+      name = "setup-bwrap-workaround";
+      runtimeInputs = setupBwrapWorkaroundDeps;
+      text = builtins.readFile ./setup-bwrap-workaround.sh;
     })
 
     (writeShellApplication {

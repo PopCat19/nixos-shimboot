@@ -39,7 +39,11 @@ if [[ ${#steam_bwraps[@]} -eq 0 ]]; then
 fi
 
 # The SUID wrapper created by security.wrappers
-SYSTEM_BWRAP="/run/wrappers/bin/bwrap"
+# Prefer bwrap-safe (LSM workaround) if available, fallback to regular bwrap
+SYSTEM_BWRAP="/run/wrappers/bin/bwrap-safe"
+if [[ ! -f "$SYSTEM_BWRAP" ]]; then
+	SYSTEM_BWRAP="/run/wrappers/bin/bwrap"
+fi
 
 if [[ ! -f "$SYSTEM_BWRAP" ]]; then
 	echo -e "${RED}[ERROR]${NC} SUID bwrap not found at ${SYSTEM_BWRAP}"

@@ -92,11 +92,11 @@ Flake status and roadmap (not a spec) for the current branch:
 - [ ] Create minimal main_configuration template
 - [ ] Refine and cleanup scripts and helpers
 - [ ] Refine and cleanup base and main configurations
-- [ ] Build functional NixOS with LUKS2 support 
+- [ ] Build functional NixOS with LUKS2 support
 
 Current obstacles:
 - SDDM greeter support: previous attempts resulted in a blank backlit screen after kill-frecon. Need to evaluate logs and understand if SDDM can be supported declaratively.
-- bwrap/steam: shim kernel limitations; need to understand how and if this can be patched safely.
+- bwrap/steam: shim kernel limitations; need to understand how and if this can be patched safely. **Workaround implemented**: See [BWRAP-LSM-WORKAROUND.md](docs/BWRAP-LSM-WORKAROUND.md) for details on using bwrap-safe wrapper.
 
 ## Binary cache
 

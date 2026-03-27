@@ -61,7 +61,7 @@ function fish_greeting
                     > $cache_file 2>/dev/null
             end
         end & # <--- The ampersand detaches this process
-        
+
         # Disown the background job to prevent "Job ... terminated" messages
         disown 2>/dev/null
 
@@ -117,7 +117,7 @@ function fish_greeting
         # 6. Helpers
         # Dynamically discover and display helper functions
         set -l helper_functions
-        set -l helper_patterns "show-shortcuts" "expand_rootfs" "fix-steam-bwrap" "setup_nixos" "setup_nixos_config" "nixos-" "setup_" "shimboot_" "fix" "list" "harvest"
+        set -l helper_patterns "show-shortcuts" "expand_rootfs" "fix-steam-bwrap" "bwrap-lsm-workaround" "setup-bwrap-workaround" "setup_nixos" "setup_nixos_config" "nixos-" "setup_" "shimboot_" "fix" "list" "harvest"
 
         for pattern in $helper_patterns
             set -l matches (functions | grep "$pattern" | head -3)
@@ -136,7 +136,7 @@ function fish_greeting
             set_color brwhite; echo "Helpers: $helper_list"
         else
             # Fallback to common helpers if none found
-            set_color brwhite; echo "Helpers: expand_rootfs • fix-steam-bwrap • setup_nixos • setup_nixos_config"
+            set_color brwhite; echo "Helpers: expand_rootfs • fix-steam-bwrap • bwrap-lsm-workaround • setup-bwrap-workaround • setup_nixos • setup_nixos_config"
         end
     else
         set_color bryellow; echo "[WARN] No nixos-config detected."
