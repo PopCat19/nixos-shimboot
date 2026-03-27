@@ -1,8 +1,6 @@
-# Desktop Integration Module
+# xdg-portals.nix
 #
 # Purpose: Configure XDG portals and desktop integration for ChromeOS devices
-# Dependencies: xdg-desktop-portal
-# Related: hyprland.nix, display-manager.nix
 #
 # This module:
 # - Configures XDG portals for Wayland compatibility
@@ -17,23 +15,30 @@
   xdg.mime.enable = lib.mkDefault true;
   xdg.portal = {
     enable = lib.mkDefault true;
-    xdgOpenUsePortal = lib.mkDefault true;
-    extraPortals = [ pkgs.xdg-desktop-portal-hyprland ];
+    xdgOpenUsePortal = false;
+    extraPortals = [
+      pkgs.xdg-desktop-portal
+      pkgs.xdg-desktop-portal-hyprland
+      pkgs.xdg-desktop-portal-gtk
+    ];
     config = {
-      hyprland.default = [ "hyprland" ];
+      common.default = [ "gtk" ];
+      hyprland = {
+        default = [ "hyprland" "gtk" ];
+        "org.freedesktop.impl.portal.OpenURI" = [ "gtk" ];
+      };
     };
   };
 
   systemd.user.services.xdg-desktop-portal-hyprland = {
     overrideStrategy = "asDropin";
+    serviceConfig.Environment = [ "GDK_BACKEND=wayland" ];
     wantedBy = [ "hyprland-session.target" ];
     after = [ "hyprland-session.target" ];
     partOf = [ "hyprland-session.target" ];
     unitConfig.ConditionEnvironment = "";
   };
 
-  # Drop-in for main portal to wait for hyprland backend
-  # Prevents race condition where DBus-activated portal starts before backend is ready
   systemd.user.services.xdg-desktop-portal = {
     overrideStrategy = "asDropin";
     unitConfig = {
