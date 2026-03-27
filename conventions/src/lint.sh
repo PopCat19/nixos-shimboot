@@ -39,7 +39,7 @@ run_shfmt() {
 		args+=(-w)
 	fi
 
-	# Use shfmt defaults (tab indent, 80 width is common but we use default)
+	# Use shfmt defaults (tab indent, 80 width is common but default is used)
 	local failed=0
 	for file in "${files[@]}"; do
 		if [[ "$mode" == "check" ]]; then
@@ -139,9 +139,9 @@ remove_pre_push_hook() {
 		return 0
 	fi
 
-	# Check if it's our hook
+	# Check if it's the dev-conventions hook
 	if grep -q "dev-conventions lint" "$hook_file" 2>/dev/null; then
-		# Remove our section
+		# Remove the dev-conventions section
 		local temp_file
 		temp_file=$(mktemp)
 		sed '/# dev-conventions pre-push check/,/^fi$/d' "$hook_file" >"$temp_file"

@@ -19,6 +19,18 @@ Opinionated agent development rules and conventions. Covers:
 
 **Reading guide:** Comprehensive document (1.5~3k lines). Use the table of contents to navigate to relevant sections.
 
+### DEV-MINI.md
+
+Condensed non-obvious conventions only. Assumes standard SWE practices. Covers:
+
+- Naming (snake_case dirs, kebab-case files)
+- Structure (depth limits, context.md requirements, module wiring)
+- File headers (Purpose lines)
+- Commit format and workflow
+- Agent interaction patterns (one-shot commands, wl-copy wrapping)
+
+**Reading guide:** Start here for quick reference. Fall back to DEVELOPMENT.md for detail.
+
 ### DEV-EXAMPLES.md
 
 Concrete examples demonstrating conventions from DEVELOPMENT.md. Includes:
@@ -33,53 +45,42 @@ Concrete examples demonstrating conventions from DEVELOPMENT.md. Includes:
 
 **Purpose:** Optional reference material for understanding rules in practice.
 
+### context.md
+
+Each directory with 5+ non-obvious files has a `context.md` listing every file with a one-line purpose. These derive from file header `Purpose:` lines and must stay in sync.
+
+**Reading guide:** Check `context.md` to understand a directory's contents without opening each file.
+
 ## Scripts
 
-### generate-changelog.sh
+### dev-conventions.sh
 
-Generates changelog from git history before merge.
-
-**Usage:**
-```bash
-# Generate changelog before merge
-./conventions/generate-changelog.sh --target main
-
-# Rename after merge with actual commit hash
-./conventions/generate-changelog.sh --rename
-```
-
-**Behavior:**
-- Collects commits between target branch and current branch
-- Archives existing root changelogs to `changelog_archive/`
-- Generates `CHANGELOG-pending.md` with commit list and file changes
-- After merge, renames with actual merge commit hash
-
-### sync-conventions.sh
-
-Syncs convention files from remote repository to target projects.
+Unified CLI for all convention tooling. Entry point for changelog, sync, and lint commands.
 
 **Usage:**
 ```bash
-# Pull latest from main (default)
-./conventions/sync-conventions.sh
-
-# Pull specific version
-./conventions/sync-conventions.sh --version v1.2.0
-
-# Pull from custom remote/branch
-./conventions/sync-conventions.sh --remote https://github.com/myfork/dev-conventions --branch dev
-
-# Pull specific files only
-./conventions/sync-conventions.sh --files conventions/AGENTS.md,conventions/DEVELOPMENT.md
-
-# Preview changes without writing
-./conventions/sync-conventions.sh --dry-run
+./conventions/dev-conventions.sh              # Interactive TUI (requires gum)
+./conventions/dev-conventions.sh changelog    # Generate changelog and merge
+./conventions/dev-conventions.sh sync         # Sync conventions from remote
+./conventions/dev-conventions.sh lint         # Lint shell scripts
+./conventions/dev-conventions.sh help
 ```
 
-**Behavior:**
-- Fetches files from GitHub raw content URLs
-- Compares with existing files, skips unchanged
-- Stages updates for git review (does not auto-commit)
+### src/changelog.sh
+
+Generates changelog from git history before merge. Called via `dev-conventions.sh changelog`.
+
+### src/sync.sh
+
+Syncs convention files from remote repository to target projects. Called via `dev-conventions.sh sync`.
+
+### src/lint.sh
+
+Shell script linting and formatting (shfmt, shellcheck). Called via `dev-conventions.sh lint`.
+
+### src/check-context.sh
+
+Verifies `context.md` files match actual directory contents. Detects structural and content drift.
 
 ## Important Notice
 
@@ -87,7 +88,8 @@ Syncs convention files from remote repository to target projects.
 
 - `DEVELOPMENT.md` — Established conventions for this project
 - `DEV-EXAMPLES.md` — Reference examples tied to DEVELOPMENT.md rules
-- `generate-changelog.sh` — Workflow script following project conventions
-- `sync-conventions.sh` — Workflow script following project conventions
+- `DEV-MINI.md` — Condensed conventions derived from DEVELOPMENT.md
+- `src/changelog.sh` — Workflow script following project conventions
+- `src/sync.sh` — Workflow script following project conventions
 
 These files represent intentional design decisions. Modifications should only occur when the user explicitly states a need for changes.
