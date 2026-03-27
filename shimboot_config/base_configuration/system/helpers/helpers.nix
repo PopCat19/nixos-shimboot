@@ -47,6 +47,20 @@ let
       bubblewrap
     ]);
 
+  # bwrap-wrapper dependencies
+  bwrapWrapperDeps =
+    coreDeps
+    ++ (with pkgs; [
+      bubblewrap
+    ]);
+
+  # setup-bwrap-path dependencies
+  setupBwrapPathDeps =
+    coreDeps
+    ++ (with pkgs; [
+      coreutils
+    ]);
+
   # setup-bwrap-workaround dependencies
   setupBwrapWorkaroundDeps =
     coreDeps
@@ -102,6 +116,18 @@ in
       name = "bwrap-lsm-workaround";
       runtimeInputs = bwrapLsmWorkaroundDeps;
       text = builtins.readFile ./bwrap-lsm-workaround.sh;
+    })
+
+    (writeShellApplication {
+      name = "bwrap-wrapper";
+      runtimeInputs = bwrapWrapperDeps;
+      text = builtins.readFile ./bwrap-wrapper.sh;
+    })
+
+    (writeShellApplication {
+      name = "setup-bwrap-path";
+      runtimeInputs = setupBwrapPathDeps;
+      text = builtins.readFile ./setup-bwrap-path.sh;
     })
 
     (writeShellApplication {
@@ -211,6 +237,24 @@ in
           text = builtins.readFile ./migrate-nixos-config.sh;
         }
       }/bin/migrate-nixos-config ${userConfig.user.username}";
+      RemainAfterExit = true;
+    };
+  };
+
+  # Auto-setup bwrap PATH integration on boot
+  systemd.services.setup-bwrap-path = {
+    description = "Setup bwrap PATH integration for ChromeOS LSM workaround";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "local-fs.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = "${
+        pkgs.writeShellApplication {
+          name = "setup-bwrap-path-service";
+          runtimeInputs = setupBwrapPathDeps;
+          text = builtins.readFile ./setup-bwrap-path.sh;
+        }
+      }/bin/setup-bwrap-path-service";
       RemainAfterExit = true;
     };
   };
