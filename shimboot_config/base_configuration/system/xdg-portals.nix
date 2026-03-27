@@ -44,6 +44,15 @@
     unitConfig.ConditionEnvironment = "";
   };
 
+  # Force GTK portal to use Wayland backend
+  # GTK prefers X11 when both WAYLAND_DISPLAY and DISPLAY are set
+  systemd.user.services.xdg-desktop-portal-gtk = {
+    overrideStrategy = "asDropin";
+    serviceConfig.Environment = [ "GDK_BACKEND=wayland" ];
+    after = [ "hyprland-session.target" ];
+    partOf = [ "hyprland-session.target" ];
+  };
+
   # Drop-in for main portal to wait for hyprland backend
   # Prevents race condition where DBus-activated portal starts before backend is ready
   xdg.configFile."systemd/user/xdg-desktop-portal.service.d/override.conf".text = ''
