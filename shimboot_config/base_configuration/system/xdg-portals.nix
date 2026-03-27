@@ -24,7 +24,10 @@
     config = {
       common.default = [ "gtk" ];
       hyprland = {
-        default = [ "hyprland" "gtk" ];
+        default = [
+          "hyprland"
+          "gtk"
+        ];
         "org.freedesktop.impl.portal.OpenURI" = [ "gtk" ];
       };
     };
