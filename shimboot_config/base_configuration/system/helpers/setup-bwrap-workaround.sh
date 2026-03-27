@@ -25,7 +25,6 @@ NC='\033[0m'
 echo -e "${BLUE}[INFO]${NC} Setting up bwrap workarounds for ChromeOS LSM..."
 
 # Configuration
-USERNAME="${USER}"
 BWRAP_CACHE_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/bwrap-cache"
 SYSTEM_BWRAP_SAFE="/run/wrappers/bin/bwrap-safe"
 SYSTEM_BWRAP="/run/wrappers/bin/bwrap"
