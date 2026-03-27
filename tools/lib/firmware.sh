@@ -12,7 +12,7 @@
 prune_unused_firmware() {
 	local fw_dir="$1"
 
-	# Safety check: verify we're in the right directory
+	# Safety check: verify directory is correct
 	if [[ ! "$fw_dir" =~ /harvested/lib/firmware$ ]] &&
 		[[ ! "$fw_dir" =~ /work/harvested/lib/firmware$ ]]; then
 		log_error "Refusing to prune firmware: unsafe path $fw_dir"

@@ -130,7 +130,7 @@ function fish_greeting
             end
         end
 
-        # If we found helper functions, display them
+        # If helper functions found, display them
         if test -n "$helper_functions"
             set -l helper_list (string join " • " $helper_functions)
             set_color brwhite; echo "Helpers: $helper_list"

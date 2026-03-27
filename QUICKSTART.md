@@ -133,7 +133,7 @@ sudo resize2fs /dev/sdXN
 - The default minimal/base image is ~6-8GB (expandable); ensure your USB drive has enough space
 - Use `--cleanup-rootfs` to remove old generations and free space
 - Use `nix-shell` for temporary packages to save space
-- Consider the minimal image for devices with limited storage (you can also create your own custom main_configuration port if you'd prefer c:)
+- Consider the minimal image for devices with limited storage (you can also create your own custom main_configuration port if preferred)
 
 ## Next Steps
 

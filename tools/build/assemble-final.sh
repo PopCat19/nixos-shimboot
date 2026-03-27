@@ -220,8 +220,8 @@ if [ -z "$ROOTFS_FLAVOR" ]; then
 	if [ -t 0 ]; then
 		echo
 		echo "[assemble-final] Select rootfs flavor to build:"
-		echo "  1) full     (recommended) → complete desktop with Home Manager, Rose Pine theme, and user applications (~16-20GB)"
-		echo "  2) minimal  (lightweight) → base system with LightDM + Hyprland, network, and shell utilities (~6-8GB)"
+		echo "  1) full     (recommended) -> complete desktop with Home Manager, Rose Pine theme, and user applications (~16-20GB)"
+		echo "  2) minimal  (lightweight) -> base system with LightDM + Hyprland, network, and shell utilities (~6-8GB)"
 		read -rp "Enter choice [1/2, default=1]: " choice
 		case "${choice:-1}" in
 		2) ROOTFS_FLAVOR="minimal" ;;
@@ -237,10 +237,10 @@ if [ -z "$DRIVERS_MODE" ]; then
 	if [ -t 0 ]; then
 		echo
 		echo "[assemble-final] Select driver mode:"
-		echo "  1) vendor   (recommended) → place drivers in separate vendor partition"
-		echo "  2) inject  → inject drivers directly into rootfs"
-		echo "  3) both    → vendor + inject (redundant but safe)"
-		echo "  4) none    → skip driver handling"
+		echo "  1) vendor   (recommended) -> place drivers in separate vendor partition"
+		echo "  2) inject  -> inject drivers directly into rootfs"
+		echo "  3) both    -> vendor + inject (redundant but safe)"
+		echo "  4) none    -> skip driver handling"
 		read -rp "Enter choice [1/2/3/4, default=1]: " choice
 		case "${choice:-1}" in
 		2) DRIVERS_MODE="inject" ;;
@@ -306,7 +306,7 @@ log_step() {
 }
 
 log_info() {
-	printf "${ANSI_GREEN}  → %s${ANSI_CLEAR}\n" "$1"
+	printf "${ANSI_GREEN}  > %s${ANSI_CLEAR}\n" "$1"
 }
 
 log_warn() {
@@ -314,11 +314,11 @@ log_warn() {
 }
 
 log_error() {
-	printf "${ANSI_RED}  ✗ %s${ANSI_CLEAR}\n" "$1"
+	printf "${ANSI_RED}  X %s${ANSI_CLEAR}\n" "$1"
 }
 
 log_success() {
-	printf "${ANSI_GREEN}  ✓ %s${ANSI_CLEAR}\n" "$1"
+	printf "${ANSI_GREEN}  OK %s${ANSI_CLEAR}\n" "$1"
 }
 
 # === Cachix Configuration (fixed cache, CI-safe) ===
@@ -358,7 +358,7 @@ verify_cachix_config() {
 
 	# Check if Cachix is in substituters
 	if nix config show | grep -q "shimboot-systemd-nixos.cachix.org"; then
-		log_info "✓ Cachix configured in Nix settings"
+		log_info "OK Cachix configured in Nix settings"
 	else
 		log_warn "Cachix not found in Nix settings; builds may not use cache"
 		log_warn "This is normal if using flake-based config"
@@ -367,7 +367,7 @@ verify_cachix_config() {
 	# Test Cachix connectivity
 	if command -v curl >/dev/null 2>&1; then
 		if curl -sf "https://${CACHIX_CACHE}.cachix.org/nix-cache-info" >/dev/null; then
-			log_info "✓ Cachix endpoint reachable"
+			log_info "OK Cachix endpoint reachable"
 		else
 			log_warn "Cannot reach Cachix endpoint; falling back to local builds"
 		fi
@@ -382,7 +382,7 @@ verify_cachix_config() {
 export NIXPKGS_ALLOW_UNFREE="${NIXPKGS_ALLOW_UNFREE:-1}"
 
 # === Setup Workspace Path (Now that BOARD is known) ===
-# Detect if we're in CI with Nothing but Nix (large /nix mount)
+# Detect if in CI with Nothing but Nix (large /nix mount)
 if [ -d "/nix" ] && mountpoint -q /nix 2>/dev/null; then
 	# Check if /nix has >50GB free (indicates CI environment)
 	NIX_AVAIL_GB=$(df -BG /nix | awk 'NR==2 {print $4}' | sed 's/G//')
@@ -1239,9 +1239,9 @@ if [ "$INSPECT_AFTER" = "--inspect" ]; then
 	safe_exec sudo mount "${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "$WORKDIR/inspect_rootfs"
 	sudo ls -l "$WORKDIR/inspect_rootfs"
 	if [ -f "$WORKDIR/inspect_rootfs/sbin/init" ]; then
-		log_info "Init found at /sbin/init → $(file -b "$WORKDIR/inspect_rootfs/sbin/init")"
+		log_info "Init found at /sbin/init: $(file -b "$WORKDIR/inspect_rootfs/sbin/init")"
 	elif [ -f "$WORKDIR/inspect_rootfs/init" ]; then
-		log_info "Init found at /init → $(file -b "$WORKDIR/inspect_rootfs/init")"
+		log_info "Init found at /init: $(file -b "$WORKDIR/inspect_rootfs/init")"
 	else
 		log_error "Init missing"
 	fi

@@ -39,15 +39,15 @@ ANSI_YELLOW='\033[1;33m'
 ANSI_RED='\033[1;31m'
 
 log_info() {
-    printf "${ANSI_GREEN}  → %s${ANSI_CLEAR}\n" "$1"
+    printf "${ANSI_GREEN}  -> %s${ANSI_CLEAR}\n" "$1"
 }
 
 log_warn() {
-    printf "${ANSI_YELLOW}  ⚠ %s${ANSI_CLEAR}\n" "$1"
+    printf "${ANSI_YELLOW}  [WARN] %s${ANSI_CLEAR}\n" "$1"
 }
 
 log_error() {
-    printf "${ANSI_RED}  ✗ %s${ANSI_CLEAR}\n" "$1"
+    printf "${ANSI_RED}  [FAIL] %s${ANSI_CLEAR}\n" "$1"
 }
 
 show_help() {
@@ -85,7 +85,7 @@ if [[ "$RENAME_MODE" == "true" ]]; then
 
     MERGE_HASH=$(git rev-parse --short HEAD)
     mv "CHANGELOG-pending.md" "CHANGELOG-${MERGE_HASH}.md"
-    log_info "Renamed: CHANGELOG-pending.md → CHANGELOG-${MERGE_HASH}.md"
+    log_info "Renamed: CHANGELOG-pending.md -> CHANGELOG-${MERGE_HASH}.md"
     echo ""
     echo "To amend the merge commit:"
     echo "  git add CHANGELOG-${MERGE_HASH}.md ${ARCHIVE_DIR}/"
@@ -123,7 +123,7 @@ mkdir -p "$ARCHIVE_DIR"
 for old in CHANGELOG-*.md; do
     if [[ -f "$old" ]]; then
         mv "$old" "$ARCHIVE_DIR/"
-        log_info "Archived: $old → $ARCHIVE_DIR/"
+        log_info "Archived: $old -> $ARCHIVE_DIR/"
     fi
 done
 
@@ -155,7 +155,7 @@ format_commits() {
 log_info "Generating changelog: $CHANGELOG"
 
 cat > "$CHANGELOG" <<EOF
-# Changelog — ${CURRENT_BRANCH} → ${TARGET_BRANCH}
+# Changelog -- ${CURRENT_BRANCH} -> ${TARGET_BRANCH}
 
 **Date:** $(date -u +"%Y-%m-%d")
 **Branch:** ${CURRENT_BRANCH}

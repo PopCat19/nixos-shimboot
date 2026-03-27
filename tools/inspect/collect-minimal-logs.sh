@@ -59,7 +59,7 @@ mount_ro_if_needed() {
 			done <<<"$mps"
 		fi
 
-		# If our inspect mountpoint is in use, unmount it
+		# If inspect mountpoint is in use, unmount it
 		if mountpoint -q /mnt/inspect_rootfs; then
 			log_warn "/mnt/inspect_rootfs already mounted; unmounting first..."
 			sudo umount /mnt/inspect_rootfs || true
@@ -101,7 +101,7 @@ mount_ro_if_needed() {
 # Ensure cleanup: always unmount /mnt/inspect_rootfs and any mounts of /dev/sdc4 before exiting
 cleanup() {
 	set +e
-	# Unmount our inspect mountpoint if mounted
+	# Unmount inspect mountpoint if mounted
 	if mountpoint -q /mnt/inspect_rootfs; then
 		sudo umount /mnt/inspect_rootfs || true
 	fi

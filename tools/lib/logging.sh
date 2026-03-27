@@ -32,7 +32,7 @@ log_step() {
 }
 
 log_info() {
-	printf "${ANSI_GREEN}  → %s${ANSI_CLEAR}\n" "$1"
+	printf "${ANSI_GREEN}  > %s${ANSI_CLEAR}\n" "$1"
 }
 
 log_warn() {
@@ -40,11 +40,11 @@ log_warn() {
 }
 
 log_error() {
-	printf "${ANSI_RED}  ✗ %s${ANSI_CLEAR}\n" "$1"
+	printf "${ANSI_RED}  x %s${ANSI_CLEAR}\n" "$1"
 }
 
 log_success() {
-	printf "${ANSI_GREEN}  ✓ %s${ANSI_CLEAR}\n" "$1"
+	printf "${ANSI_GREEN}  + %s${ANSI_CLEAR}\n" "$1"
 }
 
 log_section() {

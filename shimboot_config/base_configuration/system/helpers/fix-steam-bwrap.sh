@@ -55,7 +55,7 @@ for target in "${steam_bwraps[@]}"; do
 	echo -e "${BLUE}[STEP]${NC} Patching: ${target}"
 	# Remove the existing binary/symlink
 	rm -f -- "$target"
-	# Symlink to our SUID wrapper
+	# Symlink to SUID wrapper
 	ln -s -- "$SYSTEM_BWRAP" "$target"
 done
 

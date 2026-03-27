@@ -116,7 +116,7 @@ show_results() {
 	if [ ${#SUCCESSFUL_PROFILES[@]} -gt 0 ]; then
 		log_success "Successfully built profiles:"
 		for profile in "${SUCCESSFUL_PROFILES[@]}"; do
-			echo "  ✓ $profile"
+			echo "  OK $profile"
 		done
 		echo ""
 	fi
@@ -124,7 +124,7 @@ show_results() {
 	if [ ${#FAILED_PROFILES[@]} -gt 0 ]; then
 		log_error "Failed profiles:"
 		for profile in "${FAILED_PROFILES[@]}"; do
-			echo "  ✗ $profile"
+			echo "  FAIL $profile"
 		done
 		echo ""
 	fi
@@ -137,7 +137,7 @@ show_results() {
 	if [ ${#SUCCESSFUL_BOARDS[@]} -gt 0 ]; then
 		log_success "Successfully built boards:"
 		for board in "${SUCCESSFUL_BOARDS[@]}"; do
-			echo "  ✓ $board (${BUILD_RESULTS[$board]})"
+			echo "  OK $board (${BUILD_RESULTS[$board]})"
 		done
 		echo ""
 	fi
@@ -145,7 +145,7 @@ show_results() {
 	if [ ${#FAILED_BOARDS[@]} -gt 0 ]; then
 		log_error "Failed boards:"
 		for board in "${FAILED_BOARDS[@]}"; do
-			echo "  ✗ $board (${BUILD_RESULTS[$board]})"
+			echo "  FAIL $board (${BUILD_RESULTS[$board]})"
 		done
 		echo ""
 	fi
@@ -190,7 +190,7 @@ main() {
 	echo "=================================="
 	echo ""
 
-	# Check if we're in the right directory
+	# Check if in the right directory
 	if [ ! -f "flake.nix" ]; then
 		log_error "flake.nix not found. Please run this script from the project root."
 		exit 1

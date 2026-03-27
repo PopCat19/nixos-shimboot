@@ -25,7 +25,7 @@
   };
 
   # Create a wrapper script that works around ChromeOS LSM restrictions
-  # The chromiumos LSM blocks tmpfs mounts, so we convert them to bind mounts
+  # The chromiumos LSM blocks tmpfs mounts, so tmpfs converted to bind mounts
   security.wrappers.bwrap-safe = {
     owner = "root";
     group = "root";

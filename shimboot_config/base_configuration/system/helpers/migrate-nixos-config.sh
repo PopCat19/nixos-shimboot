@@ -33,7 +33,7 @@ fi
 
 # If target config already exists, nothing to do
 if [[ -d "$TARGET_CONFIG" ]] && [[ -f "${TARGET_CONFIG}/flake.nix" ]]; then
-	echo "[migrate_nixos_config] ✓ nixos-config already exists at ${TARGET_CONFIG}"
+	echo "[migrate_nixos_config] [OK] nixos-config already exists at ${TARGET_CONFIG}"
 	exit 0
 fi
 
@@ -74,6 +74,6 @@ mv "$SOURCE_CONFIG" "$TARGET_CONFIG"
 # Fix ownership
 chown -R "${TARGET_USER}:users" "$TARGET_CONFIG"
 
-echo "[migrate_nixos_config] ✓ Successfully migrated nixos-config to ${TARGET_CONFIG}"
+echo "[migrate_nixos_config] [OK] Successfully migrated nixos-config to ${TARGET_CONFIG}"
 echo "[migrate_nixos_config]   Old location: ${SOURCE_CONFIG} (removed)"
 echo "[migrate_nixos_config]   New location: ${TARGET_CONFIG}"

@@ -31,20 +31,20 @@ ANSI_CYAN='\033[1;36m'
 ANSI_MAGENTA='\033[1;35m'
 
 log_step() { printf "${ANSI_BOLD}${ANSI_BLUE}[%s] %s${ANSI_CLEAR}\n" "$1" "$2"; }
-log_info() { printf "${ANSI_GREEN}  → %s${ANSI_CLEAR}\n" "$1"; }
+log_info() { printf "${ANSI_GREEN}  > %s${ANSI_CLEAR}\n" "$1"; }
 log_warn() {
 	# Use yellow triangle for better visibility and consistency
-	printf "${ANSI_YELLOW}  ⚠ %s${ANSI_CLEAR}\n" "$1"
+	printf "${ANSI_YELLOW}  WARN %s${ANSI_CLEAR}\n" "$1"
 }
-log_error() { printf "${ANSI_RED}  ✗ %s${ANSI_CLEAR}\n" "$1"; }
-log_success() { printf "${ANSI_GREEN}  ✓ %s${ANSI_CLEAR}\n" "$1"; }
+log_error() { printf "${ANSI_RED}  X %s${ANSI_CLEAR}\n" "$1"; }
+log_success() { printf "${ANSI_GREEN}  OK %s${ANSI_CLEAR}\n" "$1"; }
 log_section() {
 	printf "\n${ANSI_BOLD}${ANSI_CYAN}─── %s ───${ANSI_CLEAR}\n" "$1"
 }
 
 # Unified confirmation prompt helper for UX consistency
 confirm_action() {
-	read -rp "→ Confirm action? [y/N]: " _ans
+	read -rp "> Confirm action? [y/N]: " _ans
 	[[ "${_ans,,}" == "y" ]]
 }
 
@@ -197,7 +197,7 @@ mount_system() {
 	MOUNTED=1
 	PROFILE_DIR="$MOUNTPOINT/nix/var/nix/profiles"
 
-	log_info "Mounted: $TARGET_PARTITION → $MOUNTPOINT"
+	log_info "Mounted: $TARGET_PARTITION -> $MOUNTPOINT"
 	return 0
 }
 
@@ -240,7 +240,7 @@ list_generations() {
 
 		local is_current=""
 		if [[ "$gen_path" == "$current_gen" ]]; then
-			is_current="✓ (active)"
+			is_current="OK (active)"
 		fi
 
 		printf "%-4s %-20s %-12s %-10s %s\n" "$gen_num" "$gen_date" "$gen_size" "$is_current" "$gen_path"
@@ -359,7 +359,7 @@ view_generation_diff() {
 		return 1
 	fi
 
-	log_info "Comparing generation $gen1 → $gen2..."
+	log_info "Comparing generation $gen1 -> $gen2..."
 
 	# Use nix store diff-closures
 	local path1 path2
@@ -698,7 +698,7 @@ bootstrap_menu() {
 		fi
 		if [[ -d "$boot_mnt/bin" ]]; then
 			bootloader_dir="$boot_mnt"
-			log_info "Bootloader partition mounted: $bootloader_dev → $boot_mnt"
+			log_info "Bootloader partition mounted: $bootloader_dev -> $boot_mnt"
 		elif [[ -d "$MOUNTPOINT/bootloader" ]]; then
 			bootloader_dir="$MOUNTPOINT/bootloader"
 			log_info "Using inline bootloader directory inside rootfs"

@@ -120,11 +120,11 @@ fi
 # --- Identify init system ---
 echo
 if sudo test -f "$WORKDIR/rootfs/sbin/init"; then
-	echo "✅ Init found at: /sbin/init → $(sudo file "$WORKDIR/rootfs/sbin/init" | sed 's/^/  /')"
+	echo "OK Init found at: /sbin/init: $(sudo file "$WORKDIR/rootfs/sbin/init" | sed 's/^/  /')"
 elif sudo test -f "$WORKDIR/rootfs/init"; then
-	echo "✅ Init found at: /init → $(sudo file "$WORKDIR/rootfs/init" | sed 's/^/  /')"
+	echo "OK Init found at: /init: $(sudo file "$WORKDIR/rootfs/init" | sed 's/^/  /')"
 else
-	echo "❌ No init found at /sbin/init or /init"
+	echo "FAIL No init found at /sbin/init or /init"
 fi
 
 # --- Filesystem labels ---
@@ -161,4 +161,4 @@ fi
 
 echo
 success() { echo -e "${GREEN}$*${RESET}"; }
-success "✅ Inspection complete: $IMAGE"
+success "OK Inspection complete: $IMAGE"

@@ -152,10 +152,10 @@ failsafe() {
 	echo -e "${SN_YELLOW} Running failsafe for: ${operation} ${SN_NC}"
 
 	if "${cmd[@]}"; then
-		echo -e "${SN_GREEN} ✓ Failsafe passed: ${operation} ${SN_NC}"
+		echo -e "${SN_GREEN} OK Failsafe passed: ${operation} ${SN_NC}"
 		return 0
 	else
-		echo -e "${SN_RED} ✗ Failsafe failed: ${operation} ${SN_NC}"
+		echo -e "${SN_RED} FAIL Failsafe failed: ${operation} ${SN_NC}"
 		echo -e "${SN_YELLOW} Creating backup before continuing... ${SN_NC}"
 
 		# Backup critical files
@@ -186,7 +186,7 @@ check_prerequisites() {
 		echo -e "${SN_YELLOW} Warning: Running as root. Some features may not work correctly. ${SN_NC}"
 	fi
 
-	echo -e "${SN_GREEN} ✓ Prerequisite check complete ${SN_NC}"
+	echo -e "${SN_GREEN} OK Prerequisite check complete ${SN_NC}"
 }
 
 log_step() {
@@ -194,15 +194,15 @@ log_step() {
 }
 
 log_ok() {
-	echo -e "${SN_GREEN} ✓ ${SN_NC} $1"
+	echo -e "${SN_GREEN} OK ${SN_NC} $1"
 }
 
 log_warn() {
-	echo -e "${SN_YELLOW} ⚠ ${SN_NC} $1"
+	echo -e "${SN_YELLOW} WARN ${SN_NC} $1"
 }
 
 log_error() {
-	echo -e "${SN_RED} ✗ ${SN_NC} $1"
+	echo -e "${SN_RED} ERR ${SN_NC} $1"
 }
 
 # Run prerequisite checks
@@ -454,7 +454,7 @@ raw-efi-system"
 			MAJOR="${BASH_REMATCH[1]}"
 			MINOR="${BASH_REMATCH[2]}"
 			if [[ "$MAJOR" -lt 5 ]] || { [[ "$MAJOR" -eq 5 ]] && [[ "$MINOR" -lt 6 ]]; }; then
-				echo "⚠️  Kernel ${KVER} detected (< 5.6). Disabling sandbox for rebuild."
+				echo "WARN: Kernel ${KVER} detected (< 5.6). Disabling sandbox for rebuild."
 				NIX_REBUILD_ARGS+=(--option sandbox false)
 			fi
 		fi

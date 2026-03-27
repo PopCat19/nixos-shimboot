@@ -24,10 +24,10 @@ run_test() {
 
 	echo "Running: $name"
 	if "$test_script"; then
-		echo "✓ $name passed"
+		echo "[OK] $name passed"
 		return 0
 	else
-		echo "✗ $name failed"
+		echo "[FAIL] $name failed"
 		return 1
 	fi
 }

@@ -27,7 +27,7 @@ function proxify
     set_color yellow; echo "[WARN] No proxy env. Run: proxy_on"; set_color normal
   else
     set -l proxy_addr (string replace -r '^[^:]+://' '' "$all_proxy")
-    set_color cyan; echo "[RUN] $cmd_args[1] → $proxy_addr"; set_color normal
+    set_color cyan; echo "[RUN] $cmd_args[1] -> $proxy_addr"; set_color normal
     # Inject proxy flag for Chromium/Electron-based applications
     set cmd_args $cmd_args --proxy-server="socks5://$proxy_addr"
   end

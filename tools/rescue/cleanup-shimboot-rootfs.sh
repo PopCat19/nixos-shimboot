@@ -221,7 +221,7 @@ discover_via_gcroots() {
 		local sd
 		sd="$(store_dir_of "$tgt")"
 		if is_rootfs_store_dir "$sd"; then
-			# mtime rank is approximated by ls -t order; we will collapse duplicates later
+			# mtime rank is approximated by ls -t order; duplicates collapsed later
 			echo -e "mtime\t${sd}\t${p}"
 		fi
 	done
@@ -238,7 +238,7 @@ discover_via_results() {
 	if [[ -L "$dir/result" ]]; then
 		arr+=("$dir/result")
 	fi
-	# Then numerically sorted result-N (ascending N = older; we will compute order)
+	# Then numerically sorted result-N (ascending N = older; order computed below)
 	local r
 	for r in "$dir"/result-*; do
 		[[ -L "$r" ]] || continue

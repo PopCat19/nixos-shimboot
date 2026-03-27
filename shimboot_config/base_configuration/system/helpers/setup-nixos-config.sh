@@ -72,12 +72,12 @@ fi
 
 # Check if user's config exists (should be cloned by assemble-final.sh)
 if [[ -d "${NIXOS_CONFIG_PATH}" ]] && [[ -f "${NIXOS_CONFIG_PATH}/flake.nix" ]]; then
-	echo "[setup_nixos_config] ✓ Found nixos-config at ${NIXOS_CONFIG_PATH}"
+	echo "[setup_nixos_config] [OK] Found nixos-config at ${NIXOS_CONFIG_PATH}"
 
 	# Backup existing /etc/nixos files
 	for file in configuration.nix flake.nix; do
 		if [[ -f "/etc/nixos/${file}" ]] && [[ ! -L "/etc/nixos/${file}" ]]; then
-			echo "[setup_nixos_config] Backing up /etc/nixos/${file} → ${file}.bak"
+			echo "[setup_nixos_config] Backing up /etc/nixos/${file} -> ${file}.bak"
 			echo "Command: mv \"/etc/nixos/${file}\" \"/etc/nixos/${file}.bak\""
 			mv "/etc/nixos/${file}" "/etc/nixos/${file}.bak"
 		fi
@@ -88,7 +88,7 @@ if [[ -d "${NIXOS_CONFIG_PATH}" ]] && [[ -f "${NIXOS_CONFIG_PATH}/flake.nix" ]];
 	ln -sf "${NIXOS_CONFIG_PATH}/flake.nix" /etc/nixos/flake.nix
 
 	echo
-	echo "[setup_nixos_config] ✓ Linked to nixos-shimboot repository"
+	echo "[setup_nixos_config] [OK] Linked to nixos-shimboot repository"
 	echo
 	HOSTNAME_VALUE=$(hostname)
 	echo "To rebuild:"
@@ -104,7 +104,7 @@ if [[ -d "${NIXOS_CONFIG_PATH}" ]] && [[ -f "${NIXOS_CONFIG_PATH}/flake.nix" ]];
 	echo "Default: ${HOSTNAME_VALUE}"
 	echo "Tip: 'minimal' variant uses only base modules (no desktop environment)"
 else
-	echo "[setup_nixos_config] ✗ nixos-config not found at ${NIXOS_CONFIG_PATH}"
+	echo "[setup_nixos_config] [FAIL] nixos-config not found at ${NIXOS_CONFIG_PATH}"
 	echo
 	echo "The nixos-shimboot repository should be cloned by assemble-final.sh to:"
 	echo "  ${NIXOS_CONFIG_PATH}"

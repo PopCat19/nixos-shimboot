@@ -529,14 +529,14 @@ udisks_unmount_device() {
 		if [[ -z "$re" ]]; then re="^${e}\$"; else re="${re}|^${e}\$"; fi
 	done
 
-	# Find udisks-managed mounts whose SOURCE matches our partitions
+	# Find udisks-managed mounts whose SOURCE matches target partitions
 	local m
 	while IFS= read -r m; do
 		[[ -z "$m" ]] && continue
 		local src tgt
 		src="$(awk -F'|' '{print $1}' <<<"$m")"
 		tgt="$(awk -F'|' '{print $2}' <<<"$m")"
-		# Only act on our target's partitions
+		# Only act on target's partitions
 		if [[ "$src" =~ $re ]]; then
 			action "UDisks auto-unmount ${tgt} (${src})"
 			if has_command udisksctl; then
@@ -803,7 +803,7 @@ parse_args() {
 }
 
 main() {
-	# Ensure we have root privileges early to avoid env preservation complexity
+	# Ensure root privileges early to avoid env preservation complexity
 	require_root "$@"
 
 	# Parse command-line arguments
@@ -811,7 +811,7 @@ main() {
 
 	# Update INPUT_IMAGE based on BOARD if not explicitly provided
 	if [[ -z "${INPUT_IMAGE:-}" || "${INPUT_IMAGE}" == "/home/popcat19/nixos-shimboot/work/${DEFAULT_BOARD}/shimboot.img" ]]; then
-		# If BOARD was explicitly set or we're using the default, update the path
+		# If BOARD was explicitly set or using the default, update the path
 		INPUT_IMAGE="/home/popcat19/nixos-shimboot/work/${BOARD}/shimboot.img"
 		if [[ ! -f "${INPUT_IMAGE}" ]]; then
 			warn "Image not found for board '${BOARD}': ${INPUT_IMAGE}"
@@ -866,7 +866,7 @@ main() {
 		local filename
 		filename="$(basename "${INPUT_IMAGE}")"
 		if [[ -z "${filename}" || "${filename}" == "/" ]]; then
-			# Generate a filename based on timestamp if we can't extract one
+			# Generate a filename based on timestamp if extraction fails
 			filename="shimboot-$(date +%Y%m%d%H%M%S).img"
 		fi
 
@@ -949,7 +949,7 @@ main() {
 					if [[ "$ans" == "yes" ]]; then
 						success "Using existing extracted file: ${EXTRACTED_IMAGE}"
 						INPUT_IMAGE="${EXTRACTED_IMAGE}"
-						# Skip extraction since we're using the existing file
+						# Skip extraction since the existing file is being used
 						continue_extraction=false
 					else
 						ans="$(prompt_yes_no "Re-extract the file?" "n")"
@@ -962,7 +962,7 @@ main() {
 				else
 					warn "Extracted file ${EXTRACTED_IMAGE} already exists. Using existing file."
 					INPUT_IMAGE="${EXTRACTED_IMAGE}"
-					# Skip extraction since we're using the existing file
+					# Skip extraction since the existing file is being used
 					continue_extraction=false
 				fi
 			else
@@ -997,7 +997,7 @@ main() {
 				fi
 			fi
 
-			# If we have a valid checksum, verify it
+			# If a valid checksum exists, verify it
 			if [[ "${checksum_found}" == "true" && -n "${expected_sha256}" ]]; then
 				info "Verifying checksum..."
 				local actual_sha256
@@ -1012,7 +1012,7 @@ main() {
 				warn "Could not find valid checksum. Proceeding without verification."
 			fi
 
-			# Only extract if we need to
+			# Only extract if needed
 			if [[ "${continue_extraction}" == "true" ]]; then
 				# Extract the zstd file
 				action "Extracting compressed image..."
@@ -1075,7 +1075,7 @@ main() {
 					if [[ "$ans" == "yes" ]]; then
 						success "Using existing extracted file: ${EXTRACTED_IMAGE}"
 						INPUT_IMAGE="${EXTRACTED_IMAGE}"
-						# Skip extraction since we're using the existing file
+						# Skip extraction since the existing file is being used
 						continue_extraction=false
 					else
 						ans="$(prompt_yes_no "Re-extract the file?" "n")"
@@ -1088,7 +1088,7 @@ main() {
 				else
 					warn "Extracted file ${EXTRACTED_IMAGE} already exists. Using existing file."
 					INPUT_IMAGE="${EXTRACTED_IMAGE}"
-					# Skip extraction since we're using the existing file
+					# Skip extraction since the existing file is being used
 					continue_extraction=false
 				fi
 			else
@@ -1113,7 +1113,7 @@ main() {
 				fi
 			fi
 
-			# If we have a valid checksum, verify it
+			# If a valid checksum exists, verify it
 			if [[ "${checksum_found}" == "true" && -n "${expected_sha256}" ]]; then
 				info "Verifying checksum..."
 				local actual_sha256
@@ -1128,7 +1128,7 @@ main() {
 				warn "No valid checksum file found. Proceeding without verification."
 			fi
 
-			# Only extract if we need to
+			# Only extract if needed
 			if [[ "${continue_extraction}" == "true" ]]; then
 				# Extract the zstd file
 				action "Extracting compressed image..."

@@ -12,11 +12,11 @@ Contributions and feedbacks are welcome by opening a [discussion](https://github
 To get started, follow the [quickstart guide](QUICKSTART.md). (assuming you are in a linux environment)
 
 # NixOS Shimboot
-I like NixOS. I've started this project since no one else released NixOS shimboot until now. This repository took place with flake approach over the existing scripts from [ading2210/shimboot](https://github.com/ading2210/shimboot), which is mostly incompatible to build with a non-FHS distro like NixOS.
+This project was started since no one else released NixOS shimboot until now. This repository took place with flake approach over the existing scripts from [ading2210/shimboot](https://github.com/ading2210/shimboot), which is mostly incompatible to build with a non-FHS distro like NixOS.
 
-Before this repository, I've made a bunch of attempts initially from [nixos-shimboot-legacy](https://github.com/PopCat19/nixos-shimboot-legacy/tree/qemu-method2), which also derived from [shimboot-nixos](https://github.com/PopCat19/shimboot-nixos).
+Before this repository, a bunch of attempts were made initially from [nixos-shimboot-legacy](https://github.com/PopCat19/nixos-shimboot-legacy/tree/qemu-method2), which also derived from [shimboot-nixos](https://github.com/PopCat19/shimboot-nixos).
 
-This repository was initialized from scratch after [nixos-shimboot-legacy](https://github.com/PopCat19/nixos-shimboot-legacy/tree/qemu-method2) due to inherited contributers and commits from [ading2210/shimboot](https://github.com/ading2210/shimboot). Considering the amounts of change that's been made compared to the original repo, I decided to initialize a clean repo to avoid potential misconceptions. I'll keep the original GPLv3 license except for proprietary/unfree chromeos artifacts that's used to shimboot NixOS.
+This repository was initialized from scratch after [nixos-shimboot-legacy](https://github.com/PopCat19/nixos-shimboot-legacy/tree/qemu-method2) due to inherited contributers and commits from [ading2210/shimboot](https://github.com/ading2210/shimboot). Considering the amounts of change that's been made compared to the original repo, a clean repo was initialized to avoid potential misconceptions. The original GPLv3 license is kept except for proprietary/unfree chromeos artifacts that's used to shimboot NixOS.
 
 ## Why NixOS?
 While NixOS isn't the fastest nor the most minimal linux distribution to run on low-end hardware, it can be one of the most stable, up-to-date, and reproducible distros with proper configurations.
@@ -25,7 +25,7 @@ NixOS follows differently from the usual Filesystem Hierarchy Standard, where al
 
 In turn, users who've only used FHS compliant linux distributions (like Debian for example) will need to familiarize configuring Nix configurations to install packages, configure services and eventually build a custom, reproducible NixOS machine configuration.
 
-> If you're interested, I strongly recommend trying NixOS in a VM first (or try the Nix package manager for your distribution, if you prefer learning Nix first) following: https://nixos.org/download/ \
+> If interested, strongly recommend trying NixOS in a VM first (or try the Nix package manager for distribution, if preferring to learn Nix first) following: https://nixos.org/download/ \
 |\
 You may need to look up several online documentations, videos, or even Reddit and optional Large Language Model guidance (better suited if said LLM supports Model Context Protocols like context7) to learn what you'd wish to achieve with Nix/NixOS. Exploring someone else's NixOS configurations can also help reason and understand NixOS via first/second-hand experience.\
 |\
@@ -55,9 +55,9 @@ A helpful excerpt from [ading2210/shimboot](https://github.com/ading2210/shimboo
 ## Why flake?
 [nixos-shimboot-legacy](https://github.com/PopCat19/nixos-shimboot-legacy) barely worked to build a bootable NixOS with frankenstein scripts running on hopes and dreams, yet it wasn't functional enough to even get past LightDM.
 
-I've also considered using a minimal liveiso image under qemu environment to create a working ROOTFS that most likely has a working user environment came alight. It'd painful and inefficient.
+A minimal liveiso image under qemu environment was also considered to create a working ROOTFS that most likely has a working user environment came alight. It'd painful and inefficient.
 
-I resorted back to [nixos-generators](https://github.com/nix-community/nixos-generators), but this time using nix flakes with `raw-efi` image config. In the end, it made configurations more reliable.
+Resorted back to [nixos-generators](https://github.com/nix-community/nixos-generators), but this time using nix flakes with `raw-efi` image config. In the end, it made configurations more reliable.
 
 ## Progress and obstacles
 Flake status and roadmap (not a spec) for the current branch:
@@ -117,7 +117,7 @@ If you wish to use this cache in your own configuration, add:
 ## Source
 Originally, the bootloader and systemd patches as well as the reference for bootstrapping, partitioning, and workarounds are sourced from: [ading2210/shimboot](https://github.com/ading2210/shimboot) and [ading2210/chromeos-systemd](https://github.com/ading2210/chromeos-systemd)
 
-Miscellaneously, my current dev enviroment consists of:
+Miscellaneously, current dev enviroment consists of:
 - [NixOS+Hyprland](https://github.com/PopCat19/popcat19-nixos-hm)
 - [VSCodium](https://github.com/VSCodium/vscodium)
   - [Kilo Code](https://github.com/Kilo-Org/kilocode)
