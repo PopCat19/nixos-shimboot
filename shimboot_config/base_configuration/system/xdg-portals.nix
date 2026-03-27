@@ -55,12 +55,12 @@
 
   # Drop-in for main portal to wait for hyprland backend
   # Prevents race condition where DBus-activated portal starts before backend is ready
-  xdg.configFile."systemd/user/xdg-desktop-portal.service.d/override.conf".text = ''
-    [Unit]
-    After=xdg-desktop-portal-hyprland.service xdg-desktop-portal-gtk.service
-    Wants=xdg-desktop-portal-hyprland.service xdg-desktop-portal-gtk.service
-
-    [Service]
-    ExecStartPre=/bin/sh -c 'until systemctl --user is-active xdg-desktop-portal-hyprland.service; do sleep 0.5; done'
-  '';
+  systemd.user.services.xdg-desktop-portal = {
+    overrideStrategy = "asDropin";
+    unitConfig = {
+      After = "xdg-desktop-portal-hyprland.service xdg-desktop-portal-gtk.service";
+      Wants = "xdg-desktop-portal-hyprland.service xdg-desktop-portal-gtk.service";
+    };
+    serviceConfig.ExecStartPre = "/bin/sh -c 'until systemctl --user is-active xdg-desktop-portal-hyprland.service; do sleep 0.5; done'";
+  };
 }
