@@ -25,8 +25,9 @@
 15. [Principles](#15-principles)
 16. [Tone and Formatting](#16-tone-and-formatting)
 17. [Example Patterns](#17-example-patterns)
-18. [New Rule Files](#18-new-rule-files)
-19. [Changelog Policy](#19-changelog-policy)
+18. [Agent Interaction](#18-agent-interaction)
+19. [New Rule Files](#19-new-rule-files)
+20. [Changelog Policy](#20-changelog-policy)
 
 ## 1. File Headers
 
@@ -831,6 +832,49 @@ configuration/
 - Common configs should be easy to reach and remember
 - Tree structure should encourage exploration
 - Optimize for newcomer comprehension
+
+### Directory Index Files (`context.md`)
+
+Add a `context.md` to any folder where filenames alone don't convey the full picture — typically 5+ files forming a non-obvious module grouping.
+
+**When to create:**
+- Folder has multiple files whose purpose isn't evident from names alone
+- Folder is a module group, not a flat self-documenting config dir or single-purpose leaf
+
+**When to skip:**
+- Filenames are self-documenting (`audio.nix`, `networking.nix`)
+- Fewer than ~5 files with obvious names
+- Single-purpose leaf folders (`shaders/`, `wallpaper/`)
+
+**Format:**
+```markdown
+# Context
+
+- `filename.ext` — One-line present-tense purpose
+- `other-file.ext` — One-line present-tense purpose
+```
+
+**Single source of truth:**
+- **Derive from file headers:** Each entry must match the file's header `Purpose:` line verbatim (or near-verbatim if truncated for length)
+- The file header is the authoritative source; `context.md` is a derived surface
+- This enables automated drift detection — updating a header without updating `context.md` triggers the hook
+
+**Files in context.md require headers:**
+- Any file listed in `context.md` **must** have a file header with a `Purpose:` line
+- This is required for the drift check to validate content, not just structure
+- Files without headers (shell scripts, configs, non-module files) cannot be listed in `context.md`
+
+**Rules:**
+- One line per file, present-tense verb phrase (from header `Purpose:`)
+- Directories are excluded — they own their own `context.md`
+- Always tracked in git; never gitignored
+- **Must be updated atomically with file additions, removals, and renames** — same commit, no exceptions
+- Treat an outdated `context.md` as broken as a missing import
+
+**Drift detection:**
+- See `src/check-context.sh` for automated verification
+- Validates both structure (listed files exist) and content (entry matches header `Purpose:`)
+- Can be installed as pre-commit hook: `dev-conventions.sh lint --install-context-hook`
 
 ## 5. Comments
 
@@ -1688,7 +1732,72 @@ const reverseString = (str) => {
 
 See [DEV-EXAMPLES.md](./DEV-EXAMPLES.md) for concrete reference examples from real projects (NixOS/Home Manager/Hyprland/Fish context). Optional reading.
 
-## 18. New Rule Files
+## 18. Agent Interaction
+
+**Rationale:** When requesting shell output for review, commands should be structured so the response can be sent back in one shot via `wl-copy` (Wayland clipboard). This avoids back-and-forth for file contents, status checks, or diagnostic output.
+
+### Format
+
+**One-shot convention:** When user says "oneliner" or "oneshot", wrap commands so all output concatenates into a single clipboard payload.
+
+- **Fish:** `begin; <commands>; end | wl-copy`
+- **Bash:** `{ <commands>; } | wl-copy`
+- **Separators:** Use `echo ===` or `===` between logical groups
+
+### Rules
+
+- Fish shell: use `begin; end` blocks, not `{ }` (fish braces don't work like bash)
+- Fish shell: use `$status` not `$?` (fish uses `$status` for exit codes)
+- Always append `--no-pager` to `systemctl`, `journalctl`, and similar commands
+- Append `-l` (long output) to `systemctl status` for full error lines
+- Prefix with `timeout N` for commands that may block (e.g., `wl-paste --watch`)
+- Kill piped output that may hang: `timeout 2 wl-paste --watch echo`
+- Non-tty prompts degrade to default (add `--yes`/`-y` flags where available)
+
+### Systemd
+
+- Not every host runs systemd — could be non-systemd Linux, BSD, macOS, WSL, etc.
+- Do not assume `systemctl` exists; if the command fails or doesn't exist, skip it
+- Do not wrap systemd-dependent commands in error traps that abort the whole one-shot
+- Prefer checking availability first: `command -v systemctl &>/dev/null && systemctl ...`
+- On non-systemd hosts, fall back to direct inspection where possible (checking PID files, process lists, etc.)
+
+### Search tools
+
+- **Prefer ripgrep (`rg`)** when available — faster, respects `.gitignore` automatically
+- **Fallback:** `grep -r` with shell globs, `awk`, `sed`, or any available tools as appropriate
+- Do not assume `rg` exists; check with `command -v rg &>/dev/null` or just use `grep -r` if uncertain
+
+### Examples
+
+```fish
+# System diagnostics
+begin; systemctl --user status cliphist.service --no-pager -l; echo ===; cliphist list | head -10; end | wl-copy
+
+# File contents with separator
+begin; cat ~/config/services.nix; echo ===; cat ~/config/portals.nix; end | wl-copy
+
+# Diagnostics with timeout for blocking commands
+begin; systemctl --user status service --no-pager -l; echo ===; timeout 2 wl-paste --watch echo 2>&1; echo "exit: $status"; end | wl-copy
+
+# Search with fallback
+begin; command -v rg &>/dev/null && rg "pattern" ~/config --nix || grep -r "pattern" ~/config --include="*.nix"; end | wl-copy
+```
+
+### When to use
+
+- Agent requesting config files for review
+- Diagnosing service failures
+- Comparing generated unit files vs source
+- Any situation where agent needs to see terminal output
+
+### When not to use
+
+- User is editing files interactively
+- Commands produce large output (>500 lines, use file instead)
+- Commands require interactive input
+
+## 19. New Rule Files
 
 **Rationale:** Rule proliferation creates cognitive burden. New files must earn their existence.
 
@@ -1712,7 +1821,7 @@ See [DEV-EXAMPLES.md](./DEV-EXAMPLES.md) for concrete reference examples from re
 
 **Example:** Don't create `variable-naming-rules.md` when it fits in existing `code-style.md`.
 
-## 19. Changelog Policy
+## 20. Changelog Policy
 
 **Rationale:** Changelogs provide human-readable summaries of what changed per merge. Generating them from git history before merging ensures accuracy and creates an audit trail. Archiving keeps the root clean.
 

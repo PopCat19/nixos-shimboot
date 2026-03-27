@@ -166,6 +166,9 @@ cmd_lint() {
 	local files=()
 	local install_hook=false
 	local remove_hook=false
+	local check_context=false
+	local install_context_hook=false
+	local remove_context_hook=false
 
 	# Parse arguments
 	while [[ $# -gt 0 ]]; do
@@ -194,6 +197,18 @@ cmd_lint() {
 			remove_hook=true
 			shift
 			;;
+		--context)
+			check_context=true
+			shift
+			;;
+		--install-context-hook)
+			install_context_hook=true
+			shift
+			;;
+		--remove-context-hook)
+			remove_context_hook=true
+			shift
+			;;
 		--yes | -y)
 			# shellcheck disable=SC2034
 			SKIP_CONFIRM=true
@@ -206,6 +221,11 @@ cmd_lint() {
 		esac
 	done
 
+	# Source check-context.sh if it exists
+	if [[ -f "${SCRIPT_DIR}/check-context.sh" ]]; then
+		source "${SCRIPT_DIR}/check-context.sh"
+	fi
+
 	# Handle hook operations
 	if [[ "$install_hook" == "true" ]]; then
 		install_pre_push_hook
@@ -215,6 +235,29 @@ cmd_lint() {
 	if [[ "$remove_hook" == "true" ]]; then
 		remove_pre_push_hook
 		return $?
+	fi
+
+	if [[ "$install_context_hook" == "true" ]]; then
+		install_context_hook
+		return $?
+	fi
+
+	if [[ "$remove_context_hook" == "true" ]]; then
+		remove_context_hook
+		return $?
+	fi
+
+	# Handle context.md check
+	if [[ "$check_context" == "true" ]]; then
+		if declare -f check_context_drift &>/dev/null; then
+			log_info "Checking context.md files..."
+			echo ""
+			check_context_drift "$PROJECT_ROOT"
+			return $?
+		else
+			log_error "check-context.sh not found"
+			return 1
+		fi
 	fi
 
 	# Find shell scripts if not specified

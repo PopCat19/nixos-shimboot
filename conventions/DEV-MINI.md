@@ -43,6 +43,16 @@ Essential. When used:
 
 No dependency or relationship tracking in headers. Use inline comments at relevant code locations for critical relationships.
 
+## Agent Interaction
+
+One-shot commands: wrap output for `wl-copy` so it can be sent in one shot.
+- Fish: `begin; <cmds>; end | wl-copy`
+- Bash: `{ <cmds>; } | wl-copy`
+- Use `begin; end` not `{ }` in fish. Use `$status` not `$?`.
+- Always `--no-pager` on systemctl/journalctl. Use `timeout N` on blocking commands.
+- Prefer `rg` (ripgrep) when available; fallback to `grep -r` if uncertain.
+- Systemd is not universal — BSD, macOS, non-systemd Linux won't have `systemctl`. Don't assume it exists; check with `command -v systemctl` or skip if it errors.
+
 ## Commits
 
 ```
