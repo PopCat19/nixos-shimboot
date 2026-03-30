@@ -87,6 +87,7 @@ let
           llm-agents
           patchedSystemd
           ;
+        inherit (self) inputs;
       };
     };
 
@@ -104,6 +105,7 @@ let
           llm-agents
           patchedSystemd
           ;
+        inherit (self) inputs;
       };
     };
   };
@@ -123,6 +125,7 @@ let
           llm-agents
           patchedSystemd
           ;
+        inherit (self) inputs;
       };
     };
   };
@@ -141,6 +144,7 @@ let
           llm-agents
           patchedSystemd
           ;
+        inherit (self) inputs;
       };
     };
   };

@@ -6,7 +6,7 @@
 #
 # This module:
 # - Installs system-wide utility packages
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 {
   environment.systemPackages = with pkgs; [
     gh
@@ -17,5 +17,6 @@
     android-tools
     tree
     xdg-utils
+    inputs.llm-agents.packages.${pkgs.system}.kilocode-cli
   ];
 }
