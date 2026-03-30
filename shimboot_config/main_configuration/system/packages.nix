@@ -18,5 +18,6 @@
     tree
     xdg-utils
     inputs.llm-agents.packages.${pkgs.system}.kilocode-cli
+    inputs.llm-agents.packages.${pkgs.system}.opencode
   ];
 }
