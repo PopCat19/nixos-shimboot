@@ -31,6 +31,7 @@ else
 fi
 
 # Add wrapper directory to PATH via profile.d
+mkdir -p /etc/profile.d
 cat > /etc/profile.d/bwrap-wrapper.sh << 'EOF'
 # Add bwrap wrapper directory to PATH
 # This ensures bwrap-wrapper is used instead of system bwrap
