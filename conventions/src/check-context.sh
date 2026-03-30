@@ -14,6 +14,25 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 	exit 1
 fi
 
+# Extract Purpose line from shell (#) or TS/JS (//) headers
+extract_file_purpose() {
+	local filepath="$1"
+	local ext="${filepath##*.}"
+	local out=""
+
+	case "${ext,,}" in
+	ts | tsx | js | jsx | mjs | cjs)
+		out=$(grep -m1 -E '^[[:space:]]*//[[:space:]]*Purpose:' "$filepath" 2>/dev/null | sed -E 's/^[[:space:]]*\/\/[[:space:]]*Purpose:[[:space:]]*//')
+		;;
+	esac
+
+	if [[ -z "$out" ]]; then
+		out=$(grep -m1 '^# Purpose:' "$filepath" 2>/dev/null | sed 's/^# Purpose: //')
+	fi
+
+	printf '%s' "$out" | sed 's/[[:space:]]*$//'
+}
+
 # Check context.md files for drift
 check_context_drift() {
 	local root="${1:-.}"
@@ -30,7 +49,9 @@ check_context_drift() {
 		listed=$(grep -oE '`[^`]+`' "$context_file" 2>/dev/null | tr -d '`' | sort)
 
 		local actual
+		# HTML shells and loose JSON configs are not module files; omit from structural listing
 		actual=$(find "$dir" -maxdepth 1 -type f ! -name 'context.md' \
+			! -name '*.html' ! -name '*.json' \
 			-exec basename {} \; 2>/dev/null | sort)
 
 		if [[ "$listed" != "$actual" ]]; then
@@ -45,16 +66,16 @@ check_context_drift() {
 			local filename
 			local ctx_desc
 			filename=$(echo "$line" | grep -oE '`[^`]+`' | tr -d '`')
-			ctx_desc=$(echo "$line" | sed -n 's/.*— //p')
+			# Text after first " — " following the filename (Purpose may contain additional em dashes)
+			ctx_desc=$(echo "$line" | sed -n 's/^[^`]*`[^`]*`[[:space:]]*—[[:space:]]*//p' | sed 's/[[:space:]]*$//')
 
 			[[ -z "$filename" || -z "$ctx_desc" ]] && continue
 
 			local filepath="$dir/$filename"
 			[[ ! -f "$filepath" ]] && continue
 
-			# Extract Purpose line from file header
 			local header_desc
-			header_desc=$(grep -m1 '^# Purpose:' "$filepath" 2>/dev/null | sed 's/^# Purpose: //')
+			header_desc=$(extract_file_purpose "$filepath")
 
 			if [[ -n "$header_desc" && "$ctx_desc" != "$header_desc" ]]; then
 				log_warn "context.md content drift: $context_file"
@@ -67,7 +88,7 @@ check_context_drift() {
 				log_detail "  File in $context_file lacks required header with Purpose:"
 				error=1
 			fi
-		done < <(grep -P '^\- `' "$context_file" 2>/dev/null)
+		done < <(grep -E '^- `' "$context_file" 2>/dev/null)
 
 		if [[ $error -eq 0 ]]; then
 			log_detail "OK: $context_file"

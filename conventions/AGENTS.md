@@ -24,7 +24,7 @@ Opinionated agent development rules and conventions. Covers:
 Condensed non-obvious conventions only. Assumes standard SWE practices. Covers:
 
 - Naming (snake_case dirs, kebab-case files)
-- Structure (depth limits, context.md requirements, module wiring)
+- Structure (depth limits, context.md requirements, module wiring, stratification thresholds)
 - File headers (Purpose lines)
 - Commit format and workflow
 - Agent interaction patterns (one-shot commands, wl-copy wrapping)

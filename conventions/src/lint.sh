@@ -221,9 +221,10 @@ cmd_lint() {
 		esac
 	done
 
-	# Source check-context.sh if it exists
-	if [[ -f "${SCRIPT_DIR}/check-context.sh" ]]; then
-		source "${SCRIPT_DIR}/check-context.sh"
+	# Source check-context.sh from the same directory as this module (src/ or scripts/)
+	_LINT_SH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+	if [[ -f "${_LINT_SH_DIR}/check-context.sh" ]]; then
+		source "${_LINT_SH_DIR}/check-context.sh"
 	fi
 
 	# Handle hook operations

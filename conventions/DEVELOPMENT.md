@@ -833,6 +833,59 @@ configuration/
 - Tree structure should encourage exploration
 - Optimize for newcomer comprehension
 
+### Stratified Module Hierarchy
+
+**Rationale:** Large monolithic files obscure boundaries between concerns. Splitting by role makes changes traceable, reviews focused, and imports selective. A soft threshold prevents premature fragmentation while nudging toward healthier structure.
+
+**When to stratify:** Consider splitting files approaching **800–1000 lines** (soft guideline). Context matters — some files are naturally long (e.g., single-file deployments, portable scripts). Don't split for the sake of splitting.
+
+**Two valid patterns:**
+
+**Domain subdirs** — group files by independent feature or concern:
+```
+# Before: single 1200-line auth.nix
+config/
+  auth.nix
+
+# After: split by domain concern
+config/
+  auth/
+    login.nix
+    tokens.nix
+    sessions.nix
+    context.md
+```
+
+**Layer subdirs** — group files by architectural layer:
+```
+# Before: single 1100-line api-client.ts
+src/
+  api-client.ts
+
+# After: split by layer
+src/
+  api-client/
+    types.ts
+    handlers.ts
+    middleware.ts
+    utils.ts
+    context.md
+```
+
+**Choosing a pattern:**
+- **Domain:** Use when concerns are independent features (login vs tokens vs sessions — each is a distinct capability)
+- **Layer:** Use when files share concerns across architectural boundaries (types, handlers, middleware — each operates on the same domain)
+- **When in doubt:** Prefer domain — it maps closer to how humans think about modules
+
+**Rules that still apply:**
+- **Depth:** New subdirs count toward the 6-level budget
+- **Wiring:** Every stratified file must be imported somewhere (wire in on create)
+- **context.md:** Required if 5+ non-obvious files in the new subdir
+- **Headers:** Every stratified file requires a file header with `Purpose:` line
+- **Naming:** Dirs are `snake_case`, files are `kebab-case`
+
+**Scope:** Applies to project source code. Convention/reference docs (like this file) use table-of-contents navigation instead.
+
 ### Directory Index Files (`context.md`)
 
 Add a `context.md` to any folder where filenames alone don't convey the full picture — typically 5+ files forming a non-obvious module grouping.

@@ -306,6 +306,43 @@ configuration/
     └── api-keys.age
 ```
 
+## Stratified Modules (Rule 4)
+
+**Domain stratification:**
+```
+# Before: 1200-line auth.nix
+config/
+  auth.nix
+
+# After: split by independent concern
+config/
+  auth/
+    login.nix       # Purpose: Configures login flow and PAM
+    tokens.nix      # Purpose: Manages JWT and API token lifetimes
+    sessions.nix    # Purpose: Defines session timeout and cleanup
+    context.md
+```
+
+**Layer stratification:**
+```
+# Before: 1100-line api-client.ts
+src/
+  api-client.ts
+
+# After: split by architectural layer
+src/
+  api-client/
+    types.ts        # Purpose: Defines API request and response types
+    handlers.ts     # Purpose: Implements HTTP request handlers
+    middleware.ts    # Purpose: Applies auth and retry middleware
+    utils.ts        # Purpose: Provides URL building and error mapping
+    context.md
+```
+
+**Choosing pattern:**
+- Domain: independent features (login ≠ tokens ≠ sessions)
+- Layer: shared concerns across boundaries (types, handlers, utils operate on same domain)
+
 ## Comments (Rule 5)
 
 **Keep only when necessary:**
