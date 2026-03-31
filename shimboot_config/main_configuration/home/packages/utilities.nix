@@ -20,6 +20,7 @@
     zenity
     nixd
     nil
+    biome
     statix
     deadnix
     nixfmt-tree
