@@ -15,6 +15,7 @@
 # Options:
 #   --board BOARD          Target board (dedede, octopus, etc.)
 #   --rootfs FLAVOR        Rootfs variant (full, minimal)
+#   --config-branch BRANCH Clone specified config branch into rootfs (default: same as build branch)
 #   --drivers MODE         Driver placement (vendor, inject, both, none)
 #   --firmware-upstream    Enable upstream firmware (default: 1)
 #   --no-firmware-upstream Disable upstream firmware
@@ -29,6 +30,9 @@
 # Examples:
 #   # Build dedede with full rootfs
 #   ./assemble-final.sh --board dedede --rootfs full
+#
+#   # Build with config branch (for main branch builds)
+#   ./assemble-final.sh --board dedede --rootfs full --config-branch default
 #
 #   # Build with vendor drivers and cleanup
 #   ./assemble-final.sh --board dedede --rootfs minimal --drivers vendor --cleanup-rootfs --cleanup-keep 2 --no-dry-run
@@ -242,6 +246,9 @@ CLEANUP_KEEP=""
 PREWARM_CACHE=0
 PULL_CACHED_IMAGE=0
 
+# Config branch option
+CONFIG_BRANCH=""
+
 while [ $# -gt 0 ]; do
 	case "${1:-}" in
 	--board)
@@ -251,6 +258,10 @@ while [ $# -gt 0 ]; do
 		;;
 	--rootfs)
 		ROOTFS_FLAVOR="${2:-}"
+		shift 2
+		;;
+	--config-branch)
+		CONFIG_BRANCH="${2:-}"
 		shift 2
 		;;
 	--drivers)
@@ -359,6 +370,15 @@ fi
 if [ "${ROOTFS_FLAVOR}" != "full" ] && [ "${ROOTFS_FLAVOR}" != "minimal" ]; then
 	log_error "Invalid --rootfs value: '${ROOTFS_FLAVOR}'. Use 'full' or 'minimal'."
 	exit 1
+fi
+
+# Check if on main branch with full rootfs
+if [ "${ROOTFS_FLAVOR}" = "full" ]; then
+	CURRENT_GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+	if [ "$CURRENT_GIT_BRANCH" = "main" ]; then
+		log_error "main branch has no main_configuration/. Use --config-branch default or switch to a config branch"
+		exit 1
+	fi
 fi
 
 RAW_ROOTFS_ATTR="raw-rootfs"
@@ -1035,15 +1055,19 @@ if [ "$START_STEP" -le 14 ]; then
 
 	  # Clone the repository
 	  log_info "Cloning nixos-config repository..."
-	  safe_exec sudo git clone --no-local "$(pwd)" "$NIXOS_CONFIG_DEST"
+	  # Determine which branch to clone
+	  CLONE_BRANCH="${CONFIG_BRANCH:-$GIT_BRANCH}"
+	  if [ -n "$CONFIG_BRANCH" ]; then
+	    log_info "Using config branch: $CONFIG_BRANCH (instead of $GIT_BRANCH)"
+	  fi
+	  safe_exec sudo git clone --branch "$CLONE_BRANCH" --no-local "$(pwd)" "$NIXOS_CONFIG_DEST"
 	  # Detect actual remote origin
 	  ACTUAL_REMOTE=$(git remote get-url origin 2>/dev/null || echo "https://github.com/PopCat19/nixos-shimboot.git")
 	  safe_exec sudo git -C "$NIXOS_CONFIG_DEST" remote set-url origin "$ACTUAL_REMOTE"
 
-	  # Switch to the same branch as the source repository
-	  if [ "$GIT_BRANCH" != "unknown" ]; then
-	    log_info "Switching to branch: $GIT_BRANCH"
-	    safe_exec sudo git -C "$NIXOS_CONFIG_DEST" checkout "$GIT_BRANCH" || log_warn "Failed to checkout branch $GIT_BRANCH"
+	  # Verify we're on the correct branch
+	  if [ "$CLONE_BRANCH" != "unknown" ]; then
+	    log_info "Verified branch: $CLONE_BRANCH"
 	  fi
 
 	  # Set ownership to user
@@ -1053,7 +1077,7 @@ if [ "$START_STEP" -le 14 ]; then
 	  sudo tee "$NIXOS_CONFIG_DEST/.shimboot_branch" > /dev/null <<EOF
 # Shimboot build information
 BUILD_DATE=$BUILD_DATE
-GIT_BRANCH=$GIT_BRANCH
+GIT_BRANCH=$CLONE_BRANCH
 GIT_COMMIT=$GIT_COMMIT
 GIT_CHANGES=$GIT_STATUS
 GIT_REMOTE=$GIT_REMOTE
@@ -1068,7 +1092,7 @@ BUILD_DATE=$BUILD_DATE
 BOARD=$BOARD
 ROOTFS_FLAVOR=$ROOTFS_FLAVOR
 DRIVERS_MODE=$DRIVERS_MODE
-GIT_BRANCH=$GIT_BRANCH
+GIT_BRANCH=$CLONE_BRANCH
 GIT_COMMIT=$GIT_COMMIT
 GIT_CHANGES=$GIT_STATUS
 GIT_REMOTE=$GIT_REMOTE
