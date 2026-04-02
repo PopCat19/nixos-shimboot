@@ -36,8 +36,8 @@
   # Uses centralized theme configuration from userConfig
   stylix.pmd = {
     enable = true;
-    inherit (userConfig.theme) hue;
-    inherit (userConfig.theme) variant;
+    hue = if userConfig.theme.hue != null then userConfig.theme.hue else 30;
+    variant = userConfig.theme.variant or "dark";
 
     # DISABLE PMD Wallpaper generation here
     wallpaper.enable = false;
