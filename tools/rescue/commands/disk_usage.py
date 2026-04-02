@@ -12,8 +12,6 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
-from rich.table import Table
-
 from lib.console import console, log_info, log_section
 from commands import register_command
 

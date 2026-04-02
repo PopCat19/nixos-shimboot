@@ -12,9 +12,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from rich.table import Table
-
-from lib.console import console, log_info, log_section
+from lib.console import console, log_info, log_section, HAS_RICH
 from lib.nix import find_nixos_configs
 from lib.git_ops import get_git_info
 from commands import register_command
@@ -43,32 +41,48 @@ def run(
         log_info("No nixos-config directories found")
         return 0
     
-    table = Table(show_header=True, header_style="bold")
-    table.add_column("#", style="cyan", no_wrap=True)
-    table.add_column("Path", style="green")
-    table.add_column("Git", style="blue")
-    table.add_column("Last Commit", style="dim")
-    
-    for i, config in enumerate(configs, 1):
-        marker = "→ " if config == selected else "  "
+    if HAS_RICH:
+        from rich.table import Table
+        table = Table(show_header=True, header_style="bold")
+        table.add_column("#", style="cyan", no_wrap=True)
+        table.add_column("Path", style="green")
+        table.add_column("Git", style="blue")
+        table.add_column("Last Commit", style="dim")
         
-        # Get git info
-        info = get_git_info(config)
-        if info:
-            git_str = f"{info.branch} @ {info.commit}"
-            commit_str = info.message[:50]
-        else:
-            git_str = "no git"
-            commit_str = ""
+        for i, config in enumerate(configs, 1):
+            marker = "→ " if config == selected else "  "
+            
+            # Get git info
+            info = get_git_info(config)
+            if info:
+                git_str = f"{info.branch} @ {info.commit}"
+                commit_str = info.message[:50]
+            else:
+                git_str = "no git"
+                commit_str = ""
+            
+            table.add_row(
+                f"{marker}{i}",
+                str(config),
+                git_str,
+                commit_str,
+            )
         
-        table.add_row(
-            f"{marker}{i}",
-            str(config),
-            git_str,
-            commit_str,
-        )
+        console.print(table)
+    else:
+        # Simple fallback
+        for i, config in enumerate(configs, 1):
+            marker = "→ " if config == selected else "  "
+            print(f"\n{marker}[{i}] {config}")
+            
+            # Get git info
+            info = get_git_info(config)
+            if info:
+                print(f"    Git: {info.branch} @ {info.commit}")
+                print(f"    Last: {info.message[:50]}")
+            else:
+                print("    (no git)")
     
-    console.print(table)
     return 0
 
 

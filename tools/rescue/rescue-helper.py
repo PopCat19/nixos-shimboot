@@ -17,13 +17,8 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from rich.console import Console
-from rich.panel import Panel
-from rich.table import Table
-from rich.text import Text
-
 # Import lib modules
-from lib.console import console, log_section, log_info, log_error
+from lib.console import console, log_section, log_info, log_error, HAS_RICH
 from lib.mounts import mounted
 from lib.system import ensure_root, detect_nixos_partition, check_partition_exists
 
@@ -50,7 +45,7 @@ def create_menu_table(
     mountpoint: Path,
     mounted: bool,
     filter_query: str = "",
-) -> Table:
+):
     """Create the command menu table.
     
     Args:
@@ -61,29 +56,57 @@ def create_menu_table(
         filter_query: Current filter query
     
     Returns:
-        Rich Table
+        Table or string representation
     """
     status = "(rw)" if mounted else "(ro)"
+    title = f"NixOS Shimboot Rescue Helper"
+    subtitle = f"Target: {target}  |  Mount: {mountpoint} {status}"
     
-    table = Table(
-        title=f"NixOS Shimboot Rescue Helper\nTarget: {target}  |  Mount: {mountpoint} {status}",
-        show_header=False,
-        box=None,
-    )
-    
-    if filter_query:
-        table.add_row(f"[dim]Filter: {filter_query}[/dim]")
+    if HAS_RICH:
+        from rich.table import Table
+        table = Table(
+            title=f"{title}\n{subtitle}",
+            show_header=False,
+            box=None,
+        )
+        
+        if filter_query:
+            table.add_row(f"[dim]Filter: {filter_query}[/dim]")
+            table.add_row("")
+        
+        for cmd in commands:
+            marker = "→ " if cmd.number == "1" else "  "
+            tested_marker = "" if cmd.tested else " [yellow][UNTESTED][/yellow]"
+            table.add_row(f"{marker}[{cmd.number}] {cmd.name}{tested_marker}")
+        
         table.add_row("")
-    
-    for cmd in commands:
-        marker = "→ " if cmd.number == "1" else "  "
-        tested_marker = "" if cmd.tested else " [yellow][UNTESTED][/yellow]"
-        table.add_row(f"{marker}[{cmd.number}] {cmd.name}{tested_marker}")
-    
-    table.add_row("")
-    table.add_row("  [0] Exit")
-    
-    return table
+        table.add_row("  [0] Exit")
+        
+        return table
+    else:
+        # Simple text fallback
+        lines = [
+            "",
+            "=" * 50,
+            f"  {title}",
+            f"  {subtitle}",
+            "=" * 50,
+        ]
+        
+        if filter_query:
+            lines.append(f"  Filter: {filter_query}")
+            lines.append("")
+        
+        for cmd in commands:
+            marker = "-> " if cmd.number == "1" else "   "
+            tested_marker = "" if cmd.tested else " [UNTESTED]"
+            lines.append(f"{marker}[{cmd.number}] {cmd.name}{tested_marker}")
+        
+        lines.append("")
+        lines.append("   [0] Exit")
+        lines.append("=" * 50)
+        
+        return "\n".join(lines)
 
 
 def main_menu(
