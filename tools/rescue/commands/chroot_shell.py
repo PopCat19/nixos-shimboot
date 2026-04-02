@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from lib.console import log_info, log_success
+from lib.console import log_info, log_warn, log_error, log_success
 from lib.mounts import chroot_bindings, find_shell_path
 from commands import register_command
 
@@ -63,8 +63,35 @@ def run(
     Returns:
         Exit code (always 0, returns to menu)
     """
+    from lib.console import log_warn, log_error
+    
     log_info("Entering chroot environment...")
     log_info("Type 'exit' to return to menu")
+    
+    # Check if filesystem is read-only and remount if needed
+    test_file = mountpoint / ".write_test"
+    try:
+        test_file.touch()
+        test_file.unlink()
+    except (OSError, PermissionError):
+        log_warn("Filesystem is read-only, attempting to remount...")
+        if partition:
+            try:
+                import subprocess
+                subprocess.run(["umount", str(mountpoint)], check=False)
+                subprocess.run(
+                    ["mount", "-o", "rw", str(partition), str(mountpoint)],
+                    check=True,
+                )
+                log_success("Remounted read-write")
+            except subprocess.CalledProcessError as e:
+                log_error(f"Failed to remount: {e}")
+                log_info("Use 'Remount read-write' option first")
+                return 1
+        else:
+            log_error("Cannot remount - no partition specified")
+            log_info("Use 'Remount read-write' option first")
+            return 1
     
     # Find shell
     shell = find_shell_path(mountpoint)

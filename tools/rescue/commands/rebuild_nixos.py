@@ -43,7 +43,7 @@ def select_best_config(
     Returns:
         Best config path
     """
-    from git_ops import get_git_info
+    from lib.git_ops import get_git_info
     
     if len(valid_configs) == 1:
         return valid_configs[0]
