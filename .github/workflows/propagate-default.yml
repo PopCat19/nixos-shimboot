@@ -1,0 +1,39 @@
+name: Propagate Default Changes
+
+on:
+  push:
+    branches:
+      - default
+  workflow_dispatch:
+
+jobs:
+  propagate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Propagate default to popcat19-dev
+        run: |
+          echo "=== Propagating default → popcat19-dev ==="
+          git checkout popcat19-dev
+          git merge origin/default --no-edit || {
+            echo "::error::Merge failed on popcat19-dev branch"
+            echo "Conflicts need manual resolution"
+            exit 1
+          }
+          git push origin popcat19-dev
+          echo "✓ popcat19-dev branch updated"
+
+      - name: Summary
+        run: |
+          echo "=== Propagation complete ==="
+          git log --oneline --graph --all | head -10
