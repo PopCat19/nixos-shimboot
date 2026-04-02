@@ -30,7 +30,6 @@ in
     jql
 
     # Development tools
-    nodejs
     rustup
   ];
 }

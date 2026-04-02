@@ -17,6 +17,8 @@
     android-tools
     tree
     xdg-utils
+    nodejs
+    python3
     inputs.llm-agents.packages.${pkgs.system}.kilocode-cli
     inputs.llm-agents.packages.${pkgs.system}.opencode
   ];

@@ -21,6 +21,8 @@
     nixd
     nil
     biome
+    pylint
+    ruff
     statix
     deadnix
     nixfmt-tree
