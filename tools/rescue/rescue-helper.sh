@@ -191,6 +191,14 @@ mount_system() {
 	log_step "Mount" "Mounting rootfs ($mode)"
 	if ! mount -o "$mode" "$TARGET_PARTITION" "$MOUNTPOINT"; then
 		log_error "Failed to mount $TARGET_PARTITION"
+		log_info ""
+		log_info "The device may already be mounted. Try running:"
+		log_info "  sudo umount $TARGET_PARTITION"
+		log_info "  sudo umount -l $TARGET_PARTITION  # if the above fails"
+		log_info ""
+		log_info "Or check what's using it:"
+		log_info "  lsof $MOUNTPOINT"
+		log_info "  fuser -m $TARGET_PARTITION"
 		return 1
 	fi
 
