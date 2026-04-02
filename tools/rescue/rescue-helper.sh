@@ -644,34 +644,49 @@ CHROOT_SETUP_EOF
 
 			log_info "Will run: nixos-rebuild $nix_args"
 			log_info "(Using 'boot' instead of 'switch' since we're in a chroot environment)"
-			if ! confirm_action; then
-				# Give user options when they say no
-				echo
-				log_info "What would you like to do?"
-				PS3="Select option: "
+
+			# Show git info if available
+			if [[ -d "$config_dir/.git" ]]; then
+				local git_branch git_commit
+				git_branch=$(git -C "$config_dir" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+				git_commit=$(git -C "$config_dir" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+				log_info "CWD: $config_dir"
+				log_info "Git: $git_branch @ $git_commit"
+			fi
+
+			# Show options menu upfront (better UX than hidden y/N)
+			echo
+			PS3="Select option: "
+			while true; do
 				select opt in \
+					"[GO] Proceed with rebuild" \
 					"Show available configs" \
 					"Use different hostname" \
 					"Use different config" \
+					"Git pull before rebuild" \
+					"Drop into chroot shell" \
 					"Use nix flake show (accurate but slow)" \
 					"Edit rebuild arguments" \
 					"Cancel and return"; do
 					case "$opt" in
+					"[GO] Proceed with rebuild")
+						break 2 # Exit the while loop and proceed to rebuild
+						;;
 					"Show available configs")
 						log_info "Available configurations:"
 						for i in "${!valid_configs[@]}"; do
 							local cfg="${valid_configs[$i]}"
-							local commit_time="0"
-							local commit_msg=""
-							if [[ -d "$cfg/.git" ]]; then
-								commit_time=$(git -C "$cfg" log -1 --format=%ct 2>/dev/null || echo "0")
-								commit_msg=$(git -C "$cfg" log -1 --format=%s 2>/dev/null | cut -c1-40)
-							fi
 							local marker=""
 							[[ "$cfg" == "$config_dir" ]] && marker=" (selected)"
 							printf "  [%d] %s%s\n" "$i" "$cfg" "$marker"
-							if [[ -n "$commit_msg" ]]; then
-								printf "      Last commit: %s\n" "$commit_msg"
+
+							if [[ -d "$cfg/.git" ]]; then
+								local git_branch git_commit commit_msg
+								git_branch=$(git -C "$cfg" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+								git_commit=$(git -C "$cfg" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+								commit_msg=$(git -C "$cfg" log -1 --format=%s 2>/dev/null | cut -c1-50)
+								printf "      Git: %s @ %s\n" "$git_branch" "$git_commit"
+								printf "      Last: %s\n" "$commit_msg"
 							fi
 						done
 						break
@@ -704,6 +719,144 @@ CHROOT_SETUP_EOF
 						else
 							log_warn "Only one config available"
 						fi
+						break
+						;;
+					"Git pull before rebuild")
+						if [[ ! -d "$config_dir/.git" ]]; then
+							log_error "Config directory is not a git repository"
+							break
+						fi
+
+						log_info "Current git status:"
+						git -C "$config_dir" status --short
+
+						local has_changes=false
+						if ! git -C "$config_dir" diff --quiet HEAD 2>/dev/null ||
+							! git -C "$config_dir" diff --cached --quiet HEAD 2>/dev/null; then
+							has_changes=true
+							log_warn "You have uncommitted changes"
+						fi
+
+						PS3="Git update option: "
+						select git_opt in \
+							"Simple git pull (may fail if conflicts)" \
+							"Stash local changes, then pull" \
+							"Pull with auto-merge strategy" \
+							"Show git status and abort"; do
+							case "$git_opt" in
+							"Simple git pull (may fail if conflicts)")
+								log_step "Git" "Pulling latest changes..."
+								if git -C "$config_dir" pull 2>&1; then
+									log_success "Git pull successful"
+									# Report new state
+									local new_branch new_commit
+									new_branch=$(git -C "$config_dir" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+									new_commit=$(git -C "$config_dir" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+									log_info "Now at: $new_branch @ $new_commit"
+									log_info "CWD: $config_dir"
+								else
+									log_error "Git pull failed. You may have conflicts or diverged branches."
+								fi
+								break
+								;;
+							"Stash local changes, then pull")
+								log_step "Git" "Stashing local changes..."
+								if git -C "$config_dir" stash push -m "rescue-helper auto-stash $(date +%Y%m%d_%H%M%S)" 2>&1; then
+									log_success "Changes stashed"
+									log_step "Git" "Pulling latest changes..."
+									if git -C "$config_dir" pull 2>&1; then
+										log_success "Git pull successful"
+										# Report new state
+										local new_branch new_commit
+										new_branch=$(git -C "$config_dir" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+										new_commit=$(git -C "$config_dir" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+										log_info "Now at: $new_branch @ $new_commit"
+										log_info "CWD: $config_dir"
+										log_info "Your stashed changes are saved. Run 'git stash pop' to restore them."
+									else
+										log_error "Git pull failed even after stashing"
+									fi
+								else
+									log_error "Failed to stash changes"
+								fi
+								break
+								;;
+							"Pull with auto-merge strategy")
+								log_step "Git" "Pulling with merge strategy..."
+								if git -C "$config_dir" pull --strategy=recursive --strategy-option=theirs 2>&1; then
+									log_success "Git pull with auto-merge successful"
+									# Report new state
+									local new_branch new_commit
+									new_branch=$(git -C "$config_dir" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+									new_commit=$(git -C "$config_dir" rev-parse --short HEAD 2>/dev/null || echo "unknown")
+									log_info "Now at: $new_branch @ $new_commit"
+									log_info "CWD: $config_dir"
+								else
+									log_error "Git pull with auto-merge failed"
+								fi
+								break
+								;;
+							"Show git status and abort")
+								git -C "$config_dir" status
+								log_info "Git update cancelled"
+								break
+								;;
+							esac
+						done
+						break
+						;;
+					"Drop into chroot shell")
+						log_info "Entering chroot environment..."
+						log_info "Type 'exit' to return to this menu"
+
+						# Detect suitable shell path in rootfs
+						local bash_path=""
+						if [[ -x "$MOUNTPOINT/bin/bash" ]]; then
+							bash_path="/bin/bash"
+						elif [[ -x "$MOUNTPOINT/run/current-system/sw/bin/bash" ]]; then
+							bash_path="/run/current-system/sw/bin/bash"
+						elif [[ -x "$MOUNTPOINT/bin/sh" ]]; then
+							bash_path="/bin/sh"
+						else
+							log_error "No shell found inside rootfs"
+							break
+						fi
+
+						# Bind essential filesystems for chroot
+						mount --bind /dev "$MOUNTPOINT/dev"
+						mount --bind /proc "$MOUNTPOINT/proc"
+						mount --bind /sys "$MOUNTPOINT/sys"
+
+						# Create setup script for Nix environment
+						cat >"$MOUNTPOINT/.rescue-nix-setup" <<'CHROOT_SETUP_EOF'
+#!/bin/sh
+if [ -d "/nix/var/nix/profiles" ]; then
+	if [ -x "/nix/var/nix/profiles/system/activate" ]; then
+		/nix/var/nix/profiles/system/activate 2>/dev/null || true
+	fi
+	export PATH="/nix/var/nix/profiles/system/sw/bin:/nix/var/nix/profiles/system/sw/sbin:$PATH"
+	if [ -f "/nix/var/nix/profiles/default/etc/profile.d/nix.sh" ]; then
+		. "/nix/var/nix/profiles/default/etc/profile.d/nix.sh"
+	fi
+	export NIX_PATH="nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos:nixos-config=/etc/nixos/configuration.nix:/nix/var/nix/profiles/per-user/root/channels"
+	echo "Nix environment ready. Tools: nixos-rebuild, nix-env, nix-channel"
+fi
+rm -f /.rescue-nix-setup
+CHROOT_SETUP_EOF
+						chmod +x "$MOUNTPOINT/.rescue-nix-setup"
+
+						# Enter chroot - when user exits, return to this menu
+						chroot "$MOUNTPOINT" /bin/sh -c "
+							if [ -f /.rescue-nix-setup ]; then
+								. /.rescue-nix-setup
+							fi
+							exec $bash_path
+						" || true
+
+						# Clean up and return to menu
+						rm -f "$MOUNTPOINT/.rescue-nix-setup"
+						umount "$MOUNTPOINT/sys" "$MOUNTPOINT/proc" "$MOUNTPOINT/dev" || true
+						log_info "Returned from chroot"
 						break
 						;;
 					"Use nix flake show (accurate but slow)")
@@ -739,7 +892,7 @@ CHROOT_SETUP_EOF
 						;;
 					esac
 				done
-			fi
+			done
 
 			# Bind essential filesystems and run rebuild
 			mount --bind /dev "$MOUNTPOINT/dev"
