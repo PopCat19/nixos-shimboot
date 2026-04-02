@@ -40,7 +40,34 @@ def run(
     Returns:
         Exit code (0 = success)
     """
+    from lib.console import log_success
+    
     log_section("Git Pull & Rebuild")
+    
+    # Check if filesystem is read-only and remount if needed
+    test_file = mountpoint / ".write_test"
+    try:
+        test_file.touch()
+        test_file.unlink()
+    except (OSError, PermissionError):
+        log_warn("Filesystem is read-only, attempting to remount...")
+        if partition:
+            try:
+                import subprocess
+                subprocess.run(["umount", str(mountpoint)], check=False)
+                subprocess.run(
+                    ["mount", "-o", "rw", str(partition), str(mountpoint)],
+                    check=True,
+                )
+                log_success("Remounted read-write")
+            except subprocess.CalledProcessError as e:
+                log_error(f"Failed to remount: {e}")
+                log_info("Use 'Remount read-write' option first")
+                return 1
+        else:
+            log_error("Cannot remount - no partition specified")
+            log_info("Use 'Remount read-write' option first")
+            return 1
     
     # Find configs with git repos
     configs = find_nixos_configs(mountpoint)

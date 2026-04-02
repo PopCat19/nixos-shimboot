@@ -132,13 +132,12 @@ def mounted(
     try:
         yield mountpoint
     finally:
-        # Always unmount
+        # Always unmount - use lazy unmount to avoid "target is busy"
         log_info(f"Unmounting {mountpoint}")
         try:
-            subprocess.run(["umount", str(mountpoint)], check=False)
-        except subprocess.CalledProcessError:
-            # Try lazy unmount
             subprocess.run(["umount", "-l", str(mountpoint)], check=False)
+        except subprocess.CalledProcessError:
+            pass
 
 
 @contextmanager
