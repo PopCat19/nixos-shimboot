@@ -1,0 +1,51 @@
+name: Propagate Dev Changes
+
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+jobs:
+  propagate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Propagate to default branch
+        run: |
+          echo "=== Propagating dev → default ==="
+          git checkout default
+          git rebase origin/dev || {
+            echo "::error::Rebase failed on default branch"
+            echo "Conflicts need manual resolution"
+            exit 1
+          }
+          git push --force-with-lease origin default
+          echo "✓ default branch updated"
+
+      - name: Propagate to popcat19-dev branch
+        run: |
+          echo "=== Propagating default → popcat19-dev ==="
+          git checkout popcat19-dev
+          git rebase origin/default || {
+            echo "::error::Rebase failed on popcat19-dev branch"
+            echo "Conflicts need manual resolution"
+            exit 1
+          }
+          git push --force-with-lease origin popcat19-dev
+          echo "✓ popcat19-dev branch updated"
+
+      - name: Summary
+        run: |
+          echo "=== Propagation complete ==="
+          git log --oneline --graph --all | head -10
