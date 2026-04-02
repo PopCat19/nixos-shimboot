@@ -1,6 +1,6 @@
 # DEV-MINI
 
-Purpose: Non-obvious conventions only. Assumes standard SWE practices. Principles: KISS, DRY, SoC, SRP, CoC.
+Purpose: Non-obvious conventions only. Assumes standard SWE practices. Principles: KISS, DRY, SoC, SRP, CoC. Vocabulary: Rule 21 in DEVELOPMENT.md.
 
 ## Naming
 
@@ -22,6 +22,31 @@ Purpose: Non-obvious conventions only. Assumes standard SWE practices. Principle
 - **CoC:** Conventions here are structural, not cosmetic. Follow by
   default; deviate only with documented reason.
 - Files approaching 800–1000 lines: consider splitting by role (domain subdirs like `auth/login.nix`, `auth/tokens.nix`) or layer (layer subdirs like `api/types.ts`, `api/handlers.ts`). Existing structure rules (depth, wiring, context.md, headers) still apply. Scope: project source code only, not convention docs.
+
+## Vocabulary
+
+Prefer established terms when describing repo structure. Quick reference:
+
+- **Domain** — bounded area of concern
+- **Subdomain** — narrower concern within a domain
+- **Bounded Context** — a deployable unit's scope — its own rules, its own reality
+- **Context Boundary** — seam where unit-specific config meets shared config
+- **Shared Kernel** — code no single domain owns but multiple use
+- **Anti-Corruption Layer** — normalizes raw inputs before the rest of the system sees them
+- **Factory** — constructs valid, complete objects from inputs
+- **Entity** — a thing with identity, distinguished from others of its kind
+- **Value Object** — a pure value, no identity, swappable and reusable
+- **Aggregate** — pulls all parts of one entity into a coherent whole
+- **Aggregate Root** — single entry point everything resolves through
+- **Policy** — named rule set applied to entities
+- **Specification** — defines what it means to satisfy a named policy
+- **Strategy** — per-entity override of shared behavior; same interface, different implementation
+- **Detached Instance** — a unit that opted out of shared behavior; owns its copy
+- **Ubiquitous Language** — this vocabulary; full definitions at Rule 21 in DEVELOPMENT.md
+
+**Repo-specific mapping:** Do not embed project paths here. Map terms to
+your repo's actual structure in your root `context.md` under a
+`## Vocabulary` section.
 
 ## Comments & Docs
 

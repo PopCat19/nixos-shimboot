@@ -45,8 +45,9 @@ check_context_drift() {
 		dir=$(dirname "$context_file")
 
 		# Structural check: listed files vs actual files
+		# Only match backticks on lines starting with "- `" (file list format)
 		local listed
-		listed=$(grep -oE '`[^`]+`' "$context_file" 2>/dev/null | tr -d '`' | sort)
+		listed=$(grep -E '^- ' "$context_file" 2>/dev/null | grep -oE '`[^`]+`' | tr -d '`' | sort)
 
 		local actual
 		# HTML shells and loose JSON configs are not module files; omit from structural listing

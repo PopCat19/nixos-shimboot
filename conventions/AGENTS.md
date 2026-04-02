@@ -15,7 +15,8 @@ Opinionated agent development rules and conventions. Covers:
 - Commit message format and workflow
 - Documentation guidelines
 - Validation and CI/CD configuration
-- Principles (KISS, DRY, maintainable over clever)
+- Principles (KISS, DRY, SoC, SRP, CoC, maintainable over clever)
+- Vocabulary (DDD + Figma bridge, repo-agnostic definitions)
 
 **Reading guide:** Comprehensive document (1.5~3k lines). Use the table of contents to navigate to relevant sections.
 
@@ -91,5 +92,9 @@ Verifies `context.md` files match actual directory contents. Detects structural 
 - `DEV-MINI.md` — Condensed conventions derived from DEVELOPMENT.md
 - `src/changelog.sh` — Workflow script following project conventions
 - `src/sync.sh` — Workflow script following project conventions
+
+**Repo-specific vocabulary mapping lives in the root `context.md`, not in
+convention files. Do not add project paths to DEVELOPMENT.md or
+DEV-MINI.md.**
 
 These files represent intentional design decisions. Modifications should only occur when the user explicitly states a need for changes.

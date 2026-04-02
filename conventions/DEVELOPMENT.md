@@ -28,6 +28,7 @@
 18. [Agent Interaction](#18-agent-interaction)
 19. [New Rule Files](#19-new-rule-files)
 20. [Changelog Policy](#20-changelog-policy)
+21. [Vocabulary](#21-vocabulary)
 
 ## 1. File Headers
 
@@ -2063,6 +2064,85 @@ Do **not** gitignore changelogs. They are project history.
 # CHANGELOG-*.md
 # changelog_archive/
 ```
+
+---
+
+[↑ Back to Top](#development) | [Table of Contents](#table-of-contents)
+
+## 21. Vocabulary
+
+**Rationale:** Shared vocabulary reduces ambiguity in agent instructions,
+code review, and documentation. When referring to parts of a repo, prefer
+these terms over informal equivalents.
+
+**Primary reference:** DDD (Domain-Driven Design). Secondary bridge:
+Figma design system vocabulary, for contributors with a design background.
+
+**Repo-specific mapping:** Do not embed project paths in this file. Map
+terms to your repo's actual structure in your root `context.md` under a
+`## Vocabulary` section.
+
+### Structure terms
+
+| Term | Definition |
+|------|------------|
+| **Domain** | Bounded area of concern |
+| **Subdomain** | Narrower concern within a domain |
+| **Bounded Context** | Everything scoped to one deployable unit — its own rules and overrides |
+| **Context Boundary** | The seam where unit-specific config meets shared config |
+| **Shared Kernel** | Code multiple domains depend on without any single domain owning |
+| **Anti-Corruption Layer** | Translates raw inputs into a normalized shape before the rest of the system sees them |
+| **Infrastructure** | Plumbing that supports domains without belonging to any |
+| **Supporting Domain** | Exists to serve the core domain, not be it |
+| **Generic Subdomain** | Solved problem, not unique to this domain — patch upstream, move on |
+
+### Building block terms
+
+| Term | Definition |
+|------|------------|
+| **Entity** | A thing with identity, distinguished from others of its kind |
+| **Value Object** | No identity of its own — a pure value, swappable and reusable |
+| **Aggregate** | The root that pulls all parts of one entity into a coherent whole |
+| **Aggregate Root** | The single entry point everything resolves through |
+| **Repository** | Knows how to find and assemble all entities of a type |
+| **Factory** | Constructs a valid, complete object from inputs |
+| **Module** | Pluggable unit of behavior within a domain |
+
+### Variation terms
+
+| Term | Definition |
+|------|------------|
+| **Policy** | A named rule set applied to entities |
+| **Specification** | Defines what it means to satisfy a named policy — inclusion criteria |
+| **Strategy** | Per-entity behavioral override — same interface, different implementation |
+| **Base Domain** | Core shared reality every entity inherits |
+| **Detached Instance** | An entity that opted out of shared behavior and owns its own implementation |
+| **Ubiquitous Language** | The shared vocabulary all contributors and agents use to describe a repo |
+
+### Figma bridge
+
+For contributors coming from a design background:
+
+| Figma | DDD |
+|-------|-----|
+| Page | Domain |
+| Section | Subdomain |
+| Master component | Factory / Anti-Corruption Layer |
+| Component | Module |
+| Instance | Bounded Context |
+| Variant | Policy |
+| Local override / Detach instance | Strategy |
+| Library | Shared Kernel |
+| Design token | Value Object |
+| Component props | Context Boundary |
+
+### Key insight
+
+When a unit-level override exists for a concern, that unit has **detached
+from the shared model** for that concern. In Figma terms: detached
+instance. In DDD terms: bounded context with a broken conformist
+relationship. Both mean the same thing — it opted out, it owns the copy,
+changes to base will not propagate to it automatically.
 
 ---
 

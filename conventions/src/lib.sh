@@ -27,15 +27,15 @@ ANSI_BOLD='\033[1m'
 
 # Logging functions
 log_info() {
-	printf "${ANSI_GREEN}  -> %s${ANSI_CLEAR}\n" "$1"
+	printf "${ANSI_GREEN}  → %s${ANSI_CLEAR}\n" "$1"
 }
 
 log_warn() {
-	printf "${ANSI_YELLOW}  [WARN] %s${ANSI_CLEAR}\n" "$1"
+	printf "${ANSI_YELLOW}  ⚠ %s${ANSI_CLEAR}\n" "$1"
 }
 
 log_error() {
-	printf "${ANSI_RED}  [FAIL] %s${ANSI_CLEAR}\n" "$1"
+	printf "${ANSI_RED}  ✗ %s${ANSI_CLEAR}\n" "$1"
 }
 
 log_prompt() {
@@ -47,7 +47,7 @@ log_detail() {
 }
 
 log_success() {
-	printf "${ANSI_GREEN}  [OK] %s${ANSI_CLEAR}\n" "$1"
+	printf "${ANSI_GREEN}  ✓ %s${ANSI_CLEAR}\n" "$1"
 }
 
 # Prompt helpers
