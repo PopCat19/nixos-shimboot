@@ -2,7 +2,7 @@
 
 **Purpose:** An opinionated agent development rules and conventions.
 
-**Principles:** KISS (Keep It Simple, Stupid), DRY (Don't Repeat Yourself), lazy maintenance, self-documenting code.
+**Principles:** KISS (Keep It Simple, Stupid), DRY (Don't Repeat Yourself), SoC (Separation of Concerns), SRP (Single Responsibility Principle), CoC (Convention over Configuration), lazy maintenance, self-documenting code.
 
 **Reading Guide:** This document is comprehensive (1.5~3k lines) covering multiple languages and use cases. Use the table of contents to navigate to relevant sections. Each rule is independently simple; apparent complexity comes from breadth of coverage. Rule 17 (Example Patterns) is optional reference material.
 
@@ -788,7 +788,14 @@ nix-shell -p pandoc --run "pandoc input.md -o output.pdf"
   - Easy to examine individual components
   - Conflict tracing shows which module changed
   - Enables selective imports/overrides
-- **Tree should be intuitive:** Newcomers should understand structure from directory names alone
+- **SoC in practice:** Each module directory maps to one concern
+  (`system/`, `home/`, `secrets/`). Avoid catch-all directories
+  (`misc/`, `stuff/`, `helpers/`) — if a name doesn't declare a concern,
+  the structure is wrong
+- **SRP in practice:** If a file changes for two unrelated reasons across
+  separate commits, it should have been two files
+- **Tree should be intuitive:** Newcomers should understand structure from
+  directory names alone
 
 **Repository organization:**
 - **Monorepo:** Each app/package maintains its own 6-level budget
@@ -1744,6 +1751,23 @@ permissions:
 **DRY:** Don't Repeat Yourself
 - Single source of truth
 - Changes propagate automatically
+
+**SoC:** Separation of Concerns
+- Each file, module, or service owns exactly one concern
+- Mixing concerns (e.g., boot config and user config in one file) obscures
+  intent and hardens refactoring
+- Applied structurally: directories group by concern, not by file type
+
+**SRP:** Single Responsibility Principle
+- Each module has one reason to change
+- Applied at every level: file, directory, flake module, profile
+- If two unrelated things would cause a file to change, split it
+
+**CoC:** Convention over Configuration
+- Predictable structure reduces decision fatigue
+- Consistent naming, depth limits, and `context.md` placement are
+  load-bearing conventions, not style preferences
+- Deviation requires justification; conformance requires none
 
 **Maintainable over clever:**
 - Code is read 10x more than written

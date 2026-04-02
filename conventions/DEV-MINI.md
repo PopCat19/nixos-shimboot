@@ -1,6 +1,6 @@
 # DEV-MINI
 
-Purpose: Non-obvious conventions only. Assumes standard SWE practices.
+Purpose: Non-obvious conventions only. Assumes standard SWE practices. Principles: KISS, DRY, SoC, SRP, CoC.
 
 ## Naming
 
@@ -14,6 +14,13 @@ Purpose: Non-obvious conventions only. Assumes standard SWE practices.
 - Every module must be imported somewhere (wire in on create, remove refs before delete)
 - Add `context.md` to folders with 5+ non-obvious files: one bullet per file, present-tense, no subdirectory entries (those get their own). Update in the same commit as any file addition, removal, or rename — treat drift as broken.
 - **Single source of truth:** context.md entries derive from file header `Purpose:` lines. Files in context.md must have headers. The drift check validates both structure and content.
+- **SoC:** One concern per directory. No catch-all dirs (`misc/`,
+  `helpers/`). If a dir name doesn't declare a concern, rename or
+  restructure.
+- **SRP:** One reason to change per file. If two unrelated changes land in
+  the same file across separate commits, split it.
+- **CoC:** Conventions here are structural, not cosmetic. Follow by
+  default; deviate only with documented reason.
 - Files approaching 800–1000 lines: consider splitting by role (domain subdirs like `auth/login.nix`, `auth/tokens.nix`) or layer (layer subdirs like `api/types.ts`, `api/handlers.ts`). Existing structure rules (depth, wiring, context.md, headers) still apply. Scope: project source code only, not convention docs.
 
 ## Comments & Docs

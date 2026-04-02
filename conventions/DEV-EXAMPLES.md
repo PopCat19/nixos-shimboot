@@ -306,6 +306,63 @@ configuration/
     └── api-keys.age
 ```
 
+## SoC / SRP (Rule 15)
+
+**Split mixed-concern files:**
+```nix
+# Bad: boot.nix configuring both hardware and user sessions
+{ ... }: {
+  boot.loader.systemd-boot.enable = true;   # hardware concern
+  services.greetd.enable = true;            # session concern
+  users.users.alice.isNormalUser = true;    # user concern
+}
+
+# Good: one concern per file
+# boot.nix
+{ ... }: {
+  boot.loader.systemd-boot.enable = true;
+}
+
+# greeter.nix
+{ ... }: {
+  services.greetd.enable = true;
+}
+
+# users.nix
+{ ... }: {
+  users.users.alice.isNormalUser = true;
+}
+```
+
+**CoC — structural deviation requires justification:**
+```nix
+# Bad: catch-all directory, concern unclear
+configuration/
+└── misc/
+    ├── boot.nix
+    ├── users.nix
+    └── greeter.nix
+
+# Good: each directory declares its concern
+configuration/
+├── system/
+│   ├── boot.nix
+│   └── users.nix
+└── home/
+    └── greeter.nix
+```
+
+**SRP signal — two unrelated commit messages touching the same file:**
+```
+# Warning sign: both of these changed services.nix
+feat(services): enable syncthing
+feat(services): configure ssh hardening
+
+# Correct split
+# syncthing.nix  ←  feat(syncthing): enable syncthing
+# ssh.nix        ←  feat(ssh): configure ssh hardening
+```
+
 ## Stratified Modules (Rule 4)
 
 **Domain stratification:**
