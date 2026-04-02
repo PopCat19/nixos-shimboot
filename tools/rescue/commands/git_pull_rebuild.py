@@ -52,9 +52,13 @@ def run(
     
     config_dir = git_configs[0]  # Use first git config
     
+    # Get git info for display
+    info = get_git_info(config_dir)
+    
     # Show current state
     console.print(f"[bold]Config:[/bold] {config_dir}")
-    console.print(f"[bold]Branch:[/bold] {info.branch} @ {info.commit}")
+    if info:
+        console.print(f"[bold]Branch:[/bold] {info.branch} @ {info.commit}")
     console.print()
     
     # Show status

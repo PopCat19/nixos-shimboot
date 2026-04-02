@@ -102,14 +102,20 @@ def run(
     # Create setup script
     setup_script = create_nix_setup_script(mountpoint)
     
+    # Verify script was created
+    script_path = mountpoint / setup_script
+    if not script_path.exists():
+        log_error(f"Failed to create setup script at {script_path}")
+        return 1
+    
     try:
         with chroot_bindings(mountpoint):
-            # Run shell with setup
+            # Run shell with setup - use absolute path
             subprocess.run(
                 [
                     "chroot", str(mountpoint),
                     "/bin/sh", "-c",
-                    f"if [ -f {setup_script} ]; then . {setup_script}; fi; exec {shell}"
+                    f"if [ -f /{setup_script} ]; then . /{setup_script}; fi; exec {shell}"
                 ],
                 check=False,
             )

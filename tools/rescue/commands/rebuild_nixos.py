@@ -157,8 +157,8 @@ def run(
         config_dir = select_best_config(mountpoint, valid_configs)
         log_info(f"Selected: {config_dir}")
     
-    # Calculate chroot-relative path
-    config_chroot = str(config_dir.relative_to(mountpoint))
+    # Calculate chroot-relative path (must start with / for flake)
+    config_chroot = "/" + str(config_dir.relative_to(mountpoint))
     
     # Detect hostname
     if hostname_override:
