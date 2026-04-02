@@ -29,6 +29,13 @@ in
       # Development utilities
       git
       jq
+
+      # Rescue helper Python environment
+      (python311.withPackages (
+        ps: with ps; [
+          rich
+        ]
+      ))
     ];
 
     shellHook = ''
