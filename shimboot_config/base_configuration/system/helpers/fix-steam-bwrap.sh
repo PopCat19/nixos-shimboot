@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+# Fix Steam Bwrap Script
+#
+# Purpose: Patch Steam's internal bwrap with SUID wrapper
+# Dependencies: find, rm, ln
+# Related: application-helpers.nix, security.nix
+#
+# This script:
+# - Fixes Steam's internal bwrap with SUID wrapper
+# - Patches security permissions for Steam runtime
+# - Maintains system security while enabling Steam functionality
+
+set -Eeuo pipefail
+
+# Colors & Logging
+GREEN='\033[1;32m'
+YELLOW='\033[1;33m'
+RED='\033[1;31m'
+BLUE='\033[1;34m'
+CYAN='\033[1;36m'
+NC='\033[0m'
+
+echo -e "${BLUE}[INFO]${NC} Searching for Steam directories..."
+HOME_DIR="${HOME}"
+
+if [[ ! -d "${HOME_DIR}/.steam" ]]; then
+	echo -e "${RED}[ERROR]${NC} Steam directory not found at ${HOME_DIR}/.steam"
+	exit 1
+fi
+
+echo -e "${BLUE}[INFO]${NC} Locating srt-bwrap instances..."
+# Find all instances of Steam's internal bwrap
+mapfile -t steam_bwraps < <(find "${HOME_DIR}/.steam" -name "srt-bwrap" 2>/dev/null || true)
+
+if [[ ${#steam_bwraps[@]} -eq 0 ]]; then
+	echo -e "${YELLOW}[WARN]${NC} No srt-bwrap binaries found. You may need to launch Steam once first."
+	exit 0
+fi
+
+# The SUID wrapper created by security.wrappers
+# Prefer bwrap-safe (LSM workaround) if available, fallback to regular bwrap
+SYSTEM_BWRAP="/run/wrappers/bin/bwrap-safe"
+if [[ ! -f "$SYSTEM_BWRAP" ]]; then
+	SYSTEM_BWRAP="/run/wrappers/bin/bwrap"
+fi
+
+if [[ ! -f "$SYSTEM_BWRAP" ]]; then
+	echo -e "${RED}[ERROR]${NC} SUID bwrap not found at ${SYSTEM_BWRAP}"
+	echo -e "${CYAN}[INFO]${NC} Ensure security.wrappers.bwrap is configured in configuration.nix"
+	exit 1
+fi
+
+for target in "${steam_bwraps[@]}"; do
+	echo -e "${BLUE}[STEP]${NC} Patching: ${target}"
+	# Remove the existing binary/symlink
+	rm -f -- "$target"
+	# Symlink to SUID wrapper
+	ln -s -- "$SYSTEM_BWRAP" "$target"
+done
+
+echo -e "${GREEN}[SUCCESS]${NC} Steam bwrap patched successfully."

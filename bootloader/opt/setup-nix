@@ -1,0 +1,42 @@
+#!/bin/sh
+
+# setup-nix
+#
+# Purpose: Configure Nix environment in a post-pivot NixOS rescue shell.
+#
+# This module:
+# - Validate execution context (must be sourced, must be post-pivot NixOS)
+# - Activate the current NixOS system profile
+# - Extend PATH with Nix profile bin dirs
+
+# Must be sourced — exec'd invocation cannot modify the calling shell's env.
+_self="${BASH_SOURCE:-$0}"
+if [ "$_self" != "$0" ] || [ -n "$ZSH_VERSION" ]; then
+	: # sourced — continue
+else
+	echo "> source this script to apply env changes: . /bootloader/opt/setup-nix"
+	exit 1
+fi
+unset _self
+
+if [ ! -d "/nix/var/nix/profiles" ]; then
+	echo "> /nix not found — are you in a NixOS rootfs?"
+	return 1
+fi
+
+# activate wires up /run/current-system, /etc, and PAM
+if [ -x "/nix/var/nix/profiles/system/activate" ]; then
+	echo "> activating NixOS system profile..."
+	/nix/var/nix/profiles/system/activate 2>/dev/null || true
+fi
+
+export PATH="/nix/var/nix/profiles/system/sw/bin:/nix/var/nix/profiles/system/sw/sbin:$PATH"
+
+if [ -f "/nix/var/nix/profiles/default/etc/profile.d/nix.sh" ]; then
+	. "/nix/var/nix/profiles/default/etc/profile.d/nix.sh"
+fi
+
+export NIX_PATH="nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos:nixos-config=/etc/nixos/configuration.nix:/nix/var/nix/profiles/per-user/root/channels"
+
+echo "> Nix environment ready"
+echo "> nix-env, nixos-rebuild, and sw/bin tools available"

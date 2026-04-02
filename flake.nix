@@ -13,10 +13,8 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    nixos-generators = {
-      url = "github:nix-community/nixos-generators";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # Pinned nixpkgs for systemd 258.3 — do not update without verifying version
+    nixpkgs-systemd.url = "github:NixOS/nixpkgs/0182a361324364ae3f436a63005877674cf45efb";
 
     zen-browser = {
       url = "github:0xc000022070/zen-browser-flake";
@@ -28,106 +26,179 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    noctalia = {
+      url = "github:noctalia-dev/noctalia-shell";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Stylix theming framework
+    stylix = {
+      url = "github:nix-community/stylix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     home-manager = {
       url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # Personal Material Design (PMD) theme system
+    pmd = {
+      url = "github:popcat19/project-minimalist-design/dev";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # LLM Agents
+    llm-agents = {
+      url = "github:numtide/llm-agents.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    nixvim = {
+      url = "github:nix-community/nixvim";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
   # Combine all outputs from modules
-  outputs = {
-    self,
-    nixpkgs,
-    nixos-generators,
-    home-manager,
-    zen-browser,
-    rose-pine-hyprcursor,
-    ...
-  }: let
-    # Import Cachix configuration
-    cachixConfig = import ./flake_modules/cachix-config.nix {inherit self nixpkgs;};
-    system = "x86_64-linux";
+  outputs =
+    {
+      self,
+      nixpkgs,
+      nixpkgs-systemd,
+      home-manager,
+      zen-browser,
+      rose-pine-hyprcursor,
+      noctalia,
+      stylix,
+      pmd,
+      llm-agents,
+      nixvim,
+      ...
+    }:
+    let
+      # Import Cachix configuration
+      system = "x86_64-linux";
 
-    # Supported ChromeOS boards
-    supportedBoards = [
-      "dedede"
-      "octopus"
-      "zork"
-      "nissa"
-      "hatch"
-      "grunt"
-      "snappy"
-    ];
+      # Supported ChromeOS boards
+      supportedBoards = [
+        "dedede"
+        "octopus"
+        "zork"
+        "nissa"
+        "hatch"
+        "grunt"
+        "snappy"
+      ];
 
-    # Import user configuration
-    userConfig = import ./shimboot_config/user-config.nix {};
-    # Extract username for easier access
-    username = userConfig.user.username;
+      # Import user configuration
+      # Extract username for easier access
 
-    # Import module outputs
-    # Core system and development modules
-    rawImageOutputs = board:
-      import ./flake_modules/raw-image.nix {
-        inherit self nixpkgs nixos-generators home-manager zen-browser rose-pine-hyprcursor board;
+      # Import nixpkgs for systemd pinning
+      pkgsSystemd = import nixpkgs-systemd { inherit system; };
+
+      # Pinned systemd 258.3 with ChromeOS compatibility patch
+      patchedSystemd = pkgsSystemd.systemd.overrideAttrs (old: {
+        patches = (old.patches or [ ]) ++ [
+          ./patches/systemd-mountpoint-util-chromeos.patch
+        ];
+      });
+
+      # Import module outputs
+      # Core system and development modules
+      rawImageOutputs =
+        board:
+        import ./flake_modules/raw-image.nix {
+          inherit
+            self
+            nixpkgs
+            home-manager
+            zen-browser
+            rose-pine-hyprcursor
+            noctalia
+            stylix
+            pmd
+            nixvim
+            board
+            patchedSystemd
+            ;
+        };
+      systemConfigurationOutputs = import ./flake_modules/system-configuration.nix {
+        inherit
+          self
+          nixpkgs
+          home-manager
+          zen-browser
+          rose-pine-hyprcursor
+          noctalia
+          stylix
+          llm-agents
+          nixvim
+          ;
+        inherit patchedSystemd;
       };
-    systemConfigurationOutputs = import ./flake_modules/system-configuration.nix {inherit self nixpkgs home-manager zen-browser rose-pine-hyprcursor;};
-    developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix {inherit self nixpkgs;};
-
-    # ChromeOS and patch_initramfs modules
-    chromeosSourcesOutputs = board:
-      import ./flake_modules/chromeos-sources.nix {
-        inherit self nixpkgs board;
-      };
-    kernelExtractionOutputs = board:
-      import ./flake_modules/patch_initramfs/kernel-extraction.nix {
-        inherit self nixpkgs board;
-      };
-    initramfsExtractionOutputs = board:
-      import ./flake_modules/patch_initramfs/initramfs-extraction.nix {
-        inherit self nixpkgs board;
-      };
-    initramfsPatchingOutputs = board:
-      import ./flake_modules/patch_initramfs/initramfs-patching.nix {
-        inherit self nixpkgs board;
+      developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix {
+        inherit self nixpkgs;
       };
 
-    # Generate packages for each board
-    boardPackages = board:
-      (rawImageOutputs board).packages.${system} or {}
-      // (chromeosSourcesOutputs board).packages.${system} or {}
-      // (kernelExtractionOutputs board).packages.${system} or {}
-      // (initramfsExtractionOutputs board).packages.${system} or {}
-      // (initramfsPatchingOutputs board).packages.${system} or {};
+      # ChromeOS and patch_initramfs modules
+      chromeosSourcesOutputs =
+        board:
+        import ./flake_modules/chromeos-sources.nix {
+          inherit self nixpkgs board;
+        };
+      kernelExtractionOutputs =
+        board:
+        import ./flake_modules/patch_initramfs/kernel-extraction.nix {
+          inherit self nixpkgs board;
+        };
+      initramfsExtractionOutputs =
+        board:
+        import ./flake_modules/patch_initramfs/initramfs-extraction.nix {
+          inherit self nixpkgs board;
+        };
+      initramfsPatchingOutputs =
+        board:
+        import ./flake_modules/patch_initramfs/initramfs-patching.nix {
+          inherit self nixpkgs board;
+        };
 
-    # Merge packages from all modules
-    packages = {
-      ${system} = nixpkgs.lib.foldl' (acc: board: acc // (boardPackages board)) {} supportedBoards;
+      # Generate packages for each board
+      boardPackages =
+        board:
+        (rawImageOutputs board).packages.${system} or { }
+        // (chromeosSourcesOutputs board).packages.${system} or { }
+        // (kernelExtractionOutputs board).packages.${system} or { }
+        // (initramfsExtractionOutputs board).packages.${system} or { }
+        // (initramfsPatchingOutputs board).packages.${system} or { };
+
+      # Merge packages from all modules
+      packages = {
+        ${system} = nixpkgs.lib.foldl' (acc: board: acc // (boardPackages board)) {
+          systemd = patchedSystemd;
+          noctalia = noctalia.packages.${system}.default;
+          zen = zen-browser.packages.${system}.default;
+        } supportedBoards;
+      };
+
+      # Merge devShells from all modules
+      devShells = {
+        ${system} = developmentEnvironmentOutputs.devShells.${system} or { };
+      };
+
+      # Merge nixosConfigurations from all modules
+      nixosConfigurations = systemConfigurationOutputs.nixosConfigurations or { };
+    in
+    {
+      # Cachix configuration for binary cache
+      inherit ((import ./flake_modules/cachix-config.nix { })) nixConfig;
+
+      # Export all merged outputs
+      formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-tree;
+      inherit
+        packages
+        devShells
+        nixosConfigurations
+        ;
     };
-
-    # Import overlays
-    overlays = import ./overlays/overlays.nix;
-
-    # Set default package to dedede raw-rootfs
-    defaultPackage.${system} = packages.${system}.raw-rootfs-dedede or packages.${system}.raw-rootfs;
-
-    # Merge devShells from all modules
-    devShells = {
-      ${system} =
-        developmentEnvironmentOutputs.devShells.${system} or {};
-    };
-
-    # Merge nixosConfigurations from all modules
-    nixosConfigurations =
-      systemConfigurationOutputs.nixosConfigurations or {};
-
-    # Merge nixosModules from all modules
-    nixosModules = {};
-  in {
-    # Apply Cachix configuration to Nix
-    nixConfig = cachixConfig.nixConfig;
-
-    # Export all merged outputs
-    formatter.${system} = nixpkgs.legacyPackages.${system}.alejandra;
-    inherit packages devShells nixosConfigurations nixosModules;
-  };
 }

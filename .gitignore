@@ -16,3 +16,6 @@ vmlinuz
 .shimboot_branch
 .temp
 .shimboot_build_info
+.opencode/
+.kilocode/
+shimboot_config/selected-profile.nix

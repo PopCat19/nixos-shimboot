@@ -1,59 +1,63 @@
 #!/bin/busybox sh
 
-# Shimboot Main Bootloader Script
+# bootstrap.sh
 #
-# Purpose: Provide interactive bootloader menu for ChromeOS shim devices with multiple OS support.
-# Dependencies: busybox, cgpt, fdisk, blkid, cryptsetup, tar, pivot_root
-# Related: bootloader/bin/init, bootloader/opt/crossystem, bootloader/opt/mount-encrypted
+# Purpose: Provide interactive bootloader menu for shimboot devices with NixOS generation support.
 #
-# This script:
-# - Detects and displays bootable partitions from ChromeOS and other Linux distributions
-# - Provides interactive menu for OS selection with support for rescue mode
-# - Handles LUKS encrypted root filesystems with automatic detection and mounting
-# - Integrates vendor firmware and kernel modules through bind mounting
-# - Supports ChromeOS boot with firmware spoofing and donor partition selection
-# - Executes pivot_root to transition to selected operating system as PID 1
-#
-# Original implementation adapted from ChromiumOS factory shim bootstrap script.
-# Runs as PID 1 in the initramfs environment using busybox shell utilities.
+# This module:
+# - Detect and display bootable shimboot_rootfs partitions
+# - Show battery SoC in selector header
+# - Provide NixOS generation selection when NixOS rootfs detected
+# - Support return-to-menu from generation selector
+# - Handle LUKS2 encrypted root filesystems via cryptsetup
+# - Integrate vendor firmware and kernel modules through bind mounting
+# - Execute pivot_root to transition to selected OS as PID 1
 
-# Copyright 2015 The Chromium OS Authors. All rights reserved.
-# Use of this source code is governed by a BSD-style license that can be
-# found in the LICENSE file.
-#
-# To bootstrap the factory installer on rootfs. This file must be executed as
-# PID=1 (exec).
-# Note that this script uses the busybox shell (not bash, not dash).
+# Runs as PID 1 in initramfs using busybox shell.
+# Absolute symlinks on mounted filesystems resolve from namespace root, not
+# mount point. Generation listing resolves them manually via readlink.
+# NixOS detection uses /nix/var/nix/profiles/system symlink, not numbered
+# generation links. Numbered links (system-N-link) are created by nixos-rebuild
+# at runtime; a freshly assembled image only has the bare 'system' symlink.
 
 #original: https://chromium.googlesource.com/chromiumos/platform/initramfs/+/refs/heads/main/factory_shim/bootstrap.sh
 
-#set -x
 set +x
 
 rescue_mode=""
+INIT_PATH="/sbin/init"
+
+info() { printf "# %s\n" "$*"; }
+sep()  { printf "=== \n"; }
+log()  { printf "> %s\n" "$*"; }
+err()  { printf "> %s\n" "$*"; }
 
 invoke_terminal() {
 	local tty="$1"
 	local title="$2"
-	shift
-	shift
-	# Copied from factory_installer/factory_shim_service.sh.
-	echo "${title}" >>${tty}
-	setsid sh -c "exec script -afqc '$*' /dev/null <${tty} >>${tty} 2>&1 &"
+	local cmd="$3"
+	echo "${title}" >>"${tty}"
+	setsid sh -c "exec script -afqc '${cmd}' /dev/null <${tty} >>${tty} 2>&1" &
 }
 
+# Background debug console on TTY2 — non-blocking, for parallel access.
 enable_debug_console() {
 	local tty="$1"
-	echo -e "debug console enabled on ${tty}"
 	invoke_terminal "${tty}" "[Bootstrap Debug Console]" "/bin/busybox sh"
 }
 
-#get a partition block device from a disk path and a part number
+# Blocking interactive shell on TTY1 — called from menu, returns on exit.
+interactive_shell() {
+	sep
+	info "This is root busybox in initramfs"
+	info "Ctrl+D or 'exit' returns to this menu"
+	sep
+	sh <"$TTY1" >"$TTY1" 2>&1 || true
+}
+
 get_part_dev() {
 	local disk="$1"
 	local partition="$2"
-
-	#disk paths ending with a number will have a "p" before the partition number
 	last_char="$(echo -n "$disk" | tail -c 1)"
 	if [ "$last_char" -eq "$last_char" ] 2>/dev/null; then
 		echo "${disk}p${partition}"
@@ -79,39 +83,12 @@ find_rootfs_partitions() {
 	done
 }
 
-find_chromeos_partitions() {
-	local roota_partitions="$(cgpt find -l ROOT-A)"
-	local rootb_partitions="$(cgpt find -l ROOT-B)"
-
-	if [ "$roota_partitions" ]; then
-		for partition in $roota_partitions; do
-			echo "${partition}:ChromeOS_ROOT-A:CrOS"
-		done
-	fi
-
-	if [ "$rootb_partitions" ]; then
-		for partition in $rootb_partitions; do
-			echo "${partition}:ChromeOS_ROOT-B:CrOS"
-		done
-	fi
-}
-
-find_all_partitions() {
-	echo "$(find_chromeos_partitions)"
-	echo "$(find_rootfs_partitions)"
-}
-
-# locate the vendor helper partition (shimboot_rootfs:vendor or FS label shimboot_vendor)
 find_vendor_partition() {
-	# Prefer filesystem label first (fast path)
 	if [ -e "/dev/disk/by-label/shimboot_vendor" ]; then
-		# resolve symlink if possible; fall back to path
-		local dev="/dev/disk/by-label/shimboot_vendor"
-		echo "$dev"
+		echo "/dev/disk/by-label/shimboot_vendor"
 		return 0
 	fi
 
-	# Guard blkid usage - not all busybox builds have full blkid support
 	if command -v blkid >/dev/null 2>&1; then
 		local dev_from_label="$(blkid -L shimboot_vendor 2>/dev/null || true)"
 		if [ -n "$dev_from_label" ]; then
@@ -119,7 +96,6 @@ find_vendor_partition() {
 			return 0
 		fi
 
-		# Try PARTLABEL via blkid (GPT partition name) - may not work in busybox
 		local dev_from_partlabel="$(blkid -t PARTLABEL='shimboot_rootfs:vendor' -o device 2>/dev/null | head -n1 || true)"
 		if [ -n "$dev_from_partlabel" ]; then
 			echo "$dev_from_partlabel"
@@ -127,7 +103,6 @@ find_vendor_partition() {
 		fi
 	fi
 
-	# cgpt label fallback (preferred on ChromeOS devices)
 	if command -v cgpt >/dev/null 2>&1; then
 		local p="$(cgpt find -l 'shimboot_rootfs:vendor' 2>/dev/null | head -n1)"
 		if [ -n "$p" ]; then
@@ -136,12 +111,10 @@ find_vendor_partition() {
 		fi
 	fi
 
-	# fdisk fallback (best-effort; output format varies)
 	if command -v fdisk >/dev/null 2>&1; then
 		local disks
 		disks="$(fdisk -l 2>/dev/null | sed -n "s/Disk \(\/dev\/.*\):.*/\1/p")"
 		for disk in $disks; do
-			# capture the device path in the first column (e.g., /dev/sdc5) when the line contains our PARTLABEL
 			local dev_guess
 			dev_guess="$(fdisk -l "$disk" 2>/dev/null | sed -n "s/^[[:space:]]*\\(\/dev\/[^[:space:]]\\+\\)[[:space:]].*shimboot_rootfs:vendor.*/\\1/p" | head -n1)"
 			if [ -n "$dev_guess" ]; then
@@ -154,61 +127,47 @@ find_vendor_partition() {
 	return 1
 }
 
-# mount vendor and bind its modules/firmware into the target root (no tmpfs staging)
 bind_vendor_into() {
 	local target_root="/newroot"
 	local vendor_part="$(find_vendor_partition)"
 	if [ ! "$vendor_part" ]; then
-		echo "vendor: not found"
+		log "vendor: not found"
 		return 0
 	fi
 
-	echo "vendor: device=${vendor_part}"
-	echo "mounting vendor partition at ${target_root}/.vendor (read-only)"
+	log "vendor: device=${vendor_part}"
 	mkdir -p "${target_root}/.vendor"
 	if mount -o ro "$vendor_part" "${target_root}/.vendor"; then
-		echo "vendor: mounted"
+		log "vendor: mounted"
 
-		# Direct bind from vendor mount - no tmpfs staging to reduce memory pressure
-		# Only bind non-empty directories to avoid masking system paths
 		if [ -d "${target_root}/.vendor/lib/modules" ] && find "${target_root}/.vendor/lib/modules" -type f -name "*.ko*" 2>/dev/null | head -n1 | grep -q .; then
-			echo "binding vendor modules to ${target_root}/lib/modules"
 			mkdir -p "${target_root}/lib/modules"
 			if mount -o bind "${target_root}/.vendor/lib/modules" "${target_root}/lib/modules"; then
-				echo "vendor: modules bound successfully"
+				log "vendor: modules bound"
 			else
-				echo "vendor: failed to bind modules - skipping"
+				err "vendor: failed to bind modules"
 			fi
-		else
-			echo "vendor: no modules found or directory empty"
 		fi
 
 		if [ -d "${target_root}/.vendor/lib/firmware" ] && find "${target_root}/.vendor/lib/firmware" -type f 2>/dev/null | head -n1 | grep -q .; then
-			echo "binding vendor firmware to ${target_root}/lib/firmware"
 			mkdir -p "${target_root}/lib/firmware"
 			if mount -o bind "${target_root}/.vendor/lib/firmware" "${target_root}/lib/firmware"; then
-				echo "vendor: firmware bound successfully"
+				log "vendor: firmware bound"
 			else
-				echo "vendor: failed to bind firmware - skipping"
+				err "vendor: failed to bind firmware"
 			fi
-		else
-			echo "vendor: no firmware found or directory empty"
 		fi
 
-		# Keep vendor filesystem mounted - it will persist across pivot_root
-		# Do not unmount vendor device as we have active bind mounts from it
-		echo "vendor: keeping mounted for active bind mounts"
+		log "vendor: keeping mounted for active bind mounts"
 	else
-		echo "failed to mount vendor partition at ${target_root}/.vendor"
+		err "vendor: mount failed"
 	fi
 }
 
-#from original bootstrap.sh
 move_mounts() {
 	local base_mounts="/sys /proc /dev"
 	local newroot_mnt="$1"
 	for mnt in $base_mounts; do
-		# $mnt is a full path (leading '/'), so no '/' joiner
 		mkdir -p "$newroot_mnt$mnt"
 		mount -n -o move "$mnt" "$newroot_mnt$mnt"
 	done
@@ -241,55 +200,232 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 EOF
 }
 
+read_battery_soc() {
+	local soc_file=""
+	for f in /sys/class/power_supply/*/capacity; do
+		local type_file="${f%capacity}type"
+		if [ -f "$type_file" ] && grep -qi "battery" "$type_file" 2>/dev/null; then
+			soc_file="$f"
+			break
+		fi
+	done
+	if [ -n "$soc_file" ] && [ -r "$soc_file" ]; then
+		printf "%s%%" "$(cat "$soc_file")"
+	else
+		echo "unknown"
+	fi
+}
+
+is_nixos_root() {
+	local root="$1"
+	[ -L "${root}/nix/var/nix/profiles/system" ]
+}
+
+# output format per line: gen_num|version|YYYY-MM-DD|HH:MM:SS|post_pivot_init_path
+# Pipe-delimited to avoid colon collision with HH:MM:SS time field.
+# Falls back to a synthetic generation-0 entry from the bare 'system' symlink
+# when no numbered system-N-link profiles exist (fresh image, pre-nixos-rebuild).
+# Absolute symlinks on mounted fs resolve from namespace root, not mount point;
+# readlink + manual prepend required to read generation metadata pre-pivot.
+list_nixos_generations() {
+	local root="$1"
+	local profiles_dir="${root}/nix/var/nix/profiles"
+	local out=""
+
+	for link in "${profiles_dir}"/system-*-link; do
+		[ -L "$link" ] || continue
+
+		local gen_num
+		gen_num="$(basename "$link" | sed 's/system-\([0-9]*\)-link/\1/')"
+
+		local link_target
+		link_target="$(readlink "$link")"
+		local resolved="${root}${link_target}"
+
+		local version="unknown"
+		if [ -f "${resolved}/nixos-version" ]; then
+			version="$(cat "${resolved}/nixos-version")"
+		fi
+
+		local raw_stat
+		raw_stat="$(stat -c '%y' "$link" 2>/dev/null)" || raw_stat=""
+		local build_date build_time
+		build_date="$(echo "$raw_stat" | cut -d' ' -f1)"
+		build_time="$(echo "$raw_stat" | cut -d' ' -f2 | cut -d'.' -f1)"
+		[ -n "$build_date" ] || build_date="unknown"
+		[ -n "$build_time" ] || build_time="unknown"
+
+		out="${out}${gen_num}|${version}|${build_date}|${build_time}|/nix/var/nix/profiles/$(basename "$link")/init
+"
+	done
+
+	if [ -z "$out" ] && [ -L "${profiles_dir}/system" ]; then
+		local link_target
+		link_target="$(readlink "${profiles_dir}/system")"
+		local resolved="${root}${link_target}"
+
+		local version="unknown"
+		if [ -f "${resolved}/nixos-version" ]; then
+			version="$(cat "${resolved}/nixos-version")"
+		fi
+
+		local raw_stat
+		raw_stat="$(stat -c '%y' "${profiles_dir}/system" 2>/dev/null)" || raw_stat=""
+		local build_date build_time
+		build_date="$(echo "$raw_stat" | cut -d' ' -f1)"
+		build_time="$(echo "$raw_stat" | cut -d' ' -f2 | cut -d'.' -f1)"
+		[ -n "$build_date" ] || build_date="unknown"
+		[ -n "$build_time" ] || build_time="unknown"
+
+		echo "0|${version}|${build_date}|${build_time}|/nix/var/nix/profiles/system/init"
+		return 0
+	fi
+
+	echo "$out" | sort -t'|' -k1 -n -r
+}
+
+# Sets global INIT_PATH to the selected generation init.
+# Returns 2 if user selected [b] return to main menu.
+select_nixos_generation() {
+	local root="$1"
+	local generations
+	generations="$(list_nixos_generations "$root")"
+
+	if [ -z "$generations" ]; then
+		return 1
+	fi
+
+	local gen_count
+	gen_count="$(echo "$generations" | grep -c .)"
+
+	local default_num
+	default_num="$(echo "$generations" | head -n1 | cut -d'|' -f1)"
+
+	if [ "$gen_count" -eq 1 ]; then
+		local only_num only_ver only_date only_time only_path
+		only_num="$(echo "$generations" | cut -d'|' -f1)"
+		only_ver="$(echo "$generations" | cut -d'|' -f2)"
+		only_date="$(echo "$generations" | cut -d'|' -f3)"
+		only_time="$(echo "$generations" | cut -d'|' -f4)"
+		only_path="$(echo "$generations" | cut -d'|' -f5)"
+		log "NixOS: auto-selecting generation ${only_num} (${only_ver}, ${only_date} ${only_time})"
+		INIT_PATH="${only_path}"
+		return 0
+	fi
+
+	echo ""
+	echo "Available generations (default: ${default_num}):"
+	echo ""
+
+	echo "$generations" | awk -F'|' -v def="$default_num" '{
+		marker = ($1 == def) ? " *" : ""
+		printf "  [%s] %s %s  %s  %s%s\n", $1, $3, $4, $5, $2, marker
+	}'
+
+	echo ""
+	echo "  [enter] Boot default generation: ${default_num}"
+	echo "  [b]     Return"
+	echo ""
+	echo ""
+	read -p "Select generation (or press enter): " gen_sel
+
+	case "$gen_sel" in
+		b|B)
+			return 2
+			;;
+		''|*[!0-9]*)
+			gen_sel="$default_num"
+			;;
+	esac
+
+	local selected_line
+	selected_line="$(echo "$generations" | awk -F'|' -v g="$gen_sel" '$1 == g {print; exit}')"
+
+	if [ -z "$selected_line" ]; then
+		log "generation ${gen_sel} not found, defaulting to latest"
+		selected_line="$(echo "$generations" | head -n1)"
+	fi
+
+	local selected_path selected_num
+	selected_path="$(echo "$selected_line" | cut -d'|' -f5)"
+	selected_num="$(echo "$selected_line" | cut -d'|' -f1)"
+	log "booting NixOS generation ${selected_num}"
+	INIT_PATH="${selected_path}"
+}
+
 print_selector() {
 	local rootfs_partitions="$1"
 	local i=1
 
-	echo "┌──────────────────────┐"
-	echo "│ Shimboot OS Selector │"
-	echo "└──────────────────────┘"
+	local battery_soc
+	battery_soc="$(read_battery_soc)"
+
+	info "Welcome to NixOS Shimboot!"
+	info "Rescue shell: \`rescue <selection>\`"
+	info "SoC: ${battery_soc}"
+	echo ""
+	echo "Partition(s):"
 
 	if [ "${rootfs_partitions}" ]; then
 		for rootfs_partition in $rootfs_partitions; do
-			#i don't know of a better way to split a string in the busybox shell
 			local part_path=$(echo $rootfs_partition | cut -d ":" -f 1)
 			local part_name=$(echo $rootfs_partition | cut -d ":" -f 2)
-			local part_flags=$(echo $rootfs_partition | cut -d ":" -f 3)
-			# hide vendor helper partition from menu
 			if [ "$part_name" = "vendor" ]; then
 				continue
 			fi
-			echo "${i}) ${part_name} on ${part_path}"
+			printf "  [${i}] Boot ${part_name} on ${part_path}\n"
 			i=$((i + 1))
 		done
 	else
-		echo "no bootable partitions found. please see the shimboot documentation to mark a partition as bootable."
+		err "No bootable partitions found :c"
 	fi
 
-	echo "q) reboot"
-	echo "s) enter a shell"
-	echo "l) view license"
+	echo ""
+	echo "Options:"
+	echo "  [0] List Partitions (blkid)"
+	echo "  [s] Initramfs Shell (busybox)"
+	echo "  [r] Reboot"
+	echo "  [q] Power Off"
+	echo "  [l] License"
+	echo ""
 }
 
 get_selection() {
 	local rootfs_partitions="$1"
 	local i=1
 
-	read -p "Your selection: " selection
-	if [ "$selection" = "q" ]; then
-		echo "rebooting now."
-		reboot -f
-	elif [ "$selection" = "s" ]; then
-		reset
-		enable_debug_console "$TTY1"
-		return 0
-	elif [ "$selection" = "l" ]; then
-		clear
-		print_license
-		echo
-		read -p "press [enter] to return to the bootloader menu"
-		return 1
-	fi
+	read -p "Enter partition or option: " selection
+
+	case "$selection" in
+		r)
+			echo "rebooting now."
+			reboot -f
+			;;
+		q)
+			echo "powering off."
+			poweroff -f
+			;;
+		0)
+			echo ""
+			blkid || true
+			echo ""
+			read -p "press [enter] to return"
+			return 1
+			;;
+		s)
+			interactive_shell
+			return 1
+			;;
+		l)
+			clear
+			print_license
+			echo ""
+			echo "  [b] Return"
+			echo ""
+			read -p "Enter selection: " _lic_sel
+			return 1
+			;;
+	esac
 
 	local selection_cmd="$(echo "$selection" | cut -d' ' -f1)"
 	if [ "$selection_cmd" = "rescue" ]; then
@@ -302,307 +438,106 @@ get_selection() {
 	for rootfs_partition in $rootfs_partitions; do
 		local part_path=$(echo $rootfs_partition | cut -d ":" -f 1)
 		local part_name=$(echo $rootfs_partition | cut -d ":" -f 2)
-		local part_flags=$(echo $rootfs_partition | cut -d ":" -f 3)
 
-		# skip vendor helper partition from selection indices
 		if [ "$part_name" = "vendor" ]; then
 			continue
 		fi
 
 		if [ "$selection" = "$i" ]; then
-			echo "selected $part_path"
-			if [ "$part_flags" = "CrOS" ]; then
-				echo "booting chrome os partition"
-				print_donor_selector "$rootfs_partitions"
-				get_donor_selection "$rootfs_partitions" "$part_path"
-			else
-				boot_target "$part_path"
-			fi
+			log "Selected ${part_path}"
+			boot_target "$part_path"
 			return 1
 		fi
 
 		i=$((i + 1))
 	done
 
-	echo "invalid selection"
-	sleep 1
-	return 1
-}
-
-copy_progress() {
-	local source="$1"
-	local destination="$2"
-	mkdir -p "$destination"
-	# Fallback to plain tar if pv is unavailable in the initramfs
-	if command -v pv >/dev/null 2>&1; then
-		tar -cf - -C "${source}" . | pv -f | tar -xf - -C "${destination}"
-	else
-		tar -cf - -C "${source}" . | tar -xf - -C "${destination}"
-	fi
-}
-
-debug_dir() {
-	local path="$1"
-	if [ -d "$path" ]; then
-		local files="$(find "$path" -type f 2>/dev/null | wc -l)"
-		local size_k="$(du -sk "$path" 2>/dev/null | awk '{print $1}')"
-		echo "DEBUG: $path -> files=${files} size=${size_k}K"
-		# list top-level entries for quick sanity
-		ls -la "$path" 2>/dev/null | head -n 20 || true
-	else
-		echo "DEBUG: $path (missing)"
-	fi
-}
-
-print_donor_selector() {
-	local rootfs_partitions="$1"
-	local i=1
-
-	echo "Choose a partition to copy firmware and modules from:"
-
-	for rootfs_partition in $rootfs_partitions; do
-		local part_path=$(echo $rootfs_partition | cut -d ":" -f 1)
-		local part_name=$(echo $rootfs_partition | cut -d ":" -f 2)
-		local part_flags=$(echo $rootfs_partition | cut -d ":" -f 3)
-
-		if [ "$part_flags" = "CrOS" ]; then
-			continue
-		fi
-
-		echo "${i}) ${part_name} on ${part_path}"
-		i=$((i + 1))
-	done
-}
-
-yes_no_prompt() {
-	local prompt="$1"
-	local var_name="$2"
-
-	while true; do
-		read -p "$prompt" temp_result
-
-		if [ "$temp_result" = "y" ] || [ "$temp_result" = "n" ]; then
-			#the busybox shell has no other way to declare a variable from a string
-			#the declare command and printf -v are both bashisms
-			eval "$var_name='$temp_result'"
-			return 0
-		else
-			echo "invalid selection"
-		fi
-	done
-}
-
-get_donor_selection() {
-	local rootfs_partitions="$1"
-	local target="$2"
-	local i=1
-	read -p "Your selection: " selection
-
-	for rootfs_partition in $rootfs_partitions; do
-		local part_path=$(echo $rootfs_partition | cut -d ":" -f 1)
-		local part_name=$(echo $rootfs_partition | cut -d ":" -f 2)
-		local part_flags=$(echo $rootfs_partition | cut -d ":" -f 3)
-
-		if [ "$part_flags" = "CrOS" ]; then
-			continue
-		fi
-
-		if [ "$selection" = "$i" ]; then
-			echo "selected $part_path as the donor partition"
-			yes_no_prompt "would you like to spoof verified mode? this is useful if you're planning on using chrome os while enrolled. (y/n): " use_crossystem
-			yes_no_prompt "would you like to spoof an invalid hwid? this will forcibly prevent the device from being enrolled. (y/n): " invalid_hwid
-			boot_chromeos "$target" "$part_path" "$use_crossystem" "$invalid_hwid"
-		fi
-
-		i=$((i + 1))
-	done
-
-	echo "invalid selection"
+	err "Invalid selection: ${selection}"
 	sleep 1
 	return 1
 }
 
 exec_init() {
 	if [ "$rescue_mode" = "1" ]; then
-		echo "entering a rescue shell instead of starting init"
-		echo "once you are done fixing whatever is broken, run 'exec /sbin/init' to continue booting the system normally"
-
-		if [ -f "/bin/bash" ]; then
-			exec /bin/bash <"$TTY1" >>"$TTY1" 2>&1
-		else
-			exec /bin/sh <"$TTY1" >>"$TTY1" 2>&1
-		fi
+		local shell_bin="/bin/sh"
+		[ -f "/bin/bash" ] && shell_bin="/bin/bash"
+		chmod +x /bootloader/opt/exit-rescue 2>/dev/null || true
+		export PATH="/bootloader/opt:$PATH"
+		export INIT_PATH="$INIT_PATH"
+		sep
+		info "root ${shell_bin} | /newroot | post-pivot"
+		info "no return to bootloader menu from here"
+		info "Ctrl+D or 'exit' boots init (same as exit-rescue)"
+		info "echo o > /proc/sysrq-trigger to power off"
+		info "echo b > /proc/sysrq-trigger to reboot"
+		info "run '. setup-nix' to load NixOS env and tools"
+		info "run '. exit-rescue' to immediately exec init"
+		sep
+		"$shell_bin" <"$TTY1" >>"$TTY1" 2>&1 || true
+		log "rescue shell exited, continuing boot (init=${INIT_PATH})"
+		exec "$INIT_PATH" <"$TTY1" >>"$TTY1" 2>&1
 	else
-		exec /sbin/init <"$TTY1" >>"$TTY1" 2>&1
+		exec "$INIT_PATH" <"$TTY1" >>"$TTY1" 2>&1
 	fi
 }
 
 boot_target() {
 	local target="$1"
 
-	echo "moving mounts to newroot"
+	log "Mounting rootfs..."
 	mkdir /newroot
-	#use cryptsetup to check if the rootfs is encrypted
+
 	if [ -x "$(command -v cryptsetup)" ] && cryptsetup luksDump "$target" >/dev/null 2>&1; then
 		cryptsetup open $target rootfs
-		# Prefer explicit filesystem type to avoid EINVAL when fs module isn't autoloaded
 		if ! mount -t ext4 /dev/mapper/rootfs /newroot 2>/dev/null; then
-			# Fallback to autodetect and emit diagnostics
 			if ! mount /dev/mapper/rootfs /newroot; then
-				echo "mount failed for LUKS rootfs: /dev/mapper/rootfs"
-				echo "Available filesystems in initramfs:"
+				err "mount failed for LUKS rootfs: /dev/mapper/rootfs"
+				echo "> available filesystems:"
 				cat /proc/filesystems || true
-				echo "blkid /dev/mapper/rootfs:"
+				echo "> blkid /dev/mapper/rootfs:"
 				blkid /dev/mapper/rootfs || true
 				return 1
 			fi
 		fi
 	else
-		# Non-encrypted rootfs; try ext4 explicitly first
 		if ! mount -t ext4 $target /newroot 2>/dev/null; then
-			# Fallback to autodetect and emit diagnostics on failure
 			if ! mount $target /newroot; then
-				echo "mount failed for $target"
-				echo "Available filesystems in initramfs:"
+				err "mount failed for ${target}"
+				echo "> available filesystems:"
 				cat /proc/filesystems || true
-				echo "blkid $target:"
+				echo "> blkid ${target}:"
 				blkid $target || true
 				return 1
 			fi
 		fi
 	fi
-	# mount vendor partition and copy modules/firmware if present
+
+	INIT_PATH="/sbin/init"
+	if is_nixos_root "/newroot"; then
+		log "NixOS rootfs detected: /newroot/nix/var/nix/profiles/system"
+		select_nixos_generation "/newroot"
+		local nixos_sel_ret=$?
+		if [ "$nixos_sel_ret" -eq 2 ]; then
+			umount /newroot 2>/dev/null || true
+			rmdir /newroot 2>/dev/null || true
+			return 1
+		elif [ "$nixos_sel_ret" -ne 0 ]; then
+			err "NixOS: no valid generations found, falling back to /sbin/init"
+		fi
+	fi
+
 	bind_vendor_into
-	#bind mount /dev/console to show systemd boot msgs
+
 	if [ -f "/bin/frecon-lite" ]; then
 		rm -f /dev/console
-		touch /dev/console #this has to be a regular file otherwise the system crashes afterwards
+		touch /dev/console
 		mount -o bind "$TTY1" /dev/console
 	fi
 	move_mounts /newroot
 
-	echo "switching root"
+	log "switching root (init=${INIT_PATH})"
 	mkdir -p /newroot/bootloader
 	pivot_root /newroot /newroot/bootloader
-	exec_init
-}
-
-boot_chromeos() {
-	local target="$1"
-	local donor="$2"
-	local use_crossystem="$3"
-	local invalid_hwid="$4"
-
-	echo "mounting target"
-	mkdir /newroot
-	mount -o ro $target /newroot
-
-	echo "mounting tmpfs"
-	mount -t tmpfs -o mode=1777 none /newroot/tmp
-	mount -t tmpfs -o mode=0555 run /newroot/run
-	mkdir -p -m 0755 /newroot/run/lock
-
-	echo "mounting donor partition: $donor"
-	local donor_mount="/newroot/tmp/donor_mnt"
-	local donor_files="/newroot/tmp/donor"
-	mkdir -p $donor_mount
-	donor_label="$(blkid -o value -s LABEL "$donor" 2>/dev/null || true)"
-	echo "donor: device=$donor label=${donor_label:-N/A}"
-	mount -o ro $donor $donor_mount
-	echo "donor: mounted at $donor_mount"
-	debug_dir "$donor_mount/lib/modules"
-	debug_dir "$donor_mount/lib/firmware"
-
-	# ========================================
-	# CRITICAL FIX: Copy to tmpfs FIRST
-	# ========================================
-	echo "copying modules and firmware to tmpfs (this may take a while)"
-	mkdir -p "$donor_files/lib/modules" "$donor_files/lib/firmware"
-	
-	# Copy modules if they exist
-	if [ -d "$donor_mount/lib/modules" ] && ls -1 "$donor_mount/lib/modules" 2>/dev/null | grep -q .; then
-		echo "copying modules to tmpfs (may take a while)"
-		debug_dir "$donor_mount/lib/modules"
-		if ! copy_progress "$donor_mount/lib/modules" "$donor_files/lib/modules" 2>/dev/null; then
-			cp -a "$donor_mount/lib/modules/." "$donor_files/lib/modules/" 2>/dev/null || true
-		fi
-		sync
-		echo "donor: modules staged to tmpfs"
-		debug_dir "$donor_files/lib/modules"
-	else
-		echo "note: no modules found in donor"
-	fi
-	
-	# Copy firmware if it exists
-	if [ -d "$donor_mount/lib/firmware" ] && ls -1 "$donor_mount/lib/firmware" 2>/dev/null | grep -q .; then
-		echo "copying firmware to tmpfs (may take a while)"
-		debug_dir "$donor_mount/lib/firmware"
-		if ! copy_progress "$donor_mount/lib/firmware" "$donor_files/lib/firmware" 2>/dev/null; then
-			cp -a "$donor_mount/lib/firmware/." "$donor_files/lib/firmware/" 2>/dev/null || true
-		fi
-		sync
-		echo "donor: firmware staged to tmpfs"
-		debug_dir "$donor_files/lib/firmware"
-	else
-		echo "note: no firmware found in donor"
-	fi
-	
-	# Now bind from tmpfs (not from donor device)
-	if [ -d "$donor_files/lib/modules" ] && ls -1 "$donor_files/lib/modules" 2>/dev/null | grep -q .; then
-		echo "binding tmpfs modules to /newroot/lib/modules"
-		mkdir -p /newroot/lib/modules
-		mount -o bind "$donor_files/lib/modules" /newroot/lib/modules
-	fi
-	if [ -d "$donor_files/lib/firmware" ] && ls -1 "$donor_files/lib/firmware" 2>/dev/null | grep -q .; then
-		echo "binding tmpfs firmware to /newroot/lib/firmware"
-		mkdir -p /newroot/lib/firmware
-		mount -o bind "$donor_files/lib/firmware" /newroot/lib/firmware
-	fi
-	
-	# Can safely unmount donor now
-	umount $donor_mount
-	rm -rf $donor_mount
-	# ========================================
-
-	if [ -e "/newroot/etc/init/tpm-probe.conf" ]; then
-		echo "applying chrome os flex patches"
-		mkdir -p /newroot/tmp/empty
-		mount -o bind /newroot/tmp/empty /sys/class/tpm
-
-		cat /newroot/etc/lsb-release | sed "s/DEVICETYPE=OTHER/DEVICETYPE=CHROMEBOOK/" >/newroot/tmp/lsb-release
-		mount -o bind /newroot/tmp/lsb-release /newroot/etc/lsb-release
-	fi
-
-	echo "patching chrome os rootfs"
-	cat /newroot/etc/ui_use_flags.txt | sed "/reven_branding/d" | sed "/os_install_service/d" >/newroot/tmp/ui_use_flags.txt
-	mount -o bind /newroot/tmp/ui_use_flags.txt /newroot/etc/ui_use_flags.txt
-
-	cp /opt/mount-encrypted /newroot/tmp/mount-encrypted
-	cp /newroot/usr/sbin/mount-encrypted /newroot/tmp/mount-encrypted.real
-	mount -o bind /newroot/tmp/mount-encrypted /newroot/usr/sbin/mount-encrypted
-
-	cat /newroot/etc/init/boot-splash.conf | sed '/^script$/a \  pkill frecon-lite || true' >/newroot/tmp/boot-splash.conf
-	mount -o bind /newroot/tmp/boot-splash.conf /newroot/etc/init/boot-splash.conf
-
-	if [ "$use_crossystem" = "y" ]; then
-		echo "patching crossystem"
-		cp /opt/crossystem /newroot/tmp/crossystem
-		if [ "$invalid_hwid" = "y" ]; then
-			sed -i 's/block_devmode/hwid/' /newroot/tmp/crossystem
-		fi
-
-		cp /newroot/usr/bin/crossystem /newroot/tmp/crossystem_old
-		mount -o bind /newroot/tmp/crossystem /newroot/usr/bin/crossystem
-	fi
-
-	echo "moving mounts"
-	move_mounts /newroot
-
-	echo "switching root"
-	mkdir -p /newroot/tmp/bootloader
-	pivot_root /newroot /newroot/tmp/bootloader
-
-	echo "starting init"
 	exec_init
 }
 
@@ -611,7 +546,7 @@ main() {
 
 	enable_debug_console "$TTY2"
 
-	local valid_partitions="$(find_all_partitions)"
+	local valid_partitions="$(find_rootfs_partitions)"
 
 	while true; do
 		clear

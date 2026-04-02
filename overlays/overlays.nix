@@ -1,5 +1,5 @@
 # Architecture-aware overlays
-system: [
+_system: [
   # Custom packages overlay
 
   # Import overlays

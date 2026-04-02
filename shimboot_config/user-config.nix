@@ -4,23 +4,22 @@
 # Dependencies: None (pure configuration)
 # Related: base_configuration/configuration.nix, flake.nix
 #
-# This module defines:
-# - Host and system configuration
-# - User credentials and groups
-# - Default application preferences
-# - System directory structure
+# This module:
+# - Defines host and system configuration
+# - Defines user credentials and groups
+# - Defines default application preferences
+# - Defines system directory structure
+# - Defines environment variables
 {
   hostname ? null,
   system ? "x86_64-linux",
   username ? "nixos-user",
-}: rec {
+}:
+{
   # Host configuration
   host = {
     inherit system;
-    hostname =
-      if hostname == null
-      then username
-      else hostname;
+    hostname = if hostname == null then username else hostname;
   };
 
   # User credentials
@@ -82,13 +81,17 @@
     };
 
     pdfViewer = {
-      desktop = "org.kde.okular.desktop";
-      package = "kdePackages.okular";
+      desktop = "zen-twilight.desktop";
+      package = "zen-browser";
     };
 
     launcher = {
       package = "fuzzel";
       command = "fuzzel";
+    };
+
+    clipboard = {
+      command = "bash -lc \"cliphist list | fuzzel --dmenu --with-nth 2 | cliphist decode | wl-copy && sleep 0.05 && wtype -M ctrl -k v\"";
     };
   };
 
@@ -97,15 +100,28 @@
   locale = "en_US.UTF-8";
 
   # System directories
-  directories = let
-    home = "/home/${username}";
-  in {
-    inherit home;
-    documents = "${home}/Documents";
-    downloads = "${home}/Downloads";
-    pictures = "${home}/Pictures";
-    videos = "${home}/Videos";
-    music = "${home}/Music";
-    desktop = "${home}/Desktop";
+  directories =
+    let
+      home = "/home/${username}";
+    in
+    {
+      inherit home;
+      documents = "${home}/Documents";
+      downloads = "${home}/Downloads";
+      pictures = "${home}/Pictures";
+      videos = "${home}/Videos";
+      music = "${home}/Music";
+      desktop = "${home}/Desktop";
+    };
+
+  # Theme configuration for PMD
+  theme = {
+    hue = 30;
+    variant = "dark"; # "dark" or "light"
+  };
+
+  # Environment variables
+  env = {
+    NIXOS_CONFIG_DIR = "$HOME/nixos-config";
   };
 }

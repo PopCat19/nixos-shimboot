@@ -1,105 +1,128 @@
+# raw-image.nix
+#
+# Purpose: Generate raw rootfs images for ChromeOS shimboot installation
+#
+# This module:
+# - Builds full raw rootfs with Home Manager integration
+# - Builds minimal raw rootfs with base configuration only
+# - Configures serial console logging and Nix garbage collection
+# - Uses nixpkgs built-in image generation (nixos-generators upstreamed as of 25.05)
 {
   self,
   nixpkgs,
-  nixos-generators,
   home-manager,
   zen-browser,
   rose-pine-hyprcursor,
+  noctalia,
+  stylix,
+  nixvim,
+  patchedSystemd,
   ...
-}: let
+}:
+let
   system = "x86_64-linux";
-  pkgs = nixpkgs.legacyPackages.${system};
-  userConfig = import ../shimboot_config/user-config.nix {};
-in {
+
+  # Import user config from flattened location
+  userConfig = import ../shimboot_config/user-config.nix { };
+
+  # Helper function to create NixOS configuration for image generation
+  # This works for both NixOS and non-NixOS builders
+  mkImageConfiguration =
+    { modules }:
+    let
+      # Create a NixOS configuration with the image module
+      nixosConfig = nixpkgs.lib.nixosSystem {
+        inherit system;
+        specialArgs = {
+          inherit
+            self
+            zen-browser
+            rose-pine-hyprcursor
+            noctalia
+            stylix
+            userConfig
+            patchedSystemd
+            ;
+        };
+
+        modules = modules ++ [
+          # Enable the image builder module from nixpkgs
+          # This is the upstreamed nixos-generators functionality
+          "${nixpkgs}/nixos/modules/image/images.nix"
+
+          # Image configuration for raw-efi
+          {
+            # The raw-efi variant is already defined in image.modules
+            # We just need to access it via system.build.images.raw-efi
+            nixpkgs.hostPlatform = system;
+          }
+        ];
+      };
+    in
+    nixosConfig.config.system.build.images.raw-efi;
+in
+{
   packages.${system} = {
     # Generate a raw image that includes the main configuration (reduces on-target build)
-    raw-rootfs = nixos-generators.nixosGenerate {
-      inherit system;
-      format = "raw";
-      specialArgs = {inherit zen-browser rose-pine-hyprcursor;};
-
-      modules =
-        [
-          # Apply overlays
-          ({config, ...}: {
+    raw-rootfs = mkImageConfiguration {
+      modules = [
+        (
+          { config, ... }:
+          {
             nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
-          })
-        ]
-        ++ [
-          # Use the main configuration (which itself imports base)
-          ../shimboot_config/main_configuration/configuration.nix
+          }
+        )
+        ../shimboot_config/main_configuration/configuration.nix
 
-          # Integrate Home Manager for user-level configuration like the full system build
-          home-manager.nixosModules.home-manager
-          ({
-            config,
-            pkgs,
-            ...
-          }: {
-            home-manager.useGlobalPkgs = true;
+        home-manager.nixosModules.home-manager
+        (
+          { pkgs, ... }:
+          {
+            home-manager.useGlobalPkgs = false;
             home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = {
-              inherit zen-browser rose-pine-hyprcursor userConfig;
-              inputs = self.inputs;
+              inherit
+                zen-browser
+                rose-pine-hyprcursor
+                userConfig
+                nixvim
+                ;
+              inherit (self) inputs;
             };
             home-manager.sharedModules = [
-              ({config, ...}: {
+              (_: {
+                nixpkgs.config.allowUnfree = true;
+                nixpkgs.overlays = import ../overlays/overlays.nix pkgs.system;
                 _module.args.userConfig = userConfig;
               })
             ];
-            home-manager.users.${userConfig.user.username} = import ../shimboot_config/main_configuration/home_modules/home.nix;
-          })
+            home-manager.users.${userConfig.user.username} =
+              import ../shimboot_config/main_configuration/home/home.nix;
+          }
+        )
 
-          # Raw image specific configuration
-          ({
-            config,
-            pkgs,
-            ...
-          }: {
-            # Enable serial console logging
-            boot.kernelParams = ["console=ttyS0,115200"];
+        (_: {
+          boot.kernelParams = [ "console=ttyS0,115200" ];
 
-            # Enable Nix flakes
-            nix.settings.experimental-features = ["nix-command" "flakes"];
-
-            # Enable automatic garbage collection
-            nix.gc = {
-              automatic = true;
-              dates = "weekly";
-              options = "--delete-older-than 30d";
-            };
-          })
-        ];
+          nix.settings.experimental-features = [
+            "nix-command"
+            "flakes"
+          ];
+        })
+      ];
     };
 
-    # Minimal/base-only raw image (no Home Manager, base configuration only)
-    raw-rootfs-minimal = nixos-generators.nixosGenerate {
-      inherit system;
-      format = "raw";
-      specialArgs = {inherit zen-browser rose-pine-hyprcursor;};
-
+    raw-rootfs-minimal = mkImageConfiguration {
       modules = [
-        # Base-only configuration (standalone Hyprland via greetd)
         ../shimboot_config/base_configuration/configuration.nix
 
-        # Raw image specific configuration
-        ({
-          config,
-          pkgs,
-          ...
-        }: {
-          # Enable serial console logging
-          boot.kernelParams = ["console=ttyS0,115200"];
+        (_: {
+          boot.kernelParams = [ "console=ttyS0,115200" ];
 
-          # Enable Nix flakes
-          nix.settings.experimental-features = ["nix-command" "flakes"];
-
-          # Enable automatic garbage collection
-          nix.gc = {
-            automatic = true;
-            dates = "weekly";
-            options = "--delete-older-than 30d";
-          };
+          nix.settings.experimental-features = [
+            "nix-command"
+            "flakes"
+          ];
         })
       ];
     };

@@ -1,0 +1,23 @@
+#!/bin/sh
+
+# exit-rescue
+#
+# Purpose: Exec init from rescue shell when sourced; must be sourced to replace shell.
+#
+# This module:
+# - Validate sourced context
+# - Exec INIT_PATH replacing the calling shell
+
+# Must be sourced — exec in a subprocess replaces the subprocess, not the shell.
+# Ctrl+D achieves the same result (bootstrap falls through to exec init on shell exit).
+
+target="${INIT_PATH:-/sbin/init}"
+
+if [ ! -x "$target" ]; then
+	echo "> ${target} not found or not executable"
+	echo "> set INIT_PATH to the correct init and re-run"
+	exit 1
+fi
+
+echo "> exiting rescue shell, exec ${target}"
+exec "$target"

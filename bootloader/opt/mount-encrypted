@@ -3,10 +3,8 @@
 # ChromeOS Encrypted Storage Fixer
 #
 # Purpose: Enable ChromeOS encrypted persistence by adding unsafe mode flag to mount operations.
-# Dependencies: bash, original mount-encrypted binary
-# Related: bootloader/bin/bootstrap.sh
 #
-# This script:
+# This module:
 # - Intercepts mount-encrypted calls and appends --unsafe flag to all invocations
 # - Enables ChromeOS encrypted persistence that would otherwise be blocked
 # - Logs all mount-encrypted operations to /tmp/mount-encrypted.log for debugging
