@@ -432,6 +432,11 @@ filesystem_menu() {
 			mount --bind /proc "$MOUNTPOINT/proc"
 			mount --bind /sys "$MOUNTPOINT/sys"
 
+			# Mount devpts for pseudoterminals
+			mkdir -p "$MOUNTPOINT/dev/pts"
+			mount -t devpts devpts "$MOUNTPOINT/dev/pts" -o newinstance,ptmxmode=0666 2>/dev/null ||
+				mount -t devpts devpts "$MOUNTPOINT/dev/pts" 2>/dev/null || true
+
 			# Bind DNS resolution for network access
 			if [[ -f /etc/resolv.conf ]]; then
 				mount --bind /etc/resolv.conf "$MOUNTPOINT/etc/resolv.conf"
@@ -468,6 +473,7 @@ CHROOT_SETUP_EOF
 			# Clean up and unmount
 			rm -f "$MOUNTPOINT/.rescue-nix-setup"
 			umount "$MOUNTPOINT/etc/resolv.conf" 2>/dev/null || true
+			umount "$MOUNTPOINT/dev/pts" 2>/dev/null || true
 			umount "$MOUNTPOINT/sys" "$MOUNTPOINT/proc" "$MOUNTPOINT/dev" || true
 			;;
 		"Check disk usage")
@@ -833,6 +839,11 @@ CHROOT_SETUP_EOF
 						mount --bind /proc "$MOUNTPOINT/proc"
 						mount --bind /sys "$MOUNTPOINT/sys"
 
+						# Mount devpts for pseudoterminals
+						mkdir -p "$MOUNTPOINT/dev/pts"
+						mount -t devpts devpts "$MOUNTPOINT/dev/pts" -o newinstance,ptmxmode=0666 2>/dev/null ||
+							mount -t devpts devpts "$MOUNTPOINT/dev/pts" 2>/dev/null || true
+
 						# Bind DNS resolution for network access
 						if [[ -f /etc/resolv.conf ]]; then
 							mount --bind /etc/resolv.conf "$MOUNTPOINT/etc/resolv.conf"
@@ -867,6 +878,7 @@ CHROOT_SETUP_EOF
 						# Clean up and return to menu
 						rm -f "$MOUNTPOINT/.rescue-nix-setup"
 						umount "$MOUNTPOINT/etc/resolv.conf" 2>/dev/null || true
+						umount "$MOUNTPOINT/dev/pts" 2>/dev/null || true
 						umount "$MOUNTPOINT/sys" "$MOUNTPOINT/proc" "$MOUNTPOINT/dev" || true
 						log_info "Returned from chroot"
 						break
@@ -911,6 +923,11 @@ CHROOT_SETUP_EOF
 			mount --bind /proc "$MOUNTPOINT/proc"
 			mount --bind /sys "$MOUNTPOINT/sys"
 
+			# Mount devpts for pseudoterminals (required by nix builds)
+			mkdir -p "$MOUNTPOINT/dev/pts"
+			mount -t devpts devpts "$MOUNTPOINT/dev/pts" -o newinstance,ptmxmode=0666 2>/dev/null ||
+				mount -t devpts devpts "$MOUNTPOINT/dev/pts" 2>/dev/null || true
+
 			# Bind DNS resolution for network access
 			if [[ -f /etc/resolv.conf ]]; then
 				mount --bind /etc/resolv.conf "$MOUNTPOINT/etc/resolv.conf"
@@ -928,6 +945,7 @@ CHROOT_SETUP_EOF
 			fi
 
 			umount "$MOUNTPOINT/etc/resolv.conf" 2>/dev/null || true
+			umount "$MOUNTPOINT/dev/pts" 2>/dev/null || true
 			umount "$MOUNTPOINT/sys" "$MOUNTPOINT/proc" "$MOUNTPOINT/dev" || true
 			;;
 		"Filesystem health check")
