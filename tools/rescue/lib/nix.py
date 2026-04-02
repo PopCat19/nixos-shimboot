@@ -108,25 +108,36 @@ def find_nixos_configs(mountpoint: Path) -> list[Path]:
     Returns:
         List of valid config directory paths
     """
+    from lib.console import log_info
     configs = []
     
     # Search home directories
     home_dir = mountpoint / "home"
     if home_dir.exists():
+        log_info(f"Checking home directories in {home_dir}")
         for user_dir in home_dir.iterdir():
             if user_dir.is_dir():
                 config_dir = user_dir / "nixos-config"
                 if is_valid_config(config_dir):
+                    log_info(f"Found valid config: {config_dir}")
                     configs.append(config_dir)
+                else:
+                    # Debug: log why it failed
+                    if config_dir.exists():
+                        has_flake = (config_dir / "flake.nix").exists()
+                        has_config = (config_dir / "configuration.nix").exists()
+                        log_info(f"  {config_dir}: flake.nix={has_flake}, configuration.nix={has_config}")
     
     # Search /root
     root_config = mountpoint / "root" / "nixos-config"
     if is_valid_config(root_config):
+        log_info(f"Found valid config: {root_config}")
         configs.append(root_config)
     
     # Search /etc/nixos
     etc_config = mountpoint / "etc" / "nixos"
     if is_valid_config(etc_config):
+        log_info(f"Found valid config: {etc_config}")
         configs.append(etc_config)
     
     return configs
@@ -137,8 +148,7 @@ def is_valid_config(config_dir: Path) -> bool:
     
     Must:
     - Exist
-    - Have flake.nix
-    - Not be empty (has files)
+    - Have flake.nix OR configuration.nix
     
     Args:
         config_dir: Path to check
@@ -149,16 +159,11 @@ def is_valid_config(config_dir: Path) -> bool:
     if not config_dir.exists() or not config_dir.is_dir():
         return False
     
+    # Check for either flake.nix or configuration.nix
     flake_file = config_dir / "flake.nix"
-    if not flake_file.exists():
-        return False
+    config_file = config_dir / "configuration.nix"
     
-    # Check if directory has files
-    try:
-        files = list(config_dir.rglob("*"))
-        if len(files) <= 1:  # Only flake.nix
-            return False
-    except (OSError, PermissionError):
+    if not flake_file.exists() and not config_file.exists():
         return False
     
     return True

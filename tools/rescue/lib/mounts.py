@@ -241,8 +241,11 @@ def find_shell_path(mountpoint: Path) -> Optional[Path]:
     """
     candidates = [
         Path("bin/bash"),
+        Path("usr/bin/bash"),
         Path("run/current-system/sw/bin/bash"),
         Path("bin/sh"),
+        Path("usr/bin/sh"),
+        Path("run/current-system/sw/bin/sh"),
     ]
     
     for candidate in candidates:
