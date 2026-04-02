@@ -1,63 +1,22 @@
 # Flake Configuration
 #
-# Purpose: Main flake.nix defining inputs and outputs for nixos-shimboot
-# Dependencies: nixpkgs, home-manager, zen-browser, rose-pine-hyprcursor
+# Purpose: Main flake.nix defining inputs and outputs for nixos-shimboot (base branch)
+# Dependencies: nixpkgs
 # Related: shimboot_config/, flake_modules/
 #
 # This flake provides:
-# - Raw image generation for ChromeOS boards
-# - System configurations with home-manager integration
+# - Raw image generation for ChromeOS boards (base config only)
+# - System configurations (minimal, no desktop)
 # - Development environment and tools
 # - ChromeOS kernel/initramfs extraction and patching
+#
+# Note: This is the base branch. For full desktop config, use --config-branch default
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     # Pinned nixpkgs for systemd 258.3 — do not update without verifying version
     nixpkgs-systemd.url = "github:NixOS/nixpkgs/0182a361324364ae3f436a63005877674cf45efb";
-
-    zen-browser = {
-      url = "github:0xc000022070/zen-browser-flake";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    rose-pine-hyprcursor = {
-      url = "github:ndom91/rose-pine-hyprcursor";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    noctalia = {
-      url = "github:noctalia-dev/noctalia-shell";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    # Stylix theming framework
-    stylix = {
-      url = "github:nix-community/stylix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    home-manager = {
-      url = "github:nix-community/home-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    # Personal Material Design (PMD) theme system
-    pmd = {
-      url = "github:popcat19/project-minimalist-design/dev";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    # LLM Agents
-    llm-agents = {
-      url = "github:numtide/llm-agents.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    nixvim = {
-      url = "github:nix-community/nixvim";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   # Combine all outputs from modules
@@ -66,14 +25,6 @@
       self,
       nixpkgs,
       nixpkgs-systemd,
-      home-manager,
-      zen-browser,
-      rose-pine-hyprcursor,
-      noctalia,
-      stylix,
-      pmd,
-      llm-agents,
-      nixvim,
       ...
     }:
     let
@@ -90,9 +41,6 @@
         "grunt"
         "snappy"
       ];
-
-      # Import user configuration
-      # Extract username for easier access
 
       # Import nixpkgs for systemd pinning
       pkgsSystemd = import nixpkgs-systemd { inherit system; };
@@ -112,13 +60,6 @@
           inherit
             self
             nixpkgs
-            home-manager
-            zen-browser
-            rose-pine-hyprcursor
-            noctalia
-            stylix
-            pmd
-            nixvim
             board
             patchedSystemd
             ;
@@ -127,15 +68,8 @@
         inherit
           self
           nixpkgs
-          home-manager
-          zen-browser
-          rose-pine-hyprcursor
-          noctalia
-          stylix
-          llm-agents
-          nixvim
+          patchedSystemd
           ;
-        inherit patchedSystemd;
       };
       developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix {
         inherit self nixpkgs;
@@ -176,8 +110,6 @@
       packages = {
         ${system} = nixpkgs.lib.foldl' (acc: board: acc // (boardPackages board)) {
           systemd = patchedSystemd;
-          noctalia = noctalia.packages.${system}.default;
-          zen = zen-browser.packages.${system}.default;
         } supportedBoards;
       };
 
