@@ -12,7 +12,7 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
-from lib.console import console, log_info, log_section
+from lib.console import console, log_info, log_warn, log_section, confirm_action
 from commands import register_command
 
 
@@ -47,7 +47,14 @@ def run(
     
     # Show top directories
     console.print()
-    log_info("Top directories by size:")
+    log_warn("Scanning all directories may take a while on large filesystems")
+    log_warn("This operation reads the entire directory tree and may wear NAND storage")
+    
+    if not confirm_action("Continue with directory scan"):
+        log_info("Cancelled")
+        return 0
+    
+    log_info("Scanning directories (Ctrl+C to cancel)...")
     
     try:
         result = subprocess.run(
