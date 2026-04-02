@@ -42,19 +42,15 @@ def run(
     """
     log_section("Git Pull & Rebuild")
     
-    # Find best config
+    # Find configs with git repos
     configs = find_nixos_configs(mountpoint)
-    if not configs:
-        log_error("No nixos-config found")
+    git_configs = [c for c in configs if get_git_info(c)]
+    
+    if not git_configs:
+        log_error("No nixos-config with git repository found")
         return 1
     
-    config_dir = configs[0]  # Use most recent
-    
-    # Check if git repo
-    info = get_git_info(config_dir)
-    if not info:
-        log_error(f"Not a git repository: {config_dir}")
-        return 1
+    config_dir = git_configs[0]  # Use first git config
     
     # Show current state
     console.print(f"[bold]Config:[/bold] {config_dir}")
