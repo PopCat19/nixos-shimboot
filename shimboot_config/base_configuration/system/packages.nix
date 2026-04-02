@@ -27,7 +27,6 @@ in
     git
     btop
     fastfetch
-    jql
 
 
   ];

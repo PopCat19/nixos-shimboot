@@ -20,6 +20,7 @@
     nodejs
     python3
     rustup
+    jql
     inputs.llm-agents.packages.${pkgs.system}.kilocode-cli
     inputs.llm-agents.packages.${pkgs.system}.opencode
   ];
