@@ -19,7 +19,7 @@ from lib.console import console, log_info, log_warn, log_error, log_success, log
 from commands import register_command
 
 
-DEFAULT_BACKUP_DIR = Path("/tmp/home-backups")\n
+DEFAULT_BACKUP_DIR = Path("/tmp/home-backups")
 def cmd_list_home(mountpoint: Path) -> int:
     """List home directory contents."""
     log_section("Home Directory Contents")
