@@ -3,19 +3,12 @@
 # Purpose: Generate raw rootfs images for ChromeOS shimboot installation
 #
 # This module:
-# - Builds full raw rootfs with Home Manager integration
-# - Builds minimal raw rootfs with base configuration only
+# - Builds minimal raw rootfs with base configuration only (base branch)
 # - Configures serial console logging and Nix garbage collection
 # - Uses nixpkgs built-in image generation (nixos-generators upstreamed as of 25.05)
 {
   self,
   nixpkgs,
-  home-manager,
-  zen-browser,
-  rose-pine-hyprcursor,
-  noctalia,
-  stylix,
-  nixvim,
   patchedSystemd,
   ...
 }:
@@ -36,10 +29,6 @@ let
         specialArgs = {
           inherit
             self
-            zen-browser
-            rose-pine-hyprcursor
-            noctalia
-            stylix
             userConfig
             patchedSystemd
             ;
@@ -63,55 +52,8 @@ let
 in
 {
   packages.${system} = {
-    # Generate a raw image that includes the main configuration (reduces on-target build)
-    raw-rootfs = mkImageConfiguration {
-      modules = [
-        (
-          { config, ... }:
-          {
-            nixpkgs.overlays = import ../overlays/overlays.nix config.nixpkgs.system;
-          }
-        )
-        ../shimboot_config/main_configuration/configuration.nix
-
-        home-manager.nixosModules.home-manager
-        (
-          { pkgs, ... }:
-          {
-            home-manager.useGlobalPkgs = false;
-            home-manager.useUserPackages = true;
-            home-manager.extraSpecialArgs = {
-              inherit
-                zen-browser
-                rose-pine-hyprcursor
-                userConfig
-                nixvim
-                ;
-              inherit (self) inputs;
-            };
-            home-manager.sharedModules = [
-              (_: {
-                nixpkgs.config.allowUnfree = true;
-                nixpkgs.overlays = import ../overlays/overlays.nix pkgs.system;
-                _module.args.userConfig = userConfig;
-              })
-            ];
-            home-manager.users.${userConfig.user.username} =
-              import ../shimboot_config/main_configuration/home/home.nix;
-          }
-        )
-
-        (_: {
-          boot.kernelParams = [ "console=ttyS0,115200" ];
-
-          nix.settings.experimental-features = [
-            "nix-command"
-            "flakes"
-          ];
-        })
-      ];
-    };
-
+    # Base branch: minimal rootfs only
+    # For full rootfs, use --config-branch with default or popcat19-dev
     raw-rootfs-minimal = mkImageConfiguration {
       modules = [
         ../shimboot_config/base_configuration/configuration.nix
