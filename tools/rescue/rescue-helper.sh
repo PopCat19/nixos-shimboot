@@ -432,6 +432,11 @@ filesystem_menu() {
 			mount --bind /proc "$MOUNTPOINT/proc"
 			mount --bind /sys "$MOUNTPOINT/sys"
 
+			# Bind DNS resolution for network access
+			if [[ -f /etc/resolv.conf ]]; then
+				mount --bind /etc/resolv.conf "$MOUNTPOINT/etc/resolv.conf"
+			fi
+
 			# Create a setup script inside chroot to configure Nix environment
 			# Modeled after /bootloader/opt/setup-nix
 			cat >"$MOUNTPOINT/.rescue-nix-setup" <<'CHROOT_SETUP_EOF'
@@ -462,6 +467,7 @@ CHROOT_SETUP_EOF
 
 			# Clean up and unmount
 			rm -f "$MOUNTPOINT/.rescue-nix-setup"
+			umount "$MOUNTPOINT/etc/resolv.conf" 2>/dev/null || true
 			umount "$MOUNTPOINT/sys" "$MOUNTPOINT/proc" "$MOUNTPOINT/dev" || true
 			;;
 		"Check disk usage")
@@ -827,6 +833,11 @@ CHROOT_SETUP_EOF
 						mount --bind /proc "$MOUNTPOINT/proc"
 						mount --bind /sys "$MOUNTPOINT/sys"
 
+						# Bind DNS resolution for network access
+						if [[ -f /etc/resolv.conf ]]; then
+							mount --bind /etc/resolv.conf "$MOUNTPOINT/etc/resolv.conf"
+						fi
+
 						# Create setup script for Nix environment
 						cat >"$MOUNTPOINT/.rescue-nix-setup" <<'CHROOT_SETUP_EOF'
 #!/bin/sh
@@ -855,6 +866,7 @@ CHROOT_SETUP_EOF
 
 						# Clean up and return to menu
 						rm -f "$MOUNTPOINT/.rescue-nix-setup"
+						umount "$MOUNTPOINT/etc/resolv.conf" 2>/dev/null || true
 						umount "$MOUNTPOINT/sys" "$MOUNTPOINT/proc" "$MOUNTPOINT/dev" || true
 						log_info "Returned from chroot"
 						break
@@ -899,6 +911,11 @@ CHROOT_SETUP_EOF
 			mount --bind /proc "$MOUNTPOINT/proc"
 			mount --bind /sys "$MOUNTPOINT/sys"
 
+			# Bind DNS resolution for network access
+			if [[ -f /etc/resolv.conf ]]; then
+				mount --bind /etc/resolv.conf "$MOUNTPOINT/etc/resolv.conf"
+			fi
+
 			log_step "Rebuild" "Starting nixos-rebuild..."
 			if chroot "$MOUNTPOINT" /bin/sh -c "
 				export PATH=\"/nix/var/nix/profiles/system/sw/bin:/nix/var/nix/profiles/system/sw/sbin:\$PATH\"
@@ -910,6 +927,7 @@ CHROOT_SETUP_EOF
 				log_error "Rebuild failed"
 			fi
 
+			umount "$MOUNTPOINT/etc/resolv.conf" 2>/dev/null || true
 			umount "$MOUNTPOINT/sys" "$MOUNTPOINT/proc" "$MOUNTPOINT/dev" || true
 			;;
 		"Filesystem health check")
