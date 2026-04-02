@@ -639,9 +639,10 @@ CHROOT_SETUP_EOF
 				fi
 			fi
 
-			# Detect kernel version for sandbox option
+			# Detect kernel version for info only
 			local kernel_version
 			kernel_version="$(uname -r | cut -d. -f1-2)"
+
 			# Use 'boot' not 'switch' in chroot - we're preparing the image, not switching a running system
 			# Always include hostname - either detected, inferred, or forced selection
 			if [[ -z "$hostname" && -n "$inferred_hostname" ]]; then
@@ -656,11 +657,10 @@ CHROOT_SETUP_EOF
 				log_warn "Could not determine hostname - nixos-rebuild may fail or use system default"
 			fi
 
-			# Check if kernel < 5.6 (needs sandbox disabled)
-			if [[ "${kernel_version%.*}" -lt 5 ]] || ([[ "${kernel_version%.*}" -eq 5 ]] && [[ "${kernel_version#*.}" -lt 6 ]]); then
-				log_warn "Kernel $kernel_version detected (< 5.6), adding --option sandbox false"
-				nix_args="$nix_args --option sandbox false"
-			fi
+			# Always disable sandbox in chroot - nix sandbox uses pivot_root which conflicts
+			# with being in a chroot environment (causes "cannot pivot old root directory" error)
+			log_info "Disabling nix sandbox (required in chroot environment)"
+			nix_args="$nix_args --option sandbox false"
 
 			log_info "Will run: nixos-rebuild $nix_args"
 			log_info "(Using 'boot' instead of 'switch' since we're in a chroot environment)"
