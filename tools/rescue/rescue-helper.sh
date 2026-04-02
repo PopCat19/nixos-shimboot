@@ -381,6 +381,7 @@ filesystem_menu() {
 		"Remount read-write" \
 		"Remount read-only" \
 		"Chroot into system" \
+		"Rebuild NixOS" \
 		"Check disk usage" \
 		"Filesystem health check" \
 		"Back to main menu (0)"; do
@@ -403,11 +404,15 @@ filesystem_menu() {
 			log_success "Remounted read-only"
 			;;
 		"Chroot into system")
-			if [[ "$MOUNTED" -eq 0 ]]; then
-				mount_system "rw"
+			# Always ensure read-write for chroot (we may need to write files or run nixos-rebuild)
+			if [[ "$MOUNTED" -eq 1 ]]; then
+				log_info "Remounting read-write for chroot..."
+				umount "$MOUNTPOINT"
+				MOUNTED=0
 			fi
+			mount_system "rw"
 			log_info "Entering chroot environment..."
-			log_warn "Type 'exit' to return to rescue helper (if /bin/bash missing, try /run/current-system/sw/bin/bash)"
+			log_info "Tip: Type 'exit' to return to rescue helper"
 
 			# Detect suitable shell path in rootfs
 			local bash_path=""
@@ -427,10 +432,36 @@ filesystem_menu() {
 			mount --bind /proc "$MOUNTPOINT/proc"
 			mount --bind /sys "$MOUNTPOINT/sys"
 
-			# Enter chroot
-			chroot "$MOUNTPOINT" "$bash_path" || true
+			# Create a setup script inside chroot to configure Nix environment
+			# Modeled after /bootloader/opt/setup-nix
+			cat >"$MOUNTPOINT/.rescue-nix-setup" <<'CHROOT_SETUP_EOF'
+#!/bin/sh
+# Auto-generated Nix environment setup for rescue chroot
+if [ -d "/nix/var/nix/profiles" ]; then
+	if [ -x "/nix/var/nix/profiles/system/activate" ]; then
+		/nix/var/nix/profiles/system/activate 2>/dev/null || true
+	fi
+	export PATH="/nix/var/nix/profiles/system/sw/bin:/nix/var/nix/profiles/system/sw/sbin:$PATH"
+	if [ -f "/nix/var/nix/profiles/default/etc/profile.d/nix.sh" ]; then
+		. "/nix/var/nix/profiles/default/etc/profile.d/nix.sh"
+	fi
+	export NIX_PATH="nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos:nixos-config=/etc/nixos/configuration.nix:/nix/var/nix/profiles/per-user/root/channels"
+	echo "Nix environment ready. Tools: nixos-rebuild, nix-env, nix-channel"
+fi
+rm -f /.rescue-nix-setup
+CHROOT_SETUP_EOF
+			chmod +x "$MOUNTPOINT/.rescue-nix-setup"
 
-			# Cleanly unmount
+			# Enter chroot with environment setup
+			chroot "$MOUNTPOINT" /bin/sh -c "
+				if [ -f /.rescue-nix-setup ]; then
+					. /.rescue-nix-setup
+				fi
+				exec $bash_path
+			" || true
+
+			# Clean up and unmount
+			rm -f "$MOUNTPOINT/.rescue-nix-setup"
 			umount "$MOUNTPOINT/sys" "$MOUNTPOINT/proc" "$MOUNTPOINT/dev" || true
 			;;
 		"Check disk usage")
@@ -439,6 +470,294 @@ filesystem_menu() {
 			echo
 			log_info "Top directories by size:"
 			du -h --max-depth=1 "$MOUNTPOINT" 2>/dev/null | sort -hr | head -n 10
+			;;
+		"Rebuild NixOS")
+			log_section "Rebuild NixOS System"
+			if [[ "$MOUNTED" -eq 1 ]]; then
+				log_info "Remounting read-write for rebuild..."
+				umount "$MOUNTPOINT"
+				MOUNTED=0
+			fi
+			mount_system "rw"
+
+			# Find nixos-config directory - be thorough and pick most recently committed one
+			local config_dir=""
+			local check_dirs=()
+			local valid_configs=()
+
+			# Build list of directories to check
+			for home_dir in "$MOUNTPOINT/home"/*; do
+				[[ -d "$home_dir" ]] && check_dirs+=("$home_dir/nixos-config")
+			done
+			check_dirs+=("$MOUNTPOINT/root/nixos-config" "$MOUNTPOINT/etc/nixos")
+
+			log_info "Searching for nixos-config in ${#check_dirs[@]} locations..."
+
+			for dir in "${check_dirs[@]}"; do
+				if [[ -d "$dir" ]]; then
+					# Check if directory is non-empty and has flake.nix
+					local file_count
+					file_count=$(find "$dir" -type f 2>/dev/null | wc -l)
+
+					if [[ -f "$dir/flake.nix" ]] && [[ "$file_count" -gt 0 ]]; then
+						valid_configs+=("$dir")
+						log_info "Found valid config: $dir"
+					elif [[ -f "$dir/flake.nix" ]]; then
+						log_warn "Skipping $dir (has flake.nix but appears empty: $file_count files)"
+					elif [[ "$file_count" -gt 0 ]]; then
+						log_info "Skipping $dir (has files but no flake.nix)"
+					else
+						log_info "Skipping $dir (empty directory)"
+					fi
+				fi
+			done
+
+			if [[ ${#valid_configs[@]} -eq 0 ]]; then
+				log_error "No valid nixos-config found"
+				log_info "Checked locations:"
+				printf '  - %s\n' "${check_dirs[@]}"
+				log_info "A valid config needs:"
+				log_info "  1. Directory to exist"
+				log_info "  2. flake.nix file present"
+				log_info "  3. Directory to not be empty"
+				return 1
+			fi
+
+			# Pick the config with most recent git commit
+			local most_recent_dir=""
+			local most_recent_time=0
+
+			for dir in "${valid_configs[@]}"; do
+				if [[ -d "$dir/.git" ]]; then
+					local commit_time
+					commit_time=$(git -C "$dir" log -1 --format=%ct 2>/dev/null || echo "0")
+					if [[ "$commit_time" -gt "$most_recent_time" ]]; then
+						most_recent_time="$commit_time"
+						most_recent_dir="$dir"
+					fi
+				fi
+			done
+
+			# If no git repos found, use the first valid config
+			if [[ -z "$most_recent_dir" ]]; then
+				most_recent_dir="${valid_configs[0]}"
+				log_warn "No git repos found, using first valid config"
+			fi
+
+			config_dir="$most_recent_dir"
+			log_info "Selected: $config_dir (most recent git commit)"
+
+			log_info "Found config: $config_dir"
+
+			# Convert host path to chroot-relative path (strip MOUNTPOINT prefix)
+			local config_dir_chroot="${config_dir#$MOUNTPOINT}"
+			log_info "Chroot path: $config_dir_chroot"
+
+			# Detect current system hostname from the mounted rootfs
+			local current_hostname=""
+			if [[ -f "$MOUNTPOINT/etc/hostname" ]]; then
+				current_hostname=$(cat "$MOUNTPOINT/etc/hostname" 2>/dev/null | tr -d '[:space:]')
+			fi
+
+			log_info "Current system hostname: ${current_hostname:-unknown}"
+
+			# Detect hostname from available configurations (fast grep method)
+			local hostname=""
+			if [[ -f "$config_dir/flake.nix" ]]; then
+				# Fast grep to get hostnames from flake.nix
+				mapfile -t hostnames < <(grep -oP 'nixosConfigurations\.\K[^[:space:]]+(?=[[:space:]]*=)' "$config_dir/flake.nix" 2>/dev/null | sort -u)
+
+				# Try to infer hostname from config directory path
+				local inferred_hostname=""
+				if [[ "$config_dir" =~ /home/([^/]+)/nixos-config ]]; then
+					inferred_hostname="${BASH_REMATCH[1]}"
+					log_info "Config directory suggests hostname: $inferred_hostname"
+				fi
+
+				if [[ ${#hostnames[@]} -eq 1 ]]; then
+					hostname="${hostnames[0]}"
+					log_info "Auto-detected hostname from flake: $hostname"
+
+					# Warn if hostname mismatch with current system
+					if [[ -n "$current_hostname" && "$hostname" != "$current_hostname" ]]; then
+						log_warn "Hostname mismatch!"
+						log_warn "  /etc/hostname says: $current_hostname"
+						log_warn "  Flake provides: $hostname"
+						log_warn "  Config suggests: $inferred_hostname"
+						read -rp "Continue with '$hostname' or switch to '$current_hostname'? [$hostname/$current_hostname]: " hostname_choice
+						hostname="${hostname_choice:-$hostname}"
+					fi
+				elif [[ ${#hostnames[@]} -gt 1 ]]; then
+					log_info "Available hosts in flake: ${hostnames[*]}"
+
+					# First, try to match config directory name
+					if [[ -n "$inferred_hostname" ]]; then
+						for h in "${hostnames[@]}"; do
+							if [[ "$h" == "$inferred_hostname" ]]; then
+								log_info "Matched config directory to host: $h"
+								hostname="$h"
+								break
+							fi
+						done
+					fi
+
+					# Check if current hostname is in the list (only if not already matched)
+					if [[ -z "$hostname" && -n "$current_hostname" ]]; then
+						for h in "${hostnames[@]}"; do
+							if [[ "$h" == "$current_hostname" ]]; then
+								log_info "System hostname '$current_hostname' found in available hosts"
+								hostname="$current_hostname"
+								break
+							fi
+						done
+					fi
+
+					if [[ -z "$hostname" ]]; then
+						read -rp "Enter hostname to build [${hostnames[0]}]: " hostname
+						hostname="${hostname:-${hostnames[0]}}"
+					fi
+				fi
+			fi
+
+			# Detect kernel version for sandbox option
+			local kernel_version
+			kernel_version="$(uname -r | cut -d. -f1-2)"
+			# Use 'boot' not 'switch' in chroot - we're preparing the image, not switching a running system
+			# Always include hostname - either detected, inferred, or forced selection
+			if [[ -z "$hostname" && -n "$inferred_hostname" ]]; then
+				log_warn "No hostname detected, using inferred: $inferred_hostname"
+				hostname="$inferred_hostname"
+			fi
+
+			local nix_args="boot --flake $config_dir_chroot"
+			if [[ -n "$hostname" ]]; then
+				nix_args="$nix_args#$hostname"
+			else
+				log_warn "Could not determine hostname - nixos-rebuild may fail or use system default"
+			fi
+
+			# Check if kernel < 5.6 (needs sandbox disabled)
+			if [[ "${kernel_version%.*}" -lt 5 ]] || ([[ "${kernel_version%.*}" -eq 5 ]] && [[ "${kernel_version#*.}" -lt 6 ]]); then
+				log_warn "Kernel $kernel_version detected (< 5.6), adding --option sandbox false"
+				nix_args="$nix_args --option sandbox false"
+			fi
+
+			log_info "Will run: nixos-rebuild $nix_args"
+			log_info "(Using 'boot' instead of 'switch' since we're in a chroot environment)"
+			if ! confirm_action; then
+				# Give user options when they say no
+				echo
+				log_info "What would you like to do?"
+				PS3="Select option: "
+				select opt in \
+					"Show available configs" \
+					"Use different hostname" \
+					"Use different config" \
+					"Use nix flake show (accurate but slow)" \
+					"Edit rebuild arguments" \
+					"Cancel and return"; do
+					case "$opt" in
+					"Show available configs")
+						log_info "Available configurations:"
+						for i in "${!valid_configs[@]}"; do
+							local cfg="${valid_configs[$i]}"
+							local commit_time="0"
+							local commit_msg=""
+							if [[ -d "$cfg/.git" ]]; then
+								commit_time=$(git -C "$cfg" log -1 --format=%ct 2>/dev/null || echo "0")
+								commit_msg=$(git -C "$cfg" log -1 --format=%s 2>/dev/null | cut -c1-40)
+							fi
+							local marker=""
+							[[ "$cfg" == "$config_dir" ]] && marker=" (selected)"
+							printf "  [%d] %s%s\n" "$i" "$cfg" "$marker"
+							if [[ -n "$commit_msg" ]]; then
+								printf "      Last commit: %s\n" "$commit_msg"
+							fi
+						done
+						break
+						;;
+					"Use different hostname")
+						if [[ -f "$config_dir/flake.nix" ]]; then
+							mapfile -t hostnames < <(grep -oP 'nixosConfigurations\.\K[^[:space:]]+(?=[[:space:]]*=)' "$config_dir/flake.nix" 2>/dev/null | sort -u)
+							log_info "Available hostnames: ${hostnames[*]}"
+						fi
+						read -rp "Enter hostname to use: " hostname
+						nix_args="boot --flake $config_dir_chroot#$hostname"
+						log_info "Updated: nixos-rebuild $nix_args"
+						break
+						;;
+					"Use different config")
+						if [[ ${#valid_configs[@]} -gt 1 ]]; then
+							log_info "Select config:"
+							for i in "${!valid_configs[@]}"; do
+								printf "  [%d] %s\n" "$i" "${valid_configs[$i]}"
+							done
+							read -rp "Enter number: " cfg_num
+							if [[ "$cfg_num" =~ ^[0-9]+$ ]] && [[ "$cfg_num" -lt ${#valid_configs[@]} ]]; then
+								config_dir="${valid_configs[$cfg_num]}"
+								config_dir_chroot="${config_dir#$MOUNTPOINT}"
+								nix_args="boot --flake $config_dir_chroot"
+								log_info "Switched to: $config_dir"
+							else
+								log_warn "Invalid selection"
+							fi
+						else
+							log_warn "Only one config available"
+						fi
+						break
+						;;
+					"Use nix flake show (accurate but slow)")
+						log_warn "This will take time to evaluate the flake..."
+						log_info "Running: nix flake show --json $config_dir"
+						local flake_info
+						flake_info=$(nix flake show --json "$config_dir" 2>/dev/null)
+						if [[ -n "$flake_info" ]]; then
+							log_info "Available nixosConfigurations:"
+							echo "$flake_info" | jq -r '.nixosConfigurations | keys[]' 2>/dev/null | while read -r h; do
+								log_info "  - $h"
+							done
+							read -rp "Enter hostname to use: " hostname
+							if [[ -n "$hostname" ]]; then
+								nix_args="boot --flake $config_dir_chroot#$hostname"
+								log_info "Updated: nixos-rebuild $nix_args"
+							fi
+						else
+							log_error "Failed to get flake info. Is nix available?"
+						fi
+						break
+						;;
+					"Edit rebuild arguments")
+						log_info "Current: nixos-rebuild $nix_args"
+						read -rp "Enter new arguments (after 'nixos-rebuild'): " custom_args
+						nix_args="$custom_args"
+						log_info "Updated: nixos-rebuild $nix_args"
+						break
+						;;
+					"Cancel and return")
+						log_info "Rebuild cancelled"
+						return 0
+						;;
+					esac
+				done
+			fi
+
+			# Bind essential filesystems and run rebuild
+			mount --bind /dev "$MOUNTPOINT/dev"
+			mount --bind /proc "$MOUNTPOINT/proc"
+			mount --bind /sys "$MOUNTPOINT/sys"
+
+			log_step "Rebuild" "Starting nixos-rebuild..."
+			if chroot "$MOUNTPOINT" /bin/sh -c "
+				export PATH=\"/nix/var/nix/profiles/system/sw/bin:/nix/var/nix/profiles/system/sw/sbin:\$PATH\"
+				export NIX_PATH=\"nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos:nixos-config=/etc/nixos/configuration.nix:/nix/var/nix/profiles/per-user/root/channels\"
+				cd $config_dir_chroot && nixos-rebuild $nix_args 2>&1
+			"; then
+				log_success "Rebuild completed successfully!"
+			else
+				log_error "Rebuild failed"
+			fi
+
+			umount "$MOUNTPOINT/sys" "$MOUNTPOINT/proc" "$MOUNTPOINT/dev" || true
 			;;
 		"Filesystem health check")
 			log_info "Running filesystem check..."
