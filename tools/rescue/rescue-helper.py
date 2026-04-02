@@ -75,9 +75,11 @@ def create_menu_table(
             table.add_row("")
         
         for cmd in commands:
-            marker = "→ " if cmd.number == "1" else "  "
-            tested_marker = "" if cmd.tested else " [yellow][UNTESTED][/yellow]"
-            table.add_row(f"{marker}[{cmd.number}] {cmd.name}{tested_marker}")
+            # Don't add [UNTESTED] if already in name
+            tested_marker = ""
+            if not cmd.tested and "[UNTESTED]" not in cmd.name:
+                tested_marker = " [yellow][UNTESTED][/yellow]"
+            table.add_row(f"  [{cmd.number}] {cmd.name}{tested_marker}")
         
         table.add_row("")
         table.add_row("  [0] Exit")
@@ -98,9 +100,10 @@ def create_menu_table(
             lines.append("")
         
         for cmd in commands:
-            marker = "-> " if cmd.number == "1" else "   "
-            tested_marker = "" if cmd.tested else " [UNTESTED]"
-            lines.append(f"{marker}[{cmd.number}] {cmd.name}{tested_marker}")
+            tested_marker = ""
+            if not cmd.tested and "[UNTESTED]" not in cmd.name:
+                tested_marker = " [UNTESTED]"
+            lines.append(f"   [{cmd.number}] {cmd.name}{tested_marker}")
         
         lines.append("")
         lines.append("   [0] Exit")
