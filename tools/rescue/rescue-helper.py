@@ -37,6 +37,7 @@ from commands import (
     bootloader_tools,
     home_mgmt,
     activation_script,
+    fix_perms,
 )
 
 

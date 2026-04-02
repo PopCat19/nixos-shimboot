@@ -6,6 +6,11 @@
 # - Provides safe git pull operations with conflict handling
 # - Shows git status and branch info
 # - Stashes changes when needed
+# - Supports running git as a specific user via su
+#
+# Warning: This module can run git as root. When used in chroot on /home repos,
+# file ownership may be changed to root, causing permission issues for users.
+# Use run_as_user parameter to run git as the file owner instead.
 
 from __future__ import annotations
 
@@ -15,6 +20,26 @@ from pathlib import Path
 from typing import Optional
 
 from lib.console import log_info, log_warn, log_success, log_error, log_step
+
+
+def _build_git_cmd(repo_path: Path, git_args: list[str], run_as_user: Optional[str] = None) -> list[str]:
+    """Build git command, optionally wrapped with su to run as specific user.
+    
+    Args:
+        repo_path: Path to git repository
+        git_args: Git command arguments
+        run_as_user: Optional username to run git as
+    
+    Returns:
+        Command list ready for subprocess
+    """
+    if run_as_user:
+        # Use su to run as specific user
+        # Need to cd to repo first since su doesn't preserve -C
+        cmd = f"cd '{repo_path}' && git {' '.join(git_args)}"
+        return ["su", "-c", cmd, run_as_user]
+    else:
+        return ["git", "-C", str(repo_path)] + git_args
 
 
 @dataclass
@@ -27,11 +52,12 @@ class GitInfo:
     has_staged: bool
 
 
-def get_git_info(repo_path: Path) -> Optional[GitInfo]:
+def get_git_info(repo_path: Path, run_as_user: Optional[str] = None) -> Optional[GitInfo]:
     """Get current git info for a repository.
     
     Args:
         repo_path: Path to git repository
+        run_as_user: Optional username to run git as
     
     Returns:
         GitInfo object or None if not a git repo
@@ -43,7 +69,7 @@ def get_git_info(repo_path: Path) -> Optional[GitInfo]:
     try:
         # Get branch
         result = subprocess.run(
-            ["git", "-C", str(repo_path), "rev-parse", "--abbrev-ref", "HEAD"],
+            _build_git_cmd(repo_path, ["rev-parse", "--abbrev-ref", "HEAD"], run_as_user),
             capture_output=True,
             text=True,
             check=True,
@@ -52,7 +78,7 @@ def get_git_info(repo_path: Path) -> Optional[GitInfo]:
         
         # Get commit hash
         result = subprocess.run(
-            ["git", "-C", str(repo_path), "rev-parse", "--short", "HEAD"],
+            _build_git_cmd(repo_path, ["rev-parse", "--short", "HEAD"], run_as_user),
             capture_output=True,
             text=True,
             check=True,
@@ -61,7 +87,7 @@ def get_git_info(repo_path: Path) -> Optional[GitInfo]:
         
         # Get last commit message
         result = subprocess.run(
-            ["git", "-C", str(repo_path), "log", "-1", "--format=%s"],
+            _build_git_cmd(repo_path, ["log", "-1", "--format=%s"], run_as_user),
             capture_output=True,
             text=True,
             check=True,
@@ -70,14 +96,14 @@ def get_git_info(repo_path: Path) -> Optional[GitInfo]:
         
         # Check for changes
         result = subprocess.run(
-            ["git", "-C", str(repo_path), "diff", "--quiet", "HEAD"],
+            _build_git_cmd(repo_path, ["diff", "--quiet", "HEAD"], run_as_user),
             capture_output=True,
         )
         has_changes = result.returncode != 0
         
         # Check for staged changes
         result = subprocess.run(
-            ["git", "-C", str(repo_path), "diff", "--cached", "--quiet", "HEAD"],
+            _build_git_cmd(repo_path, ["diff", "--cached", "--quiet", "HEAD"], run_as_user),
             capture_output=True,
         )
         has_staged = result.returncode != 0
@@ -93,18 +119,19 @@ def get_git_info(repo_path: Path) -> Optional[GitInfo]:
         return None
 
 
-def git_status_short(repo_path: Path) -> str:
+def git_status_short(repo_path: Path, run_as_user: Optional[str] = None) -> str:
     """Get short git status output.
     
     Args:
         repo_path: Path to git repository
+        run_as_user: Optional username to run git as
     
     Returns:
         Status output as string
     """
     try:
         result = subprocess.run(
-            ["git", "-C", str(repo_path), "status", "--short"],
+            _build_git_cmd(repo_path, ["status", "--short"], run_as_user),
             capture_output=True,
             text=True,
             check=True,
@@ -114,11 +141,12 @@ def git_status_short(repo_path: Path) -> str:
         return ""
 
 
-def git_pull(repo_path: Path) -> tuple[bool, str]:
+def git_pull(repo_path: Path, run_as_user: Optional[str] = None) -> tuple[bool, str]:
     """Simple git pull.
     
     Args:
         repo_path: Path to git repository
+        run_as_user: Optional username to run git as
     
     Returns:
         Tuple of (success, output)
@@ -126,7 +154,7 @@ def git_pull(repo_path: Path) -> tuple[bool, str]:
     log_step("Git", "Pulling latest changes...")
     try:
         result = subprocess.run(
-            ["git", "-C", str(repo_path), "pull"],
+            _build_git_cmd(repo_path, ["pull"], run_as_user),
             capture_output=True,
             text=True,
             check=True,
@@ -138,11 +166,12 @@ def git_pull(repo_path: Path) -> tuple[bool, str]:
         return False, e.stdout + e.stderr
 
 
-def git_stash_and_pull(repo_path: Path) -> tuple[bool, str]:
+def git_stash_and_pull(repo_path: Path, run_as_user: Optional[str] = None) -> tuple[bool, str]:
     """Stash changes then pull.
     
     Args:
         repo_path: Path to git repository
+        run_as_user: Optional username to run git as
     
     Returns:
         Tuple of (success, output)
@@ -155,8 +184,7 @@ def git_stash_and_pull(repo_path: Path) -> tuple[bool, str]:
     try:
         # Stash
         result = subprocess.run(
-            ["git", "-C", str(repo_path), "stash", "push",
-             "-m", f"rescue-helper auto-stash {timestamp}"],
+            _build_git_cmd(repo_path, ["stash", "push", "-m", f"rescue-helper auto-stash {timestamp}"], run_as_user),
             capture_output=True,
             text=True,
             check=True,
@@ -166,7 +194,7 @@ def git_stash_and_pull(repo_path: Path) -> tuple[bool, str]:
         # Pull
         log_step("Git", "Pulling latest changes...")
         result = subprocess.run(
-            ["git", "-C", str(repo_path), "pull"],
+            _build_git_cmd(repo_path, ["pull"], run_as_user),
             capture_output=True,
             text=True,
             check=True,
@@ -180,11 +208,12 @@ def git_stash_and_pull(repo_path: Path) -> tuple[bool, str]:
         return False, e.stdout + e.stderr
 
 
-def git_pull_merge(repo_path: Path) -> tuple[bool, str]:
+def git_pull_merge(repo_path: Path, run_as_user: Optional[str] = None) -> tuple[bool, str]:
     """Pull with auto-merge strategy (theirs).
     
     Args:
         repo_path: Path to git repository
+        run_as_user: Optional username to run git as
     
     Returns:
         Tuple of (success, output)
@@ -192,8 +221,7 @@ def git_pull_merge(repo_path: Path) -> tuple[bool, str]:
     log_step("Git", "Pulling with merge strategy...")
     try:
         result = subprocess.run(
-            ["git", "-C", str(repo_path), "pull",
-             "--strategy=recursive", "--strategy-option=theirs"],
+            _build_git_cmd(repo_path, ["pull", "--strategy=recursive", "--strategy-option=theirs"], run_as_user),
             capture_output=True,
             text=True,
             check=True,

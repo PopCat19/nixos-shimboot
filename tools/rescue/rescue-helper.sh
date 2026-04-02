@@ -747,6 +747,12 @@ CHROOT_SETUP_EOF
 							break
 						fi
 
+						# Warn about git ops in /home as root in chroot
+						if [[ "$config_dir" == /home/* ]]; then
+							log_warn "Running git as root in chroot on /home files may cause permission issues"
+							log_info "Consider using 'Drop into chroot shell' and running git as the user instead"
+						fi
+
 						log_info "Current git status:"
 						git -C "$config_dir" status --short
 
