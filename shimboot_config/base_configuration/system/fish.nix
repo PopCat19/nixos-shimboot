@@ -1,7 +1,7 @@
 # Fish Shell Configuration Module
 #
 # Purpose: Configure Fish shell with functions, abbreviations, and Starship prompt
-# Dependencies: fish, starship, eza
+# Dependencies: fish, starship
 # Related: packages.nix, users.nix
 #
 # This module:
@@ -203,6 +203,5 @@
   environment.systemPackages = with pkgs; [
     fish
     starship
-    eza
   ];
 }

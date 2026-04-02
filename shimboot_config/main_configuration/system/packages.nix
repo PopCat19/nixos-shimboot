@@ -21,6 +21,7 @@
     python3
     rustup
     jql
+    eza
     inputs.llm-agents.packages.${pkgs.system}.kilocode-cli
     inputs.llm-agents.packages.${pkgs.system}.opencode
   ];
