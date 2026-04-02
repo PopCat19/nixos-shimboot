@@ -25,24 +25,24 @@ jobs:
         run: |
           echo "=== Propagating dev → default ==="
           git checkout default
-          git rebase origin/dev || {
-            echo "::error::Rebase failed on default branch"
+          git merge origin/dev --no-edit || {
+            echo "::error::Merge failed on default branch"
             echo "Conflicts need manual resolution"
             exit 1
           }
-          git push --force-with-lease origin default
+          git push origin default
           echo "✓ default branch updated"
 
       - name: Propagate to popcat19-dev branch
         run: |
           echo "=== Propagating default → popcat19-dev ==="
           git checkout popcat19-dev
-          git rebase origin/default || {
-            echo "::error::Rebase failed on popcat19-dev branch"
+          git merge origin/default --no-edit || {
+            echo "::error::Merge failed on popcat19-dev branch"
             echo "Conflicts need manual resolution"
             exit 1
           }
-          git push --force-with-lease origin popcat19-dev
+          git push origin popcat19-dev
           echo "✓ popcat19-dev branch updated"
 
       - name: Summary

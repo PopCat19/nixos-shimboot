@@ -30,31 +30,31 @@ git fetch origin
 echo ""
 echo "2. Updating default branch..."
 git checkout default
-git rebase origin/dev || {
-    echo "ERROR: Rebase failed on default branch"
+git merge origin/dev --no-edit || {
+    echo "ERROR: Merge failed on default branch"
     echo "Resolve conflicts manually, then run:"
-    echo "  git add -A && git rebase --continue"
+    echo "  git add -A && git commit"
     exit 1
 }
 
 if [ $PUSH -eq 1 ]; then
     echo "Pushing default..."
-    git push --force-with-lease origin default
+    git push origin default
 fi
 
 echo ""
 echo "3. Updating popcat19-dev branch..."
 git checkout popcat19-dev
-git rebase origin/default || {
-    echo "ERROR: Rebase failed on popcat19-dev branch"
+git merge origin/default --no-edit || {
+    echo "ERROR: Merge failed on popcat19-dev branch"
     echo "Resolve conflicts manually, then run:"
-    echo "  git add -A && git rebase --continue"
+    echo "  git add -A && git commit"
     exit 1
 }
 
 if [ $PUSH -eq 1 ]; then
     echo "Pushing popcat19-dev..."
-    git push --force-with-lease origin popcat19-dev
+    git push origin popcat19-dev
 fi
 
 echo ""
