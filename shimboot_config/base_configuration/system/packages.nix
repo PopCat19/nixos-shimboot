@@ -29,7 +29,6 @@ in
     fastfetch
     jql
 
-    # Development tools
-    rustup
+
   ];
 }
