@@ -936,6 +936,10 @@ CHROOT_SETUP_EOF
 			mount -t devpts devpts "$MOUNTPOINT/dev/pts" -o newinstance,ptmxmode=0666 2>/dev/null ||
 				mount -t devpts devpts "$MOUNTPOINT/dev/pts" 2>/dev/null || true
 
+			# Bind /dev/shm for shared memory (required by Python multiprocessing)
+			mkdir -p "$MOUNTPOINT/dev/shm"
+			mount --bind /dev/shm "$MOUNTPOINT/dev/shm"
+
 			# Bind DNS resolution for network access
 			if [[ -f /etc/resolv.conf ]]; then
 				mount --bind /etc/resolv.conf "$MOUNTPOINT/etc/resolv.conf"
@@ -953,6 +957,7 @@ CHROOT_SETUP_EOF
 			fi
 
 			umount "$MOUNTPOINT/etc/resolv.conf" 2>/dev/null || true
+			umount "$MOUNTPOINT/dev/shm" 2>/dev/null || true
 			umount "$MOUNTPOINT/dev/pts" 2>/dev/null || true
 			umount "$MOUNTPOINT/sys" "$MOUNTPOINT/proc" "$MOUNTPOINT/dev" || true
 			;;
