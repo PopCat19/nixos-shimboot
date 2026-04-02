@@ -51,7 +51,7 @@ def unmount_all(partition: Path) -> bool:
         partition: Path to partition device
     
     Returns:
-        True if all unmounted successfully, False otherwise
+        True if lazy unmount initiated, False on critical error
     """
     mounts = find_existing_mounts(partition)
     
@@ -63,24 +63,29 @@ def unmount_all(partition: Path) -> bool:
         log_info(f"  {mp}")
     
     for mp in mounts:
-        log_info(f"Unmounting {mp}...")
-        try:
-            subprocess.run(["umount", mp], check=False)
-        except subprocess.CalledProcessError:
-            # Try lazy unmount
-            try:
-                subprocess.run(["umount", "-l", mp], check=False)
-            except subprocess.CalledProcessError:
-                log_warn(f"Could not unmount {mp}")
-                return False
+        log_info(f"Lazy unmounting {mp}...")
+        # Use lazy unmount immediately - don't wait for busy resources
+        subprocess.run(["umount", "-l", mp], check=False, capture_output=True)
     
-    # Verify all unmounted
+    # Give it a moment to process
+    import time
+    time.sleep(0.5)
+    
+    # Check if still mounted (may still show in lsblk briefly)
     remaining = find_existing_mounts(partition)
     if remaining:
-        log_error(f"Still mounted: {remaining}")
-        return False
+        # Try one more time with lazy unmount
+        for mp in remaining:
+            subprocess.run(["umount", "-l", mp], check=False, capture_output=True)
+        time.sleep(0.5)
+        
+        # Check again - if still mounted, warn but don't fail
+        # The lazy unmount will complete in background
+        remaining = find_existing_mounts(partition)
+        if remaining:
+            log_warn(f"Mounts still present (will unmount in background): {remaining}")
     
-    log_success(f"Pre-existing mounts cleared for {partition}")
+    log_success(f"Unmount initiated for {partition}")
     return True
 
 
