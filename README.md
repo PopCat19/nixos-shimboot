@@ -26,10 +26,10 @@ NixOS follows differently from the usual Filesystem Hierarchy Standard, where al
 In turn, users who've only used FHS compliant linux distributions (like Debian for example) will need to familiarize configuring Nix configurations to install packages, configure services and eventually build a custom, reproducible NixOS machine configuration.
 
 > If interested, strongly recommend trying NixOS in a VM first (or try the Nix package manager for distribution, if preferring to learn Nix first) following: https://nixos.org/download/ \
-|\
-You may need to look up several online documentations, videos, or even Reddit and optional Large Language Model guidance (better suited if said LLM supports Model Context Protocols like context7) to learn what you'd wish to achieve with Nix/NixOS. Exploring someone else's NixOS configurations can also help reason and understand NixOS via first/second-hand experience.\
-|\
-Helpful sources like https://mynixos.com/ can show definitions, options, and available Nix packages.
+> |\
+> You may need to look up several online documentations, videos, or even Reddit and optional Large Language Model guidance (better suited if said LLM supports Model Context Protocols like context7) to learn what you'd wish to achieve with Nix/NixOS. Exploring someone else's NixOS configurations can also help reason and understand NixOS via first/second-hand experience.\
+> |\
+> Helpful sources like https://mynixos.com/ can show definitions, options, and available Nix packages.
 
 ## What's shimboot?
 A helpful excerpt from [ading2210/shimboot](https://github.com/ading2210/shimboot)'s [README](https://github.com/PopCat19/shimboot-nixos/raw/refs/heads/main/README.md):
@@ -59,6 +59,35 @@ A minimal liveiso image under qemu environment was also considered to create a w
 
 Resorted back to [nixos-generators](https://github.com/nix-community/nixos-generators), but this time using nix flakes with `raw-efi` image config. In the end, it made configurations more reliable.
 
+## Architecture
+
+This repo is the **build system + ChromeOS hardware abstraction layer**. Personal desktop configuration lives in a companion repo:
+
+```
+nixos-shimboot/                    # this repo — build system + ChromeOS HAL
+├── flake.nix                      # exports nixosModules.chromeos
+├── flake_modules/                 # build modules (images, kernel extraction)
+├── shimboot_config/
+│   ├── base_configuration/        # ChromeOS base (boot, fs, hw, users)
+│   └── user-config.nix            # shared hostname, username, etc.
+└── tools/build/                   # assembly scripts
+
+nixos-shimboot-config/             # companion repo — personal desktop config
+├── flake.nix                      # imports shimboot as flake input
+├── popcat19/                      # personal config branch
+│   ├── configuration.nix
+│   ├── system/
+│   └── home/
+└── main/                          # reference template for forking
+```
+
+External flakes import shimboot as a hardware module:
+
+```nix
+shimboot.nixosModules.chromeos    # ChromeOS boot, fs, hw (mkForce where needed)
+./my-config.nix                    # personal DE, packages, home-manager
+```
+
 ## Progress and obstacles
 Flake status and roadmap (not a spec) for the current branch:
 - [x] Builds without flake errors
@@ -75,23 +104,20 @@ Flake status and roadmap (not a spec) for the current branch:
 - [x] `nix-shell -p firefox` works (note limited space without `expand_rootfs`)
 - [x] Builds functional NixOS with `nixos-rebuild` support (requires appending `--option sandbox false` on shim kernels below 5.6 due to missing kernel namespaces)
 - [x] Setup minimal base_configuration
-- [x] Setup initial main_configuration for hyprland and home-manager
 - [x] Implement multi-board compatibility in flake and build derivations (untested)
 - [x] Configure base_configuration to have zram
 - [x] Resolve firewall issues at boot
 - [x] Configure local cloned repo to have origin remote to sync from during assembly
-- [x] Configure base_configuration to be minimal whilst keeping lightdm and hyprland to achive lower image size
 - [x] Utilize systemd cachix store on local `nixos-rebuild` to avoid an eternal compilation on potato hardware (hardware r/w speed bottleneck)
 - [x] Functional GitHub build CI workflows with caching
 - [x] Show battery SoC in bootstrap menu
 - [x] Implement NixOS generation selector within bootstrapper
+- [x] Export `nixosModules.chromeos` for external flakes to import as HAL
+- [x] Split personal config into companion repo (no merge conflicts between base and desktop)
 - [ ] Fix XDG redirect issues
 - [ ] SDDM greeter support
-- [ ] Utilize `nixosModules` to modularize various userland options, such as themes and WM/DE.
-- [ ] Refine main_configuration [support bwrap/steam and refine nixos_setup]
-- [ ] Create minimal main_configuration template
 - [ ] Refine and cleanup scripts and helpers
-- [ ] Refine and cleanup base and main configurations
+- [ ] Refine and cleanup base configuration
 - [ ] Build functional NixOS with LUKS2 support
 
 Current obstacles:

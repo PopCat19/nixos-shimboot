@@ -13,21 +13,36 @@ Boot NixOS on locked ChromeOS devices using the RMA shim vulnerability.
 ChromeOS Firmware → Shim Kernel (patched) → Bootloader → NixOS
 ```
 
+Shimboot exports `nixosModules.chromeos` — a hardware abstraction layer for ChromeOS devices. External flakes import it as a module and layer personal configuration on top.
+
 ## Configuration
 
 | Path | Purpose |
 |------|---------|
-| `shimboot_config/user-config.nix` | User variables (username, hostname) |
-| `shimboot_config/main_configuration/` | Desktop environment |
-| `shimboot_config/base_configuration/` | Minimal bootable system |
+| `shimboot_config/user-config.nix` | Shared variables (hostname, username, theme) |
+| `shimboot_config/base_configuration/` | ChromeOS base system (boot, fs, hw, users) |
 
 ## Build
 
 ```bash
-sudo ./tools/build/assemble-final.sh --board <board> --rootfs full
+sudo ./tools/build/assemble-final.sh --board <board> --rootfs minimal
 ```
 
 Supported boards: dedede, octopus, zork, nissa, hatch, grunt, snappy
+
+## Desktop Configuration
+
+Personal configs live in a companion repo: [nixos-shimboot-config](https://github.com/PopCat19/nixos-shimboot-config)
+
+```nix
+# In your flake:
+inputs.shimboot.url = "github:PopCat19/nixos-shimboot/dev";
+
+modules = [
+  shimboot.nixosModules.chromeos    # ChromeOS HAL
+  ./my-config.nix                    # personal config
+];
+```
 
 ## Known Limitations
 

@@ -19,15 +19,12 @@ git clone https://github.com/PopCat19/nixos-shimboot.git
 cd nixos-shimboot
 ```
 
-### 2. Build the Complete Shimboot Image
+### 2. Build the Shimboot Image
 
-Use the `tools/build/assemble-final.sh` script (will prompt sudo/root for mount loops and work directory) to build a complete shimboot image that combines the NixOS rootfs with the ChromeOS shim. Replace `BOARD` with your Chromebook's board name:
+Use the `tools/build/assemble-final.sh` script to build a shimboot image that combines the NixOS rootfs with the ChromeOS shim. Replace `BOARD` with your Chromebook's board name:
 
 ```bash
-# For dedede board (e.g., HP Chromebook 11 G9 EE) - full image (recommended)
-sudo ./tools/build/assemble-final.sh --board dedede --rootfs full
-
-# For minimal image (base configuration only; useful for testing critical configurations)
+# For dedede board (e.g., HP Chromebook 11 G9 EE) - minimal image
 sudo ./tools/build/assemble-final.sh --board dedede --rootfs minimal
 
 # For other boards, replace 'dedede' with your board name:
@@ -35,8 +32,7 @@ sudo ./tools/build/assemble-final.sh --board dedede --rootfs minimal
 ```
 
 **Options:**
-- `--rootfs full`: Full image with Home Manager, LightDM, and Hyprland desktop (recommended)
-- `--rootfs minimal`: Minimal image with base configuration and LightDM/Hyprland
+- `--rootfs minimal`: Minimal image with base configuration only
 - `--drivers vendor`: Store ChromeOS drivers on separate vendor partition (default)
 - `--drivers inject`: Inject drivers directly into the rootfs
 - `--drivers none`: Skip driver harvesting
@@ -55,11 +51,10 @@ The script will:
 - Harvest ChromeOS drivers and firmware with upstream augmentation
 - Create partitioned image at `work/shimboot.img`
 - Populate all partitions with bootloader, rootfs, and drivers
-- Generate build metadata within cloned repo directory (usually `/home/<user>/nixos-config`)
 
 ### 3. Flash to USB Drive / SD Card
 
-**WARNING: This will overwrite the target device.*
+**WARNING: This will overwrite the target device.**
 
 Interactive device selection with predefined image input:
 ```bash
@@ -68,7 +63,7 @@ sudo ./tools/write/write-shimboot-image.sh
 
 Afterwards, the imaged usb/sd is ready to boot.
 
-### 5. Boot Your Chromebook
+### 4. Boot Your Chromebook
 
 1. Insert the prepared USB drive into your Chromebook
 2. Enter recovery mode (Esc + Refresh + Power)
@@ -76,14 +71,26 @@ Afterwards, the imaged usb/sd is ready to boot.
 3. Select the "shimboot" option from the recovery menu
 4. The system should boot into NixOS with the LightDM greeter
 
-## First Boot (assumed for minimal/base configuration)
+## First Boot (minimal/base configuration)
 
 - Root user: `root` (initial password: `nixos-shimboot`)
 - Default user: `nixos-user` (initial password: `nixos-shimboot`)
-- Desktop: LightDM + Hyprland (default config)
+- Desktop: LightDM + Hyprland (base config)
 - Network: NetworkManager with wpa_supplicant backend
     - WiFi should work out of the box if vendor drivers are available
     - Configure with `nmtui` or execute `setup_nixos` helper
+
+## Desktop Configuration
+
+The shimboot repo provides the build system and ChromeOS hardware abstraction layer. For a full desktop experience with Home Manager, theming, and applications, use the companion config repo:
+
+```bash
+git clone https://github.com/PopCat19/nixos-shimboot-config.git
+cd nixos-shimboot-config
+git checkout popcat19  # or main for reference template
+```
+
+The config repo imports shimboot as a flake input (`shimboot.nixosModules.chromeos`) and layers personal configuration on top. Users can fork the config repo and create their own branch for personalized setups.
 
 ## Troubleshooting
 
@@ -108,7 +115,6 @@ sudo resize2fs /dev/sdXN
 ```
 
 ### Build Issues
-- If you get impure errors, try: `nix build --impure`
 - Ensure you're using the correct board name (case-sensitive): dedede, grunt, hatch, nissa, octopus, snappy, zork
 - For ChromeOS artifacts, ensure you have the correct board manifest
 - Check cache health before building: `./tools/build/check-cachix.sh dedede`
@@ -124,21 +130,19 @@ sudo resize2fs /dev/sdXN
 ### Boot Issues
 - Verify your Chromebook board is in the supported list above
 - Confirm the shim image matches your exact device model
-- Try the minimal image if the full image fails: `sudo ./tools/build/assemble-final.sh --board BOARD --rootfs minimal`
 - Check that recovery mode key combination is correct for your model
 - Inspect build metadata: `cat /etc/shimboot-build.json` on the running system
 
 ### Space Issues
 - Ensure `sudo expand_rootfs` succeeded in allocating rootfs to full USB space
-- The default minimal/base image is ~6-8GB (expandable); ensure your USB drive has enough space
+- The minimal image is ~6-8GB (expandable); ensure your USB drive has enough space
 - Use `--cleanup-rootfs` to remove old generations and free space
 - Use `nix-shell` for temporary packages to save space
-- Consider the minimal image for devices with limited storage (you can also create your own custom main_configuration port if preferred)
 
 ## Next Steps
 
-- Customize the system configuration in `shimboot_config/`
-- Add your own Home Manager configuration
+- Fork the config repo for your own desktop setup
+- Import `shimboot.nixosModules.chromeos` as a hardware layer in your own flake
 - Experiment with different desktop environments
 - Contribute bug reports or improvements
 
@@ -148,7 +152,6 @@ sudo resize2fs /dev/sdXN
 - Multi-board support infrastructure exists but requires testing on other models
 - No suspend support (ChromeOS kernel limitation)
 - Limited audio support
-- May require `--impure` for some builds
 - May require manual kernel namespace workarounds for `nixos-rebuild` (e.g. appending `--option sandbox false` on shim kernels <5.6)
 
 For more documentation, see [README.md](README.md).
