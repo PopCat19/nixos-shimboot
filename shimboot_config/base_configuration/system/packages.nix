@@ -28,6 +28,5 @@ in
     btop
     fastfetch
 
-
   ];
 }
