@@ -152,7 +152,7 @@ sudo resize2fs /dev/sdXN
 - Multi-board support infrastructure exists but requires testing on other models
 - No suspend support (ChromeOS kernel limitation)
 - Limited audio support
-- May require manual kernel namespace workarounds for `nixos-rebuild` (e.g. appending `--option sandbox false` on shim kernels <5.6)
+- May require manual kernel namespace workarounds for `nixos-rebuild` (e.g. . Appending `--option sandbox false` on shim kernels <5.6)
 
 For more documentation, see [README.md](README.md).
 

@@ -13,7 +13,7 @@ Boot NixOS on locked ChromeOS devices using the RMA shim vulnerability.
 ChromeOS Firmware → Shim Kernel (patched) → Bootloader → NixOS
 ```
 
-Shimboot exports `nixosModules.chromeos` — a hardware abstraction layer for ChromeOS devices. External flakes import it as a module and layer personal configuration on top.
+Shimboot exports `nixosModules.chromeos`. . A hardware abstraction layer for ChromeOS devices. External flakes import it as a module and layer personal configuration on top.
 
 ## Configuration
 

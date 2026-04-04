@@ -33,7 +33,7 @@ In turn, users who've only used FHS compliant linux distributions (like Debian f
 
 ## What's shimboot vs nixos-shimboot?
 
-**shimboot** ([ading2210/shimboot](https://github.com/ading2210/shimboot)) is the original project — a collection of Python/bash scripts that patch a ChromeOS RMA shim to boot a standard Linux distribution (Debian by default). It uses `build_complete.sh`, `patch_rootfs.sh`, and `build.sh` to construct disk images on FHS-compliant systems.
+**shimboot** ([ading2210/shimboot](https://github.com/ading2210/shimboot)) is the original project. . A collection of Python/bash scripts that patch a ChromeOS RMA shim to boot a standard Linux distribution (Debian by default). It uses `build_complete.sh`, `patch_rootfs.sh`, and `build.sh` to construct disk images on FHS-compliant systems.
 
 A helpful excerpt from shimboot's [README](https://github.com/ading2210/shimboot):
 > Shimboot is a collection of scripts for patching a Chrome OS RMA shim to serve as a bootloader for a standard Linux distribution. It allows you to boot a full desktop Debian install on a Chromebook, without needing to unenroll it or modify the firmware.
@@ -70,21 +70,21 @@ nixos-shimboot uses `sudo`-elevated scripts to build bootable shimboot images. T
 
 | Directory | Purpose |
 |-----------|---------|
-| `tools/build/` | Image assembly — `assemble-final.sh` orchestrates Nix builds, driver harvesting, partitioning, and image creation |
-| `tools/write/` | Safe USB writing — `write-shimboot-image.sh` provides interactive device selection and safe writes |
-| `tools/rescue/` | Debug and recovery — `rescue-helper.sh`, `cleanup-shimboot-rootfs.sh`, generation management |
-| `tools/lib/` | Shared libraries — logging, runtime utilities |
+| `tools/build/` | Image assembly. `assemble-final.sh` orchestrates Nix builds, driver harvesting, partitioning, and image creation |
+| `tools/write/` | Safe USB writing. `write-shimboot-image.sh` provides interactive device selection and safe writes |
+| `tools/rescue/` | Debug and recovery. `rescue-helper.sh`, `cleanup-shimboot-rootfs.sh`, generation management |
+| `tools/lib/` | Shared libraries. . Logging, runtime utilities |
 
 Key scripts:
-- **`assemble-final.sh`** — Complete shimboot image build with parallel Nix outputs, Cachix integration, dry-run mode, and checkpoint support
-- **`write-shimboot-image.sh`** — Interactive device selection with predefined image input for safe USB flashing
-- **`rescue-helper.sh`** — Debug helper for troubleshooting boot issues
-- **`cleanup-shimboot-rootfs.sh`** — Prune old rootfs generations to free space
+- **`assemble-final.sh`**. Complete shimboot image build with parallel Nix outputs, Cachix integration, dry-run mode, and checkpoint support
+- **`write-shimboot-image.sh`**. Interactive device selection with predefined image input for safe USB flashing
+- **`rescue-helper.sh`**. Debug helper for troubleshooting boot issues
+- **`cleanup-shimboot-rootfs.sh`**. Prune old rootfs generations to free space
 
 This repo is the **build system + ChromeOS hardware abstraction layer**. Personal desktop configuration lives in a companion repo:
 
 ```
-nixos-shimboot/                    # this repo — build system + ChromeOS HAL
+nixos-shimboot/                    # this repo. . Build system + ChromeOS HAL
 ├── flake.nix                      # exports nixosModules.chromeos
 ├── flake_modules/                 # build modules (images, kernel extraction)
 ├── shimboot_config/
@@ -92,7 +92,7 @@ nixos-shimboot/                    # this repo — build system + ChromeOS HAL
 │   └── user-config.nix            # shared hostname, username, etc.
 └── tools/build/                   # assembly scripts
 
-nixos-shimboot-config/             # companion repo — personal desktop config
+nixos-shimboot-config/             # companion repo. . Personal desktop config
 ├── flake.nix                      # imports shimboot as flake input
 ├── popcat19/                      # personal config branch
 │   ├── configuration.nix
