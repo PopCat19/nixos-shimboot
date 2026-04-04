@@ -31,19 +31,24 @@ In turn, users who've only used FHS compliant linux distributions (like Debian f
 > |\
 > Helpful sources like https://mynixos.com/ can show definitions, options, and available Nix packages.
 
-## What's shimboot?
-A helpful excerpt from [ading2210/shimboot](https://github.com/ading2210/shimboot)'s [README](https://github.com/PopCat19/shimboot-nixos/raw/refs/heads/main/README.md):
+## What's shimboot vs nixos-shimboot?
+
+**shimboot** ([ading2210/shimboot](https://github.com/ading2210/shimboot)) is the original project — a collection of Python/bash scripts that patch a ChromeOS RMA shim to boot a standard Linux distribution (Debian by default). It uses `build_complete.sh`, `patch_rootfs.sh`, and `build.sh` to construct disk images on FHS-compliant systems.
+
+A helpful excerpt from shimboot's [README](https://github.com/ading2210/shimboot):
 > Shimboot is a collection of scripts for patching a Chrome OS RMA shim to serve as a bootloader for a standard Linux distribution. It allows you to boot a full desktop Debian install on a Chromebook, without needing to unenroll it or modify the firmware.
 >
 > Chrome OS RMA shims are bootable disk images which are designed to run a variety of diagnostic utilities on Chromebooks, and they'll work even if the device is enterprise enrolled. Unfortunately for Google, there exists a security flaw where the root filesystem of the RMA shim is not verified. This lets us replace the rootfs with anything we want, including a full Linux distribution.
 >
-> Simply replacing the shim's rootfs doesn't work, as it boots in an environment friendly to the RMA shim, not regular Linux distros. To get around this, a separate bootloader is required to transition from the shim environment to the main rootfs. This bootloader then runs pivot_root to enter the rootfs, where it then starts the init system.
+> Simply replacing the shim's rootfs doesn't work, as it boots in an environment friendly to the RMA shim, not regular Linux distros. To get around this, a separate bootloader is required to transition from the shim environment to the main rootfs. This bootloader then runs `pivot_root` to enter the rootfs, where it then starts the init system.
 >
 > Another problem is encountered at this stage: the Chrome OS kernel will complain about systemd's mounts, and the boot process will hang. A simple workaround is to apply a patch to systemd, and then it can be recompiled and hosted at a repo somewhere.
 >
 > After copying all the firmware from the recovery image and shim to the rootfs, we're able to boot to a mostly working XFCE desktop.
 >
 > The main advantages of this approach are that you don't need to touch the device's firmware in order to run Linux. Simply rebooting and unplugging the USB drive will return the device to normal, which can be useful if the device is enterprise enrolled. However, since we are stuck with the kernel from the RMA shim, some features such as audio and suspend may not work.
+
+**nixos-shimboot** (this repo) is a derivative that replaces shimboot's Debian rootfs building with NixOS flake-based image generation. It uses the NixOS module system for declarative configuration, `raw-efi` image building via nixpkgs, and a patched systemd for ChromeOS kernel compatibility. Unlike shimboot's `build_complete.sh`, nixos-shimboot uses `tools/build/assemble-final.sh` which builds Nix derivations in parallel, harvests ChromeOS drivers, and assembles the final partitioned image.
 
 **TLDR: Gnu/Linux on common (enterprise-configured) chromebooks. It runs from a persistent USB, which can run linux distributions like Arch Linux**
 
@@ -59,7 +64,22 @@ A minimal liveiso image under qemu environment was also considered to create a w
 
 Resorted back to [nixos-generators](https://github.com/nix-community/nixos-generators), but this time using nix flakes with `raw-efi` image config. In the end, it made configurations more reliable.
 
-## Architecture
+## Tools
+
+nixos-shimboot uses `sudo`-elevated scripts to build bootable shimboot images. The tooling is organized into three domains:
+
+| Directory | Purpose |
+|-----------|---------|
+| `tools/build/` | Image assembly — `assemble-final.sh` orchestrates Nix builds, driver harvesting, partitioning, and image creation |
+| `tools/write/` | Safe USB writing — `write-shimboot-image.sh` provides interactive device selection and safe writes |
+| `tools/rescue/` | Debug and recovery — `rescue-helper.sh`, `cleanup-shimboot-rootfs.sh`, generation management |
+| `tools/lib/` | Shared libraries — logging, runtime utilities |
+
+Key scripts:
+- **`assemble-final.sh`** — Complete shimboot image build with parallel Nix outputs, Cachix integration, dry-run mode, and checkpoint support
+- **`write-shimboot-image.sh`** — Interactive device selection with predefined image input for safe USB flashing
+- **`rescue-helper.sh`** — Debug helper for troubleshooting boot issues
+- **`cleanup-shimboot-rootfs.sh`** — Prune old rootfs generations to free space
 
 This repo is the **build system + ChromeOS hardware abstraction layer**. Personal desktop configuration lives in a companion repo:
 
