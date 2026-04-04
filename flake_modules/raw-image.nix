@@ -60,11 +60,6 @@ in
 
         (_: {
           boot.kernelParams = [ "console=ttyS0,115200" ];
-
-          nix.settings.experimental-features = [
-            "nix-command"
-            "flakes"
-          ];
         })
       ];
     };

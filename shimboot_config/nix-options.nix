@@ -12,6 +12,10 @@
     experimental-features = [
       "nix-command"
       "flakes"
+      "fetch-tree"
+      "impure-derivations"
+      "ca-derivations"
+      "pipe-operators"
     ];
     auto-optimise-store = true;
     min-free = 0;

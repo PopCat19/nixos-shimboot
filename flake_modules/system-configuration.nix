@@ -23,12 +23,7 @@ let
   baseModules = [
     ../shimboot_config/base_configuration/configuration.nix
 
-    (_: {
-      nix.settings.experimental-features = [
-        "nix-command"
-        "flakes"
-      ];
-    })
+    (_: { })
   ];
 
   baseSet = {
