@@ -5,9 +5,16 @@
 # This module:
 # - Sets systemd.package to the pinned+patched derivation from flake
 # - Provides systemd tools system-wide
-{ patchedSystemd, ... }:
 {
-  environment.systemPackages = [ patchedSystemd ];
+  pkgs,
+  patchedSystemd ? null,
+  ...
+}:
+let
+  systemdPkg = if patchedSystemd != null then patchedSystemd else pkgs.systemd;
+in
+{
+  environment.systemPackages = [ systemdPkg ];
 
-  systemd.package = patchedSystemd;
+  systemd.package = systemdPkg;
 }
