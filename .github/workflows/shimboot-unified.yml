@@ -30,7 +30,7 @@ on:
         required: true
         default: 'minimal'
         type: choice
-        options: [minimal, full]
+        options: [minimal]
       drivers_mode:
         description: 'Driver Mode'
         required: true
@@ -170,7 +170,7 @@ jobs:
             .#chromeos-recovery-${{ matrix.board }} \
             .#extracted-kernel-${{ matrix.board }} \
             .#initramfs-patching-${{ matrix.board }} \
-            .#raw-rootfs \
+            .#raw-rootfs-minimal \
             2>&1 | grep -E "will be fetched|will be built" || true
 
       - name: Build Nix components
@@ -197,11 +197,8 @@ jobs:
 
           if [ "$success" = "false" ]; then echo "Core build failed."; exit 1; fi
 
-          ROOTFS_ATTR="raw-rootfs"
-          [ "$ROOTFS" = "minimal" ] && ROOTFS_ATTR="raw-rootfs-minimal"
-
-          echo "Building RootFS: $ROOTFS_ATTR"
-          nix build --impure --accept-flake-config ".#${ROOTFS_ATTR}" --print-out-paths
+          echo "Building RootFS: raw-rootfs-minimal"
+          nix build --impure --accept-flake-config ".#raw-rootfs-minimal" --print-out-paths
 
       - name: Push to Cachix
         if: ${{ github.event.inputs.build_mode == 'cachix-only' || github.event.inputs.build_mode == 'full' }}

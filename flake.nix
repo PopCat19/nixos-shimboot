@@ -125,6 +125,18 @@
       # Cachix configuration for binary cache
       inherit ((import ./flake_modules/cachix-config.nix { })) nixConfig;
 
+      # ChromeOS hardware module — importable by external flakes (e.g. nixos-config)
+      # Acts as a hardware abstraction layer for ChromeOS devices
+      nixosModules = {
+        # Full ChromeOS base configuration (boot, fs, hw, users, nix settings)
+        chromeos = ./shimboot_config/base_configuration/configuration.nix;
+
+        # Granular modules for selective import
+        nix-options = ./shimboot_config/nix-options.nix;
+        raw-image = ./flake_modules/raw-image.nix;
+        system-configuration = ./flake_modules/system-configuration.nix;
+      };
+
       # Export all merged outputs
       formatter.${system} = nixpkgs.legacyPackages.${system}.nixfmt-tree;
       inherit
