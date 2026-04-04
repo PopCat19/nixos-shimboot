@@ -7,11 +7,11 @@
 # - Provides systemd tools system-wide
 {
   pkgs,
-  patchedSystemd ? null,
+  config,
   ...
 }:
 let
-  systemdPkg = if patchedSystemd != null then patchedSystemd else pkgs.systemd;
+  systemdPkg = config._module.args.patchedSystemd or pkgs.systemd;
 in
 {
   environment.systemPackages = [ systemdPkg ];
