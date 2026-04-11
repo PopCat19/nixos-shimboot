@@ -88,13 +88,6 @@ let
   # migrate-nixos-config dependencies
   migrateNixosConfigDeps = coreDeps;
 
-  # migrate_hostname dependencies
-  migrateHostnameDeps =
-    coreDeps
-    ++ (with pkgs; [
-      systemd # hostnamectl
-    ]);
-
   # migrate_username dependencies
   migrateUsernameDeps =
     coreDeps
@@ -155,12 +148,6 @@ in
     })
 
     (writeShellApplication {
-      name = "migrate-hostname";
-      runtimeInputs = migrateHostnameDeps;
-      text = builtins.readFile ./migrate-hostname.sh;
-    })
-
-    (writeShellApplication {
       name = "migrate-username";
       runtimeInputs = migrateUsernameDeps;
       text = builtins.readFile ./migrate-username.sh;
@@ -180,26 +167,6 @@ in
       chmod 755 /var/lib/shimboot-migration
     '';
     deps = [ ];
-  };
-
-  # Auto-migrate hostname when configuration changes
-  systemd.services.migrate-hostname = {
-    description = "Migrate hostname while preserving previous state";
-    wantedBy = [ "multi-user.target" ];
-    before = [ "network.target" ];
-    after = [ "systemd-hostnamed.service" ];
-    wants = [ "systemd-hostnamed.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${
-        pkgs.writeShellApplication {
-          name = "migrate-hostname-service";
-          runtimeInputs = migrateHostnameDeps;
-          text = builtins.readFile ./migrate-hostname.sh;
-        }
-      }/bin/migrate-hostname-service ${userConfig.host.hostname}";
-      RemainAfterExit = true;
-    };
   };
 
   # Auto-migrate username when configuration changes
