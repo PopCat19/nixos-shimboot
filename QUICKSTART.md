@@ -78,11 +78,26 @@ Afterwards, the imaged usb/sd is ready to boot.
 - Desktop: LightDM + Hyprland (base config)
 - Network: NetworkManager with wpa_supplicant backend
     - WiFi should work out of the box if vendor drivers are available
-    - Configure with `nmtui` or execute `setup_nixos` helper
+    - Configure with `nmtui` or run `setup-nixos`
+
+### Base setup flow
+
+A terminal opens automatically on first boot. Run `setup-nixos` to step through:
+
+1. **WiFi** — connects and enables autoconnect
+2. **Expand rootfs** — grows the partition to fill the USB drive
+3. **Verify config** — checks `~/nixos-config`, optionally pulls updates
+4. **Link `/etc/nixos`** — runs `setup-nixos-config` to wire flake for `nixos-rebuild`
+5. **Rebuild** — optional first rebuild from base config
+
+After completing, the system is usable as a minimal NixOS install. For a full
+desktop environment, continue to [Desktop Configuration](#desktop-configuration).
 
 ## Desktop Configuration
 
-The shimboot repo provides the build system and ChromeOS hardware abstraction layer. For a full desktop experience with Home Manager, theming, and applications, use the companion config repo:
+This step is optional. The base config provides a minimal Hyprland environment.
+For Home Manager integration, theming, and personal applications, layer on
+the companion config repo.
 
 ```bash
 git clone https://github.com/PopCat19/nixos-shimboot-config.git
@@ -94,7 +109,7 @@ The config repo imports shimboot as a flake input (`shimboot.nixosModules.chrome
 
 ## Troubleshooting
 
-### "Git fetch failed" during setup_nixos
+### "Git fetch failed" during setup-nixos
 The git remote may be pointing to the build machine's path. Fix with:
 ```bash
 cd ~/nixos-config
@@ -102,10 +117,10 @@ git remote set-url origin https://github.com/PopCat19/nixos-shimboot-config.git 
 git fetch origin
 ```
 
-### "blockdev: Unknown command" during expand_rootfs
+### "blockdev: Unknown command" during expand-rootfs
 Run the script with DEBUG=1 to see what's failing:
 ```bash
-sudo DEBUG=1 expand_rootfs
+sudo DEBUG=1 expand-rootfs
 ```
 
 If it still fails, manually expand:
