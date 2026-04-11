@@ -87,7 +87,7 @@ The shimboot repo provides the build system and ChromeOS hardware abstraction la
 ```bash
 git clone https://github.com/PopCat19/nixos-shimboot-config.git
 cd nixos-shimboot-config
-git checkout popcat19  # or main for reference template
+git checkout main  # or your personal branch
 ```
 
 The config repo imports shimboot as a flake input (`shimboot.nixosModules.chromeos`) and layers personal configuration on top. Users can fork the config repo and create their own branch for personalized setups.
