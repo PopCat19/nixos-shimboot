@@ -3,8 +3,6 @@
 # Setup NixOS Config Script
 #
 # Purpose: Configure /etc/nixos for nixos-rebuild operations
-# Dependencies: mkdir, nixos-generate-config, mv, ln
-# Related: setup-helpers.nix, networking.nix
 #
 # This script:
 # - Configures /etc/nixos for nixos-rebuild operations

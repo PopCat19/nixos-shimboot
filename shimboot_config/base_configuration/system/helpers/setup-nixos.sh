@@ -3,8 +3,6 @@
 # Setup NixOS Script
 #
 # Purpose: Interactive post-install setup wizard for NixOS shimboot
-# Dependencies: nmcli, git, expand_rootfs, setup_nixos_config, nixos-rebuild
-# Related: setup-helpers.nix, networking.nix
 #
 # This script:
 # - Provides interactive post-install setup wizard
@@ -13,13 +11,11 @@
 
 set -Eeuo pipefail
 
-# Configuration
 USERNAME="${USER}"
 CONFIG_DIR="${NIXOS_CONFIG_DIR:-/home/${USERNAME}/nixos-config}"
 LOG_FILE="/tmp/setup_nixos.log"
 BACKUP_DIR="/tmp/setup_nixos_backup_$(date +%Y%m%d_%H%M%S)"
 
-# Parse command line arguments
 SKIP_WIFI=false
 SKIP_EXPAND=false
 SKIP_CONFIG=false
@@ -65,7 +61,6 @@ while [[ $# -gt 0 ]]; do
 	esac
 done
 
-# Help message
 if [[ "$HELP" == "true" ]]; then
 	echo "NixOS Shimboot Setup Script"
 	echo ""
@@ -90,13 +85,10 @@ if [[ "$HELP" == "true" ]]; then
 	exit 0
 fi
 
-# Initialize logging
-# Note: To capture output with tee, run: setup_nixos 2>&1 | tee /tmp/setup_nixos.log
-
-# Failsafe: Create backup directory
+# To capture output: setup_nixos 2>&1 | tee /tmp/setup_nixos.log
+mkdir -p "$BACKUP_DIR"
 mkdir -p "$BACKUP_DIR"
 
-# Styling
 SN_BOLD='\033[1m'
 SN_GREEN='\033[1;32m'
 SN_YELLOW='\033[1;33m'
@@ -105,7 +97,6 @@ SN_BLUE='\033[1;34m'
 SN_CYAN='\033[1;36m'
 SN_NC='\033[0m'
 
-# Utility functions
 prompt_yes_no() {
 	local question="$1"
 	local default="${2:-Y}"
@@ -205,7 +196,6 @@ log_error() {
 	echo -e "${SN_RED} ERR ${SN_NC} $1"
 }
 
-# Run prerequisite checks
 check_prerequisites
 
 echo -e "${SN_BOLD} ==================================================="
@@ -228,7 +218,6 @@ if [[ "$SKIP_WIFI" == "false" ]]; then
 	elif ! nmcli radio wifi 2>/dev/null | grep -q enabled; then
 		log_warn "Wi-Fi radio appears to be disabled"
 	else
-		# Check if already connected to Wi-Fi
 		echo "Command: nmcli -t -f active,ssid dev wifi | grep \"^yes:\" | cut -d: -f2-"
 		CURRENT_CONNECTION=$(nmcli -t -f active,ssid dev wifi | grep "^yes:" | cut -d: -f2- || true)
 
@@ -261,7 +250,6 @@ if [[ "$SKIP_WIFI" == "false" ]]; then
 					if failsafe "Wi-Fi connection" nmcli dev wifi connect "$SSID" password "$(cat "$PSK_FILE")"; then
 						log_ok "Connected to '${SSID}'"
 
-						# Enable autoconnect
 						echo "Command: nmcli -t -f NAME,TYPE connection show | awk -F: -v ssid=\"$SSID\" '\$1 == ssid && \$2 == \"802-11-wireless\" {print \$1; exit}'"
 						CONN_NAME=$(nmcli -t -f NAME,TYPE connection show |
 							awk -F: -v ssid="$SSID" '$1 == ssid && $2 == "802-11-wireless" {print $1; exit}')
@@ -274,7 +262,6 @@ if [[ "$SKIP_WIFI" == "false" ]]; then
 						log_error "Failed to connect (check password/signal)"
 					fi
 
-					# Securely cleanup password temp file
 					shred -u "$PSK_FILE" 2>/dev/null || rm -f "$PSK_FILE"
 				fi
 			fi
@@ -408,7 +395,6 @@ raw-efi-system"
 		echo "Note: 'minimal' variant uses only base modules (no desktop environment)"
 		echo
 
-		# Handle Ctrl+C / SIGINT cleanly
 		# shellcheck disable=SC2329 # Function is invoked via trap
 		cleanup() {
 			echo
@@ -417,12 +403,10 @@ raw-efi-system"
 		}
 		trap cleanup INT
 
-		# Numerical selection instead of name input
 		CONFIG_COUNT=$(echo "$CONFIGS" | wc -l)
 		echo "Select configuration to build (1-${CONFIG_COUNT}):"
 		echo "(press Enter for default: ${DEFAULT_HOST})"
 
-		# Read user input safely
 		if ! read -r SELECTION; then
 			echo
 			echo -e "${SN_YELLOW} Input interrupted or cancelled. ${SN_NC}"
@@ -445,7 +429,6 @@ raw-efi-system"
 
 		export NIX_CONFIG="accept-flake-config = true"
 
-		# Check kernel version for sandbox compatibility
 		echo "Command: uname -r"
 		KVER=$(uname -r)
 		NIX_REBUILD_ARGS=(switch --flake ".#${TARGET}" --option accept-flake-config true)
@@ -477,7 +460,6 @@ raw-efi-system"
 			echo "  sudo nixos-rebuild switch --flake .#${TARGET}"
 		fi
 
-		# Reset trap
 		trap - INT
 	fi
 else
@@ -489,7 +471,6 @@ fi
 echo
 log_step "Setup Complete"
 
-# Display fish greeting if available
 if command -v fish >/dev/null 2>&1; then
 	echo "Command: fish -c \"source ${CONFIG_DIR}/shimboot_config/base_configuration/system_modules/fish_functions/fish-greeting.fish; fish_greeting\""
 	fish -c "source ${CONFIG_DIR}/shimboot_config/base_configuration/system/fish_functions/fish-greeting.fish; fish_greeting" 2>/dev/null || true

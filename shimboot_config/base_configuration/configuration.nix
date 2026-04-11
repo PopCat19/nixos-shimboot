@@ -1,8 +1,6 @@
 # Base Configuration Module
 #
 # Purpose: Core NixOS configuration for shimboot base system
-# Dependencies: All system_modules, user-config.nix
-# Related: main_configuration/configuration.nix, user-config.nix
 #
 # This module:
 # - Imports all base system modules

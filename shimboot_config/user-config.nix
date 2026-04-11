@@ -1,8 +1,6 @@
 # User Configuration Module
 #
 # Purpose: Global user configuration for nixos-shimboot
-# Dependencies: None (pure configuration)
-# Related: base_configuration/configuration.nix, flake.nix
 #
 # This module:
 # - Defines host and system configuration
@@ -16,13 +14,11 @@
   username ? "nixos-user",
 }:
 {
-  # Host configuration
   host = {
     inherit system;
     hostname = if hostname == null then username else hostname;
   };
 
-  # User credentials
   user = {
     inherit username;
     initialPassword = "nixos-shimboot";
@@ -39,7 +35,6 @@
     ];
   };
 
-  # Default applications
   defaultApps = {
     browser = {
       desktop = "zen-twilight.desktop";
@@ -95,11 +90,9 @@
     };
   };
 
-  # Localization settings
   timezone = "America/New_York";
   locale = "en_US.UTF-8";
 
-  # System directories
   directories =
     let
       home = "/home/${username}";
@@ -114,13 +107,11 @@
       desktop = "${home}/Desktop";
     };
 
-  # Theme configuration for PMD
   theme = {
     hue = 30;
     variant = "dark"; # "dark" or "light"
   };
 
-  # Environment variables
   env = {
     NIXOS_CONFIG_DIR = "$HOME/nixos-config";
   };

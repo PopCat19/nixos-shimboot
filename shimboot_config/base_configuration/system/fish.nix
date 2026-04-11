@@ -1,8 +1,6 @@
 # Fish Shell Configuration Module
 #
 # Purpose: Configure Fish shell with functions, abbreviations, and Starship prompt
-# Dependencies: fish, starship
-# Related: packages.nix, users.nix
 #
 # This module:
 # - Enables Fish as the default shell
@@ -189,27 +187,22 @@ in
       set -gx SOT_TERM_CMD ${userConfig.defaultApps.terminal.command}
       set -gx SOT_EDITOR_CMD ${userConfig.defaultApps.editor.command}
 
-      # Make system-wide functions visible
       if not contains /etc/fish/functions $fish_function_path
           set -g fish_function_path /etc/fish/functions $fish_function_path
       end
 
-      # Core abbreviations (always installed, can be remapped)
       ${coreAbbrs}
 
-      # Optional abbreviations (can conflict with user configs)
       ${optionalAbbrs}
     '';
 
     environment.etc = lib.mkIf cfg.enableFunctions {
-      # Fish-specific configuration
       "fish/conf.d/00-shimboot.fish".text = ''
         if status is-interactive
           starship init fish | source
         end
       '';
 
-      # Function definitions
       "fish/functions/fish_greeting.fish".text = builtins.readFile ./fish_functions/fish-greeting.fish;
 
       "fish/functions/nixos-rebuild-basic.fish".text =
@@ -236,7 +229,6 @@ in
 
       "fish/functions/proxify.fish".text = builtins.readFile ./fish_functions/proxify.fish;
 
-      # Fish completions
       "fish/completions/proxify.fish".text = builtins.readFile ./fish_functions/completions/proxify.fish;
     };
 

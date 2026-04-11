@@ -3,8 +3,6 @@
 # NixOS Flake Update Function
 #
 # Purpose: Update NixOS flake inputs with compatibility checks.
-# Dependencies: nix, jq, diff, sha256sum
-# Related: nixos-rebuild-basic.fish, fish.nix
 #
 # This function:
 # - Checks kernel version for sandbox compatibility
@@ -26,7 +24,6 @@ function nixos-flake-update
     set update_args "--option" "sandbox" "false"
     end
 
-    # Backup & Prep
     test -f flake.lock; and cp flake.lock flake.lock.bak
     set -l old_hash (test -f flake.lock; and sha256sum flake.lock | cut -d' ' -f1)
 
@@ -44,12 +41,10 @@ function nixos-flake-update
     set_color green; echo "[INFO] Changes detected:"; set_color normal
     echo "---------------------------------------------------"
     
-    # Show Diff
     if command -v diff >/dev/null
     diff -u3 --color=always flake.lock.bak flake.lock 2>/dev/null; or true
     end
     
-    # Summarize Changes via JQ
     if command -v jq >/dev/null
     set_color green; echo "[INFO] Updated Inputs:"; set_color normal
     jq -r '.nodes | to_entries[] | select(.value.locked) | .key' flake.lock | head -n 10 | sed 's/^/   • /'

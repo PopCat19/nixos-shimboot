@@ -3,8 +3,6 @@
 # NixOS Rebuild Basic Function
 #
 # Purpose: Simplify NixOS rebuild with kernel compatibility.
-# Dependencies: nixos-rebuild, sudo, uname
-# Related: nixos-flake-update.fish, fish.nix
 #
 # This function:
 # - Validates NIXOS_CONFIG_DIR
@@ -32,7 +30,6 @@ function nixos-rebuild-basic
     set_color green; echo "[INFO] Kernel $kver detected. Using default sandbox."; set_color normal
     end
 
-    # Pass additional arguments from caller
     set -a nix_args $argv
 
     set_color blue; echo "[STEP] Running NixOS rebuild..."; set_color normal

@@ -1,8 +1,6 @@
 # Setup Experience Module
 #
 # Purpose: Launch terminal on first Hyprland login for setup experience
-# Dependencies: kitty
-# Related: hyprland.nix
 #
 # This module:
 # - Opens terminal on Hyprland startup

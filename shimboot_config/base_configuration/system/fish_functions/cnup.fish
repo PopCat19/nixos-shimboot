@@ -3,8 +3,6 @@
 # Cnup Function
 #
 # Purpose: Comprehensive NixOS configuration linting and formatting
-# Dependencies: statix, deadnix, treefmt (from nixfmt-tree), nix flake check
-# Related: fish.nix, nixos-rebuild-basic.fish
 #
 # This function:
 # - Runs statix to fix security issues and bad practices

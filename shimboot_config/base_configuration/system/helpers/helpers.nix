@@ -1,8 +1,6 @@
 # Helpers Module
 #
 # Purpose: Provide system packages for helper scripts with dependencies
-# Dependencies: bash, ./*.sh files
-# Related: system modules
 #
 # This module:
 # - Installs helper scripts as system packages with runtime dependencies
@@ -14,7 +12,6 @@
 let
   inherit (pkgs) writeShellApplication;
 
-  # Core utilities used by multiple scripts
   coreDeps = with pkgs; [
     coreutils
     util-linux
@@ -24,7 +21,6 @@ let
     jq
   ];
 
-  # expand-rootfs dependencies
   expandRootfsDeps =
     coreDeps
     ++ (with pkgs; [
@@ -33,42 +29,36 @@ let
       e2fsprogs # resize2fs
     ]);
 
-  # fix-steam-bwrap dependencies
   fixSteamBwrapDeps =
     coreDeps
     ++ (with pkgs; [
       findutils
     ]);
 
-  # bwrap-lsm-workaround dependencies
   bwrapLsmWorkaroundDeps =
     coreDeps
     ++ (with pkgs; [
       bubblewrap
     ]);
 
-  # bwrap-wrapper dependencies
   bwrapWrapperDeps =
     coreDeps
     ++ (with pkgs; [
       bubblewrap
     ]);
 
-  # setup-bwrap-path dependencies
   setupBwrapPathDeps =
     coreDeps
     ++ (with pkgs; [
       coreutils
     ]);
 
-  # setup-bwrap-workaround dependencies
   setupBwrapWorkaroundDeps =
     coreDeps
     ++ (with pkgs; [
       bubblewrap
     ]);
 
-  # setup_nixos dependencies
   setupNixosDeps =
     coreDeps
     ++ (with pkgs; [
@@ -78,14 +68,12 @@ let
       procps
     ]);
 
-  # setup-nixos-config dependencies
   setupNixosConfigDeps =
     coreDeps
     ++ (with pkgs; [
       nix
     ]);
 
-  # migrate-nixos-config dependencies
   migrateNixosConfigDeps = coreDeps;
 
 in
