@@ -95,9 +95,4 @@ mkdir -p "${XDG_RUNTIME_DIR}/bwrap-cache"
 chmod 700 "${XDG_RUNTIME_DIR}/bwrap-cache"
 ```
 
-## Notes
-
-- The workaround converts tmpfs mounts to bind mounts
-- This maintains sandboxing while avoiding ChromeOS LSM restrictions
-- Cache directories are cleaned on reboot
-- Some applications may need manual configuration
+## Troubleshooting
