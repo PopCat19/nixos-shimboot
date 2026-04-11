@@ -115,28 +115,28 @@ function fish_greeting
         end
 
         # 6. Helpers
-        # Dynamically discover and display helper functions
-        set -l helper_functions
-        set -l helper_patterns "show-shortcuts" "expand_rootfs" "fix-steam-bwrap" "bwrap-lsm-workaround" "setup-bwrap-workaround" "setup_nixos" "setup_nixos_config" "nixos-" "setup_" "shimboot_" "fix" "list" "harvest"
+        set -l known_helpers \
+            expand-rootfs \
+            setup-nixos \
+            setup-nixos-config \
+            fix-steam-bwrap \
+            bwrap-lsm-workaround \
+            setup-bwrap-workaround \
+            nixos-rebuild-basic \
+            nixos-flake-update \
+            migration-status
 
-        for pattern in $helper_patterns
-            set -l matches (functions | grep "$pattern" | head -3)
-            if test -n "$matches"
-                for match in $matches
-                    if not contains "$match" $helper_functions
-                        set helper_functions $helper_functions "$match"
-                    end
-                end
+        set -l found_helpers
+        for helper in $known_helpers
+            if type -q $helper
+                set found_helpers $found_helpers $helper
             end
         end
 
-        # If helper functions found, display them
-        if test -n "$helper_functions"
-            set -l helper_list (string join " • " $helper_functions)
-            set_color brwhite; echo "Helpers: $helper_list"
+        if test -n "$found_helpers"
+            set_color brwhite; echo "Helpers: "(string join " • " $found_helpers)
         else
-            # Fallback to common helpers if none found
-            set_color brwhite; echo "Helpers: expand_rootfs • fix-steam-bwrap • bwrap-lsm-workaround • setup-bwrap-workaround • setup_nixos • setup_nixos_config"
+            set_color brwhite; echo "Helpers: none found"
         end
     else
         set_color bryellow; echo "[WARN] No nixos-config detected."
