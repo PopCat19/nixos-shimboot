@@ -3,8 +3,6 @@
 # Show Shortcuts Function
 #
 # Purpose: Display Hyprland keybindings with descriptions and categories
-# Tags: # cat: CategoryName, # desc: Description Text
-# Dependencies: string, math, column
 #
 # Usage:
 #   show-shortcuts            - Show all
@@ -41,7 +39,6 @@ function show-shortcuts
         end
     end
 
-    # Handle --list option
     if test "$list_only" = true
         set -l categories (get_detected_categories "$keybinds_file" "$userprefs_file")
         set_color brgreen
@@ -59,7 +56,6 @@ function show-shortcuts
     set -l current_cat "General"
     set -l current_desc ""
 
-    # Helper to parse files
     function parse_config -S
         set -l file $argv[1]
         test -f "$file"; or return
@@ -103,7 +99,6 @@ function show-shortcuts
         return
     end
 
-    # Apply Filters
     set -l filtered
     for item in $all_shortcuts
         set -l parts (string split '|' "$item")
@@ -116,7 +111,6 @@ function show-shortcuts
         end
     end
 
-    # Render Header
     set -l box_width 62
     set -l title " HYPRLAND SHORTCUTS "
     test -n "$filter"; and set title " CATEGORY: "(string upper "$filter")" "
@@ -133,7 +127,6 @@ function show-shortcuts
     echo "╚"(string repeat -n $box_width "═")"╝"
     set_color normal; echo ""
 
-    # Group by dynamically discovered categories
     set -l found_cats
     for i in $filtered; set -a found_cats (string split '|' "$i")[3]; end
     set found_cats (printf '%s\n' $found_cats | sort -u)
@@ -150,13 +143,11 @@ function show-shortcuts
         echo ""
     end
 
-    # Check if fzf is available
     set -l fzf_available false
     if command -v fzf > /dev/null 2>&1
         set fzf_available true
     end
 
-    # Handle fzf output
     if test "$use_fzf" = true
         if test "$fzf_available" = false
             set_color red; echo "Error: fzf is not installed. Please install fzf to use fuzzy search."; set_color normal
