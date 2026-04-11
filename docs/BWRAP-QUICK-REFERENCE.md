@@ -67,7 +67,6 @@ Location: `${XDG_RUNTIME_DIR}/bwrap-cache`
 ## Documentation
 
 - Full documentation: [`docs/BWRAP-LSM-WORKAROUND.md`](BWRAP-LSM-WORKAROUND.md)
-- Implementation details: [`docs/BWRAP-IMPLEMENTATION-SUMMARY.md`](BWRAP-IMPLEMENTATION-SUMMARY.md)
 
 ## Troubleshooting
 
