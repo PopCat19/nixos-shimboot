@@ -168,16 +168,3 @@ Some applications may have their own bwrap configurations. In these cases:
 1. Check if the application has a bwrap configuration file
 2. Modify it to use `bwrap-safe` instead of `bwrap`
 3. Or set up a wrapper script for the application
-
-## References
-
-- [ChromeOS Security Model](https://www.chromium.org/chromium-os/chromiumos-design-docs/security-overview/)
-- [Bubblewrap Documentation](https://github.com/containers/bubblewrap)
-- [NixOS Security Wrappers](https://nixos.org/manual/nixos/stable/#sec-security-wrappers)
-
-## Related Files
-
-- [`security.nix`](../shimboot_config/base_configuration/system/security.nix) - Security wrapper configuration
-- [`bwrap-lsm-workaround.sh`](../shimboot_config/base_configuration/system/helpers/bwrap-lsm-workaround.sh) - Standalone wrapper script
-- [`setup-bwrap-workaround.sh`](../shimboot_config/base_configuration/system/helpers/setup-bwrap-workaround.sh) - Setup helper
-- [`fix-steam-bwrap.sh`](../shimboot_config/base_configuration/system/helpers/fix-steam-bwrap.sh) - Steam-specific fix
