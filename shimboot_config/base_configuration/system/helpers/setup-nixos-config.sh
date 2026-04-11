@@ -20,43 +20,42 @@ fi
 
 # Function to find nixos-config directory across all users
 find_nixos_config() {
-	local found_path=""
-	# Search in all home directories for nixos-config
+	# Prefer NIXOS_CONFIG_DIR if set and valid
+	if [[ -n "${NIXOS_CONFIG_DIR:-}" ]] && [[ -f "${NIXOS_CONFIG_DIR}/flake.nix" ]]; then
+		echo "[setup_nixos_config] Found nixos-config via NIXOS_CONFIG_DIR: ${NIXOS_CONFIG_DIR}" >&2
+		echo "$NIXOS_CONFIG_DIR"
+		return
+	fi
+	# Scan home directories — check companion repo name first, then base repo name
+	local candidate=""
 	for home_dir in /home/*; do
-		if [[ -d "${home_dir}/nixos-config" ]] && [[ -f "${home_dir}/nixos-config/flake.nix" ]]; then
-			found_path="${home_dir}/nixos-config"
-			echo "[setup_nixos_config] Found nixos-config at: ${found_path}" >&2
-			break
-		fi
+		for dir_name in nixos-shimboot-config nixos-config; do
+			candidate="${home_dir}/${dir_name}"
+			if [[ -d "$candidate" ]] && [[ -f "${candidate}/flake.nix" ]]; then
+				echo "[setup_nixos_config] Found nixos-config at: ${candidate}" >&2
+				echo "$candidate"
+				return
+			fi
+		done
 	done
-	echo "$found_path"
 }
 
 # Try to read the profile from selected-profile.nix in the found nixos-config
 # First, find where nixos-config is located
 NIXOS_CONFIG_PATH=$(find_nixos_config)
 
-if [[ -n "$NIXOS_CONFIG_PATH" ]] && [[ -f "${NIXOS_CONFIG_PATH}/shimboot_config/selected-profile.nix" ]]; then
-	PROFILE=$(cat "${NIXOS_CONFIG_PATH}/shimboot_config/selected-profile.nix" 2>/dev/null || echo "default")
-	echo "[setup_nixos_config] Using profile from selected-profile.nix: ${PROFILE}"
-else
-	# Fallback: try to read from current directory if running from nixos-config
-	PROFILE=$(cat ./shimboot_config/selected-profile.nix 2>/dev/null || echo "default")
-	echo "[setup_nixos_config] Using profile (fallback): ${PROFILE}"
-fi
-
-# Get username from the profile's user-config.nix
-# Use NIXOS_CONFIG_PATH if discovered, otherwise fall back to relative path
 if [[ -n "$NIXOS_CONFIG_PATH" ]]; then
-	USERNAME=$(nix eval --raw --impure --expr "(import ${NIXOS_CONFIG_PATH}/shimboot_config/profiles/${PROFILE}/user-config.nix {}).user.username" 2>/dev/null || echo "${USER}")
+	USERNAME=$(nix eval --raw --impure --expr \
+		"(import ${NIXOS_CONFIG_PATH}/shimboot_config/user-config.nix {}).user.username" \
+		2>/dev/null || echo "${USER}")
 else
-	USERNAME=$(nix eval --raw --impure --expr "(import ./shimboot_config/profiles/${PROFILE}/user-config.nix {}).user.username" 2>/dev/null || echo "${USER}")
+	USERNAME="${USER}"
 fi
-echo "[setup_nixos_config] Username from profile: ${USERNAME}"
+echo "[setup_nixos_config] Username: ${USERNAME}"
 
 # If nixos-config wasn't found, check the expected path for the current profile
 if [[ -z "$NIXOS_CONFIG_PATH" ]]; then
-	NIXOS_CONFIG_PATH="/home/${USERNAME}/nixos-config"
+	NIXOS_CONFIG_PATH="${NIXOS_CONFIG_DIR:-/home/${USERNAME}/nixos-config}"
 	echo "[setup_nixos_config] Expected nixos-config path: ${NIXOS_CONFIG_PATH}"
 fi
 
