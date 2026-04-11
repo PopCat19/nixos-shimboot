@@ -1,6 +1,7 @@
 # Context
 
 - cnup.fish — Comprehensive NixOS configuration linting and formatting
+- shimboot-kernel-needs-sandbox.fish — Detect whether the running kernel requires Nix sandbox disabled
 - completions/proxify.fish — Fish completion for proxify command
 - fish-greeting.fish — Fish shell greeting
 - fix-fish-history.fish — Fixes Fish history issues

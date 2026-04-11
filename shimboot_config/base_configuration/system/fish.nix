@@ -219,6 +219,9 @@ in
 
       "fish/functions/cnup.fish".text = builtins.readFile ./fish_functions/cnup.fish;
 
+      "fish/functions/shimboot-kernel-needs-sandbox.fish".text =
+        builtins.readFile ./fish_functions/shimboot-kernel-needs-sandbox.fish;
+
       "fish/functions/show-shortcuts.fish".text = builtins.readFile ./fish_functions/show-shortcuts.fish;
 
       "fish/functions/lsa.fish".text = builtins.readFile ./fish_functions/lsa.fish;

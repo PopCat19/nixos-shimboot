@@ -22,12 +22,12 @@ function nixos-rebuild-basic
     # Kernel Sandbox Check (Fix for older kernels < 5.6)
     set -l kver (uname -r)
     set -l nix_args "switch" "--flake" "."
-    
-    if string match -qr '^([0-4]\.|5\.[0-5][^0-9])' "$kver"
-    set_color yellow; echo "[WARN] Kernel $kver (< 5.6) detected. Disabling sandbox."; set_color normal
-    set -a nix_args "--option" "sandbox" "false"
+
+    if shimboot-kernel-needs-sandbox
+        set_color yellow; echo "[WARN] Kernel $kver (< 5.6) detected. Disabling sandbox."; set_color normal
+        set -a nix_args "--option" "sandbox" "false"
     else
-    set_color green; echo "[INFO] Kernel $kver detected. Using default sandbox."; set_color normal
+        set_color green; echo "[INFO] Kernel $kver detected. Using default sandbox."; set_color normal
     end
 
     set -a nix_args $argv

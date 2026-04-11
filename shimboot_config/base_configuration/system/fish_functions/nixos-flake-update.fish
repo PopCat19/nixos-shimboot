@@ -16,12 +16,11 @@ function nixos-flake-update
     cd "$NIXOS_CONFIG_DIR"
 
     set_color blue; echo "[STEP] Updating NixOS flake inputs..."; set_color normal
-    
-    # Kernel Sandbox Check
-    set -l update_args ""
-    if string match -qr '^([0-4]\.|5\.[0-5][^0-9])' (uname -r)
-    set_color yellow; echo "[WARN] Legacy kernel detected. Disabling sandbox."; set_color normal
-    set update_args "--option" "sandbox" "false"
+
+    set -l update_args
+    if shimboot-kernel-needs-sandbox
+        set_color yellow; echo "[WARN] Legacy kernel detected. Disabling sandbox."; set_color normal
+        set update_args "--option" "sandbox" "false"
     end
 
     test -f flake.lock; and cp flake.lock flake.lock.bak

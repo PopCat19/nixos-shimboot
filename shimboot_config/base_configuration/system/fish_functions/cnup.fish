@@ -29,7 +29,7 @@ function cnup
         set -l sandbox_args
         set -l nixshell_sandbox_args
         set -l kver (uname -r)
-        if string match -qr '^([0-4]\.|5\.[0-5][^0-9])' "$kver"
+        if shimboot-kernel-needs-sandbox
             set_color yellow
             echo "[WARN] Kernel $kver (< 5.6) detected. Disabling sandbox."
             set_color normal
