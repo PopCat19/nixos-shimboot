@@ -394,7 +394,10 @@ get_selection() {
 	local rootfs_partitions="$1"
 	local i=1
 
-	read -p "Enter partition or option: " selection
+	read -t 30 -p "Enter partition or option: " selection || {
+	    # timeout — redraw menu with refreshed SoC
+	    return 1
+	}
 
 	case "$selection" in
 		r)
