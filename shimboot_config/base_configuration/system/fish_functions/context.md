@@ -1,6 +1,6 @@
 # Context
 
-- cnup.fish — NixOS user profile update helper
+- cnup.fish — Comprehensive NixOS configuration linting and formatting
 - completions/proxify.fish — Fish completion for proxify command
 - fish-greeting.fish — Fish shell greeting
 - fix-fish-history.fish — Fixes Fish history issues
