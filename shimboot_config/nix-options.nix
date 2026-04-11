@@ -11,14 +11,11 @@
 # reports fewer experimental-features than defined here, check for
 # a root-level override at /root/.config/nix/nix.conf. The daemon
 # runs as root and that file takes precedence over /etc/nix/nix.conf.
-#
-# Warning: Nix reads config from multiple sources. If the daemon
-# reports fewer experimental-features than defined here, check for
-# a root-level override at /root/.config/nix/nix.conf. The daemon
-# runs as root and that file takes precedence over /etc/nix/nix.conf.
 { lib, userConfig, ... }:
 {
   nix.settings = {
+    max-jobs = 1;
+    cores = 0;
     experimental-features = [
       "nix-command"
       "flakes"
