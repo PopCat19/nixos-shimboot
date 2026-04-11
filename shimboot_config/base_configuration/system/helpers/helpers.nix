@@ -88,14 +88,6 @@ let
   # migrate-nixos-config dependencies
   migrateNixosConfigDeps = coreDeps;
 
-  # migrate_username dependencies
-  migrateUsernameDeps =
-    coreDeps
-    ++ (with pkgs; [
-      shadow # usermod, groupmod
-      findutils
-    ]);
-
 in
 {
   environment.systemPackages = [
@@ -148,12 +140,6 @@ in
     })
 
     (writeShellApplication {
-      name = "migrate-username";
-      runtimeInputs = migrateUsernameDeps;
-      text = builtins.readFile ./migrate-username.sh;
-    })
-
-    (writeShellApplication {
       name = "migration-status";
       runtimeInputs = coreDeps;
       text = builtins.readFile ./migration-status.sh;
@@ -167,26 +153,6 @@ in
       chmod 755 /var/lib/shimboot-migration
     '';
     deps = [ ];
-  };
-
-  # Auto-migrate username when configuration changes
-  # Note: This runs early but only performs migration if username actually changed
-  systemd.services.migrate-username = {
-    description = "Migrate username while preserving user data";
-    wantedBy = [ "multi-user.target" ];
-    before = [ "display-manager.service" ];
-    after = [ "local-fs.target" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${
-        pkgs.writeShellApplication {
-          name = "migrate-username-service";
-          runtimeInputs = migrateUsernameDeps;
-          text = builtins.readFile ./migrate-username.sh;
-        }
-      }/bin/migrate-username-service ${userConfig.user.username}";
-      RemainAfterExit = true;
-    };
   };
 
   # Auto-migrate nixos-config when switching profiles
