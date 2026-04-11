@@ -14,15 +14,16 @@ _: {
   zramSwap = {
     enable = true;
     algorithm = "lzo-rle";
-    memoryPercent = 60;
+    memoryPercent = 50;
     priority = 100;
   };
 
   boot.kernel.sysctl = {
-    "vm.swappiness" = 80;
+    "vm.swappiness" = 60;
     "vm.page-cluster" = 3;
     "vm.oom-kill" = 1;
-    "vm.admin_reserve_kbytes" = 1024;
+    "vm.admin_reserve_kbytes" = 8192;
+    "vm.oom_kill_allocating_task" = 1;
     "vm.overcommit_memory" = 0;
     "vm.vfs_cache_pressure" = 50;
     "vm.dirty_ratio" = 15;
