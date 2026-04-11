@@ -94,11 +94,11 @@ nixos-shimboot/                    # this repo. . Build system + ChromeOS HAL
 
 nixos-shimboot-config/             # companion repo. . Personal desktop config
 ├── flake.nix                      # imports shimboot as flake input
-├── popcat19/                      # personal config branch
-│   ├── configuration.nix
-│   ├── system/
-│   └── home/
 └── main/                          # reference template for forking
+    ├── configuration.nix
+    ├── system/
+    └── home/
+# personal profile lives on its own branch (e.g. popcat19/)
 ```
 
 External flakes import shimboot as a hardware module:
@@ -154,11 +154,7 @@ This project has a Cachix binary cache for the patched systemd and nixos-shimboo
 shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA=
 ```
 
-If you wish to use this cache in your own configuration, add:
-```nix
-  nix.settings.substituters = [ "https://shimboot-systemd-nixos.cachix.org" ];
-  nix.settings.trusted-public-keys = [ "shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA=" ];
-```
+If you wish to use this cache in your own configuration, it is automatically configured when importing `nixosModules.chromeos`. Manual setup only needed for standalone use.
 
 ## Source
 Originally, the bootloader and systemd patches as well as the reference for bootstrapping, partitioning, and workarounds are sourced from: [ading2210/shimboot](https://github.com/ading2210/shimboot) and [ading2210/chromeos-systemd](https://github.com/ading2210/chromeos-systemd)

@@ -74,7 +74,7 @@ Afterwards, the imaged usb/sd is ready to boot.
 ## First Boot (minimal/base configuration)
 
 - Root user: `root` (initial password: `nixos-shimboot`)
-- Default user: `nixos-user` (initial password: `nixos-shimboot`)
+- Default user: username defined in your profile's `user-config.nix` (default: `nixos-user`, initial password: `nixos-shimboot`)
 - Desktop: LightDM + Hyprland (base config)
 - Network: NetworkManager with wpa_supplicant backend
     - WiFi should work out of the box if vendor drivers are available
@@ -98,7 +98,7 @@ The config repo imports shimboot as a flake input (`shimboot.nixosModules.chrome
 The git remote may be pointing to the build machine's path. Fix with:
 ```bash
 cd ~/nixos-config
-git remote set-url origin https://github.com/PopCat19/nixos-shimboot.git # replace URL with your fork if utilized
+git remote set-url origin https://github.com/PopCat19/nixos-shimboot-config.git # replace URL with your fork if utilized
 git fetch origin
 ```
 
@@ -141,7 +141,7 @@ sudo resize2fs /dev/sdXN
 
 ## Next Steps
 
-- Fork the config repo for your own desktop setup
+- Fork the config repo and create a personal branch (use `main` as template)
 - Import `shimboot.nixosModules.chromeos` as a hardware layer in your own flake
 - Experiment with different desktop environments
 - Contribute bug reports or improvements
