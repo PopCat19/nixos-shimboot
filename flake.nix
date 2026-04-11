@@ -53,11 +53,6 @@
       });
 
       # Closes over patchedSystemd for external consumers via _module.args
-      chromeosModuleArgs = {
-        _module.args = {
-          inherit patchedSystemd;
-        };
-      };
 
       # Import module outputs
       # Core system and development modules
@@ -135,10 +130,12 @@
       nixosModules = {
         # Full ChromeOS base configuration (boot, fs, hw, users, nix settings)
         # Includes patchedSystemd via _module.args
-        chromeos = [
-          chromeosModuleArgs
-          ./shimboot_config/base_configuration/configuration.nix
-        ];
+        chromeos =
+          { ... }:
+          {
+            imports = [ ./shimboot_config/base_configuration/configuration.nix ];
+            _module.args.patchedSystemd = patchedSystemd;
+          };
 
         # Granular modules for selective import
         nix-options = ./shimboot_config/nix-options.nix;
