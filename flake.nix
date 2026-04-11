@@ -127,9 +127,21 @@
 
       # ChromeOS hardware module — importable by external flakes (e.g. nixos-config)
       # Acts as a hardware abstraction layer for ChromeOS devices
+      # Wraps chromeos module to expose patchedSystemd to consumers
+      let
+        chromeosModuleArgs = {
+          _module.args = {
+            inherit patchedSystemd;
+          };
+        };
+      in
       nixosModules = {
         # Full ChromeOS base configuration (boot, fs, hw, users, nix settings)
-        chromeos = ./shimboot_config/base_configuration/configuration.nix;
+        # Includes patchedSystemd via _module.args
+        chromeos = [
+          chromeosModuleArgs
+          ./shimboot_config/base_configuration/configuration.nix
+        ];
 
         # Granular modules for selective import
         nix-options = ./shimboot_config/nix-options.nix;
