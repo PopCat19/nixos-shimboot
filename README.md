@@ -7,7 +7,7 @@ Check [progress and obstacles](#progress-and-obstacles) for current progress on 
 > |\
 > Consider creating a fork for reference.
 
-Contributions and feedbacks are welcome by opening a [discussion](https://github.com/PopCat19/nixos-shimboot/discussions/new/choose) or an [issue](https://github.com/PopCat19/nixos-shimboot/issues/new) on the main branch. :3
+Contributions and feedback are welcome by opening a [discussion](https://github.com/PopCat19/nixos-shimboot/discussions/new/choose) or an [issue](https://github.com/PopCat19/nixos-shimboot/issues/new) on the main branch.
 
 To get started, follow the [quickstart guide](QUICKSTART.md). (assuming you are in a linux environment)
 
