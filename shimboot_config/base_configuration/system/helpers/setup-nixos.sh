@@ -15,7 +15,7 @@ set -Eeuo pipefail
 
 # Configuration
 USERNAME="${USER}"
-CONFIG_DIR="/home/${USERNAME}/nixos-config"
+CONFIG_DIR="${NIXOS_CONFIG_DIR:-/home/${USERNAME}/nixos-config}"
 LOG_FILE="/tmp/setup_nixos.log"
 BACKUP_DIR="/tmp/setup_nixos_backup_$(date +%Y%m%d_%H%M%S)"
 
@@ -255,7 +255,7 @@ if [[ "$SKIP_WIFI" == "false" ]]; then
 					# Use temp file to avoid password exposure in process list
 					PSK_FILE=$(mktemp)
 					chmod 600 "$PSK_FILE"
-					echo -n "$PSK" > "$PSK_FILE"
+					echo -n "$PSK" >"$PSK_FILE"
 
 					echo "Command: nmcli dev wifi connect '${SSID}' password '***'"
 					if failsafe "Wi-Fi connection" nmcli dev wifi connect "$SSID" password "$(cat "$PSK_FILE")"; then
@@ -295,9 +295,9 @@ if [[ "$SKIP_EXPAND" == "false" ]]; then
 	echo
 
 	if prompt_yes_no "Expand root partition to full USB capacity?"; then
-		if command -v expand_rootfs >/dev/null 2>&1; then
-			echo "Command: sudo expand_rootfs"
-			if failsafe "Root filesystem expansion" sudo expand_rootfs; then
+		if command -v expand-rootfs >/dev/null 2>&1; then
+			echo "Command: sudo expand-rootfs"
+			if failsafe "Root filesystem expansion" sudo expand-rootfs; then
 				log_ok "Root filesystem expanded"
 				echo
 				echo "New disk usage:"
@@ -369,9 +369,9 @@ if [[ "$SKIP_CONFIG" == "false" ]]; then
 	log_step "Step 4: Configure nixos-rebuild"
 
 	if prompt_yes_no "Run setup_nixos_config?" "Y"; then
-		if command -v setup_nixos_config >/dev/null 2>&1; then
-			echo "Command: sudo setup_nixos_config"
-			failsafe "Setup nixos config" sudo setup_nixos_config
+		if command -v setup-nixos-config >/dev/null 2>&1; then
+			echo "Command: sudo setup-nixos-config"
+			failsafe "Setup nixos config" sudo setup-nixos-config
 		else
 			log_error "setup_nixos_config command not found"
 		fi
@@ -492,7 +492,7 @@ log_step "Setup Complete"
 # Display fish greeting if available
 if command -v fish >/dev/null 2>&1; then
 	echo "Command: fish -c \"source ${CONFIG_DIR}/shimboot_config/base_configuration/system_modules/fish_functions/fish-greeting.fish; fish_greeting\""
-	fish -c "source ${CONFIG_DIR}/shimboot_config/base_configuration/system_modules/fish_functions/fish-greeting.fish; fish_greeting" 2>/dev/null || true
+	fish -c "source ${CONFIG_DIR}/shimboot_config/base_configuration/system/fish_functions/fish-greeting.fish; fish_greeting" 2>/dev/null || true
 else
 	if command -v fastfetch >/dev/null 2>&1; then
 		echo "Command: fastfetch"
