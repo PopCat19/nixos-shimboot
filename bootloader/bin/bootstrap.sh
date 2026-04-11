@@ -210,7 +210,7 @@ read_battery_soc() {
 		fi
 	done
 	if [ -n "$soc_file" ] && [ -r "$soc_file" ]; then
-		printf "%s%%" "$(cat "$soc_file")"
+		printf "%s%% (as of %s)" "$(cat "$soc_file")" "$(date +%H:%M:%S)"
 	else
 		echo "unknown"
 	fi
