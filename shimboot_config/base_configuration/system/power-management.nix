@@ -15,6 +15,8 @@
   powerManagement.enable = true;
 
   services = {
+    thermald.enable = lib.mkDefault false;
+
     upower.enable = lib.mkDefault true;
 
     auto-cpufreq = {
