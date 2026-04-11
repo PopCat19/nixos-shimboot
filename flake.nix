@@ -52,6 +52,13 @@
         ];
       });
 
+      # Closes over patchedSystemd for external consumers via _module.args
+      chromeosModuleArgs = {
+        _module.args = {
+          inherit patchedSystemd;
+        };
+      };
+
       # Import module outputs
       # Core system and development modules
       rawImageOutputs =
@@ -125,16 +132,6 @@
       # Cachix configuration for binary cache
       inherit ((import ./flake_modules/cachix-config.nix { })) nixConfig;
 
-      # ChromeOS hardware module — importable by external flakes (e.g. nixos-config)
-      # Acts as a hardware abstraction layer for ChromeOS devices
-      # Wraps chromeos module to expose patchedSystemd to consumers
-      let
-        chromeosModuleArgs = {
-          _module.args = {
-            inherit patchedSystemd;
-          };
-        };
-      in
       nixosModules = {
         # Full ChromeOS base configuration (boot, fs, hw, users, nix settings)
         # Includes patchedSystemd via _module.args
