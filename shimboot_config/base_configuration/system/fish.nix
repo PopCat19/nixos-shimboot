@@ -21,6 +21,8 @@
 }:
 let
   cfg = config.shimboot.fish;
+  userData = if userConfig ? user then userConfig.user else userConfig;
+  username = userData.username or userConfig.username;
 
   # Core abbreviations that are always installed (QoL)
   # Users can remap these via their own fish config
@@ -182,8 +184,8 @@ in
 
     programs.fish.interactiveShellInit = lib.mkIf cfg.enableAbbreviations ''
       # Source SoT environment variables from Nix
-      set -gx SOT_USERNAME ${userConfig.user.username}
-      set -gx SOT_SHELL ${userConfig.user.shellPackage}
+      set -gx SOT_USERNAME ${username}
+      set -gx SOT_SHELL ${userData.shellPackage or "fish"}
       set -gx SOT_TERM_CMD ${userConfig.defaultApps.terminal.command}
       set -gx SOT_EDITOR_CMD ${userConfig.defaultApps.editor.command}
 

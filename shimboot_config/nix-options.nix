@@ -6,12 +6,11 @@
 # - Defines Nix experimental features
 # - Configures binary caches and trusted keys
 # - Sets up garbage collection
-#
-# Warning: Nix reads config from multiple sources. If the daemon
-# reports fewer experimental-features than defined here, check for
-# a root-level override at /root/.config/nix/nix.conf. The daemon
-# runs as root and that file takes precedence over /etc/nix/nix.conf.
 { lib, userConfig, ... }:
+let
+  userData = if userConfig ? user then userConfig.user else userConfig;
+  username = userData.username or userConfig.username;
+in
 {
   nix.settings = {
     max-jobs = 1;
@@ -29,7 +28,7 @@
 
     trusted-users = lib.mkAfter [
       "root"
-      "${userConfig.user.username}"
+      "${username}"
     ];
 
     substituters = lib.mkAfter [

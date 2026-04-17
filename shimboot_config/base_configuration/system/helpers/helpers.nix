@@ -11,6 +11,8 @@
 { pkgs, userConfig, ... }:
 let
   inherit (pkgs) writeShellApplication;
+  userData = if userConfig ? user then userConfig.user else userConfig;
+  username = userData.username or userConfig.username;
 
   coreDeps = with pkgs; [
     coreutils
@@ -147,8 +149,8 @@ in
   systemd.services.migrate-nixos-config = {
     description = "Migrate nixos-config to current user's home directory";
     wantedBy = [ "multi-user.target" ];
-    after = [ "home-manager-${userConfig.user.username}.service" ];
-    wants = [ "home-manager-${userConfig.user.username}.service" ];
+    after = [ "home-manager-${username}.service" ];
+    wants = [ "home-manager-${username}.service" ];
     serviceConfig = {
       Type = "oneshot";
       ExecStart = "${
@@ -157,7 +159,7 @@ in
           runtimeInputs = migrateNixosConfigDeps;
           text = builtins.readFile ./migrate-nixos-config.sh;
         }
-      }/bin/migrate-nixos-config ${userConfig.user.username}";
+      }/bin/migrate-nixos-config ${username}";
       RemainAfterExit = true;
     };
   };

@@ -15,13 +15,16 @@
   userConfig,
   ...
 }:
+let
+  hostname = userConfig.host.hostname or userConfig.hostname;
+in
 {
   networking = {
     dhcpcd.enable = lib.mkForce false;
     firewall = {
       enable = false;
     };
-    hostName = userConfig.host.hostname;
+    hostName = hostname;
     networkmanager = {
       enable = true;
     };
