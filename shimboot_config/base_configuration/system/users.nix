@@ -17,7 +17,7 @@
   ...
 }:
 let
-  userData = if userConfig ? user then userConfig.user else userConfig;
+  userData = userConfig.user or userConfig;
   username = userData.username or userConfig.username;
   shellPackage = userData.shellPackage or "fish";
   initialPassword = userData.initialPassword or "nixos-shimboot";

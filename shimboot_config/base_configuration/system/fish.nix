@@ -21,7 +21,7 @@
 }:
 let
   cfg = config.shimboot.fish;
-  userData = if userConfig ? user then userConfig.user else userConfig;
+  userData = userConfig.user or userConfig;
   username = userData.username or userConfig.username;
 
   # Core abbreviations that are always installed (QoL)
@@ -29,15 +29,8 @@ let
   coreAbbrs = ''
     abbr -a nrb nixos-rebuild-basic
     abbr -a cdn 'cd $NIXOS_CONFIG_DIR'
-  '';
-
-  # Optional abbreviations that can conflict with user configs
-  optionalAbbrs = ''
-    abbr -a flup nixos-flake-update
     abbr -a scuts show-shortcuts
-    abbr -a lsa lsa
-    abbr -a proxy_on proxy_on
-    abbr -a proxy_off proxy_off
+    abbr -a lfh list-fish-helpers
   '';
 in
 {
@@ -57,7 +50,7 @@ in
     enableAbbreviations = lib.mkOption {
       type = lib.types.bool;
       default = true;
-      description = "Install fish abbreviations (nrb, cdn, flup, etc.)";
+      description = "Install fish abbreviations (nrb, cdn, scuts, lfh)";
     };
   };
 
@@ -194,8 +187,6 @@ in
       end
 
       ${coreAbbrs}
-
-      ${optionalAbbrs}
     '';
 
     environment.etc = lib.mkIf cfg.enableFunctions {
@@ -210,31 +201,13 @@ in
       "fish/functions/nixos-rebuild-basic.fish".text =
         builtins.readFile ./fish_functions/nixos-rebuild-basic.fish;
 
-      "fish/functions/nixos-flake-update.fish".text =
-        builtins.readFile ./fish_functions/nixos-flake-update.fish;
-
-      "fish/functions/fix-fish-history.fish".text =
-        builtins.readFile ./fish_functions/fix-fish-history.fish;
+      "fish/functions/shimboot-kernel-needs-sandbox.fish".text =
+        builtins.readFile ./fish_functions/shimboot-kernel-needs-sandbox.fish;
 
       "fish/functions/list-fish-helpers.fish".text =
         builtins.readFile ./fish_functions/list-fish-helpers.fish;
 
-      "fish/functions/cnup.fish".text = builtins.readFile ./fish_functions/cnup.fish;
-
-      "fish/functions/shimboot-kernel-needs-sandbox.fish".text =
-        builtins.readFile ./fish_functions/shimboot-kernel-needs-sandbox.fish;
-
       "fish/functions/show-shortcuts.fish".text = builtins.readFile ./fish_functions/show-shortcuts.fish;
-
-      "fish/functions/lsa.fish".text = builtins.readFile ./fish_functions/lsa.fish;
-
-      "fish/functions/proxy-on.fish".text = builtins.readFile ./fish_functions/proxy-on.fish;
-
-      "fish/functions/proxy-off.fish".text = builtins.readFile ./fish_functions/proxy-off.fish;
-
-      "fish/functions/proxify.fish".text = builtins.readFile ./fish_functions/proxify.fish;
-
-      "fish/completions/proxify.fish".text = builtins.readFile ./fish_functions/completions/proxify.fish;
     };
 
     # You can still provide helpful CLI wrappers as actual binaries if needed

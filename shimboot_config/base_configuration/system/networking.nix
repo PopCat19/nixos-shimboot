@@ -22,11 +22,11 @@ in
   networking = {
     dhcpcd.enable = lib.mkForce false;
     firewall = {
-      enable = false;
+      enable = lib.mkForce false;
     };
     hostName = hostname;
     networkmanager = {
-      enable = true;
+      enable = lib.mkDefault true;
     };
     timeServers = [ "pool.ntp.org" ];
   };

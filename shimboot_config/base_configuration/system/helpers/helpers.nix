@@ -11,7 +11,7 @@
 { pkgs, userConfig, ... }:
 let
   inherit (pkgs) writeShellApplication;
-  userData = if userConfig ? user then userConfig.user else userConfig;
+  userData = userConfig.user or userConfig;
   username = userData.username or userConfig.username;
 
   coreDeps = with pkgs; [

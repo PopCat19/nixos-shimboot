@@ -52,9 +52,9 @@
     };
   };
 
-  systemd.services.display-manager.after = lib.mkForce [
+  systemd.services.display-manager.after = lib.mkDefault [
     "multi-user.target"
     "systemd-logind.service"
   ];
-  systemd.services.display-manager.wants = lib.mkForce [ ];
+  systemd.services.display-manager.wants = lib.mkDefault [ ];
 }
