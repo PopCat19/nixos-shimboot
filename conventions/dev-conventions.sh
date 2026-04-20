@@ -219,6 +219,12 @@ main_tui() {
 
 # Main entrypoint
 main() {
+	# Always run from PROJECT_ROOT to ensure consistent path handling
+	cd "$PROJECT_ROOT" || {
+		echo "Error: Could not change to project root $PROJECT_ROOT" >&2
+		exit 1
+	}
+
 	# If no arguments, check for gum and launch TUI
 	if [[ $# -eq 0 ]]; then
 		if command_exists gum; then
