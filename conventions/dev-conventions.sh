@@ -53,10 +53,15 @@ VERSION="0.1.0"
 export SKIP_CONFIRM=false
 
 # Source modules
+# shellcheck disable=SC1091
 source "${SRC_DIR}/lib.sh"
+# shellcheck disable=SC1091
 source "${SRC_DIR}/merge.sh"
+# shellcheck disable=SC1091
 source "${SRC_DIR}/changelog.sh"
+# shellcheck disable=SC1091
 source "${SRC_DIR}/sync.sh"
+# shellcheck disable=SC1091
 source "${SRC_DIR}/lint.sh"
 
 # Show main help
