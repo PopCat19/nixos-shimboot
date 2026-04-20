@@ -184,6 +184,57 @@ save_sha_cache() {
 	printf '%s' "$sha" >"$cache_file"
 }
 
+# Create a backup branch with timestamp
+create_git_backup() {
+	local current_branch
+	current_branch=$(get_current_branch)
+	local timestamp
+	timestamp=$(date +%Y%m%d%H%M%S)
+	local backup_branch="${current_branch}_${timestamp}"
+
+	if git branch "$backup_branch" 2>/dev/null; then
+		log_detail "Backup branch created: $backup_branch"
+		return 0
+	fi
+	return 1
+}
+
+# Consolidate subsequent linear dev-convention commits
+consolidate_dev_commits() {
+	local commit_msg="chore: sync dev-conventions"
+	local count=0
+
+	# Check how many subsequent commits have the exact same message
+	while true; do
+		local idx=$((count))
+		local msg
+		msg=$(git log -1 --format=%s "HEAD~${idx}" 2>/dev/null) || break
+		if [[ "$msg" == "$commit_msg" ]]; then
+			count=$((count + 1))
+		else
+			break
+		fi
+	done
+
+	if [[ $count -gt 1 ]]; then
+		log_info "Consolidating $count subsequent dev-convention commits..."
+
+		# Create backup branch before dangerous operation
+		create_git_backup
+
+		# Soft reset to the commit before the sequence
+		if git reset --soft "HEAD~${count}"; then
+			if git commit -m "$commit_msg"; then
+				log_success "Consolidated into a single commit"
+				return 0
+			fi
+		fi
+		log_error "Failed to consolidate commits"
+		return 1
+	fi
+	return 1
+}
+
 # Main sync command
 cmd_sync() {
 	local remote_url=""
@@ -193,6 +244,7 @@ cmd_sync() {
 	local dry_run=false
 	local auto_commit=true
 	local auto_push=false
+	local consolidate=false
 
 	# Ensure cache directory exists
 	mkdir -p ".dev-conventions-sync-cache"
@@ -230,6 +282,10 @@ cmd_sync() {
 			;;
 		--push)
 			auto_push=true
+			shift
+			;;
+		--consolidate)
+			consolidate=true
 			shift
 			;;
 		--yes | -y)
@@ -282,7 +338,7 @@ cmd_sync() {
 		cached_sha=$(get_cached_sha "$file") || cached_sha=""
 
 		remote_sha=$(get_file_sha "$file" "$remote_url" "$ref") || {
-			log_warn "Could not get SHA for $file, falling back to content diff"
+			log_detail "Could not get SHA for $file, falling back to content diff"
 		}
 
 		if [[ -n "$remote_sha" && "$remote_sha" == "$cached_sha" ]]; then
@@ -383,7 +439,8 @@ cmd_sync() {
 			if [[ "$auto_commit" == "true" ]]; then
 				log_info "Auto-committing changes..."
 				git add conventions/
-				[[ -d ".dev-conventions-sync-cache" ]] && git add .dev-conventions-sync-cache/
+				# Gracefully handle if sync cache is ignored or missing
+				git add .dev-conventions-sync-cache/ 2>/dev/null || true
 
 				if git diff --cached --quiet; then
 					log_detail "No changes to commit"
@@ -392,16 +449,68 @@ cmd_sync() {
 					log_detail "Committed ${#needs_commit[@]} files"
 				fi
 
+				local history_changed=false
+				if [[ "$consolidate" == "true" ]]; then
+					if consolidate_dev_commits; then
+						history_changed=true
+					fi
+				fi
+
 				if [[ "$auto_push" == "true" ]]; then
+					# Check if remote exists and has an upstream configured
+					local current_branch
+					current_branch=$(get_current_branch)
+					local has_remote=false
+					local has_upstream=false
+
 					if git remote >/dev/null 2>&1; then
-						log_info "Auto-pushing..."
-						if git push; then
-							log_detail "Pushed to remote"
+						has_remote=true
+						if git rev-parse --abbrev-ref "${current_branch}@{u}" >/dev/null 2>&1; then
+							has_upstream=true
+						fi
+					fi
+
+					if [[ "$has_remote" == "true" ]]; then
+						# Check for uncommitted changes outside of conventions/
+						local dirty_files
+						dirty_files=$(git status --porcelain 2>/dev/null | grep -vE "^.. (conventions/|\.dev-conventions-sync-cache/)" || true)
+						if [[ -n "$dirty_files" ]]; then
+							log_warn "Uncommitted changes found outside of conventions/. Skipping push for safety."
+							log_detail "Dirty files:\n$dirty_files"
+							return 0
+						fi
+
+						if [[ "$has_upstream" == "true" ]]; then
+							log_info "Pulling latest changes..."
+							if ! git pull --rebase --quiet; then
+								log_error "Pull failed. Please resolve conflicts manually."
+								return 1
+							fi
+
+							log_info "Auto-pushing..."
+							local push_args=()
+							if [[ "$history_changed" == "true" ]]; then
+								if [[ "$SKIP_CONFIRM" == "true" ]]; then
+									push_args+=(--force-with-lease)
+									log_warn "Using force-with-lease due to consolidation (--yes provided)"
+								else
+									log_warn "History changed due to consolidation but --yes not provided. Skipping push."
+									log_detail "Hint: Run 'git push --force-with-lease' manually"
+									return 0
+								fi
+							fi
+
+							if git push "${push_args[@]}"; then
+								log_detail "Pushed to remote"
+							else
+								log_warn "Push failed (check network or permissions)"
+							fi
 						else
-							log_warn "Push failed (check network or permissions)"
+							log_warn "No upstream branch configured for $current_branch, skipping push"
+							log_detail "Hint: Run 'git push -u origin $current_branch' manually"
 						fi
 					else
-						log_warn "No remote configured, skipping push"
+						log_detail "No remote configured, skipping push"
 					fi
 				fi
 			else

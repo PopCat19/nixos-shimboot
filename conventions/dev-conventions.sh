@@ -146,6 +146,8 @@ Options:
   --dry-run          Show what would be downloaded without writing
   --no-commit        Skip auto-commit (only stage updated files)
   --push             Auto-push after commit (default: false)
+  --consolidate      Consolidate linear subsequent dev-convention commits
+  --yes, -y          Skip confirmation (allows force-with-lease on consolidation)
   --help             Show this help message
 
 Examples:
