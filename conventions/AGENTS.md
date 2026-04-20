@@ -20,7 +20,7 @@ Opinionated agent development rules and conventions. Covers:
 
 **Reading guide:** Comprehensive document (1.5~3k lines). Use the table of contents to navigate to relevant sections.
 
-### DEV-MINI.md
+### SKILL.md
 
 Condensed non-obvious conventions only. Assumes standard SWE practices. Covers:
 
@@ -89,12 +89,12 @@ Verifies `context.md` files match actual directory contents. Detects structural 
 
 - `DEVELOPMENT.md` — Established conventions for this project
 - `DEV-EXAMPLES.md` — Reference examples tied to DEVELOPMENT.md rules
-- `DEV-MINI.md` — Condensed conventions derived from DEVELOPMENT.md
+- `SKILL.md` — Condensed conventions derived from DEVELOPMENT.md
 - `src/changelog.sh` — Workflow script following project conventions
 - `src/sync.sh` — Workflow script following project conventions
 
 **Repo-specific vocabulary mapping lives in the root `context.md`, not in
 convention files. Do not add project paths to DEVELOPMENT.md or
-DEV-MINI.md.**
+SKILL.md.**
 
 These files represent intentional design decisions. Modifications should only occur when the user explicitly states a need for changes.
