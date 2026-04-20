@@ -385,13 +385,24 @@ cmd_sync() {
 				git add conventions/
 				[[ -d ".dev-conventions-sync-cache" ]] && git add .dev-conventions-sync-cache/
 
-				git commit -m "chore: sync dev-conventions"
-				log_detail "Committed ${#needs_commit[@]} files"
+				if git diff --cached --quiet; then
+					log_detail "No changes to commit"
+				else
+					git commit -m "chore: sync dev-conventions"
+					log_detail "Committed ${#needs_commit[@]} files"
+				fi
 
 				if [[ "$auto_push" == "true" ]]; then
-					log_info "Auto-pushing..."
-					git push
-					log_detail "Pushed to remote"
+					if git remote >/dev/null 2>&1; then
+						log_info "Auto-pushing..."
+						if git push; then
+							log_detail "Pushed to remote"
+						else
+							log_warn "Push failed (check network or permissions)"
+						fi
+					else
+						log_warn "No remote configured, skipping push"
+					fi
 				fi
 			else
 				log_info "Files updated. Review changes and commit:"

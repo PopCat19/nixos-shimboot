@@ -224,6 +224,7 @@ cmd_lint() {
 	# Source check-context.sh from the same directory as this module (src/ or scripts/)
 	_LINT_SH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 	if [[ -f "${_LINT_SH_DIR}/check-context.sh" ]]; then
+		# shellcheck disable=SC1091
 		source "${_LINT_SH_DIR}/check-context.sh"
 	fi
 

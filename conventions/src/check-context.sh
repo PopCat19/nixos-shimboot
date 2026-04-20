@@ -47,6 +47,7 @@ check_context_drift() {
 		# Structural check: listed files vs actual files
 		# Only match backticks on lines starting with "- `" (file list format)
 		local listed
+		# shellcheck disable=SC2016
 		listed=$(grep -E '^- ' "$context_file" 2>/dev/null | grep -oE '`[^`]+`' | tr -d '`' | sort)
 
 		local actual
@@ -66,8 +67,10 @@ check_context_drift() {
 		while IFS= read -r line; do
 			local filename
 			local ctx_desc
+			# shellcheck disable=SC2016
 			filename=$(echo "$line" | grep -oE '`[^`]+`' | tr -d '`')
 			# Text after first " — " following the filename (Purpose may contain additional em dashes)
+			# shellcheck disable=SC2016
 			ctx_desc=$(echo "$line" | sed -n 's/^[^`]*`[^`]*`[[:space:]]*—[[:space:]]*//p' | sed 's/[[:space:]]*$//')
 
 			[[ -z "$filename" || -z "$ctx_desc" ]] && continue
