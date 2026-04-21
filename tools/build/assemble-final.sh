@@ -271,7 +271,8 @@ if [ "${ROOTFS_FLAVOR}" = "headless" ] && [ -z "$WIFI_SSID" ] && [ -t 0 ]; then
 	echo "[assemble-final] Configure WiFi for headless setup (optional):"
 	read -rp "WiFi SSID (press Enter to skip): " WIFI_SSID
 	if [ -n "$WIFI_SSID" ]; then
-		read -rp "WiFi password: " WIFI_PASSWORD
+		read -rsp "WiFi password: " WIFI_PASSWORD
+		echo
 		if [ -z "$WIFI_PASSWORD" ]; then
 			echo "[assemble-final] Warning: Empty password for SSID '$WIFI_SSID'"
 		fi
@@ -303,7 +304,7 @@ require_sudo() {
 		SUDO_ENV=()
 		for var in BOARD BOARD_EXPLICITLY_SET CACHIX_AUTH_TOKEN ROOTFS_FLAVOR DRIVERS_MODE \
 			FIRMWARE_UPSTREAM DRY_RUN INSPECT_AFTER CLEANUP_ROOTFS CLEANUP_NO_DRY_RUN \
-			CLEANUP_KEEP PREWARM_CACHE PUSH_TO_CACHIX; do
+			CLEANUP_KEEP PREWARM_CACHE PUSH_TO_CACHIX WIFI_SSID WIFI_PASSWORD; do
 			if [ -n "${!var:-}" ]; then SUDO_ENV+=("$var=${!var}"); fi
 		done
 		exec sudo -E -H "${SUDO_ENV[@]}" "$0" --no-sudo "$@"
@@ -1116,30 +1117,58 @@ if [ "${ROOTFS_FLAVOR}" = "headless" ] && [ -n "$WIFI_SSID" ]; then
 
 	# Create wpa_supplicant configuration
 	safe_exec sudo mkdir -p "$WORKDIR/mnt_rootfs/etc/wpa_supplicant"
-	safe_exec sudo tee "$WORKDIR/mnt_rootfs/etc/wpa_supplicant/wpa_supplicant.conf" >/dev/null <<EOF
+	safe_exec sudo tee "$WORKDIR/mnt_rootfs/etc/wpa_supplicant/wpa_supplicant.conf" >/dev/null <<'WPAEOF'
 ctrl_interface=DIR=/run/wpa_supplicant GROUP=wheel
 update_config=1
 
-network={\n\tssid="\$WIFI_SSID"\n\tpsk="\$WIFI_PASSWORD"\n\tscan_ssid=1\n}
-EOF
+network={
+	ssid="WIFI_SSID_PLACEHOLDER"
+	psk="WIFI_PASSWORD_PLACEHOLDER"
+	scan_ssid=1
+}
+WPAEOF
+	# Replace placeholders with actual values
+	safe_exec sudo sed -i "s/WIFI_SSID_PLACEHOLDER/$WIFI_SSID/g" "$WORKDIR/mnt_rootfs/etc/wpa_supplicant/wpa_supplicant.conf"
+	safe_exec sudo sed -i "s/WIFI_PASSWORD_PLACEHOLDER/$WIFI_PASSWORD/g" "$WORKDIR/mnt_rootfs/etc/wpa_supplicant/wpa_supplicant.conf"
 	safe_exec sudo chmod 600 "$WORKDIR/mnt_rootfs/etc/wpa_supplicant/wpa_supplicant.conf"
 
-	# Create network status display service (for init splash)
-	safe_exec sudo mkdir -p "$WORKDIR/mnt_rootfs/etc/systemd/system/network-status.service.d"
-	safe_exec sudo tee "$WORKDIR/mnt_rootfs/etc/systemd/system/network-status.service" >/dev/null <<EOF
-[Unit]\nDescription=Network Status Display\nAfter=network-online.target\nWants=network-online.target\n
-[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/local/bin/network-status.sh\nStandardOutput=journal+console\n
-[Install]\nWantedBy=multi-user.target\nEOF
+	# Create network status display service
+	safe_exec sudo mkdir -p "$WORKDIR/mnt_rootfs/etc/systemd/system"
+	safe_exec sudo tee "$WORKDIR/mnt_rootfs/etc/systemd/system/network-status.service" >/dev/null <<'SVCEOF'
+[Unit]
+Description=Network Status Display
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/network-status.sh
+StandardOutput=journal+console
+
+[Install]
+WantedBy=multi-user.target
+SVCEOF
 
 	# Create network status script
 	safe_exec sudo mkdir -p "$WORKDIR/mnt_rootfs/usr/local/bin"
-	safe_exec sudo tee "$WORKDIR/mnt_rootfs/usr/local/bin/network-status.sh" >/dev/null <<EOF
+	safe_exec sudo tee "$WORKDIR/mnt_rootfs/usr/local/bin/network-status.sh" >/dev/null <<'SCRIPTEOF'
 #!/usr/bin/env bash
-# Network Status Display - shows IP address and connection status\n\necho "=== Network Status ==="
-echo "SSID: $WIFI_SSID"
-for iface in wlan0 wlan1 wlp2s0 wlp3s0 eth0 enp0s31f6; do\n\tif ip link show "\$iface" >/dev/null 2>&1; then\n\t\tip addr show "\$iface" | grep -E 'inet |status' | while read -r line; do\n\t\t\techo "\$iface: \$line"\n\t\tdone\n\tfi\ndone\necho ""
+# Network Status Display - shows IP address and connection status
+
+echo "=== Network Status ==="
+for iface in wlan0 wlan1 wlp2s0 wlp3s0 eth0 enp0s31f6; do
+	if ip link show "$iface" >/dev/null 2>&1; then
+		echo "Interface: $iface"
+		ip -br addr show "$iface" 2>/dev/null || true
+	fi
+done
+echo ""
 echo "SSH connection:"
-for addr in \$(hostname -I 2>/dev/null); do\n\techo "  ssh \${USER:-nixos-user}@\$addr"\ndone\nEOF
+for addr in $(hostname -I 2>/dev/null); do
+	echo "  ssh ${USER:-user}@$addr"
+done
+SCRIPTEOF
 	safe_exec sudo chmod +x "$WORKDIR/mnt_rootfs/usr/local/bin/network-status.sh"
 
 	# Enable services
