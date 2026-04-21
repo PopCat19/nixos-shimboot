@@ -9,7 +9,7 @@
 {
   self,
   nixpkgs,
-  systemdOverlay,
+  systemd257,
   ...
 }:
 let
@@ -27,9 +27,6 @@ let
       nixosConfig = nixpkgs.lib.nixosSystem {
         inherit system;
         modules = [
-          # Apply systemd overlay to nixpkgs
-          { nixpkgs.overlays = [ systemdOverlay ]; }
-
           ../shimboot_config/base_configuration/configuration.nix
 
           # Enable the image builder module from nixpkgs
@@ -46,6 +43,7 @@ let
           inherit
             self
             userConfig
+            systemd257
             ;
           inherit (self) inputs;
           inherit headless;

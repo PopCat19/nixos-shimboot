@@ -52,16 +52,12 @@
       pkgsSystemd = import nixpkgs-systemd { inherit system; };
 
       # Systemd 257.9 with ChromeOS patch
+      # Passed via specialArgs, not overlay (avoids cross-version function arg issues)
       systemd257 = pkgsSystemd.systemd.overrideAttrs (old: {
         patches = (old.patches or [ ]) ++ [
           ./patches/systemd-mountpoint-util-chromeos.patch
         ];
       });
-
-      # Overlay to use systemd 257.9
-      systemdOverlay = final: prev: {
-        systemd = systemd257;
-      };
 
       # Import module outputs
       # Core system and development modules
@@ -72,14 +68,14 @@
             self
             nixpkgs
             board
-            systemdOverlay
+            systemd257
             ;
         };
       systemConfigurationOutputs = import ./flake_modules/system-configuration.nix {
         inherit
           self
           nixpkgs
-          systemdOverlay
+          systemd257
           ;
       };
       developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix {
@@ -120,11 +116,7 @@
       # Merge packages from all modules
       packages = {
         ${system} = nixpkgs.lib.foldl' (acc: board: acc // (boardPackages board)) {
-          systemd = systemd257.overrideAttrs (old: {
-            patches = (old.patches or [ ]) ++ [
-              ./patches/systemd-mountpoint-util-chromeos.patch
-            ];
-          });
+          systemd = systemd257;
         } supportedBoards;
       };
 

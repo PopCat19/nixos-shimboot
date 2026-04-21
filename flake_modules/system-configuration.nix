@@ -9,7 +9,7 @@
 {
   self,
   nixpkgs,
-  systemdOverlay,
+  systemd257,
   ...
 }:
 let
@@ -19,20 +19,15 @@ let
   userConfig = import ../shimboot_config/user-config.nix { };
   hn = userConfig.host.hostname;
 
-  # Overlay module to apply systemd 257.9
-  overlayModule = { nixpkgs.overlays = [ systemdOverlay ]; };
-
   # Base configuration - primary with desktop
   baseConfig = {
     inherit system;
-    modules = [
-      overlayModule
-      ../shimboot_config/base_configuration/configuration.nix
-    ];
+    modules = [ ../shimboot_config/base_configuration/configuration.nix ];
     specialArgs = {
       inherit
         self
         userConfig
+        systemd257
         ;
       inherit (self) inputs;
       headless = false;
@@ -42,14 +37,12 @@ let
   # Headless configuration - SSH-only, no desktop
   headlessConfig = {
     inherit system;
-    modules = [
-      overlayModule
-      ../shimboot_config/base_configuration/configuration.nix
-    ];
+    modules = [ ../shimboot_config/base_configuration/configuration.nix ];
     specialArgs = {
       inherit
         self
         userConfig
+        systemd257
         ;
       inherit (self) inputs;
       headless = true;
