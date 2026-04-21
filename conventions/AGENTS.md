@@ -22,7 +22,7 @@ Opinionated agent development rules and conventions. Covers:
 
 ### SKILL.md
 
-Condensed non-obvious conventions only. Assumes standard SWE practices. Covers:
+Condensed non-obvious conventions only. Assumes standard SWE practices. Located at `conventions/SKILL.md`. Covers:
 
 - Naming (snake_case dirs, kebab-case files)
 - Structure (depth limits, context.md requirements, module wiring, stratification thresholds)
