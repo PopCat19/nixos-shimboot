@@ -265,6 +265,19 @@ if [ -z "$DRIVERS_MODE" ]; then
 	fi
 fi
 
+# WiFi configuration onboarding (headless only)
+if [ "${ROOTFS_FLAVOR}" = "headless" ] && [ -z "$WIFI_SSID" ] && [ -t 0 ]; then
+	echo
+	echo "[assemble-final] Configure WiFi for headless setup (optional):"
+	read -rp "WiFi SSID (press Enter to skip): " WIFI_SSID
+	if [ -n "$WIFI_SSID" ]; then
+		read -rp "WiFi password: " WIFI_PASSWORD
+		if [ -z "$WIFI_PASSWORD" ]; then
+			echo "[assemble-final] Warning: Empty password for SSID '$WIFI_SSID'"
+		fi
+	fi
+fi
+
 # Validate args after onboarding
 if [ -z "$BOARD" ]; then
 	echo "[assemble-final] Error: Board name cannot be empty. Use --board <name>." >&2
