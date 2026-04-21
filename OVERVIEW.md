@@ -46,6 +46,7 @@ modules = [
 
 ## Known Limitations
 
+- **Systemd ceiling: 257.x** — boards with older shim kernels (octopus 4.14.x) cannot run systemd 258+ due to missing `open_tree()`/`move_mount()` syscalls. See [shimboot#405](https://github.com/ading2210/shimboot/issues/405).
 - No suspend support (kernel limitation)
 - Limited audio support
 - `nixos-rebuild` may require `--option sandbox false` on kernels <5.6

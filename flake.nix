@@ -15,8 +15,11 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    # Pinned nixpkgs for systemd 258.3 — do not update without verifying version
-    nixpkgs-systemd.url = "github:NixOS/nixpkgs/0182a361324364ae3f436a63005877674cf45efb";
+    # Pinned nixpkgs for systemd 257.9 — the ceiling for shim kernels <5.10
+    # See: https://github.com/PopCat19/nixos-shimboot/issues/405 (shimboot#405 discussion)
+    # systemd 258+ requires kernel >=5.10 and uses open_tree()/move_mount() syscalls
+    # unavailable on older shim kernels (e.g. octopus 4.14.x)
+    nixpkgs-systemd.url = "github:NixOS/nixpkgs/d3736636ac39ed678e557977b65d620ca75142d0";
   };
 
   # Combine all outputs from modules
@@ -45,7 +48,8 @@
       # Import nixpkgs for systemd pinning
       pkgsSystemd = import nixpkgs-systemd { inherit system; };
 
-      # Pinned systemd 258.3 with ChromeOS compatibility patch
+      # Pinned systemd 257.9 with ChromeOS compatibility patch
+      # Ceiling for boards with shim kernels <5.10 (e.g. octopus 4.14.x)
       patchedSystemd = pkgsSystemd.systemd.overrideAttrs (old: {
         patches = (old.patches or [ ]) ++ [
           ./patches/systemd-mountpoint-util-chromeos.patch

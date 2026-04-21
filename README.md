@@ -48,6 +48,8 @@ A helpful excerpt from shimboot's [README](https://github.com/ading2210/shimboot
 >
 > The main advantages of this approach are that you don't need to touch the device's firmware in order to run Linux. Simply rebooting and unplugging the USB drive will return the device to normal, which can be useful if the device is enterprise enrolled. However, since we are stuck with the kernel from the RMA shim, some features such as audio and suspend may not work.
 
+**Systemd version constraint:** Pinned to 257.9 maximum. Systemd 258+ requires kernel >=5.10 and uses `open_tree()`/`move_mount()` syscalls unavailable on older shim kernels (e.g. octopus 4.14.x). See [shimboot#405](https://github.com/ading2210/shimboot/issues/405) for detailed discussion.
+
 **nixos-shimboot** (this repo) is a derivative that replaces shimboot's Debian rootfs building with NixOS flake-based image generation. It uses the NixOS module system for declarative configuration, `raw-efi` image building via nixpkgs, and a patched systemd for ChromeOS kernel compatibility. Unlike shimboot's `build_complete.sh`, nixos-shimboot uses `tools/build/assemble-final.sh` which builds Nix derivations in parallel, harvests ChromeOS drivers, and assembles the final partitioned image.
 
 **TLDR: Gnu/Linux on common (enterprise-configured) chromebooks. It runs from a persistent USB, which can run linux distributions like Arch Linux**
