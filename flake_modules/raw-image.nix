@@ -13,6 +13,7 @@
   ...
 }:
 let
+  inherit (nixpkgs) lib;
   system = "x86_64-linux";
 
   # Import user config from flattened location
@@ -50,7 +51,7 @@ let
         };
       };
     in
-    nixosConfig.config.system.build.images.raw-efi;
+    nixosConfig.config.system.build.images.raw;
 in
 {
   packages.${system} = {
