@@ -41,16 +41,43 @@
       # Overlay to use systemd 257.9 for ChromeOS shim kernel compatibility
       # systemd 258+ requires kernel >=5.10 (open_tree/move_mount syscalls)
       # See: https://github.com/PopCat19/nixos-shimboot/issues/405
+      #
+      # Note: We vendor patches from nixpkgs commit d3736636 (systemd 257.9), since
+      # patches from nixos-unstable don't apply to systemd 257.9
       systemdOverlay = final: prev: {
-        systemd = prev.systemd.overrideAttrs (old: {
+        systemd = prev.systemd.overrideAttrs (old: rec {
           version = "257.9";
           src = final.fetchFromGitHub {
             owner = "systemd";
             repo = "systemd";
-            rev = "v257.9";
+            rev = "v${version}";
             hash = "sha256-3Ig5TXhK99iOu41k4c5CgC4R3HhBftSAb9UbXvFY6lo=";
           };
-          patches = (old.patches or [ ]) ++ [
+          # NixOS-specific patches vendored from nixpkgs d3736636 (systemd 257.9)
+          patches = builtins.map (name: ./patches/systemd-nixos/${name}) [
+            "0001-Start-device-units-for-uninitialised-encrypted-devic.patch"
+            "0002-Don-t-try-to-unmount-nix-or-nix-store.patch"
+            "0003-Fix-NixOS-containers.patch"
+            "0004-Add-some-NixOS-specific-unit-directories.patch"
+            "0005-Get-rid-of-a-useless-message-in-user-sessions.patch"
+            "0006-hostnamed-localed-timedated-disable-methods-that-cha.patch"
+            "0007-Change-usr-share-zoneinfo-to-etc-zoneinfo.patch"
+            "0008-localectl-use-etc-X11-xkb-for-list-x11.patch"
+            "0009-add-rootprefix-to-lookup-dir-paths.patch"
+            "0010-systemd-shutdown-execute-scripts-in-etc-systemd-syst.patch"
+            "0011-systemd-sleep-execute-scripts-in-etc-systemd-system-.patch"
+            "0012-path-util.h-add-placeholder-for-DEFAULT_PATH_NORMAL.patch"
+            "0013-inherit-systemd-environment-when-calling-generators.patch"
+            "0014-core-don-t-taint-on-unmerged-usr.patch"
+            "0015-tpm2_context_init-fix-driver-name-checking.patch"
+            "0016-systemctl-edit-suggest-systemdctl-edit-runtime-on-sy.patch"
+            "0017-meson.build-do-not-create-systemdstatedir.patch"
+            "0018-meson-Don-t-link-ssh-dropins.patch"
+            "0019-install-unit_file_exists_full-follow-symlinks.patch"
+          ] ++ final.lib.optionals (final.stdenv.hostPlatform.isLinux && final.stdenv.hostPlatform.isGnu) [
+            "./patches/systemd-nixos/0020-timesyncd-disable-NSCD-when-DNSSEC-validation-is-dis.patch"
+          ] ++ [
+            # ChromeOS compatibility patch
             ./patches/systemd-mountpoint-util-chromeos.patch
           ];
           # Preserve passthru from original
