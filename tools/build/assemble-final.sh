@@ -1117,64 +1117,21 @@ if [ "${ROOTFS_FLAVOR}" = "headless" ] && [ -n "$WIFI_SSID" ]; then
 
 	# Create wpa_supplicant configuration
 	safe_exec sudo mkdir -p "$WORKDIR/mnt_rootfs/etc/wpa_supplicant"
-	safe_exec sudo tee "$WORKDIR/mnt_rootfs/etc/wpa_supplicant/wpa_supplicant.conf" >/dev/null <<'WPAEOF'
+	safe_exec sudo tee "$WORKDIR/mnt_rootfs/etc/wpa_supplicant/wpa_supplicant.conf" >/dev/null <<EOF
 ctrl_interface=DIR=/run/wpa_supplicant GROUP=wheel
 update_config=1
 
 network={
-	ssid="WIFI_SSID_PLACEHOLDER"
-	psk="WIFI_PASSWORD_PLACEHOLDER"
-	scan_ssid=1
+ssid="$WIFI_SSID"
+psk="$WIFI_PASSWORD"
+scan_ssid=1
 }
-WPAEOF
-	# Replace placeholders with actual values
-	safe_exec sudo sed -i "s/WIFI_SSID_PLACEHOLDER/$WIFI_SSID/g" "$WORKDIR/mnt_rootfs/etc/wpa_supplicant/wpa_supplicant.conf"
-	safe_exec sudo sed -i "s/WIFI_PASSWORD_PLACEHOLDER/$WIFI_PASSWORD/g" "$WORKDIR/mnt_rootfs/etc/wpa_supplicant/wpa_supplicant.conf"
+EOF
 	safe_exec sudo chmod 600 "$WORKDIR/mnt_rootfs/etc/wpa_supplicant/wpa_supplicant.conf"
 
-	# Create network status display service
-	safe_exec sudo mkdir -p "$WORKDIR/mnt_rootfs/etc/systemd/system"
-	safe_exec sudo tee "$WORKDIR/mnt_rootfs/etc/systemd/system/network-status.service" >/dev/null <<'SVCEOF'
-[Unit]
-Description=Network Status Display
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/usr/local/bin/network-status.sh
-StandardOutput=journal+console
-
-[Install]
-WantedBy=multi-user.target
-SVCEOF
-
-	# Create network status script
-	safe_exec sudo mkdir -p "$WORKDIR/mnt_rootfs/usr/local/bin"
-	safe_exec sudo tee "$WORKDIR/mnt_rootfs/usr/local/bin/network-status.sh" >/dev/null <<'SCRIPTEOF'
-#!/usr/bin/env bash
-# Network Status Display - shows IP address and connection status
-
-echo "=== Network Status ==="
-for iface in wlan0 wlan1 wlp2s0 wlp3s0 eth0 enp0s31f6; do
-	if ip link show "$iface" >/dev/null 2>&1; then
-		echo "Interface: $iface"
-		ip -br addr show "$iface" 2>/dev/null || true
-	fi
-done
-echo ""
-echo "SSH connection:"
-for addr in $(hostname -I 2>/dev/null); do
-	echo "  ssh ${USER:-user}@$addr"
-done
-SCRIPTEOF
-	safe_exec sudo chmod +x "$WORKDIR/mnt_rootfs/usr/local/bin/network-status.sh"
-
-	# Enable services
+	# Enable wpa_supplicant for wlan0
 	safe_exec sudo mkdir -p "$WORKDIR/mnt_rootfs/etc/systemd/system/multi-user.target.wants"
 	safe_exec sudo ln -sf /etc/systemd/system/wpa_supplicant@wlan0.service "$WORKDIR/mnt_rootfs/etc/systemd/system/multi-user.target.wants/" 2>/dev/null || true
-	safe_exec sudo ln -sf /etc/systemd/system/network-status.service "$WORKDIR/mnt_rootfs/etc/systemd/system/multi-user.target.wants/" 2>/dev/null || true
 
 	log_info "WiFi configured for SSID: $WIFI_SSID"
 	log_warn "Note: WiFi password stored in plaintext. Consider changing after first boot."

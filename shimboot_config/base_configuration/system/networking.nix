@@ -58,6 +58,7 @@ in
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
     wantedBy = [ "multi-user.target" ];
+    path = [ pkgs.iproute2 pkgs.nettools ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = "yes";
