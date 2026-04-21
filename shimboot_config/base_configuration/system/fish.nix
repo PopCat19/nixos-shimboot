@@ -201,6 +201,9 @@ in
       "fish/functions/nixos-rebuild-basic.fish".text =
         builtins.readFile ./fish_functions/nixos-rebuild-basic.fish;
 
+      "fish/functions/nixos-rebuild-auto.fish".text =
+        builtins.readFile ./fish_functions/nixos-rebuild-auto.fish;
+
       "fish/functions/shimboot-kernel-needs-sandbox.fish".text =
         builtins.readFile ./fish_functions/shimboot-kernel-needs-sandbox.fish;
 
