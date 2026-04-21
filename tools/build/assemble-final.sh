@@ -898,19 +898,18 @@ LOOPDEV=$(sudo losetup --show -fP "$IMAGE") || {
 }
 log_info "Loop device: $LOOPDEV"
 
-# Ensure cgpt is available
+# Ensure cgpt is available (from vboot_reference)
 if ! command -v cgpt >/dev/null 2>&1; then
 	log_info "cgpt not found in PATH, searching in Nix store..."
-	# Find cgpt in Nix store
+	# Find cgpt in Nix store (from vboot_reference package)
 	CGPT_PATH=$(find /nix/store -name "cgpt" -type f -executable 2>/dev/null | grep vboot_reference | head -n1)
 	if [ -n "$CGPT_PATH" ]; then
 		log_info "Found cgpt at: $CGPT_PATH"
-		# Create a temporary wrapper to ensure cgpt is available
 		CGPT_DIR=$(dirname "$CGPT_PATH")
 		export PATH="$CGPT_DIR:${PATH}"
 	else
-		log_error "cgpt not found in Nix store. Please ensure vboot_reference is installed."
-		log_error "Try running: nix develop"
+		log_error "cgpt not found. Run inside nix develop or:"
+		log_error "  nix-shell -p vboot_reference"
 		handle_error "$CURRENT_STEP"
 	fi
 fi
