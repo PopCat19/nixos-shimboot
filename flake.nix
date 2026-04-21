@@ -46,29 +46,21 @@
       # Import nixpkgs-unstable for stdenv (glibc 2.42)
       pkgs = import nixpkgs { inherit system; };
 
-      # Import systemd from pinned nixpkgs, but override to use unstable's stdenv
-      # This gives us systemd 257.9 package definition with glibc 2.42
-      pkgsSystemd = import nixpkgs-systemd {
-        inherit system;
-        overlays = [
-          (final: prev: {
-            # Override systemd to use unstable's stdenv and add ChromeOS patch
-            systemd = prev.systemd.override {
-              stdenv = pkgs.stdenv;
-            };
-          })
-        ];
-      };
-
-      # Overlay to use systemd 257.9 from pinned nixpkgs
+      # Import systemd from pinned nixpkgs for systemd 257.9
       # systemd 258+ requires kernel >=5.10 (open_tree/move_mount syscalls)
       # See: https://github.com/PopCat19/nixos-shimboot/issues/405
+      pkgsSystemd = import nixpkgs-systemd { inherit system; };
+
+      # Systemd 257.9 with ChromeOS patch
+      systemd257 = pkgsSystemd.systemd.overrideAttrs (old: {
+        patches = (old.patches or [ ]) ++ [
+          ./patches/systemd-mountpoint-util-chromeos.patch
+        ];
+      });
+
+      # Overlay to use systemd 257.9
       systemdOverlay = final: prev: {
-        systemd = pkgsSystemd.systemd.overrideAttrs (old: {
-          patches = (old.patches or [ ]) ++ [
-            ./patches/systemd-mountpoint-util-chromeos.patch
-          ];
-        });
+        systemd = systemd257;
       };
 
       # Import module outputs
@@ -128,7 +120,7 @@
       # Merge packages from all modules
       packages = {
         ${system} = nixpkgs.lib.foldl' (acc: board: acc // (boardPackages board)) {
-          systemd = pkgsSystemd.systemd.overrideAttrs (old: {
+          systemd = systemd257.overrideAttrs (old: {
             patches = (old.patches or [ ]) ++ [
               ./patches/systemd-mountpoint-util-chromeos.patch
             ];
