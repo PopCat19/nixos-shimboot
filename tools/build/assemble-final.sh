@@ -69,6 +69,8 @@ Options:
   --board BOARD            Target board (dedede, octopus, etc.)
   --rootfs FLAVOR          Rootfs variant (base, headless)
   --drivers MODE           Driver placement (vendor, inject, both, none)
+  --wifi-ssid SSID         WiFi SSID for headless setup (headless only)
+  --wifi-password PASS     WiFi password for headless setup (headless only)
   --firmware-upstream      Enable upstream firmware (default: 1)
   --no-firmware-upstream   Disable upstream firmware
   --inspect                Inspect final image after build
@@ -133,6 +135,8 @@ CLEANUP_KEEP=""
 PREWARM_CACHE="${PREWARM_CACHE:-0}"
 PUSH_TO_CACHIX="${PUSH_TO_CACHIX:-0}"
 DRIVERS_MODE="${DRIVERS_MODE:-}"
+WIFI_SSID="${WIFI_SSID:-}"
+WIFI_PASSWORD="${WIFI_PASSWORD:-}"
 
 # === Main Argument Parsing (onboarding + args work together) ===
 # If args provided, use them; otherwise prompt interactively
@@ -186,6 +190,14 @@ while [ $# -gt 0 ]; do
 	--push-to-cachix)
 		PUSH_TO_CACHIX=1
 		shift
+		;;
+	--wifi-ssid)
+		WIFI_SSID="${2:-}"
+		shift 2
+		;;
+	--wifi-password)
+		WIFI_PASSWORD="${2:-}"
+		shift 2
 		;;
 	*)
 		log_warn "Unknown option: ${1:-}"
@@ -405,6 +417,16 @@ if [ "${ROOTFS_FLAVOR}" != "base" ] && [ "${ROOTFS_FLAVOR}" != "headless" ]; the
 	exit 1
 fi
 
+# WiFi configuration only valid for headless builds
+if [ -n "$WIFI_SSID" ] && [ "${ROOTFS_FLAVOR}" != "headless" ]; then
+	echo "[assemble-final] Error: --wifi-ssid is only valid for headless builds." >&2
+	exit 1
+fi
+if [ -n "$WIFI_PASSWORD" ] && [ -z "$WIFI_SSID" ]; then
+	echo "[assemble-final] Error: --wifi-password requires --wifi-ssid." >&2
+	exit 1
+fi
+
 # Build raw-rootfs attribute name based on flavor
 RAW_ROOTFS_ATTR="raw-rootfs-base"
 if [ "${ROOTFS_FLAVOR}" = "headless" ]; then
@@ -418,6 +440,9 @@ if [ "${SKIP_SUDO:-0}" -eq 1 ]; then
 	log_info "Drivers mode: ${DRIVERS_MODE:-vendor} (vendor|inject|none)"
 	log_info "Upstream firmware: ${FIRMWARE_UPSTREAM} (0=disabled, 1=enabled)"
 	log_info "Push to Cachix: ${PUSH_TO_CACHIX} (0=disabled, 1=enabled, derivations only)"
+	if [ -n "$WIFI_SSID" ]; then
+		log_info "WiFi SSID: ${WIFI_SSID} (headless network config)"
+	fi
 	if [ "$DRY_RUN" -eq 1 ]; then
 		log_warn "DRY RUN MODE: No destructive operations will be performed"
 	fi
@@ -1071,6 +1096,47 @@ safe_exec sudo tee "$WORKDIR/mnt_rootfs/etc/shimboot-build.json" >/dev/null <<EO
 	 "image_size_mb": "$TOTAL_SIZE_MB"
 }
 EOF
+
+# Configure WiFi for headless builds if credentials provided
+if [ "${ROOTFS_FLAVOR}" = "headless" ] && [ -n "$WIFI_SSID" ]; then
+	log_info "Configuring WiFi for headless setup..."
+
+	# Create wpa_supplicant configuration
+	safe_exec sudo mkdir -p "$WORKDIR/mnt_rootfs/etc/wpa_supplicant"
+	safe_exec sudo tee "$WORKDIR/mnt_rootfs/etc/wpa_supplicant/wpa_supplicant.conf" >/dev/null <<EOF
+ctrl_interface=DIR=/run/wpa_supplicant GROUP=wheel
+update_config=1
+
+network={\n\tssid="\$WIFI_SSID"\n\tpsk="\$WIFI_PASSWORD"\n\tscan_ssid=1\n}
+EOF
+	safe_exec sudo chmod 600 "$WORKDIR/mnt_rootfs/etc/wpa_supplicant/wpa_supplicant.conf"
+
+	# Create network status display service (for init splash)
+	safe_exec sudo mkdir -p "$WORKDIR/mnt_rootfs/etc/systemd/system/network-status.service.d"
+	safe_exec sudo tee "$WORKDIR/mnt_rootfs/etc/systemd/system/network-status.service" >/dev/null <<EOF
+[Unit]\nDescription=Network Status Display\nAfter=network-online.target\nWants=network-online.target\n
+[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/local/bin/network-status.sh\nStandardOutput=journal+console\n
+[Install]\nWantedBy=multi-user.target\nEOF
+
+	# Create network status script
+	safe_exec sudo mkdir -p "$WORKDIR/mnt_rootfs/usr/local/bin"
+	safe_exec sudo tee "$WORKDIR/mnt_rootfs/usr/local/bin/network-status.sh" >/dev/null <<EOF
+#!/usr/bin/env bash
+# Network Status Display - shows IP address and connection status\n\necho "=== Network Status ==="
+echo "SSID: $WIFI_SSID"
+for iface in wlan0 wlan1 wlp2s0 wlp3s0 eth0 enp0s31f6; do\n\tif ip link show "\$iface" >/dev/null 2>&1; then\n\t\tip addr show "\$iface" | grep -E 'inet |status' | while read -r line; do\n\t\t\techo "\$iface: \$line"\n\t\tdone\n\tfi\ndone\necho ""
+echo "SSH connection:"
+for addr in \$(hostname -I 2>/dev/null); do\n\techo "  ssh \${USER:-nixos-user}@\$addr"\ndone\nEOF
+	safe_exec sudo chmod +x "$WORKDIR/mnt_rootfs/usr/local/bin/network-status.sh"
+
+	# Enable services
+	safe_exec sudo mkdir -p "$WORKDIR/mnt_rootfs/etc/systemd/system/multi-user.target.wants"
+	safe_exec sudo ln -sf /etc/systemd/system/wpa_supplicant@wlan0.service "$WORKDIR/mnt_rootfs/etc/systemd/system/multi-user.target.wants/" 2>/dev/null || true
+	safe_exec sudo ln -sf /etc/systemd/system/network-status.service "$WORKDIR/mnt_rootfs/etc/systemd/system/multi-user.target.wants/" 2>/dev/null || true
+
+	log_info "WiFi configured for SSID: $WIFI_SSID"
+	log_warn "Note: WiFi password stored in plaintext. Consider changing after first boot."
+fi
 
 # Source rootfs unmounted; target rootfs remains mounted briefly before finalization
 safe_exec sudo umount "$WORKDIR/mnt_src_rootfs"
