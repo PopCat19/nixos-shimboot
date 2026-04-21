@@ -14,6 +14,10 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+    # Pinned nixpkgs for systemd 257.9 package definition
+    # We use the package from here but override stdenv to unstable's for glibc compat
+    nixpkgs-systemd.url = "github:NixOS/nixpkgs/d3736636ac39ed678e557977b65d620ca75142d0";
   };
 
   # Combine all outputs from modules
@@ -21,6 +25,7 @@
     {
       self,
       nixpkgs,
+      nixpkgs-systemd,
       ...
     }:
     let
@@ -38,60 +43,32 @@
         "snappy"
       ];
 
-      # Overlay to use systemd 257.9 for ChromeOS shim kernel compatibility
-      # systemd 258+ requires kernel >=5.10 (open_tree/move_mount syscalls)
-      # See: https://github.com/PopCat19/nixos-shimboot/issues/405
-      #
-      # Note: We vendor patches from nixpkgs commit d3736636 (systemd 257.9), since
-      # patches from nixos-unstable don't apply to systemd 257.9
-      systemdOverlay = final: prev: {
-        systemd = prev.systemd.overrideAttrs (old: rec {
-          version = "257.9";
-          src = final.fetchFromGitHub {
-            owner = "systemd";
-            repo = "systemd";
-            rev = "v${version}";
-            hash = "sha256-3Ig5TXhK99iOu41k4c5CgC4R3HhBftSAb9UbXvFY6lo=";
-          };
-          # NixOS-specific patches vendored from nixpkgs d3736636 (systemd 257.9)
-          patches = builtins.map (name: ./patches/systemd-nixos/${name}) [
-            "0001-Start-device-units-for-uninitialised-encrypted-devic.patch"
-            "0002-Don-t-try-to-unmount-nix-or-nix-store.patch"
-            "0003-Fix-NixOS-containers.patch"
-            "0004-Add-some-NixOS-specific-unit-directories.patch"
-            "0005-Get-rid-of-a-useless-message-in-user-sessions.patch"
-            "0006-hostnamed-localed-timedated-disable-methods-that-cha.patch"
-            "0007-Change-usr-share-zoneinfo-to-etc-zoneinfo.patch"
-            "0008-localectl-use-etc-X11-xkb-for-list-x11.patch"
-            "0009-add-rootprefix-to-lookup-dir-paths.patch"
-            "0010-systemd-shutdown-execute-scripts-in-etc-systemd-syst.patch"
-            "0011-systemd-sleep-execute-scripts-in-etc-systemd-system-.patch"
-            "0012-path-util.h-add-placeholder-for-DEFAULT_PATH_NORMAL.patch"
-            "0013-inherit-systemd-environment-when-calling-generators.patch"
-            "0014-core-don-t-taint-on-unmerged-usr.patch"
-            "0015-tpm2_context_init-fix-driver-name-checking.patch"
-            "0016-systemctl-edit-suggest-systemdctl-edit-runtime-on-sy.patch"
-            "0017-meson.build-do-not-create-systemdstatedir.patch"
-            "0018-meson-Don-t-link-ssh-dropins.patch"
-            "0019-install-unit_file_exists_full-follow-symlinks.patch"
-          ] ++ final.lib.optionals (final.stdenv.hostPlatform.isLinux && final.stdenv.hostPlatform.isGnu) [
-            ./patches/systemd-nixos/0020-timesyncd-disable-NSCD-when-DNSSEC-validation-is-dis.patch
-          ] ++ [
-            # ChromeOS compatibility patch
-            ./patches/systemd-mountpoint-util-chromeos.patch
-          ];
-          # Preserve passthru from original
-          passthru = old.passthru or { } // {
-            withLogind = old.passthru.withLogind or true;
-            withNspawn = old.passthru.withNspawn or true;
-          };
-        });
+      # Import nixpkgs-unstable for stdenv (glibc 2.42)
+      pkgs = import nixpkgs { inherit system; };
+
+      # Import systemd from pinned nixpkgs, but override to use unstable's stdenv
+      # This gives us systemd 257.9 package definition with glibc 2.42
+      pkgsSystemd = import nixpkgs-systemd {
+        inherit system;
+        overlays = [
+          (final: prev: {
+            # Override systemd to use unstable's stdenv and add ChromeOS patch
+            systemd = prev.systemd.override {
+              stdenv = pkgs.stdenv;
+            };
+          })
+        ];
       };
 
-      # Import nixpkgs with systemd overlay for devshell and standalone packages
-      pkgs = import nixpkgs {
-        inherit system;
-        overlays = [ systemdOverlay ];
+      # Overlay to use systemd 257.9 from pinned nixpkgs
+      # systemd 258+ requires kernel >=5.10 (open_tree/move_mount syscalls)
+      # See: https://github.com/PopCat19/nixos-shimboot/issues/405
+      systemdOverlay = final: prev: {
+        systemd = pkgsSystemd.systemd.overrideAttrs (old: {
+          patches = (old.patches or [ ]) ++ [
+            ./patches/systemd-mountpoint-util-chromeos.patch
+          ];
+        });
       };
 
       # Import module outputs
@@ -151,7 +128,11 @@
       # Merge packages from all modules
       packages = {
         ${system} = nixpkgs.lib.foldl' (acc: board: acc // (boardPackages board)) {
-          systemd = pkgs.systemd;
+          systemd = pkgsSystemd.systemd.overrideAttrs (old: {
+            patches = (old.patches or [ ]) ++ [
+              ./patches/systemd-mountpoint-util-chromeos.patch
+            ];
+          });
         } supportedBoards;
       };
 
