@@ -9,14 +9,14 @@
 # - Defines system directory structure
 # - Defines environment variables
 {
-  hostname ? null,
+  hostname ? "nixos-shimboot",
   system ? "x86_64-linux",
   username ? "nixos-user",
 }:
 {
   host = {
     inherit system;
-    hostname = if hostname == null then username else hostname;
+    inherit hostname;
   };
 
   user = {

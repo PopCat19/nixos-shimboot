@@ -67,7 +67,7 @@ Usage: ./assemble-final.sh [OPTIONS]
 Options:
   -h, --help               Show this help message
   --board BOARD            Target board (dedede, octopus, etc.)
-  --rootfs FLAVOR          Rootfs variant (full, minimal)
+  --rootfs FLAVOR          Rootfs variant (base, headless)
   --drivers MODE           Driver placement (vendor, inject, both, none)
   --firmware-upstream      Enable upstream firmware (default: 1)
   --no-firmware-upstream   Disable upstream firmware
@@ -81,9 +81,9 @@ Options:
   --no-sudo                Skip sudo elevation (for testing or already-root users)
 
 Examples:
-  ./assemble-final.sh --board dedede --rootfs full
-  ./assemble-final.sh --board dedede --rootfs minimal --drivers vendor --cleanup-rootfs
-  ./assemble-final.sh --board dedede --rootfs full --dry-run
+  ./assemble-final.sh --board dedede --rootfs base
+  ./assemble-final.sh --board dedede --rootfs headless --drivers vendor --cleanup-rootfs
+  ./assemble-final.sh --board dedede --rootfs base --dry-run
 HELP
 	exit 0
 }
@@ -220,15 +220,15 @@ if [ -z "$ROOTFS_FLAVOR" ]; then
 	if [ -t 0 ]; then
 		echo
 		echo "[assemble-final] Select rootfs flavor to build:"
-		echo "  1) full     (recommended) -> complete desktop with Home Manager, Rose Pine theme, and user applications (~16-20GB)"
-		echo "  2) minimal  (lightweight) -> base system with LightDM + Hyprland, network, and shell utilities (~6-8GB)"
+		echo "  1) base     (default)    -> base system with LightDM + Hyprland, network, and shell utilities (~6-8GB)"
+		echo "  2) headless (ssh-only)   -> minimal SSH-only system for debugging/testing (~2-3GB)"
 		read -rp "Enter choice [1/2, default=1]: " choice
 		case "${choice:-1}" in
-		2) ROOTFS_FLAVOR="minimal" ;;
-		*) ROOTFS_FLAVOR="full" ;;
+		2) ROOTFS_FLAVOR="headless" ;;
+		*) ROOTFS_FLAVOR="base" ;;
 		esac
 	else
-		ROOTFS_FLAVOR="full"
+		ROOTFS_FLAVOR="base"
 	fi
 fi
 
@@ -400,15 +400,15 @@ fi
 IMAGE="$WORKDIR/shimboot.img"
 
 # Validate rootfs flavor
-if [ "${ROOTFS_FLAVOR}" != "full" ] && [ "${ROOTFS_FLAVOR}" != "minimal" ]; then
-	echo "[assemble-final] Error: Invalid --rootfs value: '${ROOTFS_FLAVOR}'. Use 'full' or 'minimal'." >&2
+if [ "${ROOTFS_FLAVOR}" != "base" ] && [ "${ROOTFS_FLAVOR}" != "headless" ]; then
+	echo "[assemble-final] Error: Invalid --rootfs value: '${ROOTFS_FLAVOR}'. Use 'base' or 'headless'." >&2
 	exit 1
 fi
 
 # Build raw-rootfs attribute name based on flavor
-RAW_ROOTFS_ATTR="raw-rootfs"
-if [ "${ROOTFS_FLAVOR}" = "minimal" ]; then
-	RAW_ROOTFS_ATTR="raw-rootfs-minimal"
+RAW_ROOTFS_ATTR="raw-rootfs-base"
+if [ "${ROOTFS_FLAVOR}" = "headless" ]; then
+	RAW_ROOTFS_ATTR="raw-rootfs-headless"
 fi
 
 # Only print summary in elevated context to avoid double output on sudo re-exec

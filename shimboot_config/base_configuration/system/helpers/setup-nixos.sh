@@ -381,9 +381,11 @@ if [[ "$SKIP_REBUILD" == "false" ]]; then
 		DEFAULT_HOST="${HOSTNAME:-$(hostname)}"
 		CONFIGS=$(nix flake show --json 2>/dev/null | jq -r '.nixosConfigurations | keys[]' 2>/dev/null || true)
 		if [[ -z "$CONFIGS" ]]; then
-			CONFIGS="${DEFAULT_HOST}-minimal
-${DEFAULT_HOST}
+			CONFIGS="${DEFAULT_HOST}
+${DEFAULT_HOST}-headless
 nixos-shimboot
+nixos-shimboot-headless
+nixos-user
 raw-efi-system"
 		fi
 
@@ -392,7 +394,7 @@ raw-efi-system"
 		echo "Command: echo \"\$CONFIGS\" | nl -w2 -s') '"
 		echo "$CONFIGS" | nl -w2 -s') '
 		echo "Default: ${DEFAULT_HOST}"
-		echo "Note: 'minimal' variant uses only base modules (no desktop environment)"
+		echo "Note: 'headless' variant is SSH-only (no desktop environment)"
 		echo
 
 		# shellcheck disable=SC2329 # Function is invoked via trap

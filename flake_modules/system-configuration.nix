@@ -3,9 +3,9 @@
 # Purpose: Define NixOS system configurations for building shimboot targets
 #
 # This module:
-# - Exposes minimal NixOS configurations (base only, no desktop)
+# - Exposes primary configuration (nixos-shimboot) with desktop
+# - Exposes headless configuration (nixos-shimboot-headless) for SSH-only access
 # - Provides compatibility aliases for legacy configuration names
-# - Configures Nix flakes, garbage collection, and proxy settings
 {
   self,
   nixpkgs,
@@ -14,77 +14,56 @@
 }:
 let
   system = "x86_64-linux";
-  inherit (nixpkgs) lib;
 
   # Import user config from flattened location
   userConfig = import ../shimboot_config/user-config.nix { };
   hn = userConfig.host.hostname;
 
-  baseModules = [
-    ../shimboot_config/base_configuration/configuration.nix
-
-    (_: { })
-  ];
-
-  baseSet = {
-    "${hn}-minimal" = nixpkgs.lib.nixosSystem {
-      inherit system;
-      modules = baseModules;
-      specialArgs = {
-        inherit
-          self
-          userConfig
-          patchedSystemd
-          ;
-        inherit (self) inputs;
-      };
-    };
-
-    # Alias for backward compatibility - same as minimal on base branches
-    "${hn}" = nixpkgs.lib.nixosSystem {
-      inherit system;
-      modules = baseModules;
-      specialArgs = {
-        inherit
-          self
-          userConfig
-          patchedSystemd
-          ;
-        inherit (self) inputs;
-      };
+  # Base configuration - primary with desktop
+  baseConfig = {
+    inherit system;
+    modules = [ ../shimboot_config/base_configuration/configuration.nix ];
+    specialArgs = {
+      inherit
+        self
+        userConfig
+        patchedSystemd
+        ;
+      inherit (self) inputs;
+      headless = false;
     };
   };
 
-  compatRaw = lib.optionalAttrs (hn != "raw-efi-system") {
-    raw-efi-system = nixpkgs.lib.nixosSystem {
-      inherit system;
-      modules = baseModules;
-      specialArgs = {
-        inherit
-          self
-          userConfig
-          patchedSystemd
-          ;
-        inherit (self) inputs;
-      };
+  # Headless configuration - SSH-only, no desktop
+  headlessConfig = {
+    inherit system;
+    modules = [ ../shimboot_config/base_configuration/configuration.nix ];
+    specialArgs = {
+      inherit
+        self
+        userConfig
+        patchedSystemd
+        ;
+      inherit (self) inputs;
+      headless = true;
     };
   };
 
-  compatShimboot = lib.optionalAttrs (hn != "nixos-shimboot") {
-    nixos-shimboot = nixpkgs.lib.nixosSystem {
-      inherit system;
-      modules = baseModules;
-      specialArgs = {
-        inherit
-          self
-          userConfig
-          patchedSystemd
-          ;
-        inherit (self) inputs;
-      };
-    };
+  # Helper to create NixOS system config
+  mkConfig = config: nixpkgs.lib.nixosSystem config;
+
+  # Primary configuration set
+  primarySet = {
+    "${hn}" = mkConfig baseConfig;
+    "${hn}-headless" = mkConfig headlessConfig;
+  };
+
+  # Compatibility aliases for legacy names
+  compatConfig = {
+    nixos-user = mkConfig baseConfig;
+    raw-efi-system = mkConfig baseConfig;
   };
 in
 {
-  nixosConfigurations = baseSet // compatRaw // compatShimboot;
+  nixosConfigurations = primarySet // compatConfig;
 }

@@ -93,13 +93,15 @@ if [[ -d "${NIXOS_CONFIG_PATH}" ]] && [[ -f "${NIXOS_CONFIG_PATH}/flake.nix" ]];
 	echo "  sudo nixos-rebuild switch --flake .#${HOSTNAME_VALUE}"
 	echo
 	echo "Available configurations:"
-	echo "  • ${HOSTNAME_VALUE}-minimal (minimal system configuration)"
-	echo "  • ${HOSTNAME_VALUE} (full system configuration)"
+	echo "  • ${HOSTNAME_VALUE} (base system with desktop)"
+	echo "  • ${HOSTNAME_VALUE}-headless (SSH-only, no desktop)"
 	echo "  • nixos-shimboot (generic shimboot configuration)"
+	echo "  • nixos-shimboot-headless (SSH-only, no desktop)"
+	echo "  • nixos-user (compat alias)"
 	echo "  • raw-efi-system (EFI system only)"
 	echo
 	echo "Default: ${HOSTNAME_VALUE}"
-	echo "Tip: 'minimal' variant uses only base modules (no desktop environment)"
+	echo "Tip: 'headless' variants are SSH-only (no desktop environment)"
 else
 	echo "[setup_nixos_config] [FAIL] nixos-config not found at ${NIXOS_CONFIG_PATH}"
 	echo

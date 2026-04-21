@@ -3,7 +3,7 @@
 # Purpose: Generate raw rootfs images for ChromeOS shimboot installation
 #
 # This module:
-# - Builds minimal raw rootfs with base configuration only (base branch)
+# - Builds raw rootfs images for base and headless configurations
 # - Configures serial console logging and Nix garbage collection
 # - Uses nixpkgs built-in image generation (nixos-generators upstreamed as of 25.05)
 {
@@ -21,7 +21,7 @@ let
   # Helper function to create NixOS configuration for image generation
   # This works for both NixOS and non-NixOS builders
   mkImageConfiguration =
-    { modules }:
+    { headless ? false }:
     let
       # Create a NixOS configuration with the image module
       nixosConfig = nixpkgs.lib.nixosSystem {
@@ -32,9 +32,13 @@ let
             userConfig
             patchedSystemd
             ;
+          inherit (self) inputs;
+          inherit headless;
         };
 
-        modules = modules ++ [
+        modules = [
+          ../shimboot_config/base_configuration/configuration.nix
+
           # Enable the image builder module from nixpkgs
           # This is the upstreamed nixos-generators functionality
           "${nixpkgs}/nixos/modules/image/images.nix"
@@ -44,6 +48,7 @@ let
             # The raw-efi variant is already defined in image.modules
             # We just need to access it via system.build.images.raw-efi
             nixpkgs.hostPlatform = system;
+            boot.kernelParams = [ "console=ttyS0,115200" ];
           }
         ];
       };
@@ -52,16 +57,10 @@ let
 in
 {
   packages.${system} = {
-    # Base branch: minimal rootfs only
-    # For full rootfs, use --config-branch with default or popcat19-dev
-    raw-rootfs-minimal = mkImageConfiguration {
-      modules = [
-        ../shimboot_config/base_configuration/configuration.nix
+    # Base system with desktop (Hyprland, LightDM)
+    raw-rootfs-base = mkImageConfiguration { headless = false; };
 
-        (_: {
-          boot.kernelParams = [ "console=ttyS0,115200" ];
-        })
-      ];
-    };
+    # Headless system for SSH-only access (no desktop)
+    raw-rootfs-headless = mkImageConfiguration { headless = true; };
   };
 }

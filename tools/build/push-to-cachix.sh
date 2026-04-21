@@ -90,10 +90,10 @@ done
 # Push Nix derivations (excluding large images like shim/recovery)
 push_derivations() {
 	local board="$1"
-	local rootfs_attr="raw-rootfs"
+	local rootfs_attr="raw-rootfs-base"
 
-	if [[ "$ROOTFS_FLAVOR" == "minimal" ]]; then
-		rootfs_attr="raw-rootfs-minimal"
+	if [[ "$ROOTFS_FLAVOR" == "headless" ]]; then
+		rootfs_attr="raw-rootfs-headless"
 	fi
 
 	log_info "Pushing Nix derivations for board: $board"
