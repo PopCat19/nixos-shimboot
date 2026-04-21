@@ -271,7 +271,7 @@ if [ "${ROOTFS_FLAVOR}" = "headless" ] && [ -z "$WIFI_SSID" ] && [ -t 0 ]; then
 	echo "[assemble-final] Configure WiFi for headless setup (optional):"
 	read -rp "WiFi SSID (press Enter to skip): " WIFI_SSID
 	if [ -n "$WIFI_SSID" ]; then
-		read -rsp "WiFi password: " WIFI_PASSWORD
+		read -rsp "WiFi password (no-echo): " WIFI_PASSWORD
 		echo
 		if [ -z "$WIFI_PASSWORD" ]; then
 			echo "[assemble-final] Warning: Empty password for SSID '$WIFI_SSID'"
