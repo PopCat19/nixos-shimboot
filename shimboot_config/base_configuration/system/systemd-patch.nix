@@ -4,6 +4,7 @@
 #
 # This module:
 # - Sets systemd.package to systemd257 from specialArgs
+# - Suppresses unit files missing from systemd 257.9 (added in 258+)
 # - Provides systemd tools system-wide
 #
 # Systemd version constraint:
@@ -20,4 +21,11 @@
   environment.systemPackages = [ systemd257 ];
 
   systemd.package = systemd257;
+
+  # Suppress units that don't exist in systemd 257.9 (added in 258+)
+  systemd.suppressedSystemUnits = [
+    "systemd-factory-reset-request.service"
+    "systemd-factory-reset-reboot.service"
+    "factory-reset.target.wants"
+  ];
 }
