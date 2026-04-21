@@ -57,6 +57,11 @@
         patches = (old.patches or [ ]) ++ [
           ./patches/systemd-mountpoint-util-chromeos.patch
         ];
+        # Add passthru attributes expected by nixos-unstable modules
+        passthru = old.passthru or { } // {
+          withLogind = true;
+          withNspawn = true;
+        };
       });
 
       # Import module outputs
