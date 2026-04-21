@@ -41,10 +41,6 @@
 
   programs.dconf.enable = lib.mkDefault true;
 
-  # Explicitly enable logind to bypass NixOS unstable's default check
-  # for systemd.package.withLogind (only exists in 258+, we use 257.9)
-  services.logind.enable = true;
-
   services.logind = {
     settings = {
       Login = {
