@@ -50,10 +50,16 @@
 
       # Pinned systemd 257.9 with ChromeOS compatibility patch
       # Ceiling for boards with shim kernels <5.10 (e.g. octopus 4.14.x)
+      # Note: Must add passthru attributes expected by nixos-unstable modules
       patchedSystemd = pkgsSystemd.systemd.overrideAttrs (old: {
         patches = (old.patches or [ ]) ++ [
           ./patches/systemd-mountpoint-util-chromeos.patch
         ];
+        passthru = old.passthru or { } // {
+          # Attributes missing in 257.9 but expected by nixos-unstable
+          withLogind = true;
+          withNspawn = true;
+        };
       });
 
       # Closes over patchedSystemd for external consumers via _module.args
