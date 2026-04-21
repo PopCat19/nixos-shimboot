@@ -14,12 +14,6 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-
-    # Pinned nixpkgs for systemd 257.9 — the ceiling for shim kernels <5.10
-    # See: https://github.com/PopCat19/nixos-shimboot/issues/405 (shimboot#405 discussion)
-    # systemd 258+ requires kernel >=5.10 and uses open_tree()/move_mount() syscalls
-    # unavailable on older shim kernels (e.g. octopus 4.14.x)
-    nixpkgs-systemd.url = "github:NixOS/nixpkgs/d3736636ac39ed678e557977b65d620ca75142d0";
   };
 
   # Combine all outputs from modules
@@ -27,7 +21,6 @@
     {
       self,
       nixpkgs,
-      nixpkgs-systemd,
       ...
     }:
     let
@@ -45,24 +38,34 @@
         "snappy"
       ];
 
-      # Import nixpkgs for systemd pinning
-      pkgsSystemd = import nixpkgs-systemd { inherit system; };
+      # Overlay to use systemd 257.9 for ChromeOS shim kernel compatibility
+      # systemd 258+ requires kernel >=5.10 (open_tree/move_mount syscalls)
+      # See: https://github.com/PopCat19/nixos-shimboot/issues/405
+      systemdOverlay = final: prev: {
+        systemd = prev.systemd.overrideAttrs (old: {
+          version = "257.9";
+          src = final.fetchFromGitHub {
+            owner = "systemd";
+            repo = "systemd";
+            rev = "v257.9";
+            hash = "sha256-3Ig5TXhK99iOu41k4c5CgC4R3HhBftSAb9UbXvFY6lo=";
+          };
+          patches = (old.patches or [ ]) ++ [
+            ./patches/systemd-mountpoint-util-chromeos.patch
+          ];
+          # Preserve passthru from original
+          passthru = old.passthru or { } // {
+            withLogind = old.passthru.withLogind or true;
+            withNspawn = old.passthru.withNspawn or true;
+          };
+        });
+      };
 
-      # Pinned systemd 257.9 with ChromeOS compatibility patch
-      # Ceiling for boards with shim kernels <5.10 (e.g. octopus 4.14.x)
-      # Note: Must add passthru attributes expected by nixos-unstable modules
-      patchedSystemd = pkgsSystemd.systemd.overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ [
-          ./patches/systemd-mountpoint-util-chromeos.patch
-        ];
-        passthru = old.passthru or { } // {
-          # Attributes missing in 257.9 but expected by nixos-unstable
-          withLogind = true;
-          withNspawn = true;
-        };
-      });
-
-      # Closes over patchedSystemd for external consumers via _module.args
+      # Import nixpkgs with systemd overlay for devshell and standalone packages
+      pkgs = import nixpkgs {
+        inherit system;
+        overlays = [ systemdOverlay ];
+      };
 
       # Import module outputs
       # Core system and development modules
@@ -73,14 +76,14 @@
             self
             nixpkgs
             board
-            patchedSystemd
+            systemdOverlay
             ;
         };
       systemConfigurationOutputs = import ./flake_modules/system-configuration.nix {
         inherit
           self
           nixpkgs
-          patchedSystemd
+          systemdOverlay
           ;
       };
       developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix {
@@ -121,7 +124,7 @@
       # Merge packages from all modules
       packages = {
         ${system} = nixpkgs.lib.foldl' (acc: board: acc // (boardPackages board)) {
-          systemd = patchedSystemd;
+          systemd = pkgs.systemd;
         } supportedBoards;
       };
 
@@ -139,13 +142,8 @@
 
       nixosModules = {
         # Full ChromeOS base configuration (boot, fs, hw, users, nix settings)
-        # Includes patchedSystemd via _module.args
-        chromeos =
-          { ... }:
-          {
-            imports = [ ./shimboot_config/base_configuration/configuration.nix ];
-            _module.args.patchedSystemd = patchedSystemd;
-          };
+        # Note: systemd is overridden via systemdOverlay in flake.nix
+        chromeos = ./shimboot_config/base_configuration/configuration.nix;
 
         # Granular modules for selective import
         nix-options = ./shimboot_config/nix-options.nix;

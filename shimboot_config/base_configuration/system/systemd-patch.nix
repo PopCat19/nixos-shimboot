@@ -1,9 +1,9 @@
 # systemd-patch.nix
 #
-# Purpose: Apply pinned systemd 257.9 with ChromeOS compatibility patch
+# Purpose: Configure systemd package (overridden to 257.9 via flake overlay)
 #
 # This module:
-# - Sets systemd.package to the pinned+patched derivation from flake
+# - Sets systemd.package from nixpkgs with overlay applied
 # - Provides systemd tools system-wide
 #
 # Systemd version constraint:
@@ -11,17 +11,11 @@
 # - Reason: systemd 258+ uses open_tree()/move_mount() syscalls unavailable on
 #   older shim kernels (octopus 4.14.x, dedede 5.4.x before certain commits)
 # - Ref: https://github.com/ading2210/shimboot/issues/405
+#
+# Note: The systemd package is overridden in flake.nix via systemdOverlay
+{ pkgs, ... }:
 {
-  pkgs,
-  config,
-  patchedSystemd ? null,
-  ...
-}:
-let
-  systemdPkg = if patchedSystemd != null then patchedSystemd else pkgs.systemd;
-in
-{
-  environment.systemPackages = [ systemdPkg ];
+  environment.systemPackages = [ pkgs.systemd ];
 
-  systemd.package = systemdPkg;
+  systemd.package = pkgs.systemd;
 }

@@ -9,7 +9,7 @@
 {
   self,
   nixpkgs,
-  patchedSystemd,
+  systemdOverlay,
   ...
 }:
 let
@@ -26,17 +26,10 @@ let
       # Create a NixOS configuration with the image module
       nixosConfig = nixpkgs.lib.nixosSystem {
         inherit system;
-        specialArgs = {
-          inherit
-            self
-            userConfig
-            patchedSystemd
-            ;
-          inherit (self) inputs;
-          inherit headless;
-        };
-
         modules = [
+          # Apply systemd overlay to nixpkgs
+          { nixpkgs.overlays = [ systemdOverlay ]; }
+
           ../shimboot_config/base_configuration/configuration.nix
 
           # Enable the image builder module from nixpkgs
@@ -45,12 +38,18 @@ let
 
           # Image configuration for raw-efi
           {
-            # The raw-efi variant is already defined in image.modules
-            # We just need to access it via system.build.images.raw-efi
             nixpkgs.hostPlatform = system;
             boot.kernelParams = [ "console=ttyS0,115200" ];
           }
         ];
+        specialArgs = {
+          inherit
+            self
+            userConfig
+            ;
+          inherit (self) inputs;
+          inherit headless;
+        };
       };
     in
     nixosConfig.config.system.build.images.raw-efi;
