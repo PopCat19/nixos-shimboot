@@ -14,10 +14,11 @@
 {
   pkgs,
   config,
+  patchedSystemd ? null,
   ...
 }:
 let
-  systemdPkg = config._module.args.patchedSystemd or pkgs.systemd;
+  systemdPkg = if patchedSystemd != null then patchedSystemd else pkgs.systemd;
 in
 {
   environment.systemPackages = [ systemdPkg ];
