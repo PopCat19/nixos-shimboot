@@ -62,7 +62,27 @@ in
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = "yes";
-      ExecStart = "${pkgs.bash}/bin/bash -c 'echo \"=== Network Status ===\"; echo \"Connected interfaces:\"; ip -br addr show | grep -v LOOPBACK || true; echo \"\"; echo \"SSH access:\"; for addr in $(hostname -I 2>/dev/null); do echo \"  ssh $USER@$addr\"; done'";
+      ExecStart = pkgs.writeShellScript "network-status" ''
+        echo "=== Network Status ==="
+        
+        # Poll for WiFi connection (5 retries with increasing backoff)
+        for delay in 3 5 10 15 30; do
+          has_ip=$(ip -br addr show | grep -v UNKNOWN | grep -v LOOPBACK | grep -E 'UP|DORMANT' | head -1 || true)
+          if [ -n "$has_ip" ]; then
+            break
+          fi
+          sleep "$delay"
+        done
+        
+        echo "Connected interfaces:"
+        ip -br addr show | grep -v LOOPBACK || true
+        
+        echo ""
+        echo "SSH access:"
+        for addr in $(hostname -I 2>/dev/null); do
+          echo "  ssh $USER@$addr"
+        done
+      '';
       StandardOutput = "journal+console";
     };
   };
