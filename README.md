@@ -48,7 +48,21 @@ A helpful excerpt from shimboot's [README](https://github.com/ading2210/shimboot
 >
 > The main advantages of this approach are that you don't need to touch the device's firmware in order to run Linux. Simply rebooting and unplugging the USB drive will return the device to normal, which can be useful if the device is enterprise enrolled. However, since we are stuck with the kernel from the RMA shim, some features such as audio and suspend may not work.
 
-**Systemd version constraint:** Pinned to 257.9 maximum. Systemd 258+ requires kernel >=5.10 and uses `open_tree()`/`move_mount()` syscalls unavailable on older shim kernels (e.g. octopus 4.14.x). See [shimboot#405](https://github.com/ading2210/shimboot/issues/405) for detailed discussion.
+**Systemd version constraint:** Pinned to 257.9 maximum. Systemd 258+ requires kernel >=5.10 and uses `open_tree()`/`move_mount()` syscalls unavailable on older shim kernels. See [shimboot#405](https://github.com/ading2210/shimboot/issues/405) for detailed discussion.
+
+**Board kernel versions** (extracted from ChromeOS recovery images):
+
+| Board | ChromeOS Ver | Kernel | systemd ≥258? |
+|-------|-------------|--------|---------------|
+| snappy | 9334.72.0 | 4.4.35 | ❌ Needs 257.x |
+| grunt | 11151.113.0 | 4.14.75 | ❌ Needs 257.x |
+| octopus | 11316.165.0 | 4.14.91 | ❌ Needs 257.x |
+| hatch | 12739.94.0 | 4.19.84 | ❌ Needs 257.x |
+| dedede | 13597.105.0 | 5.4.85 | ⚠️ Border |
+| zork | 13505.73.0 | 5.4.85 | ⚠️ Border |
+| nissa | 15236.80.0 | 5.15.74 | ✅ Can use 258+ |
+
+**6 of 7 boards** require systemd 257.x due to kernel <5.10.
 
 **nixos-shimboot** (this repo) is a derivative that replaces shimboot's Debian rootfs building with NixOS flake-based image generation. It uses the NixOS module system for declarative configuration, `raw-efi` image building via nixpkgs, and a patched systemd for ChromeOS kernel compatibility. Unlike shimboot's `build_complete.sh`, nixos-shimboot uses `tools/build/assemble-final.sh` which builds Nix derivations in parallel, harvests ChromeOS drivers, and assembles the final partitioned image.
 
