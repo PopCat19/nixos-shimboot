@@ -75,7 +75,7 @@
             "0018-meson-Don-t-link-ssh-dropins.patch"
             "0019-install-unit_file_exists_full-follow-symlinks.patch"
           ] ++ final.lib.optionals (final.stdenv.hostPlatform.isLinux && final.stdenv.hostPlatform.isGnu) [
-            "./patches/systemd-nixos/0020-timesyncd-disable-NSCD-when-DNSSEC-validation-is-dis.patch"
+            ./patches/systemd-nixos/0020-timesyncd-disable-NSCD-when-DNSSEC-validation-is-dis.patch
           ] ++ [
             # ChromeOS compatibility patch
             ./patches/systemd-mountpoint-util-chromeos.patch
