@@ -15,15 +15,15 @@ on:
   push:
     paths:
       - 'flake.lock'
-      - 'overlays/systemd-258.3.nix'
-      - 'shimboot_config/base_configuration/system/systemd-patch.nix'
+      - 'flake.nix'
+      - 'patches/systemd-*.patch'
     branches:
       - dev
   pull_request:
     paths:
       - 'flake.lock'
-      - 'overlays/systemd-258.3.nix'
-      - 'shimboot_config/base_configuration/system/systemd-patch.nix'
+      - 'flake.nix'
+      - 'patches/systemd-*.patch'
     branches:
       - dev
   workflow_dispatch:
