@@ -81,6 +81,11 @@
               printf "[Unit]\\nDescription=Factory Reset Reboot (stub)\\n" > $out/example/systemd/system/systemd-factory-reset-reboot.service
               printf "[Unit]\\nDescription=Factory Reset Complete (stub)\\n" > $out/example/systemd/system/systemd-factory-reset-complete.service
               printf "[Unit]\\nDescription=Factory Reset Now (stub)\\n" > $out/example/systemd/system/factory-reset-now.target
+              # Create missing factory-reset binaries (added in systemd 258)
+              mkdir -p $out/lib/systemd/system-generators
+              printf '#!/bin/sh\\n# Stub - not available in systemd 257.9\\nexit 0\\n' > $out/lib/systemd/systemd-factory-reset
+              printf '#!/bin/sh\\n# Stub - not available in systemd 257.9\\nexit 0\\n' > $out/lib/systemd/system-generators/systemd-factory-reset-generator
+              chmod +x $out/lib/systemd/systemd-factory-reset $out/lib/systemd/system-generators/systemd-factory-reset-generator
               # Create missing breakpoint units (added in systemd 258)
               # These are debugging units for halting boot at specific points
               printf "[Unit]\\nDescription=Breakpoint before udev (stub)\\n" > $out/example/systemd/system/breakpoint-pre-udev.service
