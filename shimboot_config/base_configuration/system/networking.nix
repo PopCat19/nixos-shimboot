@@ -63,6 +63,43 @@ in
     deps = [ ];
   };
 
+  # Headless backlight control
+  # 40% on boot, 20% after 2 minutes (no keyboard idle detection via frecon-lite)
+  systemd.services.headless-backlight = lib.mkIf headless {
+    description = "Headless Backlight Control";
+    after = [ "multi-user.target" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      ExecStart = pkgs.writeShellScript "headless-backlight" ''
+        # Find backlight (portable across GPU vendors)
+        bl_dir=""
+        for d in /sys/class/backlight/*; do
+          [ -d "$d" ] || continue
+          bl_dir="$d"
+          break
+        done
+
+        if [ -z "$bl_dir" ]; then
+          echo "No backlight device found"
+          exit 0
+        fi
+
+        max=$(cat "$bl_dir/max_brightness")
+        init=$((max * 40 / 100))
+        dim=$((max * 20 / 100))
+
+        echo "$init" > "$bl_dir/brightness" 2>/dev/null || true
+        echo "Brightness: $init/$max (40%))"
+
+        # Dim to 20% after 2 minutes
+        sleep 120
+        echo "$dim" > "$bl_dir/brightness" 2>/dev/null || true
+        echo "Brightness: $dim/$max (20%))"
+      '';
+    };
+  };
+
   # Network status display service for headless builds
   # Polls every 5 seconds for 60 seconds, showing connection status updates
   systemd.services.network-status = lib.mkIf headless {
