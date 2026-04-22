@@ -51,9 +51,14 @@ let
     ./system/fonts.nix
     ./system/audio.nix
   ];
+
+  # Headless-only services
+  headlessModules = [
+    ./system/headless-services.nix
+  ];
 in
 {
-  imports = coreModules ++ lib.optionals (!headless) desktopModules;
+  imports = coreModules ++ lib.optionals (!headless) desktopModules ++ lib.optionals headless headlessModules;
 
   _module.args.userConfig = userConfig;
 
