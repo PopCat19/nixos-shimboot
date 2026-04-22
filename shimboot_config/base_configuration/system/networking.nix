@@ -31,7 +31,7 @@ let
 in
 {
   networking = {
-    dhcpcd.enable = lib.mkForce false;
+    dhcpcd.enable = if headless then lib.mkForce true else lib.mkForce false;
     firewall = {
       enable = lib.mkForce false;
     };
