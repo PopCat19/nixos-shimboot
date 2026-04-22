@@ -79,6 +79,7 @@
               mkdir -p $out/example/systemd/system/factory-reset.target.wants
               printf "[Unit]\\nDescription=Factory Reset Request (stub)\\n" > $out/example/systemd/system/systemd-factory-reset-request.service
               printf "[Unit]\\nDescription=Factory Reset Reboot (stub)\\n" > $out/example/systemd/system/systemd-factory-reset-reboot.service
+              printf "[Unit]\\nDescription=Factory Reset Complete (stub)\\n" > $out/example/systemd/system/systemd-factory-reset-complete.service
               # Create missing breakpoint units (added in systemd 258)
               # These are debugging units for halting boot at specific points
               printf "[Unit]\\nDescription=Breakpoint before udev (stub)\\n" > $out/example/systemd/system/breakpoint-pre-udev.service
