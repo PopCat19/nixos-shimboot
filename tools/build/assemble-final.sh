@@ -69,8 +69,6 @@ Options:
   --board BOARD            Target board (dedede, octopus, etc.)
   --rootfs FLAVOR          Rootfs variant (base, headless)
   --drivers MODE           Driver placement (vendor, inject, both, none)
-  --wifi-ssid SSID         WiFi SSID for headless setup (headless only)
-  --wifi-password PASS     WiFi password for headless setup (headless only)
   --firmware-upstream      Enable upstream firmware (default: 1)
   --no-firmware-upstream   Disable upstream firmware
   --inspect                Inspect final image after build
@@ -135,8 +133,6 @@ CLEANUP_KEEP=""
 PREWARM_CACHE="${PREWARM_CACHE:-0}"
 PUSH_TO_CACHIX="${PUSH_TO_CACHIX:-0}"
 DRIVERS_MODE="${DRIVERS_MODE:-}"
-WIFI_SSID="${WIFI_SSID:-}"
-WIFI_PASSWORD="${WIFI_PASSWORD:-}"
 
 # === Main Argument Parsing (onboarding + args work together) ===
 # If args provided, use them; otherwise prompt interactively
@@ -190,14 +186,6 @@ while [ $# -gt 0 ]; do
 	--push-to-cachix)
 		PUSH_TO_CACHIX=1
 		shift
-		;;
-	--wifi-ssid)
-		WIFI_SSID="${2:-}"
-		shift 2
-		;;
-	--wifi-password)
-		WIFI_PASSWORD="${2:-}"
-		shift 2
 		;;
 	*)
 		log_warn "Unknown option: ${1:-}"
@@ -266,18 +254,8 @@ if [ -z "$DRIVERS_MODE" ]; then
 fi
 
 # WiFi configuration onboarding (headless only)
-if [ "${ROOTFS_FLAVOR}" = "headless" ] && [ -z "$WIFI_SSID" ] && [ -t 0 ]; then
-	echo
-	echo "[assemble-final] Configure WiFi for headless setup (optional):"
-	read -rp "WiFi SSID (press Enter to skip): " WIFI_SSID
-	if [ -n "$WIFI_SSID" ]; then
-		read -rsp "WiFi password (no-echo): " WIFI_PASSWORD
-		echo
-		if [ -z "$WIFI_PASSWORD" ]; then
-			echo "[assemble-final] Warning: Empty password for SSID '$WIFI_SSID'"
-		fi
-	fi
-fi
+# WiFi credentials are now configured via shimboot_config/secrets.nix
+# (gitignored, baked into image at build time via NixOS networking.wireless)
 
 # Validate args after onboarding
 if [ -z "$BOARD" ]; then
@@ -304,7 +282,7 @@ require_sudo() {
 		SUDO_ENV=()
 		for var in BOARD BOARD_EXPLICITLY_SET CACHIX_AUTH_TOKEN ROOTFS_FLAVOR DRIVERS_MODE \
 			FIRMWARE_UPSTREAM DRY_RUN INSPECT_AFTER CLEANUP_ROOTFS CLEANUP_NO_DRY_RUN \
-			CLEANUP_KEEP PREWARM_CACHE PUSH_TO_CACHIX WIFI_SSID WIFI_PASSWORD; do
+			CLEANUP_KEEP PREWARM_CACHE PUSH_TO_CACHIX; do
 			if [ -n "${!var:-}" ]; then SUDO_ENV+=("$var=${!var}"); fi
 		done
 		exec sudo -E -H "${SUDO_ENV[@]}" "$0" --no-sudo "$@"
@@ -431,16 +409,6 @@ if [ "${ROOTFS_FLAVOR}" != "base" ] && [ "${ROOTFS_FLAVOR}" != "headless" ]; the
 	exit 1
 fi
 
-# WiFi configuration only valid for headless builds
-if [ -n "$WIFI_SSID" ] && [ "${ROOTFS_FLAVOR}" != "headless" ]; then
-	echo "[assemble-final] Error: --wifi-ssid is only valid for headless builds." >&2
-	exit 1
-fi
-if [ -n "$WIFI_PASSWORD" ] && [ -z "$WIFI_SSID" ]; then
-	echo "[assemble-final] Error: --wifi-password requires --wifi-ssid." >&2
-	exit 1
-fi
-
 # Build raw-rootfs attribute name based on flavor
 RAW_ROOTFS_ATTR="raw-rootfs-base"
 if [ "${ROOTFS_FLAVOR}" = "headless" ]; then
@@ -454,8 +422,8 @@ if [ "${SKIP_SUDO:-0}" -eq 1 ]; then
 	log_info "Drivers mode: ${DRIVERS_MODE:-vendor} (vendor|inject|none)"
 	log_info "Upstream firmware: ${FIRMWARE_UPSTREAM} (0=disabled, 1=enabled)"
 	log_info "Push to Cachix: ${PUSH_TO_CACHIX} (0=disabled, 1=enabled, derivations only)"
-	if [ -n "$WIFI_SSID" ]; then
-		log_info "WiFi SSID: ${WIFI_SSID} (headless network config)"
+	if [ "${ROOTFS_FLAVOR}" = "headless" ]; then
+		log_info "WiFi: configured via shimboot_config/secrets.nix"
 	fi
 	if [ "$DRY_RUN" -eq 1 ]; then
 		log_warn "DRY RUN MODE: No destructive operations will be performed"
@@ -1111,31 +1079,9 @@ safe_exec sudo tee "$WORKDIR/mnt_rootfs/etc/shimboot-build.json" >/dev/null <<EO
 }
 EOF
 
-# Configure WiFi for headless builds if credentials provided
-if [ "${ROOTFS_FLAVOR}" = "headless" ] && [ -n "$WIFI_SSID" ]; then
-	log_info "Configuring WiFi for headless setup..."
-
-	# Create wpa_supplicant configuration
-	safe_exec sudo mkdir -p "$WORKDIR/mnt_rootfs/etc/wpa_supplicant"
-	safe_exec sudo tee "$WORKDIR/mnt_rootfs/etc/wpa_supplicant/wpa_supplicant.conf" >/dev/null <<EOF
-ctrl_interface=DIR=/run/wpa_supplicant GROUP=wheel
-update_config=1
-
-network={
-ssid="$WIFI_SSID"
-psk="$WIFI_PASSWORD"
-scan_ssid=1
-}
-EOF
-	safe_exec sudo chmod 600 "$WORKDIR/mnt_rootfs/etc/wpa_supplicant/wpa_supplicant.conf"
-
-	# Enable wpa_supplicant for wlan0
-	safe_exec sudo mkdir -p "$WORKDIR/mnt_rootfs/etc/systemd/system/multi-user.target.wants"
-	safe_exec sudo ln -sf /etc/systemd/system/wpa_supplicant@wlan0.service "$WORKDIR/mnt_rootfs/etc/systemd/system/multi-user.target.wants/" 2>/dev/null || true
-
-	log_info "WiFi configured for SSID: $WIFI_SSID"
-	log_warn "Note: WiFi password stored in plaintext. Consider changing after first boot."
-fi
+# WiFi is configured natively via NixOS networking.wireless module
+# (secrets.nix provides SSID/PSK, baked into the image at build time)
+# No post-build injection needed.
 
 # Source rootfs unmounted; target rootfs remains mounted briefly before finalization
 safe_exec sudo umount "$WORKDIR/mnt_src_rootfs"

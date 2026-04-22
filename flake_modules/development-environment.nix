@@ -49,6 +49,7 @@ in
       echo "Common commands:"
       echo "  nix build .#raw-rootfs-base            # Build base rootfs"
       echo "  nix build .#raw-rootfs-headless        # Build headless rootfs (SSH-only)"
+      echo "  nix build \"path:$PWD#raw-rootfs-headless\"  # Headless with WiFi (includes secrets.nix)"
       echo "  nix build .#chromeos-shim-dedede        # Build shim"
       echo "  sudo ./tools/build/assemble-final.sh --board dedede --rootfs base"
       echo ""

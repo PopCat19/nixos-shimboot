@@ -19,6 +19,14 @@
 }:
 let
   hostname = userConfig.host.hostname or userConfig.hostname;
+
+  # Load WiFi secrets from gitignored file (not tracked in version control)
+  # Build with `path:` fetcher to include untracked files:
+  #   nix build "path:$PWD#raw-rootfs-headless"
+  secretsPath = ../secrets.nix;
+  secrets = if builtins.pathExists secretsPath then import secretsPath else { wifi = null; };
+  wifi = secrets.wifi or null;
+  wifiConfigured = wifi != null && wifi.ssid != "";
 in
 {
   networking = {
@@ -31,7 +39,13 @@ in
     wireless = lib.mkIf headless {
       enable = lib.mkDefault true;
       userControlled = lib.mkDefault false;
-      networks = { } // lib.mkDefault { };
+      networks = lib.mkIf wifiConfigured (
+        {
+          "${wifi.ssid}" = {
+            psk = wifi.psk;
+          };
+        }
+      ) // lib.mkDefault { };
     };
     networkmanager = {
       enable = lib.mkDefault (!headless);
