@@ -58,30 +58,41 @@ in
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
     wantedBy = [ "multi-user.target" ];
-    path = [ pkgs.iproute2 pkgs.nettools ];
+    path = [ pkgs.iproute2 pkgs.nettools pkgs.iw ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = "yes";
       ExecStart = pkgs.writeShellScript "network-status" ''
         echo "=== Network Status ==="
+        echo ""
         
-        # Poll for WiFi connection (5 retries with increasing backoff)
-        for delay in 3 5 10 15 30; do
-          has_ip=$(ip -br addr show | grep -v UNKNOWN | grep -v LOOPBACK | grep -E 'UP|DORMANT' | head -1 || true)
-          if [ -n "$has_ip" ]; then
-            break
-          fi
-          sleep "$delay"
-        done
+        # Show all interfaces (connected or not)
+        echo "Interfaces:"
+        ip -br addr show | grep -v LOOPBACK 2>/dev/null || echo "  Waiting for interfaces..."
         
-        echo "Connected interfaces:"
-        ip -br addr show | grep -v LOOPBACK || true
+        # Show WiFi connection state if available
+        if command -v iw >/dev/null 2>&1; then
+          for iface in $(iw dev | grep Interface | awk '{print $2}' 2>/dev/null); do
+            state=$(iw dev "$iface" link 2>/dev/null | head -1)
+            if echo "$state" | grep -q "Connected"; then
+              ssid=$(iw dev "$iface" link 2>/dev/null | grep SSID | sed 's/.*SSID: //')
+              echo "WiFi: $iface - connected to $ssid"
+            else
+              echo "WiFi: $iface - $state"
+            fi
+          done
+        fi
         
         echo ""
         echo "SSH access:"
-        for addr in $(hostname -I 2>/dev/null); do
-          echo "  ssh $USER@$addr"
-        done
+        ips=$(hostname -I 2>/dev/null || true)
+        if [ -n "$ips" ]; then
+          for addr in $ips; do
+            echo "  ssh user@$addr"
+          done
+        else
+          echo "  Waiting for IP address..."
+        fi
       '';
       StandardOutput = "journal+console";
     };
