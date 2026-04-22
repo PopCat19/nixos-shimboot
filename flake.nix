@@ -157,8 +157,12 @@
 
       nixosModules = {
         # Full ChromeOS base configuration (boot, fs, hw, users, nix settings)
-        # Note: systemd is overridden via systemdOverlay in flake.nix
-        chromeos = ./shimboot_config/base_configuration/configuration.nix;
+        # Wraps configuration.nix to inject systemd257 via _module.args
+        # so consumers importing this module don't need to provide it separately
+        chromeos = {
+          imports = [ ./shimboot_config/base_configuration/configuration.nix ];
+          _module.args.systemd257 = systemd257;
+        };
 
         # Shimboot options (shimboot.headless mkEnableOption)
         shimboot-options = ./shimboot_config/shimboot-options.nix;
