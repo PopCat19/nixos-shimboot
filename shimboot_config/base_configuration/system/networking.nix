@@ -52,49 +52,62 @@ in
   };
 
   # Network status display service for headless builds
-  # Shows IP address and connection status on console
+  # Polls every 5 seconds for 60 seconds, showing connection status updates
   systemd.services.network-status = lib.mkIf headless {
     description = "Network Status Display";
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
     wantedBy = [ "multi-user.target" ];
-    path = [ pkgs.iproute2 pkgs.nettools pkgs.iw ];
+    path = [ pkgs.iproute2 pkgs.nettools pkgs.iw pkgs.gnugrep ];
     serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = "yes";
-      ExecStart = pkgs.writeShellScript "network-status" ''
+      Type = "simple";
+      ExecStart = pkgs.writeShellScript "network-status-poll" ''
         echo "=== Network Status ==="
-        echo ""
-        
-        # Show all interfaces (connected or not)
-        echo "Interfaces:"
-        ip -br addr show | grep -v LOOPBACK 2>/dev/null || echo "  Waiting for interfaces..."
-        
-        # Show WiFi connection state if available
-        if command -v iw >/dev/null 2>&1; then
-          for iface in $(iw dev | grep Interface | awk '{print $2}' 2>/dev/null); do
-            state=$(iw dev "$iface" link 2>/dev/null | head -1)
-            if echo "$state" | grep -q "Connected"; then
-              ssid=$(iw dev "$iface" link 2>/dev/null | grep SSID | sed 's/.*SSID: //')
-              echo "WiFi: $iface - connected to $ssid"
-            else
-              echo "WiFi: $iface - $state"
+        for i in $(seq 1 12); do
+          # Show interfaces without piped grep (avoid broken pipe errors)
+          echo ""
+          echo "[$(date '+%H:%M:%S')] Interface status:"
+          ${pkgs.iproute2}/bin/ip -br addr show 2>/dev/null | while read line; do
+            case "$line" in
+              *LOOPBACK*) ;;
+              *) echo "  $line" ;;
+            esac
+          done
+
+          # Check for WiFi connection
+          wifi_iface=$(${pkgs.iproute2}/bin/ip -br link show 2>/dev/null | ${pkgs.gnugrep}/bin/grep -E "wlan|wlp" | ${pkgs.coreutils}/bin/awk '{print $1}' | ${pkgs.coreutils}/bin/head -n1)
+          if [ -n "$wifi_iface" ]; then
+            wifi_state=$(${pkgs.iproute2}/bin/ip -br link show "$wifi_iface" 2>/dev/null | ${pkgs.coreutils}/bin/awk '{print $2}')
+            echo "  WiFi ($wifi_iface): $wifi_state"
+          fi
+
+          # Show SSH access info when IP is available
+          ips=$(hostname -I 2>/dev/null || true)
+          if [ -n "$ips" ]; then
+            # Filter out loopback, just show actual network IPs
+            real_ips=$(echo "$ips" | tr ' ' '\n' | grep -v "^127\\." | grep -v "^::1$" | head -2)
+            if [ -n "$real_ips" ]; then
+              echo ""
+              echo "SSH access:"
+              for addr in $real_ips; do
+                echo "  ssh user@$addr"
+              done
             fi
-          done
-        fi
-        
-        echo ""
-        echo "SSH access:"
-        ips=$(hostname -I 2>/dev/null || true)
-        if [ -n "$ips" ]; then
-          for addr in $ips; do
-            echo "  ssh user@$addr"
-          done
-        else
-          echo "  Waiting for IP address..."
-        fi
+          fi
+
+          # Stop polling if we have a real network IP
+          if [ -n "$ips" ] && echo "$ips" | grep -qv "^127\\."; then
+            echo ""
+            echo "Network connected. Stopping status display."
+            break
+          fi
+
+          # Sleep 5 seconds before next poll
+          sleep 5
+        done
       '';
       StandardOutput = "journal+console";
+      Restart = "no";
     };
   };
 }
