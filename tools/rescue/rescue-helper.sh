@@ -464,6 +464,8 @@ if [ -d "/nix/var/nix/profiles" ]; then
 		. "/nix/var/nix/profiles/default/etc/profile.d/nix.sh"
 	fi
 	export NIX_PATH="nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos:nixos-config=/etc/nixos/configuration.nix:/nix/var/nix/profiles/per-user/root/channels"
+	# Allow git repos owned by other users (required for rescue env)
+	git config --global --add safe.directory '*' 2>/dev/null || true
 	echo "Nix environment ready. Tools: nixos-rebuild, nix-env, nix-channel"
 fi
 rm -f /.rescue-nix-setup
@@ -875,6 +877,8 @@ if [ -d "/nix/var/nix/profiles" ]; then
 		. "/nix/var/nix/profiles/default/etc/profile.d/nix.sh"
 	fi
 	export NIX_PATH="nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos:nixos-config=/etc/nixos/configuration.nix:/nix/var/nix/profiles/per-user/root/channels"
+	# Allow git repos owned by other users (required for rescue env)
+	git config --global --add safe.directory '*' 2>/dev/null || true
 	echo "Nix environment ready. Tools: nixos-rebuild, nix-env, nix-channel"
 fi
 rm -f /.rescue-nix-setup
@@ -955,6 +959,8 @@ CHROOT_SETUP_EOF
 			if chroot "$MOUNTPOINT" /bin/sh -c "
 				export PATH=\"/nix/var/nix/profiles/system/sw/bin:/nix/var/nix/profiles/system/sw/sbin:\$PATH\"
 				export NIX_PATH=\"nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos:nixos-config=/etc/nixos/configuration.nix:/nix/var/nix/profiles/per-user/root/channels\"
+				# Allow git repos owned by other users (required for flake builds in rescue env)
+				git config --global --add safe.directory '*' 2>/dev/null || true
 				cd $config_dir_chroot && nixos-rebuild $nix_args 2>&1
 			"; then
 				log_success "Rebuild completed successfully!"
