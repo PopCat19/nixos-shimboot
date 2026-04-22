@@ -254,8 +254,46 @@ if [ -z "$DRIVERS_MODE" ]; then
 fi
 
 # WiFi configuration onboarding (headless only)
-# WiFi credentials are now configured via shimboot_config/secrets.nix
-# (gitignored, baked into image at build time via NixOS networking.wireless)
+# Writes to shimboot_config/secrets.nix, consumed by NixOS networking.wireless
+WIFI_SSID=""
+WIFI_PASSWORD=""
+SECRETS_FILE=""
+
+if [ "${ROOTFS_FLAVOR}" = "headless" ]; then
+	SECRETS_FILE="$(cd "$(dirname "$0")/../../shimboot_config" && pwd)/secrets.nix"
+
+	if [ -f "$SECRETS_FILE" ]; then
+		# secrets.nix exists — check if WiFi is configured
+		WIFI_SSID=$(sed -n 's/.*ssid\s*=\s*"\([^"\)]*\)".*/\1/p' "$SECRETS_FILE" 2>/dev/null | head -1 || true)
+		if [ -n "$WIFI_SSID" ]; then
+			log_info "WiFi already configured in secrets.nix (SSID: $WIFI_SSID)"
+		fi
+	fi
+
+	# If no WiFi configured and we have a terminal, prompt interactively
+	if [ -z "$WIFI_SSID" ] && [ -t 0 ]; then
+		echo ""
+		echo "[assemble-final] Configure WiFi for headless setup (optional):"
+		read -rp "WiFi SSID (press Enter to skip): " WIFI_SSID
+		if [ -n "$WIFI_SSID" ]; then
+			read -rsp "WiFi password (no-echo): " WIFI_PASSWORD
+			echo ""
+			if [ -z "$WIFI_PASSWORD" ]; then
+				echo "[assemble-final] Warning: Empty password for SSID '$WIFI_SSID'"
+			fi
+			# Write secrets.nix (gitignored)
+		cat > "$SECRETS_FILE" <<SECREOF
+{
+  wifi = {
+    ssid = "${WIFI_SSID}";
+    psk = "${WIFI_PASSWORD}";
+  };
+}
+SECREOF
+		log_info "WiFi credentials written to secrets.nix (gitignored)"
+		fi
+	fi
+fi
 
 # Validate args after onboarding
 if [ -z "$BOARD" ]; then
@@ -282,7 +320,7 @@ require_sudo() {
 		SUDO_ENV=()
 		for var in BOARD BOARD_EXPLICITLY_SET CACHIX_AUTH_TOKEN ROOTFS_FLAVOR DRIVERS_MODE \
 			FIRMWARE_UPSTREAM DRY_RUN INSPECT_AFTER CLEANUP_ROOTFS CLEANUP_NO_DRY_RUN \
-			CLEANUP_KEEP PREWARM_CACHE PUSH_TO_CACHIX; do
+			CLEANUP_KEEP PREWARM_CACHE PUSH_TO_CACHIX WIFI_SSID; do
 			if [ -n "${!var:-}" ]; then SUDO_ENV+=("$var=${!var}"); fi
 		done
 		exec sudo -E -H "${SUDO_ENV[@]}" "$0" --no-sudo "$@"
@@ -626,7 +664,15 @@ nix build "${NIX_BUILD_FLAGS[@]}" ."#extracted-kernel-${BOARD}" &
 KERNEL_PID=$!
 nix build "${NIX_BUILD_FLAGS[@]}" ."#initramfs-patching-${BOARD}" &
 INITRAMFS_PID=$!
-nix build "${NIX_BUILD_FLAGS[@]}" ."#${RAW_ROOTFS_ATTR}" &
+
+# Headless+WiFi builds use path: fetcher to include untracked secrets.nix
+if [ -n "$WIFI_SSID" ] && [ "${ROOTFS_FLAVOR}" = "headless" ]; then
+	ROOTFS_FETCHER="path:${PWD}#"
+	log_info "Using path: fetcher for headless rootfs (includes secrets.nix)"
+else
+	ROOTFS_FETCHER=".#" 
+fi
+nix build "${NIX_BUILD_FLAGS[@]}" "${ROOTFS_FETCHER}${RAW_ROOTFS_ATTR}" &
 ROOTFS_PID=$!
 
 # Wait and check each
@@ -647,7 +693,7 @@ wait $ROOTFS_PID || {
 ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config ".#extracted-kernel-${BOARD}" --print-out-paths)/p2.bin"
 PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config ".#initramfs-patching-${BOARD}" --print-out-paths)/patched-initramfs"
 # Resolve rootfs image from derivation output with three-tier fallback
-RAW_ROOTFS_OUT="$(nix build --impure --accept-flake-config ".#${RAW_ROOTFS_ATTR}" --print-out-paths)"
+RAW_ROOTFS_OUT="$(nix build --impure --accept-flake-config "${ROOTFS_FETCHER}${RAW_ROOTFS_ATTR}" --print-out-paths)"
 if [ -f "$RAW_ROOTFS_OUT/nixos.img" ]; then
 	RAW_ROOTFS_IMG="$RAW_ROOTFS_OUT/nixos.img"
 elif [ -f "$RAW_ROOTFS_OUT" ]; then
