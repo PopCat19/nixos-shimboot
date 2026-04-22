@@ -54,31 +54,33 @@
       # Systemd 257.9 with ChromeOS patch and missing unit stubs
       # Built with unstable's stdenv to match glibc version for initramfs compatibility
       # Passed via specialArgs, not overlay (avoids cross-version function arg issues)
-      systemd257 = (pkgsSystemd.systemd.override {
-        # Use unstable's stdenv to get glibc 2.42 matching rest of initramfs
-        stdenv = pkgs.stdenv;
-      }).overrideAttrs (old: {
-        patches = (old.patches or [ ]) ++ [
-          ./patches/systemd-mountpoint-util-chromeos.patch
-        ];
-        # Add passthru attributes expected by nixos-unstable modules
-        # Note: withTpm2Units=false to avoid missing systemd-tpm2-clear.service (not in 257.9)
-        passthru = old.passthru or { } // {
-          withLogind = true;
-          withNspawn = true;
-          withVconsole = true;
-          withTpm2Units = false;
-          withPortabled = false;
-          withSysupdate = false;
-        };
-        # Create stub files for units added in systemd 258+ but expected by nixos-unstable
-        postInstall = (old.postInstall or "") + ''
-          # Create missing factory-reset units (added in systemd 258)
-          mkdir -p $out/example/systemd/system/factory-reset.target.wants
-          printf "[Unit]\\nDescription=Factory Reset Request (stub)\\n" > $out/example/systemd/system/systemd-factory-reset-request.service
-          printf "[Unit]\\nDescription=Factory Reset Reboot (stub)\\n" > $out/example/systemd/system/systemd-factory-reset-reboot.service
-        '';
-      });
+      systemd257 =
+        (pkgsSystemd.systemd.override {
+          # Use unstable's stdenv to get glibc 2.42 matching rest of initramfs
+          inherit (pkgs) stdenv;
+        }).overrideAttrs
+          (old: {
+            patches = (old.patches or [ ]) ++ [
+              ./patches/systemd-mountpoint-util-chromeos.patch
+            ];
+            # Add passthru attributes expected by nixos-unstable modules
+            # Note: withTpm2Units=false to avoid missing systemd-tpm2-clear.service (not in 257.9)
+            passthru = old.passthru or { } // {
+              withLogind = true;
+              withNspawn = true;
+              withVconsole = true;
+              withTpm2Units = false;
+              withPortabled = false;
+              withSysupdate = false;
+            };
+            # Create stub files for units added in systemd 258+ but expected by nixos-unstable
+            postInstall = (old.postInstall or "") + ''
+              # Create missing factory-reset units (added in systemd 258)
+              mkdir -p $out/example/systemd/system/factory-reset.target.wants
+              printf "[Unit]\\nDescription=Factory Reset Request (stub)\\n" > $out/example/systemd/system/systemd-factory-reset-request.service
+              printf "[Unit]\\nDescription=Factory Reset Reboot (stub)\\n" > $out/example/systemd/system/systemd-factory-reset-reboot.service
+            '';
+          });
 
       # Import module outputs
       # Core system and development modules

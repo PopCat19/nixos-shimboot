@@ -58,7 +58,8 @@ let
   ];
 in
 {
-  imports = coreModules ++ lib.optionals (!headless) desktopModules ++ lib.optionals headless headlessModules;
+  imports =
+    coreModules ++ lib.optionals (!headless) desktopModules ++ lib.optionals headless headlessModules;
 
   _module.args.userConfig = userConfig;
 

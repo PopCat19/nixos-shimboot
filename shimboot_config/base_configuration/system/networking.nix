@@ -40,10 +40,7 @@ in
     wireless = lib.mkIf headless {
       enable = lib.mkDefault true;
       userControlled = lib.mkDefault false;
-      networks = if wifiConfigured then
-        { "${wifi.ssid}" = { psk = wifi.psk; }; }
-      else
-        { };
+      networks = if wifiConfigured then { "${wifi.ssid}" = { inherit (wifi) psk; }; } else { };
     };
     networkmanager = {
       enable = lib.mkDefault (!headless);

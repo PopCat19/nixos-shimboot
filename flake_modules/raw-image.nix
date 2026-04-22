@@ -13,7 +13,6 @@
   ...
 }:
 let
-  inherit (nixpkgs) lib;
   system = "x86_64-linux";
 
   # Import user config from flattened location
@@ -22,7 +21,9 @@ let
   # Helper function to create NixOS configuration for image generation
   # This works for both NixOS and non-NixOS builders
   mkImageConfiguration =
-    { headless ? false }:
+    {
+      headless ? false,
+    }:
     let
       # Create a NixOS configuration with the image module
       nixosConfig = nixpkgs.lib.nixosSystem {

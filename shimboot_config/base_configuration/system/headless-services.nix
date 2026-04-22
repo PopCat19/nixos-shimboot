@@ -7,7 +7,6 @@
 # - Provides network status polling for SSH-only builds
 {
   pkgs,
-  lib,
   ...
 }:
 {
@@ -55,7 +54,10 @@
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
     wantedBy = [ "multi-user.target" ];
-    path = [ pkgs.iproute2 pkgs.nettools ];
+    path = [
+      pkgs.iproute2
+      pkgs.nettools
+    ];
     serviceConfig = {
       Type = "simple";
       ExecStart = pkgs.writeShellScript "network-status-poll" ''

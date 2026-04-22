@@ -13,7 +13,6 @@
 #   older shim kernels (octopus 4.14.x, dedede 5.4.x before certain commits)
 # - Ref: https://github.com/ading2210/shimboot/issues/405
 {
-  pkgs,
   systemd257,
   ...
 }:
