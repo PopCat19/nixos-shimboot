@@ -63,7 +63,7 @@ in
       Type = "simple";
       ExecStart = pkgs.writeShellScriptBin "network-status-poll" ''
         echo "=== Network Status ==="
-        for i in $(seq 1 12); do
+        for _ in $(seq 1 12); do
           echo ""
           echo "[$(date '+%H:%M:%S')] Interface status:"
 
@@ -92,7 +92,7 @@ in
 
           if [ -n "$wifi_iface" ]; then
             ${pkgs.iproute2}/bin/ip -br link show "$wifi_iface" 2>/dev/null > /tmp/netstatus-wifi
-            read -r if_name if_state rest < /tmp/netstatus-wifi
+            read -r _wifi_iface_ifname if_state rest < /tmp/netstatus-wifi
             rm -f /tmp/netstatus-wifi
             echo "  WiFi ($wifi_iface): $if_state"
           fi
