@@ -10,19 +10,25 @@
 {
   pkgs,
   lib,
+  config,
   ...
 }:
+let
+  notHeadless = !config.shimboot.headless;
+in
 {
-  programs.hyprland = {
-    enable = lib.mkDefault true;
-    xwayland.enable = lib.mkDefault true;
-  };
+  config = lib.mkIf notHeadless {
+    programs.hyprland = {
+      enable = lib.mkDefault true;
+      xwayland.enable = lib.mkDefault true;
+    };
 
-  environment.sessionVariables = {
-    NIXOS_OZONE_WL = lib.mkDefault "1";
-  };
+    environment.sessionVariables = {
+      NIXOS_OZONE_WL = lib.mkDefault "1";
+    };
 
-  environment.systemPackages = with pkgs; [
-    kitty # required for the default Hyprland config
-  ];
+    environment.systemPackages = with pkgs; [
+      kitty # required for the default Hyprland config
+    ];
+  };
 }

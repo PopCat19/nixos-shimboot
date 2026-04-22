@@ -13,11 +13,12 @@
 {
   pkgs,
   lib,
+  config,
   userConfig,
-  headless ? false,
   ...
 }:
 let
+  headless = config.shimboot.headless;
   hostname = userConfig.host.hostname or userConfig.hostname;
 
   # Load WiFi secrets from gitignored file (not tracked in version control)

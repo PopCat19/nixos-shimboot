@@ -6,9 +6,18 @@
 #
 # This module enables:
 # - PipeWire for modern audio routing
-{ lib, ... }:
 {
-  services.pipewire = {
-    enable = lib.mkDefault true;
+  lib,
+  config,
+  ...
+}:
+let
+  notHeadless = !config.shimboot.headless;
+in
+{
+  config = lib.mkIf notHeadless {
+    services.pipewire = {
+      enable = lib.mkDefault true;
+    };
   };
 }

@@ -30,14 +30,16 @@ let
         systemd257
         ;
       inherit (self) inputs;
-      headless = false;
     };
   };
 
   # Headless configuration - SSH-only, no desktop
   headlessConfig = {
     inherit system;
-    modules = [ ../shimboot_config/base_configuration/configuration.nix ];
+    modules = [
+      ../shimboot_config/base_configuration/configuration.nix
+      { shimboot.headless = true; }
+    ];
     specialArgs = {
       inherit
         self
@@ -45,7 +47,6 @@ let
         systemd257
         ;
       inherit (self) inputs;
-      headless = true;
     };
   };
 

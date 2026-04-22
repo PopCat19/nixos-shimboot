@@ -8,19 +8,29 @@
 # - Provides systemd service to kill frecon-lite
 # - Unmounts /dev/console for X11 compatibility
 # - Ensures proper boot sequence for display manager
-{ pkgs, ... }:
 {
-  systemd.services.kill-frecon = {
-    description = "Kill frecon to allow X11 to start";
-    wantedBy = [ "graphical.target" ];
-    before = [ "display-manager.service" ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = pkgs.writeShellScript "kill-frecon" ''
-        ${pkgs.util-linux}/bin/umount -l /dev/console 2>/dev/null || true
-        ${pkgs.procps}/bin/pkill frecon-lite 2>/dev/null || true
-      '';
+  pkgs,
+  lib,
+  config,
+  ...
+}:
+let
+  notHeadless = !config.shimboot.headless;
+in
+{
+  config = lib.mkIf notHeadless {
+    systemd.services.kill-frecon = {
+      description = "Kill frecon to allow X11 to start";
+      wantedBy = [ "graphical.target" ];
+      before = [ "display-manager.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = pkgs.writeShellScript "kill-frecon" ''
+          ${pkgs.util-linux}/bin/umount -l /dev/console 2>/dev/null || true
+          ${pkgs.procps}/bin/pkill frecon-lite 2>/dev/null || true
+        '';
+      };
     };
   };
 }

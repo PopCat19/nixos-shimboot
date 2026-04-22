@@ -9,45 +9,51 @@
 {
   pkgs,
   lib,
+  config,
   ...
 }:
+let
+  notHeadless = !config.shimboot.headless;
+in
 {
-  xdg.mime.enable = lib.mkDefault true;
-  xdg.portal = {
-    enable = lib.mkDefault true;
-    xdgOpenUsePortal = false;
-    extraPortals = [
-      pkgs.xdg-desktop-portal
-      pkgs.xdg-desktop-portal-hyprland
-      pkgs.xdg-desktop-portal-gtk
-    ];
-    config = {
-      common.default = [ "gtk" ];
-      hyprland = {
-        default = [
-          "hyprland"
-          "gtk"
-        ];
-        "org.freedesktop.impl.portal.OpenURI" = [ "gtk" ];
+  config = lib.mkIf notHeadless {
+    xdg.mime.enable = lib.mkDefault true;
+    xdg.portal = {
+      enable = lib.mkDefault true;
+      xdgOpenUsePortal = false;
+      extraPortals = [
+        pkgs.xdg-desktop-portal
+        pkgs.xdg-desktop-portal-hyprland
+        pkgs.xdg-desktop-portal-gtk
+      ];
+      config = {
+        common.default = [ "gtk" ];
+        hyprland = {
+          default = [
+            "hyprland"
+            "gtk"
+          ];
+          "org.freedesktop.impl.portal.OpenURI" = [ "gtk" ];
+        };
       };
     };
-  };
 
-  systemd.user.services.xdg-desktop-portal-hyprland = {
-    overrideStrategy = "asDropin";
-    serviceConfig.Environment = [ "GDK_BACKEND=wayland" ];
-    wantedBy = [ "hyprland-session.target" ];
-    after = [ "hyprland-session.target" ];
-    partOf = [ "hyprland-session.target" ];
-    unitConfig.ConditionEnvironment = "";
-  };
-
-  systemd.user.services.xdg-desktop-portal = {
-    overrideStrategy = "asDropin";
-    unitConfig = {
-      After = "xdg-desktop-portal-hyprland.service";
-      Wants = "xdg-desktop-portal-hyprland.service";
+    systemd.user.services.xdg-desktop-portal-hyprland = {
+      overrideStrategy = "asDropin";
+      serviceConfig.Environment = [ "GDK_BACKEND=wayland" ];
+      wantedBy = [ "hyprland-session.target" ];
+      after = [ "hyprland-session.target" ];
+      partOf = [ "hyprland-session.target" ];
+      unitConfig.ConditionEnvironment = "";
     };
-    serviceConfig.ExecStartPre = "/bin/sh -c 'until systemctl --user is-active xdg-desktop-portal-hyprland.service; do sleep 0.5; done'";
+
+    systemd.user.services.xdg-desktop-portal = {
+      overrideStrategy = "asDropin";
+      unitConfig = {
+        After = "xdg-desktop-portal-hyprland.service";
+        Wants = "xdg-desktop-portal-hyprland.service";
+      };
+      serviceConfig.ExecStartPre = "/bin/sh -c 'until systemctl --user is-active xdg-desktop-portal-hyprland.service; do sleep 0.5; done'";
+    };
   };
 }

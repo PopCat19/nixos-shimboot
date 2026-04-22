@@ -40,7 +40,8 @@ let
             nixpkgs.hostPlatform = system;
             boot.kernelParams = [ "console=ttyS0,115200" ];
           }
-        ];
+        ]
+        ++ nixpkgs.lib.optional headless { shimboot.headless = true; };
         specialArgs = {
           inherit
             self
@@ -48,7 +49,6 @@ let
             systemd257
             ;
           inherit (self) inputs;
-          inherit headless;
         };
       };
     in

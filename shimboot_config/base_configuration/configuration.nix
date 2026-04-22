@@ -3,25 +3,25 @@
 # Purpose: Core NixOS configuration for shimboot base system
 #
 # This module:
-# - Imports all base system modules
-# - Conditionally skips desktop modules for headless config
+# - Imports all base system modules unconditionally
+# - Desktop modules self-gate on shimboot.headless option
 # - Configures Nix settings and binary caches
 # - Enables Fish shell and unfree packages
 # - Sets system state version
 #
 # Note: userConfig is passed as a module argument
 # from the calling configuration (system-configuration.nix or raw-image.nix)
-# Note: headless can be passed via specialArgs to skip desktop modules (SSH-only config)
 {
   lib,
   pkgs,
+  config,
   userConfig,
-  headless ? false,
   ...
 }:
 let
   # Core modules - always imported
   coreModules = [
+    ../shimboot-options.nix
     ../nix-options.nix
     ./system/environment.nix
     ./system/boot.nix
@@ -41,7 +41,7 @@ let
     ./system/zram.nix
   ];
 
-  # Desktop modules - skipped for headless config
+  # Desktop modules - gated by shimboot.headless in each module
   desktopModules = [
     ./system/kill-frecon.nix
     ./system/hyprland.nix
@@ -52,19 +52,21 @@ let
     ./system/audio.nix
   ];
 
-  # Headless-only services
+  # Headless-only services - gated by shimboot.headless in each module
   headlessModules = [
     ./system/headless-services.nix
   ];
 in
 {
-  imports =
-    coreModules ++ lib.optionals (!headless) desktopModules ++ lib.optionals headless headlessModules;
+  imports = coreModules ++ desktopModules ++ headlessModules;
+
+  # Default to desktop mode when not explicitly set
+  shimboot.headless = lib.mkDefault false;
 
   _module.args.userConfig = userConfig;
 
   # Enable SSH for headless config
-  services.openssh = lib.mkIf headless {
+  services.openssh = lib.mkIf config.shimboot.headless {
     enable = lib.mkDefault true;
     settings.PasswordAuthentication = lib.mkDefault true;
   };
@@ -79,8 +81,6 @@ in
       ExecStart = "${lib.getBin pkgs.nix}/bin/nix-env --delete-generations +10 -p /nix/var/nix/profiles/system";
     };
   };
-
-  nixpkgs.config.allowUnfree = true;
 
   system.stateVersion = "24.11";
 }

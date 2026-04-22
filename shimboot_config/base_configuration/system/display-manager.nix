@@ -13,48 +13,56 @@
 {
   pkgs,
   lib,
+  config,
   ...
 }:
+let
+  notHeadless = !config.shimboot.headless;
+in
 {
-  services.xserver = {
-    enable = lib.mkDefault true;
-    xkb.layout = lib.mkDefault "us";
-    desktopManager.runXdgAutostartIfNone = lib.mkDefault true;
-  };
+  config = lib.mkIf notHeadless {
+    services.xserver = {
+      enable = lib.mkDefault true;
+      xkb.layout = lib.mkDefault "us";
+      desktopManager.runXdgAutostartIfNone = lib.mkDefault true;
+    };
 
-  services.xserver.displayManager.lightdm = {
-    enable = lib.mkDefault true;
-    greeters.gtk.enable = lib.mkDefault true;
-  };
+    services.xserver.displayManager.lightdm = {
+      enable = lib.mkDefault true;
+      greeters.gtk.enable = lib.mkDefault true;
+    };
 
-  services.xserver.displayManager.session = [
-    {
-      manage = "window";
-      name = "hyprland";
-      start = ''
-        ${pkgs.hyprland}/bin/Hyprland
-      '';
-    }
-  ];
+    services.xserver.displayManager.session = [
+      {
+        manage = "window";
+        name = "hyprland";
+        start = ''
+          ${pkgs.hyprland}/bin/Hyprland
+        '';
+      }
+    ];
 
-  services.displayManager.defaultSession = lib.mkDefault "hyprland";
+    services.displayManager.defaultSession = lib.mkDefault "hyprland";
 
-  programs.dconf.enable = lib.mkDefault true;
+    programs.dconf.enable = lib.mkDefault true;
 
-  services.logind = {
-    settings = {
-      Login = {
-        HandleLidSwitch = "ignore";
-        HandlePowerKey = "ignore";
-        HandleSuspendKey = "ignore";
-        HandleHibernateKey = "ignore";
+    services.logind = {
+      settings = {
+        Login = {
+          HandleLidSwitch = "ignore";
+          HandlePowerKey = "ignore";
+          HandleSuspendKey = "ignore";
+          HandleHibernateKey = "ignore";
+        };
       };
     };
-  };
 
-  systemd.services.display-manager.after = lib.mkDefault [
-    "multi-user.target"
-    "systemd-logind.service"
-  ];
-  systemd.services.display-manager.wants = lib.mkDefault [ ];
+    systemd.services.display-manager = {
+      after = lib.mkDefault [
+        "multi-user.target"
+        "systemd-logind.service"
+      ];
+      wants = lib.mkDefault [ ];
+    };
+  };
 }

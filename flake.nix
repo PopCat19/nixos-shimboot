@@ -160,6 +160,9 @@
         # Note: systemd is overridden via systemdOverlay in flake.nix
         chromeos = ./shimboot_config/base_configuration/configuration.nix;
 
+        # Shimboot options (shimboot.headless mkEnableOption)
+        shimboot-options = ./shimboot_config/shimboot-options.nix;
+
         # Granular modules for selective import
         nix-options = ./shimboot_config/nix-options.nix;
         raw-image = ./flake_modules/raw-image.nix;
