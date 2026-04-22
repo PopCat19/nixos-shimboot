@@ -58,51 +58,73 @@ in
     after = [ "network-online.target" ];
     wants = [ "network-online.target" ];
     wantedBy = [ "multi-user.target" ];
-    path = [ pkgs.iproute2 pkgs.nettools pkgs.iw pkgs.gnugrep ];
+    path = [ pkgs.iproute2 pkgs.nettools ];
     serviceConfig = {
       Type = "simple";
-      ExecStart = pkgs.writeShellScript "network-status-poll" ''
+      ExecStart = pkgs.writeShellScriptBin "network-status-poll" ''
         echo "=== Network Status ==="
         for i in $(seq 1 12); do
-          # Show interfaces without piped grep (avoid broken pipe errors)
           echo ""
           echo "[$(date '+%H:%M:%S')] Interface status:"
-          ${pkgs.iproute2}/bin/ip -br addr show 2>/dev/null | while read line; do
+
+          # Get interfaces, store temporarily (broken pipe safe)
+          ${pkgs.iproute2}/bin/ip -br addr show > /tmp/netstatus-ip 2>/dev/null || true
+          while IFS= read -r line || [ -n "$line" ]; do
             case "$line" in
-              *LOOPBACK*) ;;
+              *LOOPBACK*) continue ;;
               *) echo "  $line" ;;
+            esac
+          done < /tmp/netstatus-ip
+          rm -f /tmp/netstatus-ip
+
+          # Find WiFi interfaces from sysfs (no pipelines)
+          wifi_iface=""
+          for dev in /sys/class/net/*; do
+            [ -d "$dev" ] || continue
+            name=$(basename "$dev")
+            case "$name" in
+              wlan*|wlp*)
+                wifi_iface="$name"
+                break
+                ;;
             esac
           done
 
-          # Check for WiFi connection
-          wifi_iface=$(${pkgs.iproute2}/bin/ip -br link show 2>/dev/null | ${pkgs.gnugrep}/bin/grep -E "wlan|wlp" | ${pkgs.coreutils}/bin/awk '{print $1}' | ${pkgs.coreutils}/bin/head -n1)
           if [ -n "$wifi_iface" ]; then
-            wifi_state=$(${pkgs.iproute2}/bin/ip -br link show "$wifi_iface" 2>/dev/null | ${pkgs.coreutils}/bin/awk '{print $2}')
-            echo "  WiFi ($wifi_iface): $wifi_state"
+            ${pkgs.iproute2}/bin/ip -br link show "$wifi_iface" 2>/dev/null > /tmp/netstatus-wifi
+            read -r if_name if_state rest < /tmp/netstatus-wifi
+            rm -f /tmp/netstatus-wifi
+            echo "  WiFi ($wifi_iface): $if_state"
           fi
 
-          # Show SSH access info when IP is available
-          ips=$(hostname -I 2>/dev/null || true)
+          # Get IPs without pipelines
+          ${pkgs.nettools}/bin/hostname -I 2>/dev/null > /tmp/netstatus-hostname
+          ips=$(cat /tmp/netstatus-hostname)
+          rm -f /tmp/netstatus-hostname
+
           if [ -n "$ips" ]; then
-            # Filter out loopback, just show actual network IPs
-            real_ips=$(echo "$ips" | tr ' ' '\n' | grep -v "^127\\." | grep -v "^::1$" | head -2)
-            if [ -n "$real_ips" ]; then
+            # Check for non-loopback IPs using shell only
+            has_real_ip=0
+            for addr in $ips; do
+              case "$addr" in
+                127.*|::1) continue ;;
+                *)
+                  has_real_ip=1
+                  echo ""
+                  echo "SSH access:"
+                  echo "  ssh user@$addr"
+                  break
+                  ;;
+              esac
+            done
+
+            if [ "$has_real_ip" -eq 1 ]; then
               echo ""
-              echo "SSH access:"
-              for addr in $real_ips; do
-                echo "  ssh user@$addr"
-              done
+              echo "Network connected. Stopping status display."
+              break
             fi
           fi
 
-          # Stop polling if we have a real network IP
-          if [ -n "$ips" ] && echo "$ips" | grep -qv "^127\\."; then
-            echo ""
-            echo "Network connected. Stopping status display."
-            break
-          fi
-
-          # Sleep 5 seconds before next poll
           sleep 5
         done
       '';
