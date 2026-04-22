@@ -28,9 +28,9 @@ rescue_mode=""
 INIT_PATH="/sbin/init"
 
 info() { printf "# %s\n" "$*"; }
-sep()  { printf "=== \n"; }
-log()  { printf "> %s\n" "$*"; }
-err()  { printf "> %s\n" "$*"; }
+sep() { printf "=== \n"; }
+log() { printf "> %s\n" "$*"; }
+err() { printf "> %s\n" "$*"; }
 
 invoke_terminal() {
 	local tty="$1"
@@ -324,18 +324,28 @@ select_nixos_generation() {
 
 	echo ""
 	echo "  [enter] Boot default generation: ${default_num}"
+	echo "  [dN]   Make N default and boot (rollback)"
 	echo "  [b]     Return"
 	echo ""
 	echo ""
 	read -p "Select generation (or press enter): " gen_sel
 
+	local make_default=0
 	case "$gen_sel" in
-		b|B)
-			return 2
-			;;
-		''|*[!0-9]*)
-			gen_sel="$default_num"
-			;;
+	b | B)
+		return 2
+		;;
+	d* | D*)
+		make_default=1
+		gen_sel="${gen_sel#d}"
+		gen_sel="${gen_sel#D}"
+		;;
+	esac
+
+	case "$gen_sel" in
+	'' | *[!0-9]*)
+		gen_sel="$default_num"
+		;;
 	esac
 
 	local selected_line
@@ -349,6 +359,25 @@ select_nixos_generation() {
 	local selected_path selected_num
 	selected_path="$(echo "$selected_line" | cut -d'|' -f5)"
 	selected_num="$(echo "$selected_line" | cut -d'|' -f1)"
+
+	if [ "$make_default" -eq 1 ]; then
+		local profiles_dir="${root}/nix/var/nix/profiles"
+		local target_link="${profiles_dir}/system-${selected_num}-link"
+
+		if [ ! -L "$target_link" ]; then
+			err "generation ${selected_num} link not found"
+		else
+			log "remounting ${root} read-write..."
+			mount -o remount,rw "${root}" || err "remount failed, proceeding anyway"
+
+			log "setting default generation to ${selected_num}..."
+			rm -f "${profiles_dir}/system"
+			ln -s "$(readlink "${target_link}")" "${profiles_dir}/system"
+			sync
+			log "default generation updated"
+		fi
+	fi
+
 	log "booting NixOS generation ${selected_num}"
 	INIT_PATH="${selected_path}"
 }
@@ -395,39 +424,39 @@ get_selection() {
 	local i=1
 
 	read -t 30 -p "Enter partition or option: " selection || {
-	    # timeout — redraw menu with refreshed SoC
-	    return 1
+		# timeout — redraw menu with refreshed SoC
+		return 1
 	}
 
 	case "$selection" in
-		r)
-			echo "rebooting now."
-			reboot -f
-			;;
-		q)
-			echo "powering off."
-			poweroff -f
-			;;
-		0)
-			echo ""
-			blkid || true
-			echo ""
-			read -p "press [enter] to return"
-			return 1
-			;;
-		s)
-			interactive_shell
-			return 1
-			;;
-		l)
-			clear
-			print_license
-			echo ""
-			echo "  [b] Return"
-			echo ""
-			read -p "Enter selection: " _lic_sel
-			return 1
-			;;
+	r)
+		echo "rebooting now."
+		reboot -f
+		;;
+	q)
+		echo "powering off."
+		poweroff -f
+		;;
+	0)
+		echo ""
+		blkid || true
+		echo ""
+		read -p "press [enter] to return"
+		return 1
+		;;
+	s)
+		interactive_shell
+		return 1
+		;;
+	l)
+		clear
+		print_license
+		echo ""
+		echo "  [b] Return"
+		echo ""
+		read -p "Enter selection: " _lic_sel
+		return 1
+		;;
 	esac
 
 	local selection_cmd="$(echo "$selection" | cut -d' ' -f1)"
