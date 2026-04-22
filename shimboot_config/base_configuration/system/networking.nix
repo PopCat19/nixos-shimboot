@@ -89,26 +89,6 @@ in
           done < /tmp/netstatus-ip
           rm -f /tmp/netstatus-ip
 
-          # Find WiFi interfaces from sysfs (no pipelines)
-          wifi_iface=""
-          for dev in /sys/class/net/*; do
-            [ -d "$dev" ] || continue
-            name=$(basename "$dev")
-            case "$name" in
-              wlan*|wlp*)
-                wifi_iface="$name"
-                break
-                ;;
-            esac
-          done
-
-          if [ -n "$wifi_iface" ]; then
-            ${pkgs.iproute2}/bin/ip -br link show "$wifi_iface" 2>/dev/null > /tmp/netstatus-wifi
-            read -r _wifi_iface_ifname if_state rest < /tmp/netstatus-wifi
-            rm -f /tmp/netstatus-wifi
-            echo "  WiFi ($wifi_iface): $if_state"
-          fi
-
           # Get IPs without pipelines
           ${pkgs.nettools}/bin/hostname -I 2>/dev/null > /tmp/netstatus-hostname
           ips=$(cat /tmp/netstatus-hostname)
