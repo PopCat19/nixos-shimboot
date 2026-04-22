@@ -75,23 +75,30 @@
             };
             # Create stub files for units added in systemd 258+ but expected by nixos-unstable
             postInstall = (old.postInstall or "") + ''
-              # Create missing factory-reset units (added in systemd 258)
+              # Auto-generate stubs for units expected by nixos-unstable but missing in 257.9
+              # Units added in systemd 258+
+              MISSING_UNITS="breakpoint-pre-udev.service breakpoint-pre-basic.service breakpoint-pre-mount.service breakpoint-pre-switch-root.service systemd-factory-reset-complete.service factory-reset-now.target"
+              
+              for unit in $MISSING_UNITS; do
+                if [ ! -e "$out/example/systemd/system/$unit" ]; then
+                  name=$(echo "$unit" | sed 's/\.[^.]*$//')
+                  printf "[Unit]\nDescription=%s (stub - not in systemd 257.9)\n" "$name" > "$out/example/systemd/system/$unit"
+                fi
+              done
+              
+              # Factory-reset setup
               mkdir -p $out/example/systemd/system/factory-reset.target.wants
-              printf "[Unit]\\nDescription=Factory Reset Request (stub)\\n" > $out/example/systemd/system/systemd-factory-reset-request.service
-              printf "[Unit]\\nDescription=Factory Reset Reboot (stub)\\n" > $out/example/systemd/system/systemd-factory-reset-reboot.service
-              printf "[Unit]\\nDescription=Factory Reset Complete (stub)\\n" > $out/example/systemd/system/systemd-factory-reset-complete.service
-              printf "[Unit]\\nDescription=Factory Reset Now (stub)\\n" > $out/example/systemd/system/factory-reset-now.target
-              # Create missing factory-reset binaries (added in systemd 258)
+              
+              # Binaries added in systemd 258+
+              MISSING_BINS="systemd-factory-reset system-generators/systemd-factory-reset-generator"
+              
               mkdir -p $out/lib/systemd/system-generators
-              printf '#!/bin/sh\\n# Stub - not available in systemd 257.9\\nexit 0\\n' > $out/lib/systemd/systemd-factory-reset
-              printf '#!/bin/sh\\n# Stub - not available in systemd 257.9\\nexit 0\\n' > $out/lib/systemd/system-generators/systemd-factory-reset-generator
-              chmod +x $out/lib/systemd/systemd-factory-reset $out/lib/systemd/system-generators/systemd-factory-reset-generator
-              # Create missing breakpoint units (added in systemd 258)
-              # These are debugging units for halting boot at specific points
-              printf "[Unit]\\nDescription=Breakpoint before udev (stub)\\n" > $out/example/systemd/system/breakpoint-pre-udev.service
-              printf "[Unit]\\nDescription=Breakpoint before basic.target (stub)\\n" > $out/example/systemd/system/breakpoint-pre-basic.service
-              printf "[Unit]\\nDescription=Breakpoint before mount (stub)\\n" > $out/example/systemd/system/breakpoint-pre-mount.service
-              printf "[Unit]\\nDescription=Breakpoint before switch-root (stub)\\n" > $out/example/systemd/system/breakpoint-pre-switch-root.service
+              for bin in $MISSING_BINS; do
+                if [ ! -e "$out/lib/systemd/$bin" ]; then
+                  printf '#!/bin/sh\n# Stub - not available in systemd 257.9\nexit 0\n' > "$out/lib/systemd/$bin"
+                  chmod +x "$out/lib/systemd/$bin"
+                fi
+              done
             '';
           });
 
