@@ -485,6 +485,7 @@ CHROOT_SETUP_EOF
 			umount "$MOUNTPOINT/etc/resolv.conf" 2>/dev/null || true
 			umount "$MOUNTPOINT/dev/pts" 2>/dev/null || true
 			umount "$MOUNTPOINT/sys" "$MOUNTPOINT/proc" "$MOUNTPOINT/dev" || true
+			pause
 			;;
 		"Check disk usage")
 			log_info "Disk usage for $TARGET_PARTITION:"
@@ -899,6 +900,7 @@ CHROOT_SETUP_EOF
 						umount "$MOUNTPOINT/dev/pts" 2>/dev/null || true
 						umount "$MOUNTPOINT/sys" "$MOUNTPOINT/proc" "$MOUNTPOINT/dev" || true
 						log_info "Returned from chroot"
+						pause
 						break
 						;;
 					"Use nix flake show (accurate but slow)")
