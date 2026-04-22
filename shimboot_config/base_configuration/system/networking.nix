@@ -61,7 +61,7 @@ in
     path = [ pkgs.iproute2 pkgs.nettools ];
     serviceConfig = {
       Type = "simple";
-      ExecStart = pkgs.writeShellScriptBin "network-status-poll" ''
+      ExecStart = pkgs.writeShellScript "network-status-poll" ''
         echo "=== Network Status ==="
         for _ in $(seq 1 12); do
           echo ""
