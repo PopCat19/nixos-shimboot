@@ -10,7 +10,8 @@
 
 { lib, ... }:
 {
-  boot.kernelParams = lib.mkDefault [ "intel_pstate=passive" ];
+  # ChromeOS kernel requires passive mode - critical for power management
+  boot.kernelParams = lib.mkForce [ "intel_pstate=passive" ];
 
   powerManagement.enable = lib.mkDefault true;
 

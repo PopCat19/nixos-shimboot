@@ -8,8 +8,10 @@
 # - Enables NetworkManager with wpa_supplicant backend (base)
 # - Enables wpa_supplicant for headless builds
 # - Configures firewall with SSH access
-# - Loads WiFi kernel modules for ChromeOS devices
-# - Handles rfkill unblocking for WLAN
+# - Loads WiFi kernel modules for ChromeOS devices (mkForce)
+# - Handles rfkill unblocking for WLAN (mkForce)
+#
+# Note: kernelModules and rfkill use mkForce - critical for Intel WiFi detection
 {
   pkgs,
   lib,
@@ -49,12 +51,13 @@ in
     timeServers = lib.mkDefault [ "pool.ntp.org" ];
   };
 
-  boot.kernelModules = lib.mkDefault [
+  # Intel WiFi drivers - critical for hardware detection
+  boot.kernelModules = lib.mkForce [
     "iwlmvm"
     "ccm"
   ];
 
-  system.activationScripts.rfkillUnblockWlan = lib.mkDefault {
+  system.activationScripts.rfkillUnblockWlan = lib.mkForce {
     text = ''
       ${pkgs.util-linux}/bin/rfkill unblock wlan
     '';
