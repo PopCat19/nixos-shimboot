@@ -271,16 +271,17 @@ Conditional drivers loaded
 
 ## Tasks
 
-- [ ] 1. Add board option to shimboot-options.nix (required, assertion if unset)
-- [ ] 2. Create boards/default.nix with board database
-- [ ] 3. Pass board from assemble-final.sh → flake.nix → raw-image.nix → NixOS config
-- [ ] 4. Update networking.nix (kernelModules conditional)
-- [ ] 5. Update power-management.nix (intel_pstate conditional)
-- [ ] 6. Update hardware.nix (thermald conditional)
-- [ ] 7. Update luks2.nix (aesni_intel conditional)
-- [ ] 8. Update consumer configs (nsc/pnh) with board = "dedede"
-- [ ] 9. Test both build flows (direct + consumer)
-- [ ] 10. Update ns README with board configuration docs
+- [x] 1. Add board option to shimboot-options.nix (required, assertion if unset)
+- [x] 2. Create boards/default.nix with board database
+- [x] 3. Pass board from user-config.nix → configuration.nix → hardware modules
+- [x] 4. Update networking.nix (kernelModules conditional)
+- [x] 5. Update power-management.nix (intel_pstate conditional)
+- [x] 6. Update hardware.nix (thermald conditional)
+- [x] 7. Update luks2.nix (aesni_intel conditional)
+- [x] 8. Update consumer configs (nsc/pnh) with board = "dedede"
+- [ ] 9. Pass board from assemble-final.sh → flake.nix → raw-image.nix (for direct builds)
+- [ ] 10. Test both build flows (direct + consumer)
+- [ ] 11. Update ns README with board configuration docs
 
 ## Testing
 
