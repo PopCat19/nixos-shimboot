@@ -28,12 +28,12 @@ in
 
   users.users = {
     root = {
-      shell = lib.mkDefault pkgs.${shellPackage};
+      shell = lib.mkForce pkgs.${shellPackage};
       initialPassword = lib.mkDefault initialPassword;
     };
     "${username}" = {
       isNormalUser = lib.mkDefault true;
-      shell = lib.mkDefault pkgs.${shellPackage};
+      shell = lib.mkForce pkgs.${shellPackage};
       extraGroups = lib.mkDefault extraGroups;
       initialPassword = lib.mkDefault initialPassword;
     };
