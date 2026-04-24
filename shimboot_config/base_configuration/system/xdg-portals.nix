@@ -20,13 +20,13 @@ in
     xdg.mime.enable = lib.mkDefault true;
     xdg.portal = {
       enable = lib.mkDefault true;
-      xdgOpenUsePortal = false;
-      extraPortals = [
+      xdgOpenUsePortal = lib.mkDefault false;
+      extraPortals = lib.mkDefault [
         pkgs.xdg-desktop-portal
         pkgs.xdg-desktop-portal-hyprland
         pkgs.xdg-desktop-portal-gtk
       ];
-      config = {
+      config = lib.mkDefault {
         common.default = [ "gtk" ];
         hyprland = {
           default = [
@@ -38,7 +38,7 @@ in
       };
     };
 
-    systemd.user.services.xdg-desktop-portal-hyprland = {
+    systemd.user.services.xdg-desktop-portal-hyprland = lib.mkDefault {
       overrideStrategy = "asDropin";
       serviceConfig.Environment = [ "GDK_BACKEND=wayland" ];
       wantedBy = [ "hyprland-session.target" ];
@@ -47,7 +47,7 @@ in
       unitConfig.ConditionEnvironment = "";
     };
 
-    systemd.user.services.xdg-desktop-portal = {
+    systemd.user.services.xdg-desktop-portal = lib.mkDefault {
       overrideStrategy = "asDropin";
       unitConfig = {
         After = "xdg-desktop-portal-hyprland.service";

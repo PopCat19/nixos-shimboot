@@ -32,7 +32,7 @@ in
       greeters.gtk.enable = lib.mkDefault true;
     };
 
-    services.xserver.displayManager.session = [
+    services.xserver.displayManager.session = lib.mkDefault [
       {
         manage = "window";
         name = "hyprland";
@@ -46,7 +46,7 @@ in
 
     programs.dconf.enable = lib.mkDefault true;
 
-    services.logind = {
+    services.logind = lib.mkDefault {
       settings = {
         Login = {
           HandleLidSwitch = "ignore";

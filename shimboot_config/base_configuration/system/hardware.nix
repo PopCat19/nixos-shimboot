@@ -19,7 +19,7 @@
   hardware = {
     # enableRedistributableFirmware = true;
     graphics = {
-      enable = true;
+      enable = lib.mkDefault true;
       enable32Bit = lib.mkDefault false;
     };
     bluetooth = {
@@ -29,8 +29,8 @@
   };
 
   services.thermald = {
-    enable = true;
-    configFile = pkgs.writeText "thermal-conf.xml" ''
+    enable = lib.mkDefault true;
+    configFile = lib.mkDefault (pkgs.writeText "thermal-conf.xml" ''
       <ThermalConfiguration>
         <ThermalZones>
           <ThermalZone>
@@ -51,10 +51,10 @@
           </ThermalZone>
         </ThermalZones>
       </ThermalConfiguration>
-    '';
+    '');
   };
 
-  environment.systemPackages = [
+  environment.systemPackages = lib.mkDefault [
     pkgs.brightnessctl
   ];
 }

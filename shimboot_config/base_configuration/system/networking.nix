@@ -36,7 +36,7 @@ in
     firewall = {
       enable = lib.mkForce false;
     };
-    hostName = hostname;
+    hostName = lib.mkDefault hostname;
     # Use wpa_supplicant directly for headless, NetworkManager for desktop
     wireless = lib.mkIf headless {
       enable = lib.mkDefault true;
@@ -46,15 +46,15 @@ in
     networkmanager = {
       enable = lib.mkDefault (!headless);
     };
-    timeServers = [ "pool.ntp.org" ];
+    timeServers = lib.mkDefault [ "pool.ntp.org" ];
   };
 
-  boot.kernelModules = [
+  boot.kernelModules = lib.mkDefault [
     "iwlmvm"
     "ccm"
   ];
 
-  system.activationScripts.rfkillUnblockWlan = {
+  system.activationScripts.rfkillUnblockWlan = lib.mkDefault {
     text = ''
       ${pkgs.util-linux}/bin/rfkill unblock wlan
     '';

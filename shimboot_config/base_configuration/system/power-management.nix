@@ -10,9 +10,9 @@
 
 { lib, ... }:
 {
-  boot.kernelParams = [ "intel_pstate=passive" ];
+  boot.kernelParams = lib.mkDefault [ "intel_pstate=passive" ];
 
-  powerManagement.enable = true;
+  powerManagement.enable = lib.mkDefault true;
 
   services = {
     thermald.enable = lib.mkDefault false;
