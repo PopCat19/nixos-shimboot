@@ -3,20 +3,27 @@
 # Purpose: Global user configuration for nixos-shimboot
 #
 # This module:
-# - Defines host and system configuration
+# - Defines host and board configuration
 # - Defines user credentials and groups
 # - Defines default application preferences
 # - Defines system directory structure
 # - Defines environment variables
+#
+# Board configuration:
+# - Required: board must be set for hardware-specific drivers
+# - Default: "dedede" for backward compatibility with direct builds
+# - Consumer configs (nsc/pnh) should override this
 {
   hostname ? "nixos-shimboot",
   system ? "x86_64-linux",
   username ? "nixos-user",
+  board ? "dedede",  # Default for direct builds; consumers should override
 }:
 {
   host = {
     inherit system;
     inherit hostname;
+    inherit board;  # Board identifier for hardware config
   };
 
   user = {

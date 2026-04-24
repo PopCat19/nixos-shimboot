@@ -4,14 +4,27 @@
 #
 # This module:
 # - Enables system-wide power management
-# - Switches intel_pstate to passive mode to resolve resource busy errors
+# - Configures kernel parameters based on CPU type (Intel/AMD/ARM)
 # - Configures auto-cpufreq for dynamic frequency scaling
 # - Optimizes WiFi and battery monitoring
+#
+# CPU-specific configuration:
+# - Intel: Uses intel_pstate in passive mode for ChromeOS kernel compatibility
+# - AMD: Uses amd-pstate or default cpufreq
+# - ARM: Uses cpufreq governors
 
-{ lib, ... }:
+{ lib, config, ... }:
+let
+  # Import board database and get current board's config
+  boards = import ../../boards/default.nix { inherit lib; };
+  board = config.shimboot.board;
+  boardConfig = boards.${board};
+in
 {
-  # ChromeOS kernel requires passive mode - critical for power management
-  boot.kernelParams = lib.mkForce [ "intel_pstate=passive" ];
+  # Intel boards: ChromeOS kernel requires passive mode for power management
+  # AMD/ARM: No intel_pstate parameter needed
+  boot.kernelParams = lib.mkIf (boardConfig.cpu == "intel")
+    (lib.mkForce [ "intel_pstate=passive" ]);
 
   powerManagement.enable = lib.mkDefault true;
 

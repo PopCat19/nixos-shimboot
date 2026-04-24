@@ -8,6 +8,7 @@
 # - Configures Nix settings and binary caches
 # - Enables Fish shell and unfree packages
 # - Sets system state version
+# - Sets board from userConfig for hardware-specific configuration
 #
 # Note: userConfig is passed as a module argument
 # from the calling configuration (system-configuration.nix or raw-image.nix)
@@ -62,6 +63,10 @@ in
 
   # Default to desktop mode when not explicitly set
   shimboot.headless = lib.mkDefault false;
+
+  # Set board from userConfig for hardware-specific configuration
+  # This enables conditional driver loading based on ChromeOS board
+  shimboot.board = lib.mkDefault userConfig.host.board;
 
   _module.args.userConfig = userConfig;
 

@@ -9,6 +9,10 @@
 # - Sets up filesystem to expect decrypted mapper device
 # - Provides options for LUKS2 configuration customization
 # - Integrates with shimboot bootloader LUKS handling
+#
+# CPU-specific configuration:
+# - Intel: Includes aesni_intel for hardware AES acceleration
+# - AMD/ARM: Uses generic dm-crypt modules (different crypto acceleration)
 {
   lib,
   pkgs,
@@ -18,6 +22,20 @@
 
 let
   cfg = config.shimboot.luks2;
+
+  # Import board database and get current board's config
+  boards = import ../../boards/default.nix { inherit lib; };
+  board = config.shimboot.board;
+  boardConfig = boards.${board};
+
+  # Base modules for all architectures
+  baseModules = [ "dm-crypt" "dm-mod" "cryptd" ];
+
+  # Intel-specific: hardware AES acceleration
+  intelModules = [ "aesni_intel" ];
+
+  # Select modules based on CPU type
+  luksModules = baseModules ++ (lib.optionals (boardConfig.cpu == "intel") intelModules);
 in
 {
   options.shimboot.luks2 = {
@@ -55,12 +73,7 @@ in
   config = lib.mkIf cfg.enable {
     # Add cryptsetup to initrd
     boot.initrd = {
-      availableKernelModules = [
-        "dm-crypt"
-        "dm-mod"
-        "aesni_intel"
-        "cryptd"
-      ];
+      availableKernelModules = luksModules;
 
       # Include cryptsetup in initrd for LUKS handling
       extraUtilsCommands = ''

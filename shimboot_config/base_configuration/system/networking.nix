@@ -8,10 +8,10 @@
 # - Enables NetworkManager with wpa_supplicant backend (base)
 # - Enables wpa_supplicant for headless builds
 # - Configures firewall with SSH access
-# - Loads WiFi kernel modules for ChromeOS devices (mkForce)
+# - Loads WiFi kernel modules based on board hardware (mkForce)
 # - Handles rfkill unblocking for WLAN (mkForce)
 #
-# Note: kernelModules and rfkill use mkForce - critical for Intel WiFi detection
+# Note: kernelModules and rfkill use mkForce - critical for WiFi detection
 {
   pkgs,
   lib,
@@ -22,6 +22,11 @@
 let
   headless = config.shimboot.headless;
   hostname = userConfig.host.hostname or userConfig.hostname;
+
+  # Import board database and get current board's config
+  boards = import ../../boards/default.nix { inherit lib; };
+  board = config.shimboot.board;
+  boardConfig = boards.${board};
 
   # Load WiFi secrets from gitignored file (not tracked in version control)
   # Build with `path:` fetcher to include untracked files:
@@ -51,11 +56,8 @@ in
     timeServers = lib.mkDefault [ "pool.ntp.org" ];
   };
 
-  # Intel WiFi drivers - critical for hardware detection
-  boot.kernelModules = lib.mkForce [
-    "iwlmvm"
-    "ccm"
-  ];
+  # WiFi kernel modules - board-specific for hardware detection
+  boot.kernelModules = lib.mkForce boardConfig.wifiModules;
 
   system.activationScripts.rfkillUnblockWlan = lib.mkForce {
     text = ''

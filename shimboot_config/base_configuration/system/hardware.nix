@@ -1,7 +1,7 @@
 # Hardware Configuration Module
 #
 # Purpose: Configure hardware settings for ChromeOS devices
-# Dependencies: linux-firmware, mesa, brightnessctl, thermald
+# Dependencies: linux-firmware, mesa, brightnessctl, thermald (Intel only)
 # Related: boot.nix, display.nix
 #
 # This module:
@@ -9,12 +9,23 @@
 # - Configures graphics drivers with 32-bit support
 # - Enables Bluetooth with power-on-boot
 # - Provides brightness control utilities
-# - Enables thermal daemon for CPU temperature management
+# - Enables thermal daemon for Intel CPUs (x86_pkg_temp)
+#
+# CPU-specific configuration:
+# - Intel: thermald with x86_pkg_temp sensor configuration
+# - AMD/ARM: No thermald (different thermal management)
 {
   pkgs,
   lib,
+  config,
   ...
 }:
+let
+  # Import board database and get current board's config
+  boards = import ../../boards/default.nix { inherit lib; };
+  board = config.shimboot.board;
+  boardConfig = boards.${board};
+in
 {
   hardware = {
     # enableRedistributableFirmware = true;
@@ -28,9 +39,11 @@
     };
   };
 
-  services.thermald = {
-    enable = lib.mkDefault true;
-    configFile = lib.mkDefault (pkgs.writeText "thermal-conf.xml" ''
+  # Intel boards: thermald monitors x86_pkg_temp and reduces frequency on overheat
+  # AMD/ARM: thermald not applicable (different thermal subsystems)
+  services.thermald = lib.mkIf (boardConfig.cpu == "intel") {
+    enable = lib.mkForce true;
+    configFile = lib.mkForce (pkgs.writeText "thermal-conf.xml" ''
       <ThermalConfiguration>
         <ThermalZones>
           <ThermalZone>
