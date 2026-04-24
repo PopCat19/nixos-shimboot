@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-- A compatible Chromebook (supported boards: dedede, octopus, zork, nissa, hatch, grunt, snappy)
+- A compatible Chromebook (Intel: dedede, octopus, nissa, hatch, brya, snappy; AMD: zork, grunt)
 - ChromeOS RMA shim image for your specific board
 - USB drive with at least 16GB, recommended >=32GB
 - NixOS system or any Linux with Nix installed for building the image
@@ -163,10 +163,11 @@ sudo resize2fs /dev/sdXN
 
 ## Known Limitations
 
-- Currently only tested on HP Chromebook 11 G9 EE ("dedede" board)
-- Multi-board support infrastructure exists but requires testing on other models
+- Tested on HP Chromebook 11 G9 EE ("dedede" board); per-board hardware support implemented for Intel/AMD
 - No suspend support (ChromeOS kernel limitation)
-- Limited audio support
+- Audio only works on octopus and snappy boards (others: use USB/Bluetooth audio)
+- hatch: 5GHz WiFi networks may have connectivity issues
+- trogdor: WiFi may not work reliably
 - May require manual kernel namespace workarounds for `nixos-rebuild` (e.g. . Appending `--option sandbox false` on shim kernels <5.6)
 
 For more documentation, see [README.md](README.md).

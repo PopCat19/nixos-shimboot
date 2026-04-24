@@ -111,8 +111,8 @@
   grunt = {
     cpu = "amd";
     gpu = "amd";
-    wifi = "realtek"; # May require manual driver compilation
-    wifiModules = [ ]; # Board-specific, check documentation
+    wifi = "realtek"; # Works via shimboot driver harvesting
+    wifiModules = [ ]; # Firmware extracted from ChromeOS
     kernel = "4.14"; # Older kernel
     audio = false;
     powerManagement = "amd-pstate"; # Or cpufreq
@@ -160,14 +160,13 @@
   trogdor = {
     cpu = "arm"; # Qualcomm Snapdragon SC7180
     gpu = "adreno"; # Qualcomm Adreno GPU
-    wifi = "qualcomm"; # ath10k
+    wifi = "qualcomm"; # ath10k - may have connectivity issues per shimboot README
     wifiModules = [
       "ath10k_pci"
       "ath10k_core"
     ];
     kernel = "5.4";
     audio = false;
-    # Note: WiFi connectivity may have issues per shimboot README
     powerManagement = "cpufreq";
     thermal = null;
   };

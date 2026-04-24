@@ -1,4 +1,4 @@
-# CURRENT STATE: Works on dedede; board testing needed
+# CURRENT STATE: Per-board hardware support implemented (Intel/AMD); ARM needs testing
 Check [progress and obstacles](#progress-and-obstacles) for current progress on this branch.
 
 > [!NOTE]
@@ -140,7 +140,7 @@ Flake status and roadmap (not a spec) for the current branch:
 - [x] `nix-shell -p firefox` works (note limited space without `expand_rootfs`)
 - [x] Builds functional NixOS with `nixos-rebuild` support (requires appending `--option sandbox false` on shim kernels below 5.6 due to missing kernel namespaces)
 - [x] Setup minimal base_configuration
-- [x] Implement multi-board compatibility in flake and build derivations (untested)
+- [x] Implement multi-board compatibility in flake and build derivations
 - [x] Configure base_configuration to have zram
 - [x] Resolve firewall issues at boot
 - [x] Configure local cloned repo to have origin remote to sync from during assembly
