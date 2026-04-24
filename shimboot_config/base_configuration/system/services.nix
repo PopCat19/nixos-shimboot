@@ -12,9 +12,9 @@
 # - Enables storage and D-Bus services
 _: {
   # Disable coredumps to save disk space
-  systemd.coredump.enable = false;
+  systemd.coredump.enable = lib.mkDefault false;
 
-  services.journald.extraConfig = ''
+  services.journald.extraConfig = lib.mkDefault ''
     Storage=volatile
     MaxRetentionSec=3day
     RuntimeMaxUse=500M
@@ -24,10 +24,10 @@ _: {
     ForwardToWall=no
   '';
 
-  services.libinput.enable = true;
+  services.libinput.enable = lib.mkDefault true;
 
   services = {
-    udisks2.enable = true;
-    dbus.enable = true;
+    udisks2.enable = lib.mkDefault true;
+    dbus.enable = lib.mkDefault true;
   };
 }

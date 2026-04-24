@@ -28,13 +28,13 @@ in
 
   users.users = {
     root = {
-      shell = pkgs.${shellPackage};
+      shell = lib.mkDefault pkgs.${shellPackage};
       initialPassword = lib.mkDefault initialPassword;
     };
     "${username}" = {
-      isNormalUser = true;
-      shell = pkgs.${shellPackage};
-      inherit extraGroups;
+      isNormalUser = lib.mkDefault true;
+      shell = lib.mkDefault pkgs.${shellPackage};
+      extraGroups = lib.mkDefault extraGroups;
       initialPassword = lib.mkDefault initialPassword;
     };
   };
