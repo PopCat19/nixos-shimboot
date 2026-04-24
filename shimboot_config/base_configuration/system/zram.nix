@@ -9,24 +9,25 @@
 # - Fast compression using lzo-rle algorithm
 # - Automatic kernel module loading
 # - OOM killer configuration for memory pressure handling
-_: {
-  # Enable zram swap
+{ lib, ... }:
+{
+  # Enable zram swap - critical for ChromeOS low-memory devices
   zramSwap = {
-    enable = true;
-    algorithm = "lzo-rle";
-    memoryPercent = 50;
-    priority = 100;
+    enable = lib.mkForce true;
+    algorithm = lib.mkForce "lzo-rle";
+    memoryPercent = lib.mkForce 50;
+    priority = lib.mkForce 100;
   };
 
   boot.kernel.sysctl = {
-    "vm.swappiness" = 60;
-    "vm.page-cluster" = 3;
-    "vm.oom-kill" = 1;
-    "vm.admin_reserve_kbytes" = 8192;
-    "vm.oom_kill_allocating_task" = 1;
-    "vm.overcommit_memory" = 0;
-    "vm.vfs_cache_pressure" = 50;
-    "vm.dirty_ratio" = 15;
-    "vm.dirty_background_ratio" = 5;
+    "vm.swappiness" = lib.mkForce 60;
+    "vm.page-cluster" = lib.mkForce 3;
+    "vm.oom-kill" = lib.mkForce 1;
+    "vm.admin_reserve_kbytes" = lib.mkForce 8192;
+    "vm.oom_kill_allocating_task" = lib.mkForce 1;
+    "vm.overcommit_memory" = lib.mkForce 0;
+    "vm.vfs_cache_pressure" = lib.mkForce 50;
+    "vm.dirty_ratio" = lib.mkForce 15;
+    "vm.dirty_background_ratio" = lib.mkForce 5;
   };
 }

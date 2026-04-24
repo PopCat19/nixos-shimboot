@@ -17,9 +17,9 @@
       initScript.enable = lib.mkForce true;
     };
     initrd = {
-      availableKernelModules = [ ];
-      kernelModules = [ ];
+      availableKernelModules = lib.mkForce [ ];
+      kernelModules = lib.mkForce [ ];
     };
-    kernelParams = [ ];
+    kernelParams = lib.mkForce [ ];
   };
 }

@@ -26,12 +26,12 @@
   };
 
   # System-wide tmpfs configuration
-  boot.tmp.useTmpfs = true;
-  boot.tmp.tmpfsSize = "2G";
+  boot.tmp.useTmpfs = lib.mkForce true;
+  boot.tmp.tmpfsSize = lib.mkForce "2G";
 
   # Volatile log directory (complements journald Storage=volatile)
   # Disable by commenting out if debugging requires persistent logs
-  fileSystems."/var/log" = {
+  fileSystems."/var/log" = lib.mkForce {
     device = "tmpfs";
     fsType = "tmpfs";
     options = [

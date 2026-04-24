@@ -14,15 +14,16 @@
 # - Ref: https://github.com/ading2210/shimboot/issues/405
 {
   systemd257,
+  lib,
   ...
 }:
 {
-  environment.systemPackages = [ systemd257 ];
+  environment.systemPackages = lib.mkForce [ systemd257 ];
 
-  systemd.package = systemd257;
+  systemd.package = lib.mkForce systemd257;
 
   # Suppress units that don't exist in systemd 257.9 (added in 258+)
-  systemd.suppressedSystemUnits = [
+  systemd.suppressedSystemUnits = lib.mkForce [
     "systemd-factory-reset-request.service"
     "systemd-factory-reset-reboot.service"
     "factory-reset.target.wants"

@@ -19,7 +19,7 @@ let
 in
 {
   config = lib.mkIf notHeadless {
-    systemd.services.kill-frecon = {
+    systemd.services.kill-frecon = lib.mkForce {
       description = "Kill frecon to allow X11 to start";
       wantedBy = [ "graphical.target" ];
       before = [ "display-manager.service" ];
