@@ -17,14 +17,13 @@
 let
   # Import board database and get current board's config
   boards = import ../../boards/default.nix { inherit lib; };
-  board = config.shimboot.board;
+  inherit (config.shimboot) board;
   boardConfig = boards.${board};
 in
 {
   # Intel boards: ChromeOS kernel requires passive mode for power management
   # AMD/ARM: No intel_pstate parameter needed
-  boot.kernelParams = lib.mkIf (boardConfig.cpu == "intel")
-    (lib.mkForce [ "intel_pstate=passive" ]);
+  boot.kernelParams = lib.mkIf (boardConfig.cpu == "intel") (lib.mkForce [ "intel_pstate=passive" ]);
 
   powerManagement.enable = lib.mkDefault true;
 

@@ -17,13 +17,13 @@
   hostname ? "nixos-shimboot",
   system ? "x86_64-linux",
   username ? "nixos-user",
-  board ? "dedede",  # Default for direct builds; consumers should override
+  board ? "dedede", # Default for direct builds; consumers should override
 }:
 {
   host = {
     inherit system;
     inherit hostname;
-    inherit board;  # Board identifier for hardware config
+    inherit board; # Board identifier for hardware config
   };
 
   user = {

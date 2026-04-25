@@ -23,7 +23,7 @@
 let
   # Import board database and get current board's config
   boards = import ../../boards/default.nix { inherit lib; };
-  board = config.shimboot.board;
+  inherit (config.shimboot) board;
   boardConfig = boards.${board};
 in
 {
@@ -43,28 +43,30 @@ in
   # AMD/ARM: thermald not applicable (different thermal subsystems)
   services.thermald = lib.mkIf (boardConfig.cpu == "intel") {
     enable = lib.mkForce true;
-    configFile = lib.mkForce (pkgs.writeText "thermal-conf.xml" ''
-      <ThermalConfiguration>
-        <ThermalZones>
-          <ThermalZone>
-            <Type>x86_pkg_temp</Type>
-            <TripPoints>
-              <TripPoint>
-                <SensorType>B0D4</SensorType>
-                <Temperature>80000</Temperature>
-                <type>passive</type>
-                <CoolingDevice>
-                  <Type>processor</Type>
-                  <Path>/sys/devices/system/cpu</Path>
-                  <MinState>0</MinState>
-                  <MaxState>10</MaxState>
-                </CoolingDevice>
-              </TripPoint>
-            </TripPoints>
-          </ThermalZone>
-        </ThermalZones>
-      </ThermalConfiguration>
-    '');
+    configFile = lib.mkForce (
+      pkgs.writeText "thermal-conf.xml" ''
+        <ThermalConfiguration>
+          <ThermalZones>
+            <ThermalZone>
+              <Type>x86_pkg_temp</Type>
+              <TripPoints>
+                <TripPoint>
+                  <SensorType>B0D4</SensorType>
+                  <Temperature>80000</Temperature>
+                  <type>passive</type>
+                  <CoolingDevice>
+                    <Type>processor</Type>
+                    <Path>/sys/devices/system/cpu</Path>
+                    <MinState>0</MinState>
+                    <MaxState>10</MaxState>
+                  </CoolingDevice>
+                </TripPoint>
+              </TripPoints>
+            </ThermalZone>
+          </ThermalZones>
+        </ThermalConfiguration>
+      ''
+    );
   };
 
   environment.systemPackages = lib.mkDefault [

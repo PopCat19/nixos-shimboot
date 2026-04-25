@@ -27,8 +27,11 @@ in
       NIXOS_OZONE_WL = lib.mkDefault "1";
     };
 
-    environment.systemPackages = lib.mkDefault (with pkgs; [
-      kitty # required for the default Hyprland config
-    ]);
+    environment.systemPackages = lib.mkDefault (
+      with pkgs;
+      [
+        kitty # required for the default Hyprland config
+      ]
+    );
   };
 }

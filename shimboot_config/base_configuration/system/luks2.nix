@@ -25,11 +25,15 @@ let
 
   # Import board database and get current board's config
   boards = import ../../boards/default.nix { inherit lib; };
-  board = config.shimboot.board;
+  inherit (config.shimboot) board;
   boardConfig = boards.${board};
 
   # Base modules for all architectures
-  baseModules = [ "dm-crypt" "dm-mod" "cryptd" ];
+  baseModules = [
+    "dm-crypt"
+    "dm-mod"
+    "cryptd"
+  ];
 
   # Intel-specific: hardware AES acceleration
   intelModules = [ "aesni_intel" ];

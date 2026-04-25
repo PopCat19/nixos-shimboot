@@ -78,20 +78,20 @@
               # Auto-generate stubs for units expected by nixos-unstable but missing in 257.9
               # Units added in systemd 258+
               MISSING_UNITS="breakpoint-pre-udev.service breakpoint-pre-basic.service breakpoint-pre-mount.service breakpoint-pre-switch-root.service systemd-factory-reset-complete.service factory-reset-now.target"
-              
+
               for unit in $MISSING_UNITS; do
                 if [ ! -e "$out/example/systemd/system/$unit" ]; then
                   name=$(echo "$unit" | sed 's/\.[^.]*$//')
                   printf "[Unit]\nDescription=%s (stub - not in systemd 257.9)\n" "$name" > "$out/example/systemd/system/$unit"
                 fi
               done
-              
+
               # Factory-reset setup
               mkdir -p $out/example/systemd/system/factory-reset.target.wants
-              
+
               # Binaries added in systemd 258+
               MISSING_BINS="systemd-factory-reset system-generators/systemd-factory-reset-generator"
-              
+
               mkdir -p $out/lib/systemd/system-generators
               for bin in $MISSING_BINS; do
                 if [ ! -e "$out/lib/systemd/$bin" ]; then

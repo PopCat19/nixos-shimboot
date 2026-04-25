@@ -12,7 +12,7 @@
   ...
 }:
 let
-  headless = config.shimboot.headless;
+  inherit (config.shimboot) headless;
 in
 {
   config = lib.mkIf headless {

@@ -20,12 +20,12 @@
   ...
 }:
 let
-  headless = config.shimboot.headless;
+  inherit (config.shimboot) headless;
   hostname = userConfig.host.hostname or userConfig.hostname;
 
   # Import board database and get current board's config
   boards = import ../../boards/default.nix { inherit lib; };
-  board = config.shimboot.board;
+  inherit (config.shimboot) board;
   boardConfig = boards.${board};
 
   # Load WiFi secrets from gitignored file (not tracked in version control)

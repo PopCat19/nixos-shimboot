@@ -10,7 +10,6 @@
 #
 # Reference: https://cros.download/ for board recovery images
 {
-  lib,
   ...
 }:
 {
@@ -36,7 +35,10 @@
     cpu = "intel";
     gpu = "intel";
     wifi = "intel";
-    wifiModules = [ "iwlmvm" "ccm" ];
+    wifiModules = [
+      "iwlmvm"
+      "ccm"
+    ];
     kernel = "4.14"; # Older kernel, some features may lack
     audio = true;
     touchscreen = true;
@@ -48,7 +50,10 @@
     cpu = "intel";
     gpu = "intel";
     wifi = "intel";
-    wifiModules = [ "iwlmvm" "ccm" ];
+    wifiModules = [
+      "iwlmvm"
+      "ccm"
+    ];
     kernel = "5.10+";
     audio = false;
     touchscreen = true;
@@ -60,7 +65,10 @@
     cpu = "intel";
     gpu = "intel";
     wifi = "intel";
-    wifiModules = [ "iwlmvm" "ccm" ];
+    wifiModules = [
+      "iwlmvm"
+      "ccm"
+    ];
     kernel = "5.4";
     audio = false;
     # Note: 5GHz WiFi networks may have connectivity issues
@@ -72,7 +80,10 @@
     cpu = "intel";
     gpu = "intel";
     wifi = "intel";
-    wifiModules = [ "iwlmvm" "ccm" ];
+    wifiModules = [
+      "iwlmvm"
+      "ccm"
+    ];
     kernel = "5.10+";
     audio = false;
     touchscreen = false;
@@ -84,7 +95,10 @@
     cpu = "intel";
     gpu = "intel";
     wifi = "intel";
-    wifiModules = [ "iwlmvm" "ccm" ];
+    wifiModules = [
+      "iwlmvm"
+      "ccm"
+    ];
     kernel = "5.4";
     audio = true;
     touchscreen = true;
