@@ -42,7 +42,7 @@
   #
   # We rebuild hwdb.bin using the same logic but with systemd257's
   # systemd-hwdb, which doesn't require the open_tree()/move_mount() syscalls.
-  environment.etc."udev/hwdb.bin".source =
+  environment.etc."udev/hwdb.bin".source = lib.mkForce
     let
       udev = config.systemd.package;
       cfg = config.services.udev;
