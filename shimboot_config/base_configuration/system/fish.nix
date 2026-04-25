@@ -55,7 +55,8 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # mkOverride 500: beats NixOS mkDefault (1000), consumers override with normal (100)
+    # Priority 500: beats NixOS mkDefault (1000), consumers override with normal (100)
+    # See environment.nix for full priority stack documentation
     programs.fish.enable = lib.mkOverride 500 true;
     programs.starship = lib.mkIf cfg.enableFunctions {
       enable = lib.mkOverride 500 true;
