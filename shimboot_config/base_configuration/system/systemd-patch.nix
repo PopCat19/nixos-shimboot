@@ -18,55 +18,8 @@
   systemd257,
   lib,
   pkgs,
-  config,
   ...
 }:
-let
-  # systemdMinimal variant of 257.9 for build-time tools (udevadm, systemd-hwdb)
-  # Uses the full systemd package since it contains all binaries we need
-  systemd257Minimal = systemd257.override {
-    withAnalyze = false;
-    withApparmor = false;
-    withAuditable = false;
-    withBootloader = false;
-    withCoredump = false;
-    withCryptsetup = false;
-    withDocumentation = false;
-    withEfi = false;
-    withFido2 = false;
-    withHtmlDocumentation = false;
-    withKbd = false;
-    withLibiptc = false;
-    withLogind = false;
-    withMachined = false;
-    withNetworkd = false;
-    withNspawn = false;
-    withOomd = false;
-    withPam = false;
-    withPasswordQuality = false;
-    withPCRE2 = false;
-    withPolkit = false;
-    withPortabled = false;
-    withRemote = false;
-    withRepart = false;
-    withResolved = false;
-    withShell = false;
-    withSysusers = false;
-    withTimedated = false;
-    withTimesyncd = false;
-    withTpm2 = false;
-    withUkify = false;
-    withUlogind = false;
-    withVconsole = false;
-    withZlib = false;
-    withAcl = false;
-    withSelinux = false;
-    withHomed = false;
-    withHomectl = false;
-    withSysupdate = false;
-    withHibernation = false;
-  };
-in
 {
   systemd.package = lib.mkForce systemd257;
 
@@ -89,13 +42,16 @@ in
   # Both failures are caused by open_tree()/move_mount() syscalls that require
   # kernel >=5.10, unavailable on ChromeOS shim kernels (5.4.x dedede, 4.14.x octopus).
   #
-  # By overlaying buildPackages.systemd and systemdMinimal with systemd257 variants,
+  # By overlaying buildPackages.systemd and systemdMinimal with systemd257,
   # all build-time systemd tools use the compatible 257.9 version.
+  # Using the full systemd257 package is safe here — it just provides udevadm
+  # and systemd-hwdb binaries at build time, so the extra runtime features
+  # in the full package are irrelevant.
   nixpkgs.overlays = [
     (final: prev: {
       buildPackages = prev.buildPackages // {
         systemd = systemd257;
-        systemdMinimal = systemd257Minimal;
+        systemdMinimal = systemd257;
       };
     })
   ];
