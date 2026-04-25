@@ -55,10 +55,10 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # Normal assignment (priority 100) to override NixOS defaults (mkDefault priority 1000)
-    programs.fish.enable = true;
+    # mkOverride 500: beats NixOS mkDefault (1000), consumers override with normal (100)
+    programs.fish.enable = lib.mkOverride 500 true;
     programs.starship = lib.mkIf cfg.enableFunctions {
-      enable = true;
+      enable = lib.mkOverride 500 true;
       settings = {
         format = "$time$directory$git_branch$git_status$line_break$character";
 

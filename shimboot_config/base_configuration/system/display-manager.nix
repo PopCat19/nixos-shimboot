@@ -44,8 +44,8 @@ in
 
     services.displayManager.defaultSession = lib.mkDefault "hyprland";
 
-    # Normal assignment to override NixOS defaults
-    programs.dconf.enable = true;
+    # mkOverride 500: beats NixOS defaults, consumers override with normal assignment
+    programs.dconf.enable = lib.mkOverride 500 true;
 
     services.logind = lib.mkDefault {
       settings = {
