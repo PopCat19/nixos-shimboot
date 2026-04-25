@@ -70,8 +70,8 @@ echo ""
 echo "--- NixOS Config ---"
 NIXOS_CONFIG=""
 for home_dir in /home/*; do
-	if [[ -d "${home_dir}/nixos-config" ]] && [[ -f "${home_dir}/nixos-config/flake.nix" ]]; then
-		NIXOS_CONFIG="${home_dir}/nixos-config"
+	if [[ -d "${home_dir}/nixos-shimboot" ]] && [[ -f "${home_dir}/nixos-shimboot/flake.nix" ]]; then
+		NIXOS_CONFIG="${home_dir}/nixos-shimboot"
 		break
 	fi
 done
@@ -83,7 +83,7 @@ if [[ -n "$NIXOS_CONFIG" ]]; then
 		echo "  Linked: ${LINK_TARGET}"
 	fi
 else
-	echo "  No nixos-config found in home directories"
+	echo "  No nixos-shimboot found in home directories"
 fi
 echo ""
 

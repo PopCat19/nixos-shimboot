@@ -245,7 +245,7 @@ begin; command -v rg &>/dev/null; and rg "WAYLAND_DISPLAY" ~/config --nix; or gr
 
 **Cross-reference a config value:**
 ```fish
-begin; command -v rg &>/dev/null; and rg "graphical-session" ~/nixos-config --type nix -n; or grep -rn "graphical-session" ~/nixos-config --include="*.nix"; end | wl-copy
+begin; command -v rg &>/dev/null; and rg "graphical-session" ~/nixos-shimboot --type nix -n; or grep -rn "graphical-session" ~/nixos-shimboot --include="*.nix"; end | wl-copy
 ```
 
 **Systemd-aware status check:**

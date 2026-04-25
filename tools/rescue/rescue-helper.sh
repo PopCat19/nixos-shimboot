@@ -463,7 +463,7 @@ if [ -d "/nix/var/nix/profiles" ]; then
 	if [ -f "/nix/var/nix/profiles/default/etc/profile.d/nix.sh" ]; then
 		. "/nix/var/nix/profiles/default/etc/profile.d/nix.sh"
 	fi
-	export NIX_PATH="nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos:nixos-config=/etc/nixos/configuration.nix:/nix/var/nix/profiles/per-user/root/channels"
+	export NIX_PATH="nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos:nixos-shimboot=/etc/nixos/configuration.nix:/nix/var/nix/profiles/per-user/root/channels"
 	# Allow git repos owned by other users (required for rescue env)
 	git config --global --add safe.directory '*' 2>/dev/null || true
 	echo "Nix environment ready. Tools: nixos-rebuild, nix-env, nix-channel"
@@ -503,18 +503,18 @@ CHROOT_SETUP_EOF
 			fi
 			mount_system "rw"
 
-			# Find nixos-config directory - be thorough and pick most recently committed one
+			# Find nixos-shimboot directory - be thorough and pick most recently committed one
 			local config_dir=""
 			local check_dirs=()
 			local valid_configs=()
 
 			# Build list of directories to check
 			for home_dir in "$MOUNTPOINT/home"/*; do
-				[[ -d "$home_dir" ]] && check_dirs+=("$home_dir/nixos-config")
+				[[ -d "$home_dir" ]] && check_dirs+=("$home_dir/nixos-shimboot")
 			done
-			check_dirs+=("$MOUNTPOINT/root/nixos-config" "$MOUNTPOINT/etc/nixos")
+			check_dirs+=("$MOUNTPOINT/root/nixos-shimboot" "$MOUNTPOINT/etc/nixos")
 
-			log_info "Searching for nixos-config in ${#check_dirs[@]} locations..."
+			log_info "Searching for nixos-shimboot in ${#check_dirs[@]} locations..."
 
 			for dir in "${check_dirs[@]}"; do
 				if [[ -d "$dir" ]]; then
@@ -536,7 +536,7 @@ CHROOT_SETUP_EOF
 			done
 
 			if [[ ${#valid_configs[@]} -eq 0 ]]; then
-				log_error "No valid nixos-config found"
+				log_error "No valid nixos-shimboot found"
 				log_info "Checked locations:"
 				printf '  - %s\n' "${check_dirs[@]}"
 				log_info "A valid config needs:"
@@ -592,7 +592,7 @@ CHROOT_SETUP_EOF
 
 				# Try to infer hostname from config directory path
 				local inferred_hostname=""
-				if [[ "$config_dir" =~ /home/([^/]+)/nixos-config ]]; then
+				if [[ "$config_dir" =~ /home/([^/]+)/nixos-shimboot ]]; then
 					inferred_hostname="${BASH_REMATCH[1]}"
 					log_info "Config directory suggests hostname: $inferred_hostname"
 				fi
@@ -877,7 +877,7 @@ if [ -d "/nix/var/nix/profiles" ]; then
 	if [ -f "/nix/var/nix/profiles/default/etc/profile.d/nix.sh" ]; then
 		. "/nix/var/nix/profiles/default/etc/profile.d/nix.sh"
 	fi
-	export NIX_PATH="nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos:nixos-config=/etc/nixos/configuration.nix:/nix/var/nix/profiles/per-user/root/channels"
+	export NIX_PATH="nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos:nixos-shimboot=/etc/nixos/configuration.nix:/nix/var/nix/profiles/per-user/root/channels"
 	# Allow git repos owned by other users (required for rescue env)
 	git config --global --add safe.directory '*' 2>/dev/null || true
 	echo "Nix environment ready. Tools: nixos-rebuild, nix-env, nix-channel"
@@ -960,7 +960,7 @@ CHROOT_SETUP_EOF
 			log_step "Rebuild" "Starting nixos-rebuild..."
 			if chroot "$MOUNTPOINT" /bin/sh -c "
 				export PATH=\"/nix/var/nix/profiles/system/sw/bin:/nix/var/nix/profiles/system/sw/sbin:\$PATH\"
-				export NIX_PATH=\"nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos:nixos-config=/etc/nixos/configuration.nix:/nix/var/nix/profiles/per-user/root/channels\"
+				export NIX_PATH=\"nixpkgs=/nix/var/nix/profiles/per-user/root/channels/nixos:nixos-shimboot=/etc/nixos/configuration.nix:/nix/var/nix/profiles/per-user/root/channels\"
 				# Allow git repos owned by other users (required for flake builds in rescue env)
 				git config --global --add safe.directory '*' 2>/dev/null || true
 				cd $config_dir_chroot && nixos-rebuild $nix_args 2>&1

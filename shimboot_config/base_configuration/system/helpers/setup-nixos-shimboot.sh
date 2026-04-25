@@ -16,21 +16,21 @@ if [[ $EUID -ne 0 ]]; then
 	exit 1
 fi
 
-# Function to find nixos-config directory across all users
+# Function to find nixos-shimboot directory across all users
 find_nixos_config() {
 	# Prefer NIXOS_CONFIG_DIR if set and valid
 	if [[ -n "${NIXOS_CONFIG_DIR:-}" ]] && [[ -f "${NIXOS_CONFIG_DIR}/flake.nix" ]]; then
-		echo "[setup_nixos_config] Found nixos-config via NIXOS_CONFIG_DIR: ${NIXOS_CONFIG_DIR}" >&2
+		echo "[setup_nixos_shimboot] Found nixos-shimboot via NIXOS_CONFIG_DIR: ${NIXOS_CONFIG_DIR}" >&2
 		echo "$NIXOS_CONFIG_DIR"
 		return
 	fi
 	# Scan home directories — check companion repo name first, then base repo name
 	local candidate=""
 	for home_dir in /home/*; do
-		for dir_name in nixos-shimboot-config nixos-config; do
+		for dir_name in nixos-shimboot-config nixos-shimboot; do
 			candidate="${home_dir}/${dir_name}"
 			if [[ -d "$candidate" ]] && [[ -f "${candidate}/flake.nix" ]]; then
-				echo "[setup_nixos_config] Found nixos-config at: ${candidate}" >&2
+				echo "[setup_nixos_shimboot] Found nixos-shimboot at: ${candidate}" >&2
 				echo "$candidate"
 				return
 			fi
@@ -38,8 +38,8 @@ find_nixos_config() {
 	done
 }
 
-# Try to read the profile from selected-profile.nix in the found nixos-config
-# First, find where nixos-config is located
+# Try to read the profile from selected-profile.nix in the found nixos-shimboot
+# First, find where nixos-shimboot is located
 NIXOS_CONFIG_PATH=$(find_nixos_config)
 
 if [[ -n "$NIXOS_CONFIG_PATH" ]]; then
@@ -49,32 +49,32 @@ if [[ -n "$NIXOS_CONFIG_PATH" ]]; then
 else
 	USERNAME="${USER}"
 fi
-echo "[setup_nixos_config] Username: ${USERNAME}"
+echo "[setup_nixos_shimboot] Username: ${USERNAME}"
 
-# If nixos-config wasn't found, check the expected path for the current profile
+# If nixos-shimboot wasn't found, check the expected path for the current profile
 if [[ -z "$NIXOS_CONFIG_PATH" ]]; then
-	NIXOS_CONFIG_PATH="${NIXOS_CONFIG_DIR:-/home/${USERNAME}/nixos-config}"
-	echo "[setup_nixos_config] Expected nixos-config path: ${NIXOS_CONFIG_PATH}"
+	NIXOS_CONFIG_PATH="${NIXOS_CONFIG_DIR:-/home/${USERNAME}/nixos-shimboot}"
+	echo "[setup_nixos_shimboot] Expected nixos-shimboot path: ${NIXOS_CONFIG_PATH}"
 fi
 
-echo "[setup_nixos_config] Configuring /etc/nixos for nixos-rebuild..."
+echo "[setup_nixos_shimboot] Configuring /etc/nixos for nixos-rebuild..."
 mkdir -p /etc/nixos
 
 # Generate hardware config if missing
 if [[ ! -f /etc/nixos/hardware-configuration.nix ]]; then
-	echo "[setup_nixos_config] Generating hardware-configuration.nix..."
+	echo "[setup_nixos_shimboot] Generating hardware-configuration.nix..."
 	echo "Command: nixos-generate-config --show-hardware-config > /etc/nixos/hardware-configuration.nix"
 	nixos-generate-config --show-hardware-config >/etc/nixos/hardware-configuration.nix
 fi
 
 # Check if user's config exists (should be cloned by assemble-final.sh)
 if [[ -d "${NIXOS_CONFIG_PATH}" ]] && [[ -f "${NIXOS_CONFIG_PATH}/flake.nix" ]]; then
-	echo "[setup_nixos_config] [OK] Found nixos-config at ${NIXOS_CONFIG_PATH}"
+	echo "[setup_nixos_shimboot] [OK] Found nixos-shimboot at ${NIXOS_CONFIG_PATH}"
 
 	# Backup existing /etc/nixos files
 	for file in configuration.nix flake.nix; do
 		if [[ -f "/etc/nixos/${file}" ]] && [[ ! -L "/etc/nixos/${file}" ]]; then
-			echo "[setup_nixos_config] Backing up /etc/nixos/${file} -> ${file}.bak"
+			echo "[setup_nixos_shimboot] Backing up /etc/nixos/${file} -> ${file}.bak"
 			echo "Command: mv \"/etc/nixos/${file}\" \"/etc/nixos/${file}.bak\""
 			mv "/etc/nixos/${file}" "/etc/nixos/${file}.bak"
 		fi
@@ -85,7 +85,7 @@ if [[ -d "${NIXOS_CONFIG_PATH}" ]] && [[ -f "${NIXOS_CONFIG_PATH}/flake.nix" ]];
 	ln -sf "${NIXOS_CONFIG_PATH}/flake.nix" /etc/nixos/flake.nix
 
 	echo
-	echo "[setup_nixos_config] [OK] Linked to nixos-shimboot repository"
+	echo "[setup_nixos_shimboot] [OK] Linked to nixos-shimboot repository"
 	echo
 	HOSTNAME_VALUE=$(hostname)
 	echo "To rebuild:"
@@ -103,7 +103,7 @@ if [[ -d "${NIXOS_CONFIG_PATH}" ]] && [[ -f "${NIXOS_CONFIG_PATH}/flake.nix" ]];
 	echo "Default: ${HOSTNAME_VALUE}"
 	echo "Tip: 'headless' variants are SSH-only (no desktop environment)"
 else
-	echo "[setup_nixos_config] [FAIL] nixos-config not found at ${NIXOS_CONFIG_PATH}"
+	echo "[setup_nixos_shimboot] [FAIL] nixos-shimboot not found at ${NIXOS_CONFIG_PATH}"
 	echo
 	echo "The nixos-shimboot repository should be cloned by assemble-final.sh to:"
 	echo "  ${NIXOS_CONFIG_PATH}"
@@ -117,4 +117,4 @@ else
 fi
 
 echo
-echo "[setup_nixos_config] Done."
+echo "[setup_nixos_shimboot] Done."

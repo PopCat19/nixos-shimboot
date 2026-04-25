@@ -86,8 +86,8 @@ A terminal opens automatically on first boot. Run `setup-nixos` to step through:
 
 1. **WiFi** — connects and enables autoconnect
 2. **Expand rootfs** — grows the partition to fill the USB drive
-3. **Verify config** — checks `~/nixos-config`, optionally pulls updates
-4. **Link `/etc/nixos`** — runs `setup-nixos-config` to wire flake for `nixos-rebuild`
+3. **Verify config** — checks `~/nixos-shimboot`, optionally pulls updates
+4. **Link `/etc/nixos`** — runs `setup-nixos-shimboot` to wire flake for `nixos-rebuild`
 5. **Rebuild** — optional first rebuild from base config
 
 After completing, the system is usable as a minimal NixOS install. For a full
@@ -112,7 +112,7 @@ The config repo imports shimboot as a flake input (`shimboot.nixosModules.chrome
 ### "Git fetch failed" during setup-nixos
 The git remote may be pointing to the build machine's path. Fix with:
 ```bash
-cd ~/nixos-config
+cd ~/nixos-shimboot
 git remote set-url origin https://github.com/PopCat19/nixos-shimboot-config.git # replace URL with your fork if utilized
 git fetch origin
 ```

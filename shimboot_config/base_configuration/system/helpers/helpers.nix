@@ -6,7 +6,7 @@
 # - Installs helper scripts as system packages with runtime dependencies
 # - Scripts are standalone bash executables
 # - No fish dependency required
-# - Auto-migrates nixos-config on profile changes
+# - Auto-migrates nixos-shimboot on profile changes
 # - Handles hostname and username migrations with state preservation
 { pkgs, userConfig, ... }:
 let
@@ -118,9 +118,9 @@ in
     })
 
     (writeShellApplication {
-      name = "setup-nixos-config";
+      name = "setup-nixos-shimboot";
       runtimeInputs = setupNixosConfigDeps;
-      text = builtins.readFile ./setup-nixos-config.sh;
+      text = builtins.readFile ./setup-nixos-shimboot.sh;
     })
 
     (writeShellApplication {
@@ -145,9 +145,9 @@ in
     deps = [ ];
   };
 
-  # Auto-migrate nixos-config when switching profiles
-  systemd.services.migrate-nixos-config = {
-    description = "Migrate nixos-config to current user's home directory";
+  # Auto-migrate nixos-shimboot when switching profiles
+  systemd.services.migrate-nixos-shimboot = {
+    description = "Migrate nixos-shimboot to current user's home directory";
     wantedBy = [ "multi-user.target" ];
     after = [ "home-manager-${username}.service" ];
     wants = [ "home-manager-${username}.service" ];
@@ -155,11 +155,11 @@ in
       Type = "oneshot";
       ExecStart = "${
         pkgs.writeShellApplication {
-          name = "migrate-nixos-config";
+          name = "migrate-nixos-shimboot";
           runtimeInputs = migrateNixosConfigDeps;
-          text = builtins.readFile ./migrate-nixos-config.sh;
+          text = builtins.readFile ./migrate-nixos-shimboot.sh;
         }
-      }/bin/migrate-nixos-config ${username}";
+      }/bin/migrate-nixos-shimboot ${username}";
       RemainAfterExit = true;
     };
   };

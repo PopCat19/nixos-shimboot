@@ -1042,10 +1042,10 @@ total_bytes=$(blockdev --getsize64 "${LOOPROOT}p${RAW_ROOTFS_PART}")
 USERNAME="$(nix eval --impure --accept-flake-config --expr "(import ./shimboot_config/user-config.nix {}).user.username" --json | jq -r .)"
 log_info "Using username from userConfig: $USERNAME"
 
-# === Step 15/17: Clone nixos-config repository into rootfs ===
+# === Step 15/17: Clone nixos-shimboot repository into rootfs ===
 CURRENT_STEP="15/17"
-log_step "$CURRENT_STEP" "Clone nixos-config repository into rootfs"
-NIXOS_CONFIG_DEST="$WORKDIR/mnt_rootfs/home/${USERNAME}/nixos-config"
+log_step "$CURRENT_STEP" "Clone nixos-shimboot repository into rootfs"
+NIXOS_CONFIG_DEST="$WORKDIR/mnt_rootfs/home/${USERNAME}/nixos-shimboot"
 
 if command -v git >/dev/null 2>&1 && [ -d .git ]; then
 	# Get current git branch/commit info
@@ -1055,14 +1055,14 @@ if command -v git >/dev/null 2>&1 && [ -d .git ]; then
 	BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 	GIT_REMOTE=$(git remote get-url origin 2>/dev/null || echo "unknown")
 
-	# Remove existing nixos-config if it exists
+	# Remove existing nixos-shimboot if it exists
 	if [ -d "$NIXOS_CONFIG_DEST" ]; then
-		log_info "Removing existing nixos-config directory"
+		log_info "Removing existing nixos-shimboot directory"
 		safe_exec sudo rm -rf "$NIXOS_CONFIG_DEST"
 	fi
 
 	# Clone the repository
-	log_info "Cloning nixos-config repository..."
+	log_info "Cloning nixos-shimboot repository..."
 	safe_exec sudo git clone --no-local "$(pwd)" "$NIXOS_CONFIG_DEST"
 	# Detect actual remote origin
 	ACTUAL_REMOTE=$(git remote get-url origin 2>/dev/null || echo "https://github.com/PopCat19/nixos-shimboot.git")
@@ -1102,9 +1102,9 @@ GIT_CHANGES=$GIT_STATUS
 GIT_REMOTE=$GIT_REMOTE
 EOF
 
-	log_info "Cloned nixos-config: $GIT_BRANCH ($GIT_COMMIT) with $GIT_STATUS changes"
+	log_info "Cloned nixos-shimboot: $GIT_BRANCH ($GIT_COMMIT) with $GIT_STATUS changes"
 else
-	log_warn "Git not available or not a git repository, skipping nixos-config clone"
+	log_warn "Git not available or not a git repository, skipping nixos-shimboot clone"
 fi
 
 # Create build metadata

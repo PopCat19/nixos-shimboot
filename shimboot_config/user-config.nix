@@ -120,6 +120,6 @@
   };
 
   env = {
-    NIXOS_CONFIG_DIR = "$HOME/nixos-config";
+    NIXOS_CONFIG_DIR = "$HOME/nixos-shimboot";
   };
 }

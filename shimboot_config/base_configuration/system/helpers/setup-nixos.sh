@@ -12,7 +12,7 @@
 set -Eeuo pipefail
 
 USERNAME="${USER}"
-CONFIG_DIR="${NIXOS_CONFIG_DIR:-/home/${USERNAME}/nixos-config}"
+CONFIG_DIR="${NIXOS_CONFIG_DIR:-/home/${USERNAME}/nixos-shimboot}"
 LOG_FILE="/tmp/setup_nixos.log"
 BACKUP_DIR="/tmp/setup_nixos_backup_$(date +%Y%m%d_%H%M%S)"
 
@@ -308,7 +308,7 @@ fi
 log_step "Step 3: Verify NixOS Configuration"
 
 if [[ -d "${CONFIG_DIR}/.git" ]]; then
-	log_ok "nixos-config present at ${CONFIG_DIR}"
+	log_ok "nixos-shimboot present at ${CONFIG_DIR}"
 
 	# Show build info
 	if [[ -f "${CONFIG_DIR}/.shimboot_branch" ]]; then
@@ -346,7 +346,7 @@ if [[ -d "${CONFIG_DIR}/.git" ]]; then
 		fi
 	fi
 else
-	log_warn "nixos-config not found (should be cloned by assemble-final.sh)"
+	log_warn "nixos-shimboot not found (should be cloned by assemble-final.sh)"
 	echo "Expected location: ${CONFIG_DIR}"
 	echo "This repository contains the NixOS configuration for shimboot."
 fi
@@ -356,9 +356,9 @@ if [[ "$SKIP_CONFIG" == "false" ]]; then
 	log_step "Step 4: Configure nixos-rebuild"
 
 	if prompt_yes_no "Run setup_nixos_config?" "Y"; then
-		if command -v setup-nixos-config >/dev/null 2>&1; then
-			echo "Command: sudo setup-nixos-config"
-			failsafe "Setup nixos config" sudo setup-nixos-config
+		if command -v setup-nixos-shimboot >/dev/null 2>&1; then
+			echo "Command: sudo setup-nixos-shimboot"
+			failsafe "Setup nixos shimboot" sudo setup-nixos-shimboot
 		else
 			log_error "setup_nixos_config command not found"
 		fi
@@ -373,7 +373,7 @@ if [[ "$SKIP_REBUILD" == "false" ]]; then
 	log_step "Step 5: System Rebuild (Optional)"
 
 	if [[ ! -d "${CONFIG_DIR}" ]]; then
-		log_warn "Cannot rebuild without nixos-config"
+		log_warn "Cannot rebuild without nixos-shimboot"
 	elif prompt_yes_no "Run nixos-rebuild switch now?" "n"; then
 		cd "$CONFIG_DIR"
 

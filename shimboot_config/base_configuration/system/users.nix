@@ -9,7 +9,7 @@
 # - Creates root and user accounts using settings from user-config.nix
 # - Sets initial passwords for bring-up convenience
 #
-# Supports both shimboot's userConfig.user.* and nixos-config's userConfig.* structures
+# Supports both shimboot's userConfig.user.* and popcat19-nixos-hm's userConfig.* structures
 {
   pkgs,
   lib,
