@@ -5,9 +5,9 @@
 # This module:
 # - Sets systemd.package to systemd257 from specialArgs
 # - Suppresses unit files missing from systemd 257.9 (added in 258+)
-# - Overrides hwdb.bin generation to use systemd257's systemd-hwdb
-#   (nixpkgs uses pkgs.buildPackages.systemd which defaults to the unstable
-#   version, whose systemd-hwdb 260+ requires kernel >=5.10 open_tree() calls)
+# - Overrides buildPackages.systemd and systemdMinimal to systemd257
+#   (nixpkgs uses pkgs.buildPackages.systemd/systemdMinimal for hwdb.bin and
+#   udevadm verify, which fail on ChromeOS kernels <5.10)
 #
 # Systemd version constraint:
 # - Ceiling: 257.x (258+ requires kernel >=5.10)
@@ -21,6 +21,52 @@
   config,
   ...
 }:
+let
+  # systemdMinimal variant of 257.9 for build-time tools (udevadm, systemd-hwdb)
+  # Uses the full systemd package since it contains all binaries we need
+  systemd257Minimal = systemd257.override {
+    withAnalyze = false;
+    withApparmor = false;
+    withAuditable = false;
+    withBootloader = false;
+    withCoredump = false;
+    withCryptsetup = false;
+    withDocumentation = false;
+    withEfi = false;
+    withFido2 = false;
+    withHtmlDocumentation = false;
+    withKbd = false;
+    withLibiptc = false;
+    withLogind = false;
+    withMachined = false;
+    withNetworkd = false;
+    withNspawn = false;
+    withOomd = false;
+    withPam = false;
+    withPasswordQuality = false;
+    withPCRE2 = false;
+    withPolkit = false;
+    withPortabled = false;
+    withRemote = false;
+    withRepart = false;
+    withResolved = false;
+    withShell = false;
+    withSysusers = false;
+    withTimedated = false;
+    withTimesyncd = false;
+    withTpm2 = false;
+    withUkify = false;
+    withUlogind = false;
+    withVconsole = false;
+    withZlib = false;
+    withAcl = false;
+    withSelinux = false;
+    withHomed = false;
+    withHomectl = false;
+    withSysupdate = false;
+    withHibernation = false;
+  };
+in
 {
   systemd.package = lib.mkForce systemd257;
 
@@ -33,41 +79,24 @@
     "factory-reset.target.wants"
   ];
 
-  # Override hwdb.bin generation to use systemd257's systemd-hwdb binary.
+  # Override buildPackages systemd to use 257.9.
   #
-  # nixpkgs hardcodes pkgs.buildPackages.systemd (currently 260.x) for the
-  # systemd-hwdb builder, which fails on ChromeOS kernels <5.10 with:
-  #   Failed to determine if '/build' points to the root directory: Protocol driver not attached
-  #   Failed to enumerate hwdb files: Protocol driver not attached
+  # nixpkgs hardcodes pkgs.buildPackages.systemd (currently 260.x) and
+  # pkgs.buildPackages.systemdMinimal for two build-time operations:
+  # 1. systemd-hwdb (hwdb.bin generation) — fails with "Protocol driver not attached"
+  # 2. udevadm verify (udev rules validation) — fails with "Failed to chase..."
   #
-  # We rebuild hwdb.bin using the same logic but with systemd257's
-  # systemd-hwdb, which doesn't require the open_tree()/move_mount() syscalls.
-  environment.etc."udev/hwdb.bin".source = lib.mkForce (
-    let
-      udev = config.systemd.package;
-      cfg = config.services.udev;
-    in
-    pkgs.runCommand "hwdb.bin"
-      {
-        preferLocalBuild = true;
-        allowSubstitutes = false;
-        packages = lib.unique (map toString ([ udev ] ++ cfg.packages));
-      }
-      ''
-        mkdir -p etc/udev/hwdb.d
-        for i in $packages; do
-          echo "Adding hwdb files for package $i"
-          for j in $i/{etc,lib}/udev/hwdb.d/*; do
-            cp $j etc/udev/hwdb.d/$(basename $j)
-          done
-        done
-
-        echo "Generating hwdb database..."
-        # Use the system's systemd (257.9) instead of pkgs.buildPackages.systemd (260.x)
-        res="$(${lib.getBin systemd257}/bin/systemd-hwdb --root=$(pwd) update 2>&1)"
-        echo "$res"
-        [ -z "$(echo "$res" | egrep '^Error')" ]
-        mv etc/udev/hwdb.bin $out
-      ''
-  );
+  # Both failures are caused by open_tree()/move_mount() syscalls that require
+  # kernel >=5.10, unavailable on ChromeOS shim kernels (5.4.x dedede, 4.14.x octopus).
+  #
+  # By overlaying buildPackages.systemd and systemdMinimal with systemd257 variants,
+  # all build-time systemd tools use the compatible 257.9 version.
+  nixpkgs.overlays = [
+    (final: prev: {
+      buildPackages = prev.buildPackages // {
+        systemd = systemd257;
+        systemdMinimal = systemd257Minimal;
+      };
+    })
+  ];
 }
