@@ -1,4 +1,4 @@
-# User Configuration Module
+# user-config.nix
 #
 # Purpose: Global user configuration for nixos-shimboot
 #
@@ -7,12 +7,11 @@
 # - Defines user credentials and groups
 # - Defines default application preferences
 # - Defines system directory structure
-# - Defines environment variables
 #
 # Board configuration:
 # - Required: board must be set for hardware-specific drivers
 # - Default: "dedede" for backward compatibility with direct builds
-# - Consumer configs (nsc/pnh) should override this
+# - Consumer configs should override this
 {
   hostname ? "nixos-shimboot",
   system ? "x86_64-linux",
@@ -113,11 +112,6 @@
       music = "${home}/Music";
       desktop = "${home}/Desktop";
     };
-
-  theme = {
-    hue = 30;
-    variant = "dark"; # "dark" or "light"
-  };
 
   env = {
     NIXOS_CONFIG_DIR = "$HOME/nixos-shimboot";
