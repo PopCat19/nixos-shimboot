@@ -44,6 +44,7 @@ in
 
     services.displayManager.defaultSession = lib.mkDefault "hyprland";
 
+    # Normal assignment to override NixOS defaults
     programs.dconf.enable = true;
 
     services.logind = lib.mkDefault {

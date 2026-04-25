@@ -55,6 +55,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # Normal assignment (priority 100) to override NixOS defaults (mkDefault priority 1000)
     programs.fish.enable = true;
     programs.starship = lib.mkIf cfg.enableFunctions {
       enable = true;
