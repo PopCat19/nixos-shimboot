@@ -3,26 +3,21 @@
 # Purpose: Configure binary caches for system builds
 #
 # This module:
-# - Configures Cachix substituters for binary cache access
-# - Sets up trusted public keys for cache verification
+# - Exports cache values for substituters and public keys
+# - Used by apply-cachix.nix to apply to nix.settings
 # - Enables faster builds through cache reuse
 #
-# Exports for consumers to merge:
-#   substituters = [ "https://shimboot-systemd-nixos.cachix.org" ... ];
-#   trustedPublicKeys = [ "shimboot-..." ... ];
-#
-# Consumer pattern:
+# Consumer pattern (add your own caches):
 #   { lib, ... }:
-#   let cachix = import "${inputs.shimboot}/shimboot_config/cachix.nix";
-#   in {
-#     nix.settings = lib.mkMerge [
-#       { substituters = cachix.substituters; }
-#       { trusted-public-keys = cachix.trustedPublicKeys; }
-#       { substituters = [ "https://your-cache.cachix.org" ]; }
-#       { trusted-public-keys = [ "your-key" ]; }
-#     ];
+#   {
+#     nix.settings = {
+#       substituters = lib.mkAfter [ "https://your-cache.cachix.org" ];
+#       trusted-public-keys = lib.mkAfter [ "your-cache.cachix.org-1:..." ];
+#     };
 #   }
-_: {
+#
+# Note: mkAfter appends to base caches. No need to redeclare base values.
+{
   substituters = [
     "https://shimboot-systemd-nixos.cachix.org"
     "https://cache.numtide.com"
