@@ -15,7 +15,7 @@
   zramSwap = {
     enable = lib.mkForce true;
     algorithm = lib.mkForce "lzo-rle";
-    memoryPercent = lib.mkForce 50;
+    memoryPercent = lib.mkForce 60;
     priority = lib.mkForce 100;
   };
 
