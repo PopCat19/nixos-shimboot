@@ -24,12 +24,22 @@
   systemd.package = lib.mkForce systemd257;
 
   # Suppress units that don't exist in systemd 257.9 (added in 258+)
-  # nixpkgs upstreamSystemUnits includes factory-reset units for systemd 259+
+  # nixpkgs upstreamSystemUnits includes these for systemd 259+
   systemd.suppressedSystemUnits = lib.mkForce [
+    # Factory reset units (258+)
     "factory-reset.target"
+    "factory-reset-now.target"
     "systemd-factory-reset-request.service"
     "systemd-factory-reset-reboot.service"
+    "systemd-factory-reset.socket"
     "factory-reset.target.wants"
+
+    # New sockets (258+)
+    "systemd-journalctl.socket"
+    "systemd-ask-password.socket"
+    "systemd-logind-varlink.socket"
+    "systemd-machined.socket"
+    "systemd-mute-console.socket"
   ];
 
   # Override buildPackages systemd to use 257.9.
