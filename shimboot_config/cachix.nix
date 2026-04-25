@@ -6,9 +6,11 @@
 # - Configures Cachix substituters for binary cache access
 # - Sets up trusted public keys for cache verification
 # - Enables faster builds through cache reuse
+# - Provides base caches that consumers can append to
 #
-# Note: shimboot consumers (NSC, PNH) should add their own caches
-# in their configuration via nix.settings.substituters
+# Consumers: Use lib.mkAfter in your own cachix.nix to add caches
+# Example:
+#   nix.settings.substituters = lib.mkAfter [ "https://your-cache.cachix.org" ];
 _: {
   nix.settings = {
     substituters = [
