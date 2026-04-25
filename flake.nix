@@ -77,7 +77,24 @@
             postInstall = (old.postInstall or "") + ''
               # Auto-generate stubs for units expected by nixos-unstable but missing in 257.9
               # Units added in systemd 258+
-              MISSING_UNITS="breakpoint-pre-udev.service breakpoint-pre-basic.service breakpoint-pre-mount.service breakpoint-pre-switch-root.service systemd-factory-reset-complete.service factory-reset-now.target"
+              MISSING_UNITS="
+                breakpoint-pre-udev.service
+                breakpoint-pre-basic.service
+                breakpoint-pre-mount.service
+                breakpoint-pre-switch-root.service
+                systemd-factory-reset-complete.service
+                factory-reset-now.target
+                systemd-journalctl.socket
+                systemd-journalctl@.service
+                systemd-mute-console.socket
+                systemd-mute-console@.service
+                systemd-logind-varlink.socket
+                systemd-machined.socket
+                systemd-ask-password.socket
+                systemd-factory-reset-reboot.service
+                systemd-factory-reset-request.service
+                systemd-tpm2-clear.service
+              "
 
               for unit in $MISSING_UNITS; do
                 if [ ! -e "$out/example/systemd/system/$unit" ]; then
