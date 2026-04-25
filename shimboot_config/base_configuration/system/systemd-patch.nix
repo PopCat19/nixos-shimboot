@@ -33,8 +33,7 @@
     "systemd-factory-reset-reboot.service"
     "systemd-factory-reset.socket"
     "factory-reset.target.wants"
-
-    # New sockets (258+)
+    # New sockets and services (258+)
     "systemd-journalctl.socket"
     "systemd-ask-password.socket"
     "systemd-logind-varlink.socket"
