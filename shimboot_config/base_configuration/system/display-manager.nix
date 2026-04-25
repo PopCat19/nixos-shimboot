@@ -44,7 +44,7 @@ in
 
     services.displayManager.defaultSession = lib.mkDefault "hyprland";
 
-    programs.dconf.enable = lib.mkDefault true;
+    programs.dconf.enable = true;
 
     services.logind = lib.mkDefault {
       settings = {

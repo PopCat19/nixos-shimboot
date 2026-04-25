@@ -55,9 +55,9 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    programs.fish.enable = lib.mkDefault true;
+    programs.fish.enable = true;
     programs.starship = lib.mkIf cfg.enableFunctions {
-      enable = lib.mkDefault true;
+      enable = true;
       settings = {
         format = "$time$directory$git_branch$git_status$line_break$character";
 
