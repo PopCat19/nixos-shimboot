@@ -8,6 +8,7 @@
 # - Enables mutable users for easy setup
 # - Creates root and user accounts using settings from user-config.nix
 # - Sets initial passwords for bring-up convenience
+# - Configures passwordless sudo for nixos-rebuild
 #
 # Supports both shimboot's userConfig.user.* and consumer userConfig.* structures
 {
@@ -37,5 +38,31 @@ in
       extraGroups = lib.mkDefault extraGroups;
       initialPassword = lib.mkDefault initialPassword;
     };
+  };
+
+  # Passwordless sudo for nixos-rebuild (LLM automation)
+  security.sudo = {
+    enable = lib.mkDefault true;
+    extraRules = [
+      {
+        users = [ "${username}" ];
+        commands = [
+          {
+            command = "/run/current-system/sw/bin/nixos-rebuild";
+            options = [
+              "NOPASSWD"
+              "SETENV"
+            ];
+          }
+          {
+            command = "/run/wrappers/bin/nixos-rebuild";
+            options = [
+              "NOPASSWD"
+              "SETENV"
+            ];
+          }
+        ];
+      }
+    ];
   };
 }

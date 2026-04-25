@@ -24,6 +24,7 @@ let
   coreModules = [
     ../shimboot-options.nix
     ../nix-options.nix
+    ../cachix.nix
     ./system/environment.nix
     ./system/boot.nix
     ./system/networking.nix

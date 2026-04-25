@@ -4,8 +4,8 @@
 #
 # This module:
 # - Defines Nix experimental features
-# - Configures binary caches and trusted keys
 # - Sets up garbage collection
+# - Configures trusted users
 { lib, userConfig, ... }:
 let
   userData = userConfig.user or userConfig;
@@ -29,18 +29,6 @@ in
     trusted-users = lib.mkAfter [
       "root"
       "${username}"
-    ];
-
-    substituters = lib.mkAfter [
-      "https://shimboot-systemd-nixos.cachix.org"
-      "https://cache.numtide.com"
-      "https://hyprland.cachix.org"
-    ];
-
-    trusted-public-keys = lib.mkAfter [
-      "shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA="
-      "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g="
-      "hyprland.cachix.org-1:a7pgxzMz7+chwVL3/pzj6jIBMioiJM7ypFP8PwtkuGc="
     ];
   };
 

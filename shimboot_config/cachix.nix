@@ -1,21 +1,22 @@
-# cachix-config.nix
+# cachix.nix
 #
-# Purpose: Configure Cachix binary cache for all builds
+# Purpose: Configure binary caches for faster builds
 #
 # This module:
-# - Configures Nix substituters for binary cache access
+# - Configures Cachix substituters for binary cache access
 # - Sets up trusted public keys for cache verification
 # - Enables faster builds through cache reuse
+#
+# Note: shimboot consumers (NSC, PNH) should add their own caches
+# in their configuration via nix.settings.substituters
 _: {
-  # Cachix configuration for all builds
-  nixConfig = {
-    extra-substituters = [
-      "https://cache.nixos.org"
+  nix.settings = {
+    substituters = [
       "https://shimboot-systemd-nixos.cachix.org"
       "https://cache.numtide.com"
     ];
-    extra-trusted-public-keys = [
-      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+
+    trusted-public-keys = [
       "shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA="
       "niks3.numtide.com-1:DTx8wZduET09hRmMtKdQDxNNthLQETkc/yaX7M4qK0g="
     ];
