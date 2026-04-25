@@ -9,7 +9,7 @@
 # Consumers should import cachix.nix for values to merge
 { lib, ... }:
 let
-  cachix = import ./cachix.nix { };
+  cachix = import ./cachix.nix;
 in
 {
   nix.settings = lib.mkMerge [
