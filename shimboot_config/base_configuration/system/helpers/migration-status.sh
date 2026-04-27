@@ -70,10 +70,12 @@ echo ""
 echo "--- NixOS Config ---"
 NIXOS_CONFIG=""
 for home_dir in /home/*; do
-	if [[ -d "${home_dir}/nixos-shimboot" ]] && [[ -f "${home_dir}/nixos-shimboot/flake.nix" ]]; then
-		NIXOS_CONFIG="${home_dir}/nixos-shimboot"
-		break
-	fi
+	for dir_name in nixos-shimboot-config nixos-shimboot; do
+		if [[ -d "${home_dir}/${dir_name}" ]] && [[ -f "${home_dir}/${dir_name}/flake.nix" ]]; then
+			NIXOS_CONFIG="${home_dir}/${dir_name}"
+			break 2
+		fi
+	done
 done
 
 if [[ -n "$NIXOS_CONFIG" ]]; then

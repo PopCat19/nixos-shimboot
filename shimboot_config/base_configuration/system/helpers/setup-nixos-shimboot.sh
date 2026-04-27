@@ -53,7 +53,19 @@ echo "[setup_nixos_shimboot] Username: ${USERNAME}"
 
 # If nixos-shimboot wasn't found, check the expected path for the current profile
 if [[ -z "$NIXOS_CONFIG_PATH" ]]; then
-	NIXOS_CONFIG_PATH="${NIXOS_CONFIG_DIR:-/home/${USERNAME}/nixos-shimboot}"
+	if [[ -n "${NIXOS_CONFIG_DIR:-}" ]]; then
+		NIXOS_CONFIG_PATH="$NIXOS_CONFIG_DIR"
+	else
+		# Scan home dirs — companion repo first, then base
+		for dir_name in nixos-shimboot-config nixos-shimboot; do
+			candidate="/home/${USERNAME}/${dir_name}"
+			if [[ -d "$candidate" ]] && [[ -f "${candidate}/flake.nix" ]]; then
+				NIXOS_CONFIG_PATH="$candidate"
+				break
+			fi
+			done
+		NIXOS_CONFIG_PATH="${NIXOS_CONFIG_PATH:-/home/${USERNAME}/nixos-shimboot}"
+	fi
 	echo "[setup_nixos_shimboot] Expected nixos-shimboot path: ${NIXOS_CONFIG_PATH}"
 fi
 

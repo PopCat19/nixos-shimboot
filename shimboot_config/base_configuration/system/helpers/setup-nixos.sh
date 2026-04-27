@@ -12,7 +12,18 @@
 set -Eeuo pipefail
 
 USERNAME="${USER}"
-CONFIG_DIR="${NIXOS_CONFIG_DIR:-/home/${USERNAME}/nixos-shimboot}"
+CONFIG_DIR="${NIXOS_CONFIG_DIR:-}"
+if [[ -z "$CONFIG_DIR" ]]; then
+	for dir_name in nixos-shimboot-config nixos-shimboot; do
+		candidate="/home/${USERNAME}/${dir_name}"
+		if [[ -d "$candidate" ]] && [[ -f "${candidate}/flake.nix" ]]; then
+			CONFIG_DIR="$candidate"
+			break
+		fi
+	done
+	# Fallback if nothing found
+	CONFIG_DIR="${CONFIG_DIR:-/home/${USERNAME}/nixos-shimboot}"
+fi
 LOG_FILE="/tmp/setup_nixos.log"
 BACKUP_DIR="/tmp/setup_nixos_backup_$(date +%Y%m%d_%H%M%S)"
 
