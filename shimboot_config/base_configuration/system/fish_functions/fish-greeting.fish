@@ -109,7 +109,7 @@ function fish_greeting
         set -l known_helpers \
             expand-rootfs \
             setup-nixos \
-            setup-nixos-config \
+            setup-nixos-shimboot \
             fix-steam-bwrap \
             bwrap-lsm-workaround \
             setup-bwrap-workaround \
@@ -130,7 +130,7 @@ function fish_greeting
             set_color brwhite; echo "Helpers: none found"
         end
     else
-        set_color bryellow; echo "[WARN] No nixos-config detected."
+        set_color bryellow; echo "[WARN] No nixos-shimboot detected."
         set_color normal; echo "Run: setup_nixos to initialize"
     end
 
