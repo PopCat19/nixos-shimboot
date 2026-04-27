@@ -113,7 +113,12 @@
       desktop = "${home}/Desktop";
     };
 
-  env = {
-    NIXOS_CONFIG_DIR = "$HOME/nixos-shimboot";
-  };
+  env =
+    let
+      repoName = "nixos-shimboot";
+    in
+    {
+      inherit repoName;
+      NIXOS_CONFIG_DIR = "${directories.home}/${repoName}";
+    };
 }

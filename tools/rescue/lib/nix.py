@@ -96,7 +96,7 @@ def list_generations(mountpoint: Path) -> list[Generation]:
     return generations
 
 
-CONFIG_DIR_NAMES = ["nixos-shimboot", "nixos-config"]
+CONFIG_DIR_NAMES = ["nixos-shimboot-config", "nixos-shimboot", "nixos-config"]
 
 
 def find_nixos_configs(mountpoint: Path) -> list[Path]:
@@ -209,7 +209,7 @@ def infer_hostname_from_path(config_dir: Path) -> Optional[str]:
         Inferred hostname or None
     """
     # Match /home/<user>/<config-dir-name> pattern
-    match = re.search(r"/home/([^/]+)/(?:nixos-shimboot|nixos-config)$", str(config_dir))
+    match = re.search(r"/home/([^/]+)/(?:nixos-shimboot-config|nixos-shimboot|nixos-config)$", str(config_dir))
     if match:
         return match.group(1)
     return None
