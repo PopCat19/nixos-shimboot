@@ -299,7 +299,13 @@ select_nixos_generation() {
 	gen_count="$(echo "$generations" | grep -c .)"
 
 	local default_num
-	default_num="$(echo "$generations" | head -n1 | cut -d'|' -f1)"
+	local system_link="${root}/nix/var/nix/profiles/system"
+	if [ -L "$system_link" ]; then
+		default_num="$(readlink "$system_link" | sed 's/.*system-\([0-9]*\)-link.*/\1/; t; s/.*/0/')"
+		[ "$default_num" = "0" ] && default_num="$(echo "$generations" | head -n1 | cut -d'|' -f1)"
+	else
+		default_num="$(echo "$generations" | head -n1 | cut -d'|' -f1)"
+	fi
 
 	if [ "$gen_count" -eq 1 ]; then
 		local only_num only_ver only_date only_time only_path
