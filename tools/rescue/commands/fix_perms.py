@@ -1,6 +1,6 @@
 # fix_perms.py
 #
-# Purpose: Fix file permissions in nixos-config directories
+# Purpose: Fix file permissions in NixOS config directories
 #
 # This module:
 # - Detects users in /home and /root
@@ -76,7 +76,7 @@ def fix_config_permissions(config_dir: Path, username: str, uid: int, gid: int) 
     """Fix permissions on a config directory.
     
     Args:
-        config_dir: Path to nixos-config
+        config_dir: Path to NixOS config
         username: Target username
         uid: Target UID
         gid: Target GID
@@ -134,7 +134,7 @@ def run(
     mountpoint: Path,
     partition: Optional[Path] = None,
 ) -> int:
-    """Fix permissions on nixos-config directories.
+    """Fix permissions on NixOS config directories.
     
     Args:
         mountpoint: Path to mounted rootfs
@@ -149,7 +149,7 @@ def run(
     configs = find_nixos_configs(mountpoint)
     
     if not configs:
-        log_error("No nixos-config directories found")
+        log_error("No NixOS config directories found")
         return 1
     
     log_info(f"Found {len(configs)} config(s)")
@@ -211,6 +211,6 @@ register_command(
     name="Fix config permissions",
     number="13",
     handler=run,
-    description="Fix ownership and permissions on nixos-config directories",
+    description="Fix ownership and permissions on NixOS config directories",
     tested=True,
 )

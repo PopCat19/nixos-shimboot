@@ -4,7 +4,7 @@
 #
 # This module:
 # - Manages NixOS generations (list, rollback, delete)
-# - Finds nixos-config directories
+# - Finds NixOS config directories
 # - Detects hostnames from flake.nix
 # - Runs nixos-rebuild with proper environment
 
@@ -96,11 +96,15 @@ def list_generations(mountpoint: Path) -> list[Generation]:
     return generations
 
 
+CONFIG_DIR_NAMES = ["nixos-shimboot", "nixos-config"]
+
+
 def find_nixos_configs(mountpoint: Path) -> list[Path]:
-    """Find all nixos-config directories in rootfs.
+    """Find NixOS config directories in rootfs.
     
-    Searches /home/*/nixos-config, /root/nixos-config, /etc/nixos
-    and returns valid configs (must have flake.nix and not be empty).
+    Searches /home/*/<dir>, /root/<dir>, /etc/nixos for each dir name
+    in CONFIG_DIR_NAMES (primary first). Returns valid configs (must have
+    flake.nix or configuration.nix and not be empty).
     
     Args:
         mountpoint: Path to mounted rootfs
@@ -117,22 +121,23 @@ def find_nixos_configs(mountpoint: Path) -> list[Path]:
         log_info(f"Checking home directories in {home_dir}")
         for user_dir in home_dir.iterdir():
             if user_dir.is_dir():
-                config_dir = user_dir / "nixos-config"
-                if is_valid_config(config_dir):
-                    log_info(f"Found valid config: {config_dir}")
-                    configs.append(config_dir)
-                else:
-                    # Debug: log why it failed
-                    if config_dir.exists():
-                        has_flake = (config_dir / "flake.nix").exists()
-                        has_config = (config_dir / "configuration.nix").exists()
-                        log_info(f"  {config_dir}: flake.nix={has_flake}, configuration.nix={has_config}")
+                for dir_name in CONFIG_DIR_NAMES:
+                    config_dir = user_dir / dir_name
+                    if is_valid_config(config_dir):
+                        log_info(f"Found valid config: {config_dir}")
+                        configs.append(config_dir)
+                    else:
+                        if config_dir.exists():
+                            has_flake = (config_dir / "flake.nix").exists()
+                            has_config = (config_dir / "configuration.nix").exists()
+                            log_info(f"  {config_dir}: flake.nix={has_flake}, configuration.nix={has_config}")
     
     # Search /root
-    root_config = mountpoint / "root" / "nixos-config"
-    if is_valid_config(root_config):
-        log_info(f"Found valid config: {root_config}")
-        configs.append(root_config)
+    for dir_name in CONFIG_DIR_NAMES:
+        root_config = mountpoint / "root" / dir_name
+        if is_valid_config(root_config):
+            log_info(f"Found valid config: {root_config}")
+            configs.append(root_config)
     
     # Search /etc/nixos
     etc_config = mountpoint / "etc" / "nixos"
@@ -144,7 +149,7 @@ def find_nixos_configs(mountpoint: Path) -> list[Path]:
 
 
 def is_valid_config(config_dir: Path) -> bool:
-    """Check if directory is a valid nixos-config.
+    """Check if directory is a valid NixOS config.
     
     Must:
     - Exist
@@ -195,7 +200,7 @@ def get_flake_hostnames(config_dir: Path) -> list[str]:
 def infer_hostname_from_path(config_dir: Path) -> Optional[str]:
     """Infer hostname from config directory path.
     
-    e.g., /home/nixos-user/nixos-config -> nixos-user
+    e.g., /home/nixos-user/nixos-shimboot -> nixos-user
     
     Args:
         config_dir: Path to config directory
@@ -203,8 +208,8 @@ def infer_hostname_from_path(config_dir: Path) -> Optional[str]:
     Returns:
         Inferred hostname or None
     """
-    # Match /home/<user>/nixos-config pattern
-    match = re.search(r"/home/([^/]+)/nixos-config$", str(config_dir))
+    # Match /home/<user>/<config-dir-name> pattern
+    match = re.search(r"/home/([^/]+)/(?:nixos-shimboot|nixos-config)$", str(config_dir))
     if match:
         return match.group(1)
     return None

@@ -1,9 +1,9 @@
 # show_configs.py
 #
-# Purpose: Display available nixos-config directories
+# Purpose: Display available NixOS config directories
 #
 # This module:
-# - Lists all found nixos-config directories
+# - Lists all found NixOS config directories
 # - Shows git branch, commit, and last message for each
 # - Marks the currently selected config
 
@@ -38,7 +38,7 @@ def run(
     configs = find_nixos_configs(mountpoint)
     
     if not configs:
-        log_info("No nixos-config directories found")
+        log_info("No NixOS config directories found")
         return 0
     
     if HAS_RICH:
@@ -92,6 +92,6 @@ register_command(
     name="Show available configs",
     number="3",
     handler=run,
-    description="List all nixos-config directories with git info",
+    description="List all NixOS config directories with git info",
     tested=True,
 )

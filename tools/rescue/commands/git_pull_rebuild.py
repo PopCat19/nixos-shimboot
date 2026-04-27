@@ -124,7 +124,7 @@ def run(
     git_configs = [c for c in configs if get_git_info(c)]
     
     if not git_configs:
-        log_error("No nixos-config with git repository found")
+        log_error("No NixOS config with git repository found")
         return 1
     
     config_dir = git_configs[0]  # Use first git config

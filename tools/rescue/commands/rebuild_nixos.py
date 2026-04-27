@@ -3,7 +3,7 @@
 # Purpose: Auto-detect and rebuild NixOS system
 #
 # This module:
-# - Auto-detects nixos-config directories
+# - Auto-detects NixOS config directories
 # - Selects most recent git commit
 # - Detects or infers hostname
 # - Runs nixos-rebuild boot with proper environment
@@ -81,7 +81,7 @@ def detect_hostname(
     """Detect hostname from config and system.
     
     Args:
-        config_dir: Path to nixos-config
+        config_dir: Path to NixOS config
         mountpoint: Rootfs mountpoint
     
     Returns:
@@ -150,8 +150,8 @@ def run(
         valid_configs = find_nixos_configs(mountpoint)
         
         if not valid_configs:
-            log_error("No valid nixos-config found")
-            log_info("Searched in /home/*/nixos-config, /root/nixos-config, /etc/nixos")
+            log_error("No valid NixOS config found")
+            log_info("Searched in /home/*/nixos-shimboot, /home/*/nixos-config, /root/nixos-shimboot, /root/nixos-config, /etc/nixos")
             return 1
         
         config_dir = select_best_config(mountpoint, valid_configs)
