@@ -372,7 +372,7 @@ select_nixos_generation() {
 
 			log "setting default generation to ${selected_num}..."
 			rm -f "${profiles_dir}/system"
-			ln -s "$(readlink "${target_link}")" "${profiles_dir}/system"
+			ln -s "system-${selected_num}-link" "${profiles_dir}/system"
 			sync
 			log "default generation updated"
 		fi
