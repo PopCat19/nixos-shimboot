@@ -17,7 +17,6 @@
 {
   systemd257,
   lib,
-  pkgs,
   ...
 }:
 {
@@ -57,7 +56,7 @@
   # and systemd-hwdb binaries at build time, so the extra runtime features
   # in the full package are irrelevant.
   nixpkgs.overlays = [
-    (final: prev: {
+    (_final: prev: {
       buildPackages = prev.buildPackages // {
         systemd = systemd257;
         systemdMinimal = systemd257;
