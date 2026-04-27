@@ -15,9 +15,8 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    # Pinned nixpkgs for systemd 257.9 package definition
-    # We use the package from here but override stdenv to unstable's for glibc compat
-    nixpkgs-systemd.url = "github:NixOS/nixpkgs/d3736636ac39ed678e557977b65d620ca75142d0";
+    # Stable nixpkgs for systemd 257.x package (258+ requires kernel >=5.10)
+    nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-25.05";
   };
 
   # Combine all outputs from modules
@@ -25,14 +24,12 @@
     {
       self,
       nixpkgs,
-      nixpkgs-systemd,
+      nixpkgs-stable,
       ...
     }:
     let
-      # Import Cachix configuration
       system = "x86_64-linux";
 
-      # Supported ChromeOS boards
       supportedBoards = [
         "dedede"
         "octopus"
@@ -43,81 +40,29 @@
         "snappy"
       ];
 
-      # Import nixpkgs-unstable for stdenv (glibc 2.42)
+      # Unstable for main packages
       pkgs = import nixpkgs { inherit system; };
 
-      # Import systemd from pinned nixpkgs for systemd 257.9
-      # systemd 258+ requires kernel >=5.10 (open_tree/move_mount syscalls)
-      # See: https://github.com/PopCat19/nixos-shimboot/issues/405
-      pkgsSystemd = import nixpkgs-systemd { inherit system; };
+      # Stable for systemd 257.x (258+ requires kernel >=5.10 for open_tree/move_mount syscalls)
+      pkgsStable = import nixpkgs-stable { inherit system; };
 
-      # Systemd 257.9 with ChromeOS patch and missing unit stubs
-      # Built with unstable's stdenv to match glibc version for initramfs compatibility
-      # Passed via specialArgs, not overlay (avoids cross-version function arg issues)
-      systemd257 =
-        (pkgsSystemd.systemd.override {
-          # Use unstable's stdenv to get glibc 2.42 matching rest of initramfs
-          inherit (pkgs) stdenv;
-        }).overrideAttrs
-          (old: {
-            patches = (old.patches or [ ]) ++ [
-              ./patches/systemd-mountpoint-util-chromeos.patch
-            ];
-            # Add passthru attributes expected by nixos-unstable modules
-            # Note: withTpm2Units=false to avoid missing systemd-tpm2-clear.service (not in 257.9)
-            passthru = old.passthru or { } // {
-              withLogind = true;
-              withNspawn = true;
-              withVconsole = true;
-              withTpm2Units = false;
-              withPortabled = false;
-              withSysupdate = false;
-            };
-            # Create stub files for units added in systemd 258+ but expected by nixos-unstable
-            postInstall = (old.postInstall or "") + ''
-              # Auto-generate stubs for units expected by nixos-unstable but missing in 257.9
-              # Units added in systemd 258+
-              MISSING_UNITS="
-                breakpoint-pre-udev.service
-                breakpoint-pre-basic.service
-                breakpoint-pre-mount.service
-                breakpoint-pre-switch-root.service
-                systemd-factory-reset-complete.service
-                factory-reset-now.target
-                systemd-journalctl.socket
-                systemd-journalctl@.service
-                systemd-mute-console.socket
-                systemd-mute-console@.service
-                systemd-logind-varlink.socket
-                systemd-machined.socket
-                systemd-ask-password.socket
-                systemd-factory-reset-reboot.service
-                systemd-factory-reset-request.service
-                systemd-tpm2-clear.service
-              "
-
-              for unit in $MISSING_UNITS; do
-                if [ ! -e "$out/example/systemd/system/$unit" ]; then
-                  name=$(echo "$unit" | sed 's/\.[^.]*$//')
-                  printf "[Unit]\nDescription=%s (stub - not in systemd 257.9)\n" "$name" > "$out/example/systemd/system/$unit"
-                fi
-              done
-
-              # Factory-reset setup
-              mkdir -p $out/example/systemd/system/factory-reset.target.wants
-
-              # Binaries added in systemd 258+
-              MISSING_BINS="systemd-factory-reset system-generators/systemd-factory-reset-generator"
-
-              mkdir -p $out/lib/systemd/system-generators
-              for bin in $MISSING_BINS; do
-                if [ ! -e "$out/lib/systemd/$bin" ]; then
-                  printf '#!/bin/sh\n# Stub - not available in systemd 257.9\nexit 0\n' > "$out/lib/systemd/$bin"
-                  chmod +x "$out/lib/systemd/$bin"
-                fi
-              done
-            '';
-          });
+      # Systemd 257.x from stable with ChromeOS mount patch
+      # Stable provides correct passthru attrs; only need ChromeOS patch + stubs for unit
+      # compatibility with unstable's systemd module
+      systemd257 = pkgsStable.systemd.overrideAttrs (old: {
+        patches = (old.patches or [ ]) ++ [
+          ./patches/systemd-mountpoint-util-chromeos.patch
+        ];
+        # Stub units/binaries added in 258+ that unstable's systemd module expects
+        # Passthru attrs from stable are correct (withTpm2Units, etc.)
+        postInstall = (old.postInstall or "") + ''
+          # Factory reset units (added in 258, hardcoded in unstable's upstreamSystemUnits)
+          for unit in factory-reset.target systemd-factory-reset-request.service systemd-factory-reset-reboot.service; do
+            printf "[Unit]\nDescription=%s stub (systemd 258+)\n" "$unit" > "$out/example/systemd/system/$unit"
+          done
+          mkdir -p "$out/example/systemd/system/factory-reset.target.wants"
+        '';
+      });
 
       # Import module outputs
       # Core system and development modules
