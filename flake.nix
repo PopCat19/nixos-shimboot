@@ -47,20 +47,30 @@
       pkgsStable = import nixpkgs-stable { inherit system; };
 
       # Systemd 257.x from stable with ChromeOS mount patch
-      # Stable provides correct passthru attrs; only need ChromeOS patch + stubs for unit
-      # compatibility with unstable's systemd module
+      # Stable's passthru misses some attrs that unstable's systemd module expects
       systemd257 = pkgsStable.systemd.overrideAttrs (old: {
         patches = (old.patches or [ ]) ++ [
           ./patches/systemd-mountpoint-util-chromeos.patch
         ];
-        # Stub units/binaries added in 258+ that unstable's systemd module expects
-        # Passthru attrs from stable are correct (withTpm2Units, etc.)
+        # Add missing passthru attrs expected by unstable's systemd module
+        # Stable exposes: withBootloader, withCryptsetup, withEfi, withFido2, withHostnamed,
+        # withImportd, withKmod, withLocaled, withMachined, withNetworkd, withPortabled,
+        # withTimedated, withTpm2Tss, withTpm2Units, withUtmp
+        # Missing: withNspawn, withLogind, withVconsole, withResolved, withNetworkd already there
+        passthru = old.passthru or { } // {
+          withNspawn = true;
+          withLogind = true;
+          withVconsole = true;
+        };
+        # Stub factory reset units (added in 258, hardcoded in unstable's upstreamSystemUnits)
         postInstall = (old.postInstall or "") + ''
-          # Factory reset units (added in 258, hardcoded in unstable's upstreamSystemUnits)
           for unit in factory-reset.target systemd-factory-reset-request.service systemd-factory-reset-reboot.service; do
             printf "[Unit]\nDescription=%s stub (systemd 258+)\n" "$unit" > "$out/example/systemd/system/$unit"
           done
           mkdir -p "$out/example/systemd/system/factory-reset.target.wants"
+          # systemd-journalctl added in 258
+          printf "[Unit]\nDescription=systemd-journalctl stub\n" > "$out/example/systemd/system/systemd-journalctl.socket"
+          printf "[Unit]\nDescription=systemd-journalctl stub\n\n[Service]\nExecStart=/bin/true\n" > "$out/example/systemd/system/systemd-journalctl@.service"
         '';
       });
 
