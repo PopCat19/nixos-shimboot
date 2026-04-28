@@ -68,32 +68,56 @@
           withVconsole = true;
           withTpm2Units = false;  # systemd 257 lacks TPM2 clear units
         };
-        # Stub units added in 258+ that unstable's systemd module or initrd expects
+        # Dynamically stub units that exist in 258+ but not in 257
+        # List of units added in systemd 258+ that unstable's module expects
+        # This could be automated further but requires knowing unstable's unit list
         postInstall = (old.postInstall or "") + ''
-          # Factory reset units (hardcoded in unstable's upstreamSystemUnits and initrd.upstreamUnits)
-          for unit in factory-reset.target factory-reset-now.target systemd-factory-reset-request.service systemd-factory-reset-reboot.service systemd-factory-reset-complete.service; do
-            printf "[Unit]\nDescription=%s stub (systemd 258+)\n" "$unit" > "$out/example/systemd/system/$unit"
+          # Units hardcoded in unstable's upstreamSystemUnits (both system and initrd)
+          # that don't exist in systemd 257.x
+          UNITS_258="
+            factory-reset.target
+            factory-reset-now.target
+            systemd-factory-reset-request.service
+            systemd-factory-reset-reboot.service
+            systemd-factory-reset-complete.service
+            systemd-journalctl.socket
+            systemd-journalctl@.service
+            breakpoint-pre-udev.service
+            breakpoint-pre-basic.service
+            breakpoint-pre-mount.service
+            breakpoint-pre-switch-root.service
+          "
+          
+          for unit in $UNITS_258; do
+            if [ ! -e "$out/example/systemd/system/$unit" ]; then
+              case "$unit" in
+                *.service)
+                  printf "[Unit]\nDescription=%s stub (systemd 258+)\n[Service]\nType=oneshot\nExecStart=/bin/true\n" "$unit" > "$out/example/systemd/system/$unit"
+                  ;;
+                *.socket)
+                  printf "[Unit]\nDescription=%s stub (systemd 258+)\n" "$unit" > "$out/example/systemd/system/$unit"
+                  ;;
+                *.target)
+                  printf "[Unit]\nDescription=%s stub (systemd 258+)\n" "$unit" > "$out/example/systemd/system/$unit"
+                  ;;
+                *)
+                  printf "[Unit]\nDescription=%s stub (systemd 258+)\n" "$unit" > "$out/example/systemd/system/$unit"
+                  ;;
+              esac
+            fi
           done
+          
           mkdir -p "$out/example/systemd/system/factory-reset.target.wants"
           
-          # systemd-journalctl socket/service (258+)
-          printf "[Unit]\nDescription=systemd-journalctl stub\n" > "$out/example/systemd/system/systemd-journalctl.socket"
-          printf "[Unit]\nDescription=systemd-journalctl stub\n\n[Service]\nExecStart=/bin/true\n" > "$out/example/systemd/system/systemd-journalctl@.service"
-          
-          # Breakpoint services for initrd debugging (258+)
-          for bp in breakpoint-pre-udev breakpoint-pre-basic breakpoint-pre-mount breakpoint-pre-switch-root; do
-            printf "[Unit]\nDescription=%s stub (systemd 258+)\n[Service]\nType=oneshot\nExecStart=/bin/true\n" "$bp" > "$out/example/systemd/system/$bp.service"
-          done
-          
-          # Factory reset binary (258+) - needed by initrd
+          # Binaries and generators (258+)
           mkdir -p "$out/lib/systemd"
-          printf '#!/bin/sh\n# stub: systemd 258+\nexit 0\n' > "$out/lib/systemd/systemd-factory-reset"
-          chmod +x "$out/lib/systemd/systemd-factory-reset"
-          
-          # Factory reset generator (258+) - needed by initrd
           mkdir -p "$out/lib/systemd/system-generators"
-          printf '#!/bin/sh\n# stub: systemd 258+\nexit 0\n' > "$out/lib/systemd/system-generators/systemd-factory-reset-generator"
-          chmod +x "$out/lib/systemd/system-generators/systemd-factory-reset-generator"
+          for bin in systemd-factory-reset; do
+            [ ! -e "$out/lib/systemd/$bin" ] && printf '#!/bin/sh\nexit 0\n' > "$out/lib/systemd/$bin" && chmod +x "$out/lib/systemd/$bin"
+          done
+          for gen in systemd-factory-reset-generator; do
+            [ ! -e "$out/lib/systemd/system-generators/$gen" ] && printf '#!/bin/sh\nexit 0\n' > "$out/lib/systemd/system-generators/$gen" && chmod +x "$out/lib/systemd/system-generators/$gen"
+          done
         '';
       });
 
