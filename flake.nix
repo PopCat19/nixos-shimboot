@@ -56,11 +56,13 @@
         # Stable exposes: withBootloader, withCryptsetup, withEfi, withFido2, withHostnamed,
         # withImportd, withKmod, withLocaled, withMachined, withNetworkd, withPortabled,
         # withTimedated, withTpm2Tss, withTpm2Units, withUtmp
-        # Missing: withNspawn, withLogind, withVconsole, withResolved, withNetworkd already there
+        # Missing in stable's passthru: withNspawn, withLogind, withVconsole
+        # Override: withTpm2Units=false (systemd 257 lacks systemd-tpm2-clear.service)
         passthru = old.passthru or { } // {
           withNspawn = true;
           withLogind = true;
           withVconsole = true;
+          withTpm2Units = false;  # systemd 257 lacks TPM2 clear units
         };
         # Stub units added in 258+ that unstable's systemd module or initrd expects
         postInstall = (old.postInstall or "") + ''
