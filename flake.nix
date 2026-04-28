@@ -69,10 +69,8 @@
       # Diff: units expected by unstable but missing in 257
       missingUnits = builtins.filter (u: !(builtins.elem u systemd257Units)) units258;
 
-      systemd257 = (pkgsStable.systemd.override {
-        inherit (pkgs) stdenv;  # Use unstable's stdenv for glibc 2.42 compatibility
-      }).overrideAttrs (old: {
-        separateDebugInfo = false;  # Avoid structuredAttrs conflict with stdenv override
+      systemd257 = pkgsStable.systemd.overrideAttrs (old: {
+        separateDebugInfo = false;  # Avoid structuredAttrs conflict
         patches = (old.patches or [ ]) ++ [
           ./patches/systemd-mountpoint-util-chromeos.patch
         ];
