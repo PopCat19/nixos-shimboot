@@ -64,20 +64,30 @@
         };
         # Stub units added in 258+ that unstable's systemd module or initrd expects
         postInstall = (old.postInstall or "") + ''
-          # Factory reset units (hardcoded in unstable's upstreamSystemUnits)
-          for unit in factory-reset.target systemd-factory-reset-request.service systemd-factory-reset-reboot.service; do
+          # Factory reset units (hardcoded in unstable's upstreamSystemUnits and initrd.upstreamUnits)
+          for unit in factory-reset.target factory-reset-now.target systemd-factory-reset-request.service systemd-factory-reset-reboot.service systemd-factory-reset-complete.service; do
             printf "[Unit]\nDescription=%s stub (systemd 258+)\n" "$unit" > "$out/example/systemd/system/$unit"
           done
           mkdir -p "$out/example/systemd/system/factory-reset.target.wants"
           
-          # systemd-journalctl (added in 258)
+          # systemd-journalctl socket/service (258+)
           printf "[Unit]\nDescription=systemd-journalctl stub\n" > "$out/example/systemd/system/systemd-journalctl.socket"
           printf "[Unit]\nDescription=systemd-journalctl stub\n\n[Service]\nExecStart=/bin/true\n" > "$out/example/systemd/system/systemd-journalctl@.service"
           
-          # Breakpoint services for initrd debugging (added in 258)
+          # Breakpoint services for initrd debugging (258+)
           for bp in breakpoint-pre-udev breakpoint-pre-basic breakpoint-pre-mount breakpoint-pre-switch-root; do
-            printf "[Unit]\nDescription=%s stub (systemd 258+)\n" "$bp" > "$out/example/systemd/system/$bp.service"
+            printf "[Unit]\nDescription=%s stub (systemd 258+)\n[Service]\nType=oneshot\nExecStart=/bin/true\n" "$bp" > "$out/example/systemd/system/$bp.service"
           done
+          
+          # Factory reset binary (258+) - needed by initrd
+          mkdir -p "$out/lib/systemd"
+          printf '#!/bin/sh\n# stub: systemd 258+\nexit 0\n' > "$out/lib/systemd/systemd-factory-reset"
+          chmod +x "$out/lib/systemd/systemd-factory-reset"
+          
+          # Factory reset generator (258+) - needed by initrd
+          mkdir -p "$out/lib/systemd/system-generators"
+          printf '#!/bin/sh\n# stub: systemd 258+\nexit 0\n' > "$out/lib/systemd/system-generators/systemd-factory-reset-generator"
+          chmod +x "$out/lib/systemd/system-generators/systemd-factory-reset-generator"
         '';
       });
 
