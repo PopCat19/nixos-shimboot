@@ -46,9 +46,29 @@
       # Stable for systemd 257.x (258+ requires kernel >=5.10 for open_tree/move_mount syscalls)
       pkgsStable = import nixpkgs-stable { inherit system; };
 
-      # Systemd 257.x from stable with ChromeOS mount patch
-      # Override stdenv to unstable's for glibc compatibility
-      # Stable's passthru misses some attrs that unstable's systemd module expects
+      # Compute units that unstable's module expects but 257 lacks
+      # This diffs the expected units against what 257 actually provides
+      systemd257Units = builtins.attrNames (builtins.readDir "${pkgsStable.systemd}/example/systemd/system");
+      
+      # Units hardcoded in unstable's upstreamSystemUnits and initrd.upstreamUnits
+      # that don't exist in systemd 257.x
+      units258 = [
+        "factory-reset.target"
+        "factory-reset-now.target"
+        "systemd-factory-reset-request.service"
+        "systemd-factory-reset-reboot.service"
+        "systemd-factory-reset-complete.service"
+        "breakpoint-pre-udev.service"
+        "breakpoint-pre-basic.service"
+        "breakpoint-pre-mount.service"
+        "breakpoint-pre-switch-root.service"
+        "systemd-journalctl.socket"
+        "systemd-journalctl@.service"
+      ];
+      
+      # Diff: units expected by unstable but missing in 257
+      missingUnits = builtins.filter (u: !(builtins.elem u systemd257Units)) units258;
+
       systemd257 = (pkgsStable.systemd.override {
         inherit (pkgs) stdenv;  # Use unstable's stdenv for glibc 2.42 compatibility
       }).overrideAttrs (old: {
@@ -57,67 +77,26 @@
           ./patches/systemd-mountpoint-util-chromeos.patch
         ];
         # Add missing passthru attrs expected by unstable's systemd module
-        # Stable exposes: withBootloader, withCryptsetup, withEfi, withFido2, withHostnamed,
-        # withImportd, withKmod, withLocaled, withMachined, withNetworkd, withPortabled,
-        # withTimedated, withTpm2Tss, withTpm2Units, withUtmp
-        # Missing in stable's passthru: withNspawn, withLogind, withVconsole
-        # Override: withTpm2Units=false (systemd 257 lacks systemd-tpm2-clear.service)
         passthru = old.passthru or { } // {
           withNspawn = true;
           withLogind = true;
           withVconsole = true;
           withTpm2Units = false;  # systemd 257 lacks TPM2 clear units
         };
-        # Dynamically stub units that exist in 258+ but not in 257
-        # List of units added in systemd 258+ that unstable's module expects
-        # This could be automated further but requires knowing unstable's unit list
+        # Dynamically stub missing units computed at evaluation time
         postInstall = (old.postInstall or "") + ''
-          # Units hardcoded in unstable's upstreamSystemUnits (both system and initrd)
-          # that don't exist in systemd 257.x
-          UNITS_258="
-            factory-reset.target
-            factory-reset-now.target
-            systemd-factory-reset-request.service
-            systemd-factory-reset-reboot.service
-            systemd-factory-reset-complete.service
-            systemd-journalctl.socket
-            systemd-journalctl@.service
-            breakpoint-pre-udev.service
-            breakpoint-pre-basic.service
-            breakpoint-pre-mount.service
-            breakpoint-pre-switch-root.service
-          "
-          
-          for unit in $UNITS_258; do
-            if [ ! -e "$out/example/systemd/system/$unit" ]; then
-              case "$unit" in
-                *.service)
-                  printf "[Unit]\nDescription=%s stub (systemd 258+)\n[Service]\nType=oneshot\nExecStart=/bin/true\n" "$unit" > "$out/example/systemd/system/$unit"
-                  ;;
-                *.socket)
-                  printf "[Unit]\nDescription=%s stub (systemd 258+)\n" "$unit" > "$out/example/systemd/system/$unit"
-                  ;;
-                *.target)
-                  printf "[Unit]\nDescription=%s stub (systemd 258+)\n" "$unit" > "$out/example/systemd/system/$unit"
-                  ;;
-                *)
-                  printf "[Unit]\nDescription=%s stub (systemd 258+)\n" "$unit" > "$out/example/systemd/system/$unit"
-                  ;;
-              esac
-            fi
-          done
-          
+          # Stub units that 257 lacks (computed via: missingUnits = filter (not in systemd257Units) units258)
+          # Missing: ${builtins.concatStringsSep ", " missingUnits}
+          ${builtins.concatStringsSep "\n" (map (unit: let
+            isService = builtins.hasSuffix ".service" unit;
+            content = if isService then "[Unit]\nDescription=stub\n[Service]\nType=oneshot\nExecStart=/bin/true" else "[Unit]\nDescription=stub";
+          in ''printf '${content}' > "$out/example/systemd/system/${unit}"'')
+            missingUnits)}
           mkdir -p "$out/example/systemd/system/factory-reset.target.wants"
-          
-          # Binaries and generators (258+)
           mkdir -p "$out/lib/systemd"
           mkdir -p "$out/lib/systemd/system-generators"
-          for bin in systemd-factory-reset; do
-            [ ! -e "$out/lib/systemd/$bin" ] && printf '#!/bin/sh\nexit 0\n' > "$out/lib/systemd/$bin" && chmod +x "$out/lib/systemd/$bin"
-          done
-          for gen in systemd-factory-reset-generator; do
-            [ ! -e "$out/lib/systemd/system-generators/$gen" ] && printf '#!/bin/sh\nexit 0\n' > "$out/lib/systemd/system-generators/$gen" && chmod +x "$out/lib/systemd/system-generators/$gen"
-          done
+          [ ! -e "$out/lib/systemd/systemd-factory-reset" ] && printf '#!/bin/sh\nexit 0\n' > "$out/lib/systemd/systemd-factory-reset" && chmod +x "$out/lib/systemd/systemd-factory-reset"
+          [ ! -e "$out/lib/systemd/system-generators/systemd-factory-reset-generator" ] && printf '#!/bin/sh\nexit 0\n' > "$out/lib/systemd/system-generators/systemd-factory-reset-generator" && chmod +x "$out/lib/systemd/system-generators/systemd-factory-reset-generator"
         '';
       });
 
