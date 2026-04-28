@@ -52,6 +52,7 @@
       systemd257 = (pkgsStable.systemd.override {
         inherit (pkgs) stdenv;  # Use unstable's stdenv for glibc 2.42 compatibility
       }).overrideAttrs (old: {
+        separateDebugInfo = false;  # Avoid structuredAttrs conflict with stdenv override
         patches = (old.patches or [ ]) ++ [
           ./patches/systemd-mountpoint-util-chromeos.patch
         ];
