@@ -86,7 +86,7 @@
           # Stub units that 257 lacks (computed via: missingUnits = filter (not in systemd257Units) units258)
           # Missing: ${builtins.concatStringsSep ", " missingUnits}
           ${builtins.concatStringsSep "\n" (map (unit: let
-            isService = builtins.hasSuffix ".service" unit;
+            isService = builtins.match ".*\\.service" unit != null;
             content = if isService then "[Unit]\nDescription=stub\n[Service]\nType=oneshot\nExecStart=/bin/true" else "[Unit]\nDescription=stub";
           in ''printf '${content}' > "$out/example/systemd/system/${unit}"'')
             missingUnits)}
