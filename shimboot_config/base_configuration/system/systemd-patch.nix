@@ -20,15 +20,22 @@
 {
   systemd.package = lib.mkForce systemd257;
 
-  # Factory reset units are hardcoded in unstable's upstreamSystemUnits
-  # but don't exist in systemd 257.x. Other units (journalctl, machined,
-  # mute-console, etc.) are gated by passthru attrs which stable provides.
+  # Units hardcoded in unstable's upstreamSystemUnits but not in 257.x
+  # Other units (journalctl, machined, mute-console, etc.) are gated by passthru attrs
+  # which stable provides correctly (withNspawn, withLogind, etc.)
   systemd.suppressedSystemUnits = lib.mkForce [
+    # Factory reset (258+) - both system and initrd
     "factory-reset.target"
     "factory-reset-now.target"
     "systemd-factory-reset-request.service"
     "systemd-factory-reset-reboot.service"
+    "systemd-factory-reset-complete.service"
     "factory-reset.target.wants"
+    # Initrd breakpoints (258+) - for initrd suppression, not system
+    "breakpoint-pre-udev.service"
+    "breakpoint-pre-basic.service"
+    "breakpoint-pre-mount.service"
+    "breakpoint-pre-switch-root.service"
   ];
 
   # Override buildPackages systemd to use 257.x.
