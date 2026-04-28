@@ -47,8 +47,11 @@
       pkgsStable = import nixpkgs-stable { inherit system; };
 
       # Systemd 257.x from stable with ChromeOS mount patch
+      # Override stdenv to unstable's for glibc compatibility
       # Stable's passthru misses some attrs that unstable's systemd module expects
-      systemd257 = pkgsStable.systemd.overrideAttrs (old: {
+      systemd257 = (pkgsStable.systemd.override {
+        inherit (pkgs) stdenv;  # Use unstable's stdenv for glibc 2.42 compatibility
+      }).overrideAttrs (old: {
         patches = (old.patches or [ ]) ++ [
           ./patches/systemd-mountpoint-util-chromeos.patch
         ];
