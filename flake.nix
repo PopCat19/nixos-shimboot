@@ -46,57 +46,52 @@
       # Stable for systemd 257.x (258+ requires kernel >=5.10 for open_tree/move_mount syscalls)
       pkgsStable = import nixpkgs-stable { inherit system; };
 
-      # Compute units that unstable's module expects but 257 lacks
-      # This diffs the expected units against what 257 actually provides
-      systemd257Units = builtins.attrNames (builtins.readDir "${pkgsStable.systemd}/example/systemd/system");
-      
-      # Units hardcoded in unstable's upstreamSystemUnits and initrd.upstreamUnits
-      # that don't exist in systemd 257.x
-      units258 = [
-        "factory-reset.target"
-        "factory-reset-now.target"
-        "systemd-factory-reset-request.service"
-        "systemd-factory-reset-reboot.service"
-        "systemd-factory-reset-complete.service"
-        "breakpoint-pre-udev.service"
-        "breakpoint-pre-basic.service"
-        "breakpoint-pre-mount.service"
-        "breakpoint-pre-switch-root.service"
-        "systemd-journalctl.socket"
-        "systemd-journalctl@.service"
-      ];
-      
-      # Diff: units expected by unstable but missing in 257
-      missingUnits = builtins.filter (u: !(builtins.elem u systemd257Units)) units258;
-
+      # Systemd 257.x from nixos-25.05 stable with ChromeOS mount patch.
+      # Uses unstable's modules with suppressedSystemUnits for missing 258+ units.
+      #
+      # Stub files: unstable's initrd.nix references binaries that don't exist in 257.
+      # We create dummy files to satisfy the initrd builder. These are harmless as
+      # the corresponding units are suppressed in systemd-patch.nix.
       systemd257 = pkgsStable.systemd.overrideAttrs (old: {
-        separateDebugInfo = false;  # Avoid structuredAttrs conflict
+        separateDebugInfo = false; # Avoid structuredAttrs conflict
         patches = (old.patches or [ ]) ++ [
           ./patches/systemd-mountpoint-util-chromeos.patch
         ];
-        # Add missing passthru attrs expected by unstable's systemd module
-        passthru = old.passthru or { } // {
-          withNspawn = true;
-          withLogind = true;
-          withVconsole = true;
-          withTpm2Units = false;  # systemd 257 lacks TPM2 clear units
-        };
-        # Dynamically stub missing units computed at evaluation time
         postInstall = (old.postInstall or "") + ''
-          # Stub units that 257 lacks (computed via: missingUnits = filter (not in systemd257Units) units258)
-          # Missing: ${builtins.concatStringsSep ", " missingUnits}
-          ${builtins.concatStringsSep "\n" (map (unit: let
-            isService = builtins.match ".*\\.service" unit != null;
-            content = if isService then "[Unit]\nDescription=stub\n[Service]\nType=oneshot\nExecStart=/bin/true" else "[Unit]\nDescription=stub";
-          in ''printf '${content}' > "$out/example/systemd/system/${unit}"'')
-            missingUnits)}
-          mkdir -p "$out/example/systemd/system/factory-reset.target.wants"
-          mkdir -p "$out/lib/systemd"
-          mkdir -p "$out/lib/systemd/system-generators"
-          [ ! -e "$out/lib/systemd/systemd-factory-reset" ] && printf '#!/bin/sh\nexit 0\n' > "$out/lib/systemd/systemd-factory-reset" && chmod +x "$out/lib/systemd/systemd-factory-reset"
-          [ ! -e "$out/lib/systemd/system-generators/systemd-factory-reset-generator" ] && printf '#!/bin/sh\nexit 0\n' > "$out/lib/systemd/system-generators/systemd-factory-reset-generator" && chmod +x "$out/lib/systemd/system-generators/systemd-factory-reset-generator"
+          # Create stubs for binaries/units that unstable's initrd.nix expects but 257 lacks
+          # Corresponding units are suppressed via systemd.suppressedUnits in systemd-patch.nix
+          for f in \
+            $out/lib/systemd/systemd-factory-reset \
+            $out/lib/systemd/system-generators/systemd-factory-reset-generator
+          do
+            mkdir -p "$(dirname "$f")"
+            echo '#!/bin/sh' > "$f"
+            echo 'exit 0' >> "$f"
+            chmod +x "$f"
+          done
+
+          # Create stub .wants directory for factory-reset (258+ only has this)
+          mkdir -p $out/example/systemd/system/factory-reset.target.wants
         '';
       });
+
+      # Extend passthru directly - overrideAttrs doesn't preserve it properly.
+      # These attributes exist in unstable's systemd but not in 25.05 stable.
+      # Note: passthru attributes must ALSO be spread at the top level for direct access.
+      systemd257Final = systemd257 // {
+        passthru = (systemd257.passthru or { }) // {
+          inherit (pkgs.systemd.passthru or { })
+            withLogind
+            withNspawn
+            withSysupdate;
+        };
+      } // {
+        # Spread passthru additions to top level for direct access (e.g. pkg.withLogind)
+        inherit (pkgs.systemd.passthru or { })
+          withLogind
+          withNspawn
+          withSysupdate;
+      };
 
       # Import module outputs
       # Core system and development modules
@@ -107,15 +102,15 @@
             self
             nixpkgs
             board
-            systemd257
             ;
+          systemd257 = systemd257Final;
         };
       systemConfigurationOutputs = import ./flake_modules/system-configuration.nix {
         inherit
           self
           nixpkgs
-          systemd257
           ;
+        systemd257 = systemd257Final;
       };
       developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix {
         inherit self nixpkgs;
@@ -155,7 +150,7 @@
       # Merge packages from all modules
       packages = {
         ${system} = nixpkgs.lib.foldl' (acc: board: acc // (boardPackages board)) {
-          systemd = systemd257;
+          systemd = systemd257Final;
         } supportedBoards;
       };
 
@@ -177,7 +172,7 @@
         # so consumers importing this module don't need to provide it separately
         chromeos = {
           imports = [ ./shimboot_config/base_configuration/configuration.nix ];
-          _module.args.systemd257 = systemd257;
+          _module.args.systemd257 = systemd257Final;
         };
 
         # Shimboot options (shimboot.headless mkEnableOption)
