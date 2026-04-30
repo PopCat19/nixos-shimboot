@@ -49,10 +49,16 @@
       # Systemd 257.x from nixos-25.05 stable with ChromeOS mount patch.
       # Uses unstable's modules with suppressedSystemUnits for missing 258+ units.
       #
+      # IMPORTANT: Must override stdenv to unstable's glibc — the rest of the
+      # system (initrd, activation scripts, NixOS modules) links against
+      # unstable's glibc 2.42+. Without this override, systemd257 links against
+      # stable's older glibc, causing runtime failures for systemctl, journalctl,
+      # and other systemd tools (they silently fail to load at runtime).
+      #
       # Stub files: unstable's initrd.nix references binaries that don't exist in 257.
       # We create dummy files to satisfy the initrd builder. These are harmless as
       # the corresponding units are suppressed in systemd-patch.nix.
-      systemd257 = pkgsStable.systemd.overrideAttrs (old: {
+      systemd257 = (pkgsStable.systemd.override { inherit (pkgs) stdenv; }).overrideAttrs (old: {
         separateDebugInfo = false; # Avoid structuredAttrs conflict
         patches = (old.patches or [ ]) ++ [
           ./patches/systemd-mountpoint-util-chromeos.patch
