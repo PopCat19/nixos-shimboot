@@ -59,7 +59,7 @@
       # We create dummy files to satisfy the initrd builder. These are harmless as
       # the corresponding units are suppressed in systemd-patch.nix.
       systemd257 = (pkgsStable.systemd.override { inherit (pkgs) stdenv; }).overrideAttrs (old: {
-        separateDebugInfo = false; # Avoid structuredAttrs conflict
+        __structuredAttrs = true; # Required by unstable stdenv when separateDebugInfo + allowedRequisites are set
         patches = (old.patches or [ ]) ++ [
           ./patches/systemd-mountpoint-util-chromeos.patch
         ];
