@@ -39,6 +39,7 @@ let
     ./system/fish.nix
     ./system/luks2.nix
     ./system/services.nix
+    ./system/sshd.nix
     ./system/zram.nix
   ];
 
@@ -56,7 +57,6 @@ let
   # Headless-only services - gated by shimboot.headless in each module
   headlessModules = [
     ./system/headless-services.nix
-    ./system/sshd.nix
   ];
 in
 {

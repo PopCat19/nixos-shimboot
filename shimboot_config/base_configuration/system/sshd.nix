@@ -5,18 +5,14 @@
 # Related: networking.nix, security.nix
 #
 # This module:
-# - Enables SSH daemon with headless gating
+# - Enables SSH daemon by default
 # - Allows password authentication for accessibility
 {
   lib,
-  config,
   ...
 }:
-let
-  inherit (config.shimboot) headless;
-in
 {
-  services.openssh = lib.mkIf headless {
+  services.openssh = {
     enable = lib.mkDefault true;
     settings.PasswordAuthentication = lib.mkDefault true;
   };
