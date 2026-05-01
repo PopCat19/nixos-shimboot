@@ -56,6 +56,7 @@ let
   # Headless-only services - gated by shimboot.headless in each module
   headlessModules = [
     ./system/headless-services.nix
+    ./system/sshd.nix
   ];
 in
 {
@@ -69,12 +70,6 @@ in
   shimboot.board = lib.mkDefault userConfig.host.board;
 
   _module.args.userConfig = userConfig;
-
-  # Enable SSH for headless config
-  services.openssh = lib.mkIf config.shimboot.headless {
-    enable = lib.mkDefault true;
-    settings.PasswordAuthentication = lib.mkDefault true;
-  };
 
   # Keep only 10 system generations before garbage collection runs
   systemd.services.nix-limit-generations = {
