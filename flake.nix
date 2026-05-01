@@ -250,7 +250,10 @@
         # so consumers importing this module don't need to provide them separately
         chromeos = {
           imports = [ ./shimboot_config/base_configuration/configuration.nix ];
-          _module.args.systemd257 = systemd257;
+          _module.args = {
+            systemd257 = systemd257;
+            systemdMinimal257 = systemdMinimal257;
+          };
           # Apply overlay to replace systemdMinimal with 257.9 variant
           # This ensures udevadm verify uses the correct systemd version
           nixpkgs.overlays = [
