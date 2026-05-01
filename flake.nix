@@ -228,6 +228,7 @@
       packages = {
         ${system} = nixpkgs.lib.foldl' (acc: board: acc // (boardPackages board)) {
           systemd = systemd257;
+          systemdMinimal = systemdMinimal257;
         } supportedBoards;
       };
 
@@ -245,11 +246,16 @@
 
       nixosModules = {
         # Full ChromeOS base configuration (boot, fs, hw, users, nix settings)
-        # Wraps configuration.nix to inject systemd257 via _module.args
-        # so consumers importing this module don't need to provide it separately
+        # Wraps configuration.nix to inject systemd257 and systemdMinimal257 overlay
+        # so consumers importing this module don't need to provide them separately
         chromeos = {
           imports = [ ./shimboot_config/base_configuration/configuration.nix ];
           _module.args.systemd257 = systemd257;
+          # Apply overlay to replace systemdMinimal with 257.9 variant
+          # This ensures udevadm verify uses the correct systemd version
+          nixpkgs.overlays = [
+            (final: prev: { systemdMinimal = systemdMinimal257; })
+          ];
         };
 
         # Shimboot options (shimboot.headless mkEnableOption)
