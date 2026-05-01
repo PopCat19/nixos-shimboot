@@ -73,6 +73,11 @@
               withPortabled = false;
               withSysupdate = false;
             };
+            # Ensure udevadm is available for verification
+            # systemdMinimalMinimal variant for udev rules builds
+            mesonFlags = (old.mesonFlags or [ ]) ++ [
+              "-Dudev=true"
+            ];
             # Create stub files for units added in systemd 258+ but expected by nixos-unstable
             postInstall = (old.postInstall or "") + ''
               # Auto-generate stubs for units expected by nixos-unstable but missing in 257.9
@@ -102,6 +107,68 @@
             '';
           });
 
+      # SystemdMinimal 257.9 for udev rules verification
+      # Matches systemdMinimal override pattern from nixpkgs but using pinned 257.9
+      # This ensures udevadm verify uses the same version as the target systemd
+      # Note: Parameters must match those available in pinned nixpkgs-systemd
+      systemdMinimal257 =
+        (pkgsSystemd.systemd.override {
+          inherit (pkgs) stdenv;
+          pname = "systemd-minimal-257";
+          withAcl = false;
+          withAnalyze = false;
+          withApparmor = false;
+          withAudit = false;
+          withCompression = false;
+          withCoredump = false;
+          withCryptsetup = false;
+          withRepart = false;
+          withDocumentation = false;
+          withEfi = false;
+          withFido2 = false;
+          withFirstboot = false;
+          withGcrypt = false;
+          withHostnamed = false;
+          withHomed = false;
+          withHwdb = false;
+          withImportd = false;
+          withKernelInstall = false;
+          withLibBPF = false;
+          withLibidn2 = false;
+          withLocaled = false;
+          withLogind = false;
+          withMachined = false;
+          withNetworkd = false;
+          withNss = false;
+          withOomd = false;
+          withOpenSSL = false;
+          withPam = false;
+          withPasswordQuality = false;
+          withPCRE2 = false;
+          withPolkit = false;
+          withPortabled = false;
+          withQrencode = false;
+          withRemote = false;
+          withResolved = false;
+          withShellCompletions = false;
+          withSysusers = false;
+          withSysupdate = false;
+          withTimedated = false;
+          withTimesyncd = false;
+          withTpm2Tss = false;
+          withUkify = false;
+          withUserDb = false;
+          withUtmp = false;
+          # withVConsole not available in pinned nixpkgs-systemd
+          withVmspawn = false;
+          withTests = false;
+        }).overrideAttrs (old: {
+          patches = (old.patches or [ ]) ++ [
+            ./patches/systemd-mountpoint-util-chromeos.patch
+          ];
+        });
+
+
       # Import module outputs
       # Core system and development modules
       rawImageOutputs =
@@ -119,6 +186,7 @@
           self
           nixpkgs
           systemd257
+          systemdMinimal257
           ;
       };
       developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix {
