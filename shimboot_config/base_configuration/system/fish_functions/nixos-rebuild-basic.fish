@@ -127,8 +127,13 @@ function nixos-rebuild-basic
     end
 
     # Rebuild phase
+    # Get display name for flake target
+    set -l flake_dir (basename $NIXOS_CONFIG_DIR)
+    set -l flake_target (hostname)
+    set -l flake_display "$flake_dir#$flake_target"
+
     if test "$auto_mode" = true
-        echo "[STEP] Running nixos-rebuild $action..."
+        echo "[STEP] Running nixos-rebuild $action for $flake_display..."
         set -l result
         if sudo nixos-rebuild $rebuild_args
             echo "[SUCCESS] Build succeeded"
@@ -143,7 +148,7 @@ function nixos-rebuild-basic
         end
     else
         set_color blue; echo "[STEP] Running NixOS rebuild..."; set_color normal
-        set_color cyan; echo "Command: sudo nixos-rebuild $rebuild_args"; set_color normal
+        set_color cyan; echo "Command: sudo nixos-rebuild $action --flake $flake_display"; set_color normal
 
         if not sudo nixos-rebuild $rebuild_args
             set_color red; echo "[ERROR] Build failed"; set_color normal
