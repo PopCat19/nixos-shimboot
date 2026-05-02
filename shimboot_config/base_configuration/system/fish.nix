@@ -29,7 +29,6 @@ let
   coreAbbrs = ''
     abbr -a nrb nixos-rebuild-basic
     abbr -a cdn 'cd $NIXOS_CONFIG_DIR'
-    abbr -a scuts show-shortcuts
     abbr -a lfh list-fish-helpers
   '';
 in
@@ -50,7 +49,7 @@ in
     enableAbbreviations = lib.mkOption {
       type = lib.types.bool;
       default = true;
-      description = "Install fish abbreviations (nrb, cdn, scuts, lfh)";
+      description = "Install fish abbreviations (nrb, cdn, lfh)";
     };
   };
 
@@ -212,7 +211,6 @@ in
       "fish/functions/list-fish-helpers.fish".text =
         builtins.readFile ./fish_functions/list-fish-helpers.fish;
 
-      "fish/functions/show-shortcuts.fish".text = builtins.readFile ./fish_functions/show-shortcuts.fish;
     };
 
     # You can still provide helpful CLI wrappers as actual binaries if needed
