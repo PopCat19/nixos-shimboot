@@ -379,7 +379,7 @@ The workaround converts tmpfs mounts to bind mounts, which are allowed by the Ch
 
 ### Security Configuration
 
-The [`security.nix`](../shimboot_config/base_configuration/system/security.nix) module creates two SUID wrappers:
+The [`security.nix`](shimboot_config/base_configuration/system/security.nix) module creates two SUID wrappers:
 
 - `bwrap` — standard SUID wrapper for namespace creation
 - `bwrap-safe` — wrapper that converts tmpfs to bind mounts
@@ -562,4 +562,4 @@ Users unfamiliar with Nix should try it in a VM first ([nixos.org/download](http
 </details>
 <!-- END fragment: 12-credits.md -->
 
-<!-- generated: 20260503-3ceb6e5 -->
+<!-- generated: 20260503-4b8cc93 -->
