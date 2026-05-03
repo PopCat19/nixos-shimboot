@@ -16,7 +16,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 MANIFEST_DIR="$REPO_ROOT/readme_manifest"
 INPUT="$REPO_ROOT/README.md"
 
-# Same list as generate-readme.sh — fragments that get <details> wrappers
+# Same list as generate-readme.sh - fragments that get <details> wrappers
 DETAILS_FRAGMENTS=(
   "05-quickstart.md"
   "09-bwrap-workaround.md"

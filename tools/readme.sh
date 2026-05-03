@@ -5,10 +5,10 @@
 # Purpose: Unified entry point for readme workflow (generate, validate, drift check)
 #
 # Usage:
-#   tools/readme.sh sync      — regenerate README from fragments, validate refs
-#   tools/readme.sh extract   — reverse: README.md → fragments
-#   tools/readme.sh check     — validate refs + drift (read-only, no writes)
-#   tools/readme.sh all       — sync + check (full pre-commit)
+#   tools/readme.sh sync      - regenerate README from fragments, validate refs
+#   tools/readme.sh extract   - reverse: README.md → fragments
+#   tools/readme.sh check     - validate refs + drift (read-only, no writes)
+#   tools/readme.sh all       - sync + check (full pre-commit)
 
 set -Eeuo pipefail
 

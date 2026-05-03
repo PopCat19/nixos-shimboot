@@ -42,7 +42,7 @@ validate_manifest() {
 
     # Check for gaps
     if (( num != prev + 1 )); then
-      echo "ERROR: gap in enumeration — expected $(printf '%02d' $((prev + 1))) after $(printf '%02d' $prev), found $(printf '%02d' $num)" >&2
+      echo "ERROR: gap in enumeration - expected $(printf '%02d' $((prev + 1))) after $(printf '%02d' $prev), found $(printf '%02d' $num)" >&2
       errors=1
     fi
     prev=$num
@@ -92,7 +92,7 @@ if [[ -f "$OUTPUT" ]]; then
     cached_hash="$(cat "$CACHE")"
 
     if [[ "$readme_hash" != "$cached_hash" ]]; then
-      echo "README was edited directly — rebasing into fragments first..."
+      echo "README was edited directly - rebasing into fragments first..."
       bash "$REVERSE_SCRIPT"
     fi
   fi

@@ -70,10 +70,10 @@ if (( DRIFT_COUNT == 0 && STALE_COUNT == 0 )); then
   echo -e "${GREEN}all citations current${RESET}"
 else
   if (( DRIFT_COUNT > 0 )); then
-    echo -e "${YELLOW}${DRIFT_COUNT} citation(s) drifted — run tools/generate-readme.sh after updating fragments${RESET}"
+    echo -e "${YELLOW}${DRIFT_COUNT} citation(s) drifted - run tools/generate-readme.sh after updating fragments${RESET}"
   fi
   if (( STALE_COUNT > 0 )); then
-    echo -e "${RED}${STALE_COUNT} citation(s) unreachable — rebased away, update fragments manually${RESET}"
+    echo -e "${RED}${STALE_COUNT} citation(s) unreachable - rebased away, update fragments manually${RESET}"
   fi
   exit 1
 fi

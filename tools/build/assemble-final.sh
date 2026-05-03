@@ -263,7 +263,7 @@ if [ "${ROOTFS_FLAVOR}" = "headless" ]; then
 	SECRETS_FILE="$(cd "$(dirname "$0")/../../shimboot_config" && pwd)/secrets.nix"
 
 	if [ -f "$SECRETS_FILE" ]; then
-		# secrets.nix exists — check if WiFi is configured
+		# secrets.nix exists - check if WiFi is configured
 		WIFI_SSID=$(sed -n 's/.*ssid\s*=\s*"\([^"\)]*\)".*/\1/p' "$SECRETS_FILE" 2>/dev/null | head -1 || true)
 		if [ -n "$WIFI_SSID" ]; then
 			log_info "WiFi already configured in secrets.nix (SSID: $WIFI_SSID)"

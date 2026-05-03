@@ -147,7 +147,7 @@ cleanup() {
 
 handle_interrupt() {
 	echo
-	log_warn "Keyboard interrupt detected — performing safe cleanup"
+	log_warn "Keyboard interrupt detected - performing safe cleanup"
 	trap - INT TERM EXIT
 	cleanup
 	log_error "Rescue Helper aborted by user."
@@ -1480,7 +1480,7 @@ main() {
 				[[ -z "$mp" ]] && continue
 				log_info "Unmounting $mp..."
 				umount "$mp" 2>/dev/null || {
-					log_warn "Failed to unmount $mp automatically — please unmount manually."
+					log_warn "Failed to unmount $mp automatically - please unmount manually."
 				}
 			done <<<"$mps"
 
