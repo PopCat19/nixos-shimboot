@@ -561,3 +561,5 @@ Users unfamiliar with Nix should try it in a VM first ([nixos.org/download](http
 
 </details>
 <!-- END fragment: 12-credits.md -->
+
+<!-- generated: 20260503-3ceb6e5 -->

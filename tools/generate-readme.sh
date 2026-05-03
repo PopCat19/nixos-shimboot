@@ -124,6 +124,12 @@ fi
   done
 } > "$OUTPUT"
 
+# Append generation metadata
+hash="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+date="$(date -u +%Y%m%d)"
+echo "" >> "$OUTPUT"
+echo "<!-- generated: ${date}-${hash} -->" >> "$OUTPUT"
+
 # Store new cache hash
 sha256sum "$OUTPUT" | cut -d' ' -f1 > "$CACHE"
 
