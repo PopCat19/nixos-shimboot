@@ -20,15 +20,15 @@ cd nixos-shimboot
 Use the `tools/build/assemble-final.sh` script to build a shimboot image that combines the NixOS rootfs with the ChromeOS shim. Replace `BOARD` with your Chromebook's board name:
 
 ```bash
-# For dedede board (e.g., HP Chromebook 11 G9 EE) - minimal image
-sudo ./tools/build/assemble-final.sh --board dedede --rootfs minimal
+# For dedede board (e.g., HP Chromebook 11 G9 EE) - base image
+sudo ./tools/build/assemble-final.sh --board dedede --rootfs base
 
 # For other boards, replace 'dedede' with your board name:
 # grunt, hatch, nissa, octopus, snappy, zork
 ```
 
 **Options:**
-- `--rootfs minimal`: Minimal image with base configuration only
+- `--rootfs base`: Base image with system configuration (headless also available)
 - `--drivers vendor`: Store ChromeOS drivers on separate vendor partition (default)
 - `--drivers inject`: Inject drivers directly into the rootfs
 - `--drivers none`: Skip driver harvesting
@@ -67,7 +67,7 @@ Afterwards, the imaged usb/sd is ready to boot.
 3. Select the "shimboot" option from the recovery menu
 4. The system should boot into NixOS with the LightDM greeter
 
-## First Boot (minimal/base configuration)
+## First Boot (base configuration)
 
 - Root user: `root` (initial password: `nixos-shimboot`)
 - Default user: username defined in your profile's `user-config.nix` (default: `nixos-user`, initial password: `nixos-shimboot`)
@@ -152,7 +152,7 @@ sudo resize2fs /dev/sdXN
 ### Space Issues
 
 - Ensure `sudo expand_rootfs` succeeded in allocating rootfs to full USB space
-- The minimal image is ~6-8GB (expandable); ensure your USB drive has enough space
+- The base image is ~6-8GB (expandable); ensure your USB drive has enough space
 - Use `--cleanup-rootfs` to remove old generations and free space
 - Use `nix-shell` for temporary packages to save space
 

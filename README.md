@@ -69,7 +69,7 @@ Systemd 260 raised the kernel baseline to 5.10 and switched from `O_PATH`/`mount
 ## Building an Image
 
 ```bash
-sudo ./tools/build/assemble-final.sh --board <board> --rootfs minimal
+sudo ./tools/build/assemble-final.sh --board <board> --rootfs base
 ```
 
 The script builds Nix derivations and harvests ChromeOS drivers from the recovery image.
@@ -86,7 +86,7 @@ sudo ./tools/write/write-shimboot-image.sh
 <summary>Build options</summary>
 
 - `--board`, one of the seven supported boards (required)
-- `--rootfs minimal`, base config only (no personal desktop)
+- `--rootfs base`, base config (system, boot, hardware)
 - `--drivers vendor`, store ChromeOS drivers on a separate vendor partition (default)
 - `--drivers inject`, inject drivers directly into the rootfs
 - `--drivers none`, skip driver harvesting
@@ -94,7 +94,11 @@ sudo ./tools/write/write-shimboot-image.sh
 - `--dry-run`, test the build without destructive changes
 - `--prewarm-cache`, fetch derivations from Cachix before building
 - `--cleanup-rootfs`, prune old rootfs generations after build
-- `--fresh`, start from beginning, ignore checkpoints
+- `--inspect`, inspect the final image after building
+- `--push-to-cachix`, push built derivations to Cachix
+- `--firmware-upstream`/`--no-firmware-upstream`, control upstream firmware (default: enabled)
+- `--cleanup-keep N`, keep last N generations during cleanup (default: 3)
+- `--cleanup-no-dry-run`, actually delete files during cleanup (default: dry-run)
 
 </details>
 
@@ -138,15 +142,15 @@ cd nixos-shimboot
 Use the `tools/build/assemble-final.sh` script to build a shimboot image that combines the NixOS rootfs with the ChromeOS shim. Replace `BOARD` with your Chromebook's board name:
 
 ```bash
-# For dedede board (e.g., HP Chromebook 11 G9 EE) - minimal image
-sudo ./tools/build/assemble-final.sh --board dedede --rootfs minimal
+# For dedede board (e.g., HP Chromebook 11 G9 EE) - base image
+sudo ./tools/build/assemble-final.sh --board dedede --rootfs base
 
 # For other boards, replace 'dedede' with your board name:
 # grunt, hatch, nissa, octopus, snappy, zork
 ```
 
 **Options:**
-- `--rootfs minimal`: Minimal image with base configuration only
+- `--rootfs base`: Base image with system configuration (headless also available)
 - `--drivers vendor`: Store ChromeOS drivers on separate vendor partition (default)
 - `--drivers inject`: Inject drivers directly into the rootfs
 - `--drivers none`: Skip driver harvesting
@@ -185,7 +189,7 @@ Afterwards, the imaged usb/sd is ready to boot.
 3. Select the "shimboot" option from the recovery menu
 4. The system should boot into NixOS with the LightDM greeter
 
-## First Boot (minimal/base configuration)
+## First Boot (base configuration)
 
 - Root user: `root` (initial password: `nixos-shimboot`)
 - Default user: username defined in your profile's `user-config.nix` (default: `nixos-user`, initial password: `nixos-shimboot`)
@@ -270,7 +274,7 @@ sudo resize2fs /dev/sdXN
 ### Space Issues
 
 - Ensure `sudo expand_rootfs` succeeded in allocating rootfs to full USB space
-- The minimal image is ~6-8GB (expandable); ensure your USB drive has enough space
+- The base image is ~6-8GB (expandable); ensure your USB drive has enough space
 - Use `--cleanup-rootfs` to remove old generations and free space
 - Use `nix-shell` for temporary packages to save space
 
@@ -562,4 +566,4 @@ Users unfamiliar with Nix should try it in a VM first ([nixos.org/download](http
 </details>
 <!-- END fragment: 12-credits.md -->
 
-<!-- generated: 20260503-4b8cc93 -->
+<!-- generated: 20260503-a2342fd -->

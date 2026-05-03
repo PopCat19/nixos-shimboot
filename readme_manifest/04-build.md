@@ -2,7 +2,7 @@
 ## Building an Image
 
 ```bash
-sudo ./tools/build/assemble-final.sh --board <board> --rootfs minimal
+sudo ./tools/build/assemble-final.sh --board <board> --rootfs base
 ```
 
 The script builds Nix derivations and harvests ChromeOS drivers from the recovery image.
@@ -19,7 +19,7 @@ sudo ./tools/write/write-shimboot-image.sh
 <summary>Build options</summary>
 
 - `--board`, one of the seven supported boards (required)
-- `--rootfs minimal`, base config only (no personal desktop)
+- `--rootfs base`, base config (system, boot, hardware)
 - `--drivers vendor`, store ChromeOS drivers on a separate vendor partition (default)
 - `--drivers inject`, inject drivers directly into the rootfs
 - `--drivers none`, skip driver harvesting
@@ -27,7 +27,11 @@ sudo ./tools/write/write-shimboot-image.sh
 - `--dry-run`, test the build without destructive changes
 - `--prewarm-cache`, fetch derivations from Cachix before building
 - `--cleanup-rootfs`, prune old rootfs generations after build
-- `--fresh`, start from beginning, ignore checkpoints
+- `--inspect`, inspect the final image after building
+- `--push-to-cachix`, push built derivations to Cachix
+- `--firmware-upstream`/`--no-firmware-upstream`, control upstream firmware (default: enabled)
+- `--cleanup-keep N`, keep last N generations during cleanup (default: 3)
+- `--cleanup-no-dry-run`, actually delete files during cleanup (default: dry-run)
 
 </details>
 
