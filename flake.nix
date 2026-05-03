@@ -74,11 +74,7 @@
               withPortabled = false;
               withSysupdate = false;
             };
-            # Ensure udevadm is available for verification
-            # systemdMinimalMinimal variant for udev rules builds
-            mesonFlags = (old.mesonFlags or [ ]) ++ [
-              "-Dudev=true"
-            ];
+            # udev is always built in systemd 257.9 (no separate meson option)
             # Create stub files for units added in systemd 258+ but expected by nixos-unstable
             postInstall = (old.postInstall or "") + ''
               # Auto-generate stubs for units expected by nixos-unstable but missing in 257.9
