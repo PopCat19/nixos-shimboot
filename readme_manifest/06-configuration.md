@@ -9,8 +9,17 @@ nixos-shimboot/                       # build system + ChromeOS HAL
 ├── flake_modules/                    # image building, kernel extraction
 ├── shimboot_config/
 │   ├── base_configuration/           # boot, fs, hardware, users
-│   └── user-config.nix               # shared hostname, username
-└── tools/
+│   ├── boards/                       # per-board hardware database
+│   ├── user-config.nix               # shared hostname, username
+│   ├── shimboot-options.nix          # shimboot.headless toggle
+│   └── nix-options.nix               # allowUnfree predicate
+├── bootloader/                       # initramfs bootstrap menu
+├── patches/                          # systemd ChromeOS mount patch
+├── tools/
+│   ├── build/                        # image assembly, driver harvesting
+│   ├── write/                        # safe USB flashing
+│   └── rescue/                       # boot troubleshooting, chroot recovery
+└── manifests/                        # ChromeOS shim chunk manifests
 
 nixos-shimboot-config/                # companion repo, personal desktop
 ├── flake.nix                         # imports shimboot as flake input
