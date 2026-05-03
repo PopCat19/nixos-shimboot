@@ -1,12 +1,8 @@
-# NixOS Shimboot Quickstart Guide
-
-> **Warning**: This is a Proof-of-Concept project. It may not work reliably and is intended for experimentation only. See [README.md](README.md) for more details.
-
 ## Prerequisites
 
-- A compatible Chromebook (Intel: dedede, octopus, nissa, hatch, brya, snappy; AMD: zork, grunt)
+- A compatible Chromebook (Intel: dedede, octopus, nissa, hatch, snappy; AMD: zork, grunt)
 - ChromeOS RMA shim image for your specific board
-- USB drive with at least 16GB, recommended >=32GB
+- USB drive with at least 16GB, recommended ≥32GB
 - NixOS system or any Linux with Nix installed for building the image
 - Root/wheel access for loop mounts and imaging (could work inside docker/WSL2 container, but untested)
 
@@ -91,7 +87,7 @@ A terminal opens automatically on first boot. Run `setup-nixos` to step through:
 5. **Rebuild** — optional first rebuild from base config
 
 After completing, the system is usable as a minimal NixOS install. For a full
-desktop environment, continue to [Desktop Configuration](#desktop-configuration).
+desktop environment, layer on the companion config repo.
 
 ## Desktop Configuration
 
@@ -110,6 +106,7 @@ The config repo imports shimboot as a flake input (`shimboot.nixosModules.chrome
 ## Troubleshooting
 
 ### "Git fetch failed" during setup-nixos
+
 The git remote may be pointing to the build machine's path. Fix with:
 ```bash
 cd ~/nixos-shimboot
@@ -118,6 +115,7 @@ git fetch origin
 ```
 
 ### "blockdev: Unknown command" during expand-rootfs
+
 Run the script with DEBUG=1 to see what's failing:
 ```bash
 sudo DEBUG=1 expand-rootfs
@@ -130,6 +128,7 @@ sudo resize2fs /dev/sdXN
 ```
 
 ### Build Issues
+
 - Ensure you're using the correct board name (case-sensitive): dedede, grunt, hatch, nissa, octopus, snappy, zork
 - For ChromeOS artifacts, ensure you have the correct board manifest
 - Check cache health before building: `./tools/build/check-cachix.sh dedede`
@@ -137,18 +136,21 @@ sudo resize2fs /dev/sdXN
 - Enable cache pre-warming: `--prewarm-cache` to fetch derivations before building
 
 ### Cache Management
+
 - Built-in Cachix integration for faster builds
 - Check cache coverage: `./tools/build/check-cachix.sh [BOARD]`
 - Cache automatically configured in Nix settings
 - Push built derivations to cache for faster subsequent builds
 
 ### Boot Issues
+
 - Verify your Chromebook board is in the supported list above
 - Confirm the shim image matches your exact device model
 - Check that recovery mode key combination is correct for your model
 - Inspect build metadata: `cat /etc/shimboot-build.json` on the running system
 
 ### Space Issues
+
 - Ensure `sudo expand_rootfs` succeeded in allocating rootfs to full USB space
 - The minimal image is ~6-8GB (expandable); ensure your USB drive has enough space
 - Use `--cleanup-rootfs` to remove old generations and free space
@@ -161,17 +163,4 @@ sudo resize2fs /dev/sdXN
 - Experiment with different desktop environments
 - Contribute bug reports or improvements
 
-## Known Limitations
 
-- Tested on HP Chromebook 11 G9 EE ("dedede" board); per-board hardware support implemented for Intel/AMD
-- No suspend support (ChromeOS kernel limitation)
-- Audio only works on octopus and snappy boards (others: use USB/Bluetooth audio)
-- hatch: 5GHz WiFi networks may have connectivity issues
-- trogdor: WiFi may not work reliably
-- May require manual kernel namespace workarounds for `nixos-rebuild` (e.g. . Appending `--option sandbox false` on shim kernels <5.6)
-
-For more documentation, see [README.md](README.md).
-
-## For LLM Assistants
-
-If you're an LLM assistant working with this repository, see [AGENTS.md](AGENTS.md) for project conventions and reference documentation.

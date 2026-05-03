@@ -1,5 +1,3 @@
-# Bwrap LSM Workaround for ChromeOS Shimboot
-
 ## Overview
 
 ChromeOS's security model includes a Linux Security Module (LSM) called `chromiumos` that restricts certain operations, including mounting tmpfs filesystems. This causes issues with `bwrap` (bubblewrap), which is commonly used for sandboxing applications like Steam, AppImages, and various Nix packages.
@@ -18,9 +16,9 @@ This occurs because the ChromeOS LSM blocks tmpfs mounts even when running as ro
 
 The workaround converts tmpfs mounts to bind mounts, which are allowed by the ChromeOS LSM. This is implemented through:
 
-1. **SUID bwrap wrapper** - Provides namespace creation capabilities
-2. **bwrap-safe wrapper** - Converts tmpfs mounts to bind mounts
-3. **Helper scripts** - Simplify setup and usage
+1. **SUID bwrap wrapper** — provides namespace creation capabilities
+2. **bwrap-safe wrapper** — converts tmpfs mounts to bind mounts
+3. **Helper scripts** — simplify setup and usage
 
 ## Implementation
 
@@ -28,8 +26,8 @@ The workaround converts tmpfs mounts to bind mounts, which are allowed by the Ch
 
 The [`security.nix`](../shimboot_config/base_configuration/system/security.nix) module creates two SUID wrappers:
 
-- `bwrap` - Standard SUID wrapper for namespace creation
-- `bwrap-safe` - Wrapper that converts tmpfs to bind mounts
+- `bwrap` — standard SUID wrapper for namespace creation
+- `bwrap-safe` — wrapper that converts tmpfs to bind mounts
 
 ### Helper Scripts
 
@@ -125,9 +123,9 @@ This directory is:
 
 ### Limitations
 
-1. **Performance** - Bind mounts may have slightly different performance characteristics than tmpfs
-2. **Disk space** - Cache directories consume disk space (cleaned on reboot)
-3. **Compatibility** - Some applications may expect true tmpfs behavior
+1. **Performance** — bind mounts may have slightly different performance characteristics than tmpfs
+2. **Disk space** — cache directories consume disk space (cleaned on reboot)
+3. **Compatibility** — some applications may expect true tmpfs behavior
 
 ## Troubleshooting
 
@@ -168,3 +166,5 @@ Some applications may have their own bwrap configurations. In these cases:
 1. Check if the application has a bwrap configuration file
 2. Modify it to use `bwrap-safe` instead of `bwrap`
 3. Or set up a wrapper script for the application
+
+

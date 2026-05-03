@@ -47,7 +47,8 @@
       pkgs = import nixpkgs { inherit system; };
 
       # Import systemd from pinned nixpkgs for systemd 257.9
-      # systemd 258+ requires kernel >=5.10 (open_tree/move_mount syscalls)
+      # Systemd 258+ uses open_tree/move_mount syscalls unavailable on older upstream
+# kernels, but tested working on dedede (5.4.85) — per-board compat varies
       # See: https://github.com/PopCat19/nixos-shimboot/issues/405
       pkgsSystemd = import nixpkgs-systemd { inherit system; };
 

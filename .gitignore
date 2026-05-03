@@ -20,3 +20,4 @@ vmlinuz
 .kilocode/
 shimboot_config/selected-profile.nix
 shimboot_config/secrets.nix
+.readme-cache

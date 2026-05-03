@@ -1,3 +1,6 @@
+<!-- BEGIN fragment: 01-header.md -->
+
+
 # NixOS Shimboot
 
 > [!NOTE]
@@ -5,7 +8,11 @@
 
 Boot NixOS on locked ChromeOS devices via the RMA shim vulnerability, no firmware modification, no unenrollment. Runs from a persistent USB drive. Only tested functional on dedede.
 
-[Quickstart guide](QUICKSTART.md) · [Discussions](https://github.com/PopCat19/nixos-shimboot/discussions/new/choose) · [Issues](https://github.com/PopCat19/nixos-shimboot/issues/new)
+[Discussions](https://github.com/PopCat19/nixos-shimboot/discussions/new/choose) · [Issues](https://github.com/PopCat19/nixos-shimboot/issues/new)
+
+<!-- END fragment: 01-header.md -->
+<!-- BEGIN fragment: 02-how-it-works.md -->
+
 
 ## How It Works
 
@@ -31,6 +38,10 @@ It mounts the NixOS rootfs, binds vendor firmware and kernel modules, then `pivo
 
 All of this fits on a USB drive. Reboot without it and the device returns to ChromeOS untouched.
 
+<!-- END fragment: 02-how-it-works.md -->
+<!-- BEGIN fragment: 03-boards.md -->
+
+
 ## Supported Boards
 
 | Board | Arch | Kernel | Systemd |
@@ -50,6 +61,10 @@ The pinned systemd is built with unstable's stdenv for glibc compat ([d27b392/fl
 Injected via `specialArgs`, not overlay, to avoid cross-version function argument issues ([d27b392/flake.nix#L254](https://github.com/PopCat19/nixos-shimboot/blob/d27b392/flake.nix#L254)).
 
 Systemd 260 raised the kernel baseline to 5.10 and switched from `O_PATH`/`mount_fd()` to `open_tree()`/`move_mount()`, which fails on dedede's 5.4 ChromeOS kernel. 259.x is the ceiling. 258 and 259 tested working on dedede ([shimboot#405 (comment)](https://github.com/ading2210/shimboot/issues/405#issuecomment-4231104253)).
+
+<!-- END fragment: 03-boards.md -->
+<!-- BEGIN fragment: 04-build.md -->
+
 
 ## Building an Image
 
@@ -96,6 +111,181 @@ sudo ./tools/write/write-shimboot-image.sh
 
 </details>
 
+<!-- END fragment: 04-build.md -->
+<!-- BEGIN fragment: 05-quickstart.md -->
+<details>
+<summary>Step-by-Step Guide</summary>
+
+## Prerequisites
+
+- A compatible Chromebook (Intel: dedede, octopus, nissa, hatch, snappy; AMD: zork, grunt)
+- ChromeOS RMA shim image for your specific board
+- USB drive with at least 16GB, recommended ≥32GB
+- NixOS system or any Linux with Nix installed for building the image
+- Root/wheel access for loop mounts and imaging (could work inside docker/WSL2 container, but untested)
+
+## Quick Build and Flash
+
+### 1. Clone and Enter the Repository
+
+```bash
+git clone https://github.com/PopCat19/nixos-shimboot.git
+cd nixos-shimboot
+```
+
+### 2. Build the Shimboot Image
+
+Use the `tools/build/assemble-final.sh` script to build a shimboot image that combines the NixOS rootfs with the ChromeOS shim. Replace `BOARD` with your Chromebook's board name:
+
+```bash
+# For dedede board (e.g., HP Chromebook 11 G9 EE) - minimal image
+sudo ./tools/build/assemble-final.sh --board dedede --rootfs minimal
+
+# For other boards, replace 'dedede' with your board name:
+# grunt, hatch, nissa, octopus, snappy, zork
+```
+
+**Options:**
+- `--rootfs minimal`: Minimal image with base configuration only
+- `--drivers vendor`: Store ChromeOS drivers on separate vendor partition (default)
+- `--drivers inject`: Inject drivers directly into the rootfs
+- `--drivers none`: Skip driver harvesting
+- `--drivers both`: Place drivers in vendor partition AND inject into rootfs
+- `--inspect`: Inspect the final image after building
+- `--dry-run`: Test build process without making destructive changes
+- `--prewarm-cache`: Fetch derivations from Cachix before building
+- `--cleanup-rootfs`: Remove old shimboot rootfs generations after build
+- `--cleanup-keep N`: Keep last N generations during cleanup (default: 3)
+- `--no-dry-run`: Actually delete files during cleanup (default: dry-run)
+- `--fresh`: Start build from beginning, ignoring any checkpoints
+
+The script will:
+- Verify Cachix cache configuration and connectivity
+- Build Nix outputs with retry logic and CI optimization
+- Harvest ChromeOS drivers and firmware with upstream augmentation
+- Create partitioned image at `work/shimboot.img`
+- Populate all partitions with bootloader, rootfs, and drivers
+
+### 3. Flash to USB Drive / SD Card
+
+**WARNING: This will overwrite the target device.**
+
+Interactive device selection with predefined image input:
+```bash
+sudo ./tools/write/write-shimboot-image.sh
+```
+
+Afterwards, the imaged usb/sd is ready to boot.
+
+### 4. Boot Your Chromebook
+
+1. Insert the prepared USB drive into your Chromebook
+2. Enter recovery mode (Esc + Refresh + Power)
+- If not already, enable Developer Mode via Ctrl+D and confirm, then enter recovery mode again
+3. Select the "shimboot" option from the recovery menu
+4. The system should boot into NixOS with the LightDM greeter
+
+## First Boot (minimal/base configuration)
+
+- Root user: `root` (initial password: `nixos-shimboot`)
+- Default user: username defined in your profile's `user-config.nix` (default: `nixos-user`, initial password: `nixos-shimboot`)
+- Desktop: LightDM + Hyprland (base config)
+- Network: NetworkManager with wpa_supplicant backend
+    - WiFi should work out of the box if vendor drivers are available
+    - Configure with `nmtui` or run `setup-nixos`
+
+### Base setup flow
+
+A terminal opens automatically on first boot. Run `setup-nixos` to step through:
+
+1. **WiFi** — connects and enables autoconnect
+2. **Expand rootfs** — grows the partition to fill the USB drive
+3. **Verify config** — checks `~/nixos-shimboot`, optionally pulls updates
+4. **Link `/etc/nixos`** — runs `setup-nixos-shimboot` to wire flake for `nixos-rebuild`
+5. **Rebuild** — optional first rebuild from base config
+
+After completing, the system is usable as a minimal NixOS install. For a full
+desktop environment, layer on the companion config repo.
+
+## Desktop Configuration
+
+This step is optional. The base config provides a minimal Hyprland environment.
+For Home Manager integration, theming, and personal applications, layer on
+the companion config repo.
+
+```bash
+git clone https://github.com/PopCat19/nixos-shimboot-config.git
+cd nixos-shimboot-config
+git checkout main  # or your personal branch
+```
+
+The config repo imports shimboot as a flake input (`shimboot.nixosModules.chromeos`) and layers personal configuration on top. Users can fork the config repo and create their own branch for personalized setups.
+
+## Troubleshooting
+
+### "Git fetch failed" during setup-nixos
+
+The git remote may be pointing to the build machine's path. Fix with:
+```bash
+cd ~/nixos-shimboot
+git remote set-url origin https://github.com/PopCat19/nixos-shimboot-config.git # replace URL with your fork if utilized
+git fetch origin
+```
+
+### "blockdev: Unknown command" during expand-rootfs
+
+Run the script with DEBUG=1 to see what's failing:
+```bash
+sudo DEBUG=1 expand-rootfs
+```
+
+If it still fails, manually expand:
+```bash
+sudo growpart /dev/sdX N  # Replace X and N with your disk/partition
+sudo resize2fs /dev/sdXN
+```
+
+### Build Issues
+
+- Ensure you're using the correct board name (case-sensitive): dedede, grunt, hatch, nissa, octopus, snappy, zork
+- For ChromeOS artifacts, ensure you have the correct board manifest
+- Check cache health before building: `./tools/build/check-cachix.sh dedede`
+- Use `--dry-run` to test the build process without destructive operations
+- Enable cache pre-warming: `--prewarm-cache` to fetch derivations before building
+
+### Cache Management
+
+- Built-in Cachix integration for faster builds
+- Check cache coverage: `./tools/build/check-cachix.sh [BOARD]`
+- Cache automatically configured in Nix settings
+- Push built derivations to cache for faster subsequent builds
+
+### Boot Issues
+
+- Verify your Chromebook board is in the supported list above
+- Confirm the shim image matches your exact device model
+- Check that recovery mode key combination is correct for your model
+- Inspect build metadata: `cat /etc/shimboot-build.json` on the running system
+
+### Space Issues
+
+- Ensure `sudo expand_rootfs` succeeded in allocating rootfs to full USB space
+- The minimal image is ~6-8GB (expandable); ensure your USB drive has enough space
+- Use `--cleanup-rootfs` to remove old generations and free space
+- Use `nix-shell` for temporary packages to save space
+
+## Next Steps
+
+- Fork the config repo and create a personal branch (use `main` as template)
+- Import `shimboot.nixosModules.chromeos` as a hardware layer in your own flake
+- Experiment with different desktop environments
+- Contribute bug reports or improvements
+
+</details>
+<!-- END fragment: 05-quickstart.md -->
+<!-- BEGIN fragment: 06-configuration.md -->
+
+
 ## Configuration
 
 This repository is the **build system + ChromeOS hardware abstraction layer**. Personal desktop configuration belongs in a separate repo.
@@ -125,6 +315,10 @@ modules = [
 ];
 ```
 
+<!-- END fragment: 06-configuration.md -->
+<!-- BEGIN fragment: 07-binary-cache.md -->
+
+
 ## Binary Cache
 
 Patched systemd and NixOS closures are cached on Cachix. The cache is auto-configured when importing `nixosModules.chromeos`.
@@ -141,6 +335,10 @@ cachix use shimboot-systemd-nixos
 
 </details>
 
+<!-- END fragment: 07-binary-cache.md -->
+<!-- BEGIN fragment: 08-limitations.md -->
+
+
 ## Limitations
 
 - No suspend support (ChromeOS kernel limitation)
@@ -148,7 +346,186 @@ cachix use shimboot-systemd-nixos
 - hatch: 5 GHz WiFi networks may have connectivity issues
 - trogdor: WiFi may be unreliable
 - `nixos-rebuild` requires `--option sandbox false` on kernels < 5.6 (missing namespace support)
-- bwrap/Steam: ChromeOS LSM blocks tmpfs mounts; [workaround available](docs/BWRAP-LSM-WORKAROUND.md)
+- bwrap/Steam: ChromeOS LSM blocks tmpfs mounts; workaround available below
+
+<!-- END fragment: 08-limitations.md -->
+<!-- BEGIN fragment: 09-bwrap-workaround.md -->
+<details>
+<summary>Bwrap / Steam Workaround</summary>
+
+## Overview
+
+ChromeOS's security model includes a Linux Security Module (LSM) called `chromiumos` that restricts certain operations, including mounting tmpfs filesystems. This causes issues with `bwrap` (bubblewrap), which is commonly used for sandboxing applications like Steam, AppImages, and various Nix packages.
+
+## Problem
+
+When applications try to use `bwrap` with tmpfs mounts, they encounter:
+
+```
+bwrap: Failed to mount tmpfs: Operation not permitted
+```
+
+This occurs because the ChromeOS LSM blocks tmpfs mounts even when running as root or with SUID permissions.
+
+## Solution
+
+The workaround converts tmpfs mounts to bind mounts, which are allowed by the ChromeOS LSM. This is implemented through:
+
+1. **SUID bwrap wrapper** — provides namespace creation capabilities
+2. **bwrap-safe wrapper** — converts tmpfs mounts to bind mounts
+3. **Helper scripts** — simplify setup and usage
+
+## Implementation
+
+### Security Configuration
+
+The [`security.nix`](../shimboot_config/base_configuration/system/security.nix) module creates two SUID wrappers:
+
+- `bwrap` — standard SUID wrapper for namespace creation
+- `bwrap-safe` — wrapper that converts tmpfs to bind mounts
+
+### Helper Scripts
+
+#### bwrap-lsm-workaround.sh
+
+A standalone script that can be used as a drop-in replacement for bwrap. It intercepts `--tmpfs` arguments and converts them to bind mounts using a cache directory.
+
+**Usage:**
+```bash
+bwrap-lsm-workaround --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp ./app.AppImage
+```
+
+#### setup-bwrap-workaround.sh
+
+Interactive script that:
+- Creates bwrap cache directory with proper permissions
+- Tests bwrap functionality
+- Creates user-local wrappers
+- Provides usage instructions
+
+**Usage:**
+```bash
+setup-bwrap-workaround
+```
+
+#### fix-steam-bwrap.sh
+
+Patches Steam's internal bwrap (`srt-bwrap`) with the system bwrap-safe wrapper.
+
+**Usage:**
+```bash
+fix-steam-bwrap
+```
+
+## Usage Examples
+
+### For AppImages
+
+```bash
+# Using the system wrapper
+/run/wrappers/bin/bwrap-safe --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp ./YourApp.AppImage
+
+# Using the helper script
+bwrap-lsm-workaround --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp ./YourApp.AppImage
+```
+
+### For Nix Packages
+
+Many Nix packages that use bwrap internally will automatically benefit from the bwrap-safe wrapper if it's in the system PATH.
+
+### For Steam
+
+```bash
+# Run the fix script (only needed once per Steam installation)
+fix-steam-bwrap
+
+# Then launch Steam normally
+steam
+```
+
+### Manual bwrap Usage
+
+```bash
+# Test basic functionality
+bwrap-safe --ro-bind / / --dev /dev --proc /proc echo "test"
+
+# Test tmpfs workaround
+bwrap-safe --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp echo "tmpfs test"
+```
+
+## Technical Details
+
+### How It Works
+
+1. The `bwrap-safe` wrapper intercepts bwrap command-line arguments
+2. When it encounters `--tmpfs`, it:
+   - Creates a unique directory in the cache directory
+   - Sets permissions to 700 (user-only access)
+   - Replaces `--tmpfs` with `--bind` pointing to the cache directory
+3. Executes the real bwrap with modified arguments
+
+### Cache Directory
+
+The bwrap cache directory is located at:
+```
+${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/bwrap-cache
+```
+
+This directory is:
+- Created automatically with proper permissions
+- Unique per user
+- Cleaned up on reboot (located in runtime directory)
+
+### Limitations
+
+1. **Performance** — bind mounts may have slightly different performance characteristics than tmpfs
+2. **Disk space** — cache directories consume disk space (cleaned on reboot)
+3. **Compatibility** — some applications may expect true tmpfs behavior
+
+## Troubleshooting
+
+### bwrap still fails with "Operation not permitted"
+
+1. Check if bwrap-safe wrapper exists:
+   ```bash
+   ls -la /run/wrappers/bin/bwrap-safe
+   ```
+
+2. Verify SUID permissions:
+   ```bash
+   ls -la /run/wrappers/bin/bwrap
+   ```
+
+3. Test basic bwrap functionality:
+   ```bash
+   bwrap --ro-bind / / --dev /dev --proc /proc echo "test"
+   ```
+
+### Cache directory issues
+
+1. Check cache directory permissions:
+   ```bash
+   ls -la "${XDG_RUNTIME_DIR}/bwrap-cache"
+   ```
+
+2. Manually create cache directory:
+   ```bash
+   mkdir -p "${XDG_RUNTIME_DIR}/bwrap-cache"
+   chmod 700 "${XDG_RUNTIME_DIR}/bwrap-cache"
+   ```
+
+### Application-specific issues
+
+Some applications may have their own bwrap configurations. In these cases:
+
+1. Check if the application has a bwrap configuration file
+2. Modify it to use `bwrap-safe` instead of `bwrap`
+3. Or set up a wrapper script for the application
+
+</details>
+<!-- END fragment: 09-bwrap-workaround.md -->
+<!-- BEGIN fragment: 10-license.md -->
+
 
 ## License
 
@@ -156,6 +533,8 @@ Project code is licensed under **GPLv3** ([LICENSE](LICENSE)), covering Nix conf
 
 ChromeOS RMA shims, recovery images, and extracted firmware/drivers are proprietary and excluded from GPLv3 coverage. Derivations processing these artifacts are marked `meta.license = lib.licenses.unfree`.
 
+<!-- END fragment: 10-license.md -->
+<!-- BEGIN fragment: 11-background.md -->
 <details>
 <summary>Background</summary>
 
@@ -170,7 +549,8 @@ The same flake that builds the image also serves as the device's runtime configu
 Users unfamiliar with Nix should try it in a VM first ([nixos.org/download](https://nixos.org/download)).
 
 </details>
-
+<!-- END fragment: 11-background.md -->
+<!-- BEGIN fragment: 12-credits.md -->
 <details>
 <summary>Credits</summary>
 
@@ -180,3 +560,4 @@ Users unfamiliar with Nix should try it in a VM first ([nixos.org/download](http
 - [nixos-generators](https://github.com/nix-community/nixos-generators), initial image building method (now deprecated in favor of upstream `raw-efi`)
 
 </details>
+<!-- END fragment: 12-credits.md -->
