@@ -66,6 +66,7 @@ DETAILS_FRAGMENTS=(
   "09-bwrap-workaround.md|Bwrap / Steam Workaround"
   "11-background.md|Background"
   "12-credits.md|Credits"
+  "13-roadmap.md|Roadmap"
 )
 
 validate_manifest
