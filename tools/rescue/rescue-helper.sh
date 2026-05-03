@@ -19,18 +19,10 @@ LIB_DIR="$(cd "$SCRIPT_DIR/../lib" && pwd)"
 source "$LIB_DIR/logging.sh"
 # shellcheck source=runtime.sh
 source "$LIB_DIR/runtime.sh"
+# shellcheck source=logging.sh
+source "$LIB_DIR/logging.sh"
 
-# === Colors & Logging ===
-ANSI_CLEAR='\033[0m'
-ANSI_BOLD='\033[1m'
-ANSI_GREEN='\033[1;32m'
-ANSI_BLUE='\033[1;34m'
-ANSI_YELLOW='\033[1;33m'
-ANSI_RED='\033[1;31m'
-ANSI_CYAN='\033[1;36m'
-ANSI_MAGENTA='\033[1;35m'
-
-log_step() { printf "${ANSI_BOLD}${ANSI_BLUE}[%s] %s${ANSI_CLEAR}\n" "$1" "$2"; }
+# === Custom log overrides ===
 log_info() { printf "${ANSI_GREEN}  > %s${ANSI_CLEAR}\n" "$1"; }
 log_warn() {
 	# Use yellow triangle for better visibility and consistency

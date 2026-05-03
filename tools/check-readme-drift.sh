@@ -15,15 +15,12 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-README="$REPO_ROOT/README.md"
 
-RED='\033[1;31m'
-YELLOW='\033[1;33m'
-GREEN='\033[1;32m'
-CYAN='\033[1;36m'
-RESET='\033[0m'
-BOLD='\033[1m'
-DIM='\033[2m'
+# Source shared colors
+# shellcheck source=logging.sh
+source "$SCRIPT_DIR/lib/logging.sh"
+
+README="$REPO_ROOT/README.md"
 
 HEAD_COMMIT=$(git -C "$REPO_ROOT" rev-parse --short HEAD)
 DRIFT_COUNT=0
@@ -31,14 +28,14 @@ STALE_COUNT=0
 
 # Extract all unique commit hashes from README blob URLs
 # Pattern: blob/<hash>/...
-echo -e "${BOLD}README citations vs HEAD ${CYAN}($HEAD_COMMIT)${RESET}"
+echo -e "${COLOR_BOLD}README citations vs HEAD ${COLOR_CYAN}($HEAD_COMMIT)${COLOR_CLEAR}"
 echo
 
 while IFS= read -r hash; do
   [[ -z "$hash" ]] && continue
 
   full_hash=$(git -C "$REPO_ROOT" rev-parse "$hash" 2>/dev/null) || {
-    echo -e "  ${RED}✗${RESET} ${hash} ${RED}not in history (force-pushed or rebased away)${RESET}"
+    echo -e "  ${COLOR_RED}✗${COLOR_CLEAR} ${hash} ${COLOR_RED}not in history (force-pushed or rebased away)${COLOR_CLEAR}"
     STALE_COUNT=$((STALE_COUNT + 1))
     continue
   }
@@ -47,18 +44,18 @@ while IFS= read -r hash; do
   behind=$(git -C "$REPO_ROOT" rev-list --count "${hash}..HEAD" 2>/dev/null || echo "?")
 
   if [[ "$behind" == "0" ]]; then
-    echo -e "  ${GREEN}✓${RESET} ${hash} ${DIM}(current)${RESET}"
+    echo -e "  ${COLOR_GREEN}✓${COLOR_CLEAR} ${hash} ${COLOR_DIM}(current)${COLOR_CLEAR}"
   elif [[ "$behind" == "?" ]]; then
-    echo -e "  ${YELLOW}?${RESET} ${hash} ${YELLOW}unable to determine drift${RESET}"
+    echo -e "  ${COLOR_YELLOW}?${COLOR_CLEAR} ${hash} ${COLOR_YELLOW}unable to determine drift${COLOR_CLEAR}"
   else
-    echo -e "  ${YELLOW}↗${RESET} ${hash} ${YELLOW}${behind} commit(s) behind HEAD${RESET}"
+    echo -e "  ${COLOR_YELLOW}↗${COLOR_CLEAR} ${hash} ${COLOR_YELLOW}${behind} commit(s) behind HEAD${COLOR_CLEAR}"
     DRIFT_COUNT=$((DRIFT_COUNT + 1))
   fi
 
   # Show which fragments reference this hash
   while IFS= read -r fragment; do
     [[ -z "$fragment" ]] && continue
-    echo -e "    ${DIM}in ${fragment}${RESET}"
+    echo -e "    ${COLOR_DIM}in ${fragment}${COLOR_CLEAR}"
   done < <(grep -l "$hash" "$REPO_ROOT/readme_manifest/"*.md 2>/dev/null | xargs -I{} basename {} || true)
 
   echo
@@ -67,13 +64,13 @@ done < <(grep -oP 'blob/[a-f0-9]+/' "$README" | sed 's|blob/||;s|/||' | sort -u)
 # Summary
 echo "---"
 if (( DRIFT_COUNT == 0 && STALE_COUNT == 0 )); then
-  echo -e "${GREEN}all citations current${RESET}"
+  echo -e "${COLOR_GREEN}all citations current${COLOR_CLEAR}"
 else
   if (( DRIFT_COUNT > 0 )); then
-    echo -e "${YELLOW}${DRIFT_COUNT} citation(s) drifted - run tools/generate-readme.sh after updating fragments${RESET}"
+    echo -e "${COLOR_YELLOW}${DRIFT_COUNT} citation(s) drifted - run tools/generate-readme.sh after updating fragments${COLOR_CLEAR}"
   fi
   if (( STALE_COUNT > 0 )); then
-    echo -e "${RED}${STALE_COUNT} citation(s) unreachable - rebased away, update fragments manually${RESET}"
+    echo -e "${COLOR_RED}${STALE_COUNT} citation(s) unreachable - rebased away, update fragments manually${COLOR_CLEAR}"
   fi
   exit 1
 fi

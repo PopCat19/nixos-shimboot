@@ -14,25 +14,23 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Source shared colors
+# shellcheck source=logging.sh
+source "$SCRIPT_DIR/lib/logging.sh"
+
 ERRORS=0
 CHECKED=0
-
-# Colors for diagnostics
-RED='\033[1;31m'
-BLUE='\033[1;34m'
-CYAN='\033[1;36m'
-RESET='\033[0m'
-BOLD='\033[1m'
 
 error() {
   local md_file="$1"
   local line="$2"
   local ref="$3"
   local msg="$4"
-  echo -e "${RED}error${RESET}${BOLD}: ${msg}${RESET}"
-  echo -e "  ${BLUE}-->${RESET} ${md_file}:${line}"
-  echo -e "   ${CYAN}|${RESET}"
-  echo -e " ${line} ${CYAN}|${RESET}   ... ${ref} ..."
+  echo -e "${COLOR_RED}error${COLOR_CLEAR}${COLOR_BOLD}: ${msg}${COLOR_CLEAR}"
+  echo -e "  ${COLOR_BLUE}-->${COLOR_CLEAR} ${md_file}:${line}"
+  echo -e "   ${COLOR_CYAN}|${COLOR_CLEAR}"
+  echo -e " ${line} ${COLOR_CYAN}|${COLOR_CLEAR}   ... ${ref} ..."
   echo
   ERRORS=$((ERRORS + 1))
 }
@@ -95,6 +93,8 @@ scan_file() {
         anchor="${BASH_REMATCH[2]}"
       fi
 
+      # Skip glob patterns
+      [[ "$match" == *'*'* ]] && continue
       # Skip non-repo paths (URLs, system paths, code snippets, etc.)
       [[ "$match" =~ ^https?:// ]] && continue
       [[ "$match" =~ ^/nix/ ]] && continue
@@ -117,6 +117,8 @@ scan_file() {
       [[ "$match" =~ ^work/ ]] && continue
       # Skip user-config.nix (ambiguous, resolved via context)
       [[ "$match" == "user-config.nix" ]] && continue
+      # Skip bare filenames (no directory component, used as examples in context)
+      [[ "$match" != */* ]] && continue
       # Must look like a relative path with at least one dir or extension
       [[ "$match" =~ [/.] ]] || continue
 
@@ -206,7 +208,7 @@ done < <(find "$REPO_ROOT" -name '*.md' \
 echo "checked $CHECKED reference(s) across markdown files"
 
 if (( ERRORS > 0 )); then
-  echo -e "\n${RED}${ERRORS} error(s) found${RESET}"
+  echo -e "\n${COLOR_RED}${ERRORS} error(s) found${COLOR_CLEAR}"
   exit 1
 fi
 

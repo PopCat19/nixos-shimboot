@@ -336,32 +336,10 @@ is_ci() {
 }
 
 # === Colors & Logging ===
-ANSI_CLEAR='\033[0m'
-ANSI_BOLD='\033[1m'
-ANSI_GREEN='\033[1;32m'
-ANSI_BLUE='\033[1;34m'
-ANSI_YELLOW='\033[1;33m'
-ANSI_RED='\033[1;31m'
-
-log_step() {
-	printf "${ANSI_BOLD}${ANSI_BLUE}[%s] %s${ANSI_CLEAR}\n" "$1" "$2"
-}
-
-log_info() {
-	printf "${ANSI_GREEN}  > %s${ANSI_CLEAR}\n" "$1"
-}
-
-log_warn() {
-	printf "${ANSI_YELLOW}  ! %s${ANSI_CLEAR}\n" "$1"
-}
-
-log_error() {
-	printf "${ANSI_RED}  X %s${ANSI_CLEAR}\n" "$1"
-}
-
-log_success() {
-	printf "${ANSI_GREEN}  OK %s${ANSI_CLEAR}\n" "$1"
-}
+# Source shared colors and logging
+ASM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=logging.sh
+source "$ASM_DIR/../lib/logging.sh"
 
 # === Cachix Configuration (fixed cache, CI-safe) ===
 CACHIX_CACHE="shimboot-systemd-nixos"

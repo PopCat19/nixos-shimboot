@@ -27,29 +27,18 @@ if [[ "${2:-}" == "--details" ]]; then
 fi
 
 # --- Setup colors and logs ---
-if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
-	GREEN=$'\033[1;32m'
-	CYAN=$'\033[1;36m'
-	YELLOW=$'\033[1;33m'
-	RED=$'\033[1;31m'
-	BOLD=$'\033[1m'
-	RESET=$'\033[0m'
-else
-	GREEN=""
-	CYAN=""
-	YELLOW=""
-	RED=""
-	BOLD=""
-	RESET=""
-fi
+# Source shared colors
+INSPECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=logging.sh
+source "$INSPECT_DIR/../lib/logging.sh"
 
-info() { echo -e "${CYAN}$*${RESET}"; }
-warn() { echo -e "${YELLOW}WARN:${RESET} $*" >&2; }
-error() { echo -e "${RED}ERROR:${RESET} $*" >&2; }
+info() { echo -e "${COLOR_CYAN}$*${COLOR_CLEAR}"; }
+warn() { echo -e "${COLOR_YELLOW}WARN:${COLOR_CLEAR} $*" >&2; }
+error() { echo -e "${COLOR_RED}ERROR:${COLOR_CLEAR} $*" >&2; }
 section() {
 	echo
-	echo -e "${BOLD}${1}${RESET}"
-	echo -e "${YELLOW}$(printf '%*s' 80 '' | tr ' ' '-')${RESET}"
+	echo -e "${COLOR_BOLD}${1}${COLOR_CLEAR}"
+	echo -e "${COLOR_YELLOW}$(printf '%*s' 80 '' | tr ' ' '-')${COLOR_CLEAR}"
 }
 
 # --- Temporary directories and traps ---
@@ -160,5 +149,5 @@ if [[ "$DETAIL_MODE" == "true" ]]; then
 fi
 
 echo
-success() { echo -e "${GREEN}$*${RESET}"; }
+success() { echo -e "${COLOR_GREEN}$*${COLOR_CLEAR}"; }
 success "OK Inspection complete: $IMAGE"

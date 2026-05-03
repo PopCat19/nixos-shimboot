@@ -75,41 +75,23 @@ fi
 SYSTEM_PKNAMES=""
 
 # ---------- Color and Logging ----------
-# Color setup
-if [[ -t 1 && -z "${NO_COLOR:-}" ]]; then
-	RED=$'\e[31m'
-	GREEN=$'\e[32m'
-	YELLOW=$'\e[33m'
-	BLUE=$'\e[34m'
-	MAGENTA=$'\e[35m'
-	CYAN=$'\e[36m'
-	BOLD=$'\e[1m'
-	DIM=$'\e[2m'
-	RESET=$'\e[0m'
-else
-	RED=""
-	GREEN=""
-	YELLOW=""
-	BLUE=""
-	MAGENTA=""
-	CYAN=""
-	BOLD=""
-	DIM=""
-	RESET=""
-fi
+# Source shared colors and logging
+SCRIPT_DIR_WRITE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=logging.sh
+source "$SCRIPT_DIR_WRITE/../lib/logging.sh"
 
 # Logging functions
-info() { echo -e "${CYAN}$*${RESET}"; }
-note() { echo -e "${BLUE}$*${RESET}"; }
-action() { echo -e "${MAGENTA}$*${RESET}"; }
-warn() { echo -e "${YELLOW}WARN:${RESET} $*" >&2; }
-error() { echo -e "${RED}ERROR:${RESET} $*" >&2; }
-success() { echo -e "${GREEN}$*${RESET}"; }
+info() { echo -e "${COLOR_CYAN}$*${COLOR_CLEAR}"; }
+note() { echo -e "${COLOR_BLUE}$*${COLOR_CLEAR}"; }
+action() { echo -e "${COLOR_MAGENTA}$*${COLOR_CLEAR}"; }
+warn() { echo -e "${COLOR_YELLOW}WARN:${COLOR_CLEAR} $*" >&2; }
+error() { echo -e "${COLOR_RED}ERROR:${COLOR_CLEAR} $*" >&2; }
+success() { echo -e "${COLOR_GREEN}$*${COLOR_CLEAR}"; }
 section() {
 	local title="$1"
 	echo
-	echo -e "${BOLD}${title}${RESET}"
-	echo -e "${DIM}$(printf '%*s' 80 '' | tr ' ' '-')${RESET}"
+	echo -e "${COLOR_BOLD}${title}${COLOR_CLEAR}"
+	echo -e "${COLOR_DIM}$(printf '%*s' 80 '' | tr ' ' '-')${COLOR_CLEAR}"
 }
 
 # ---------- Cleanup/exit handling ----------
@@ -155,13 +137,13 @@ prompt_yes_no() {
 	fi
 	while true; do
 		if [[ "${default}" == "y" ]]; then
-			read -r -p "$(echo -e "${BOLD}${prompt}${RESET} [${GREEN}Y${RESET}/n]: ")" ans || {
+			read -r -p "$(echo -e "${COLOR_BOLD}${prompt}${COLOR_CLEAR} [${COLOR_GREEN}Y${COLOR_CLEAR}/n]: ")" ans || {
 				echo "no"
 				return 0
 			}
 			ans="${ans:-Y}"
 		else
-			read -r -p "$(echo -e "${BOLD}${prompt}${RESET} [y/${RED}N${RESET}]: ")" ans || {
+			read -r -p "$(echo -e "${COLOR_BOLD}${prompt}${COLOR_CLEAR} [y/${COLOR_RED}N${COLOR_CLEAR}]: ")" ans || {
 				echo "no"
 				return 0
 			}
@@ -389,7 +371,7 @@ print_udisks_section() {
 		tgt="$(awk -F'|' '{print $2}' <<<"$line")"
 		opts="$(awk -F'|' '{print $3}' <<<"$line")"
 		pk="$(pk_of "$src")"
-		printf "${YELLOW}%-30s %-40s %-10s %s${RESET}\n" "$src" "$tgt" "${pk:-?}" "$opts"
+		printf "${COLOR_YELLOW}%-30s %-40s %-10s %s${COLOR_CLEAR}\n" "$src" "$tgt" "${pk:-?}" "$opts"
 	done <<<"$mounts"
 }
 
@@ -401,7 +383,7 @@ print_disks_overview() {
 
 print_device_tree() {
 	local dev="$1"
-	section "Target device tree for ${BOLD}${dev}${RESET}"
+	section "Target device tree for ${COLOR_BOLD}${dev}${COLOR_CLEAR}"
 	if ! lsblk "$dev" -o NAME,PATH,SIZE,TYPE,TRAN,MOUNTPOINT,MODEL; then
 		lsblk
 	fi
@@ -433,7 +415,7 @@ parse_disk_line() {
 
 # ---------- Candidate listing ----------
 list_candidates() {
-	echo -e "${BOLD}SAFE candidate devices (not mounted, not system disks):${RESET}"
+	echo -e "${COLOR_BOLD}SAFE candidate devices (not mounted, not system disks):${COLOR_CLEAR}"
 	printf "%-12s %-10s %-8s %-6s %-4s %-5s %s\n" "DEVICE" "SIZE" "TRAN" "RM" "ROTA" "TYPE" "MODEL"
 	echo "--------------------------------------------------------------------------------"
 	while IFS= read -r line; do
@@ -487,11 +469,11 @@ list_all_disks() {
 		fi
 
 		if [[ "$sys" == "yes" ]]; then
-			printf "${RED}%-12s %-10s %-8s %-6s %-4s %-5s %-3s %-3s %-3s %s${RESET}\n" "$path" "$size" "$tran" "$rm" "$rota" "$type" "$mnt" "$sys" "$ign" "$model"
+			printf "${COLOR_RED}%-12s %-10s %-8s %-6s %-4s %-5s %-3s %-3s %-3s %s${COLOR_CLEAR}\n" "$path" "$size" "$tran" "$rm" "$rota" "$type" "$mnt" "$sys" "$ign" "$model"
 		elif [[ "$mnt" == "yes" ]]; then
-			printf "${YELLOW}%-12s %-10s %-8s %-6s %-4s %-5s %-3s %-3s %-3s %s${RESET}\n" "$path" "$size" "$tran" "$rm" "$rota" "$type" "$mnt" "$sys" "$ign" "$model"
+			printf "${COLOR_YELLOW}%-12s %-10s %-8s %-6s %-4s %-5s %-3s %-3s %-3s %s${COLOR_CLEAR}\n" "$path" "$size" "$tran" "$rm" "$rota" "$type" "$mnt" "$sys" "$ign" "$model"
 		elif [[ "$ign" == "yes" ]]; then
-			printf "${MAGENTA}%-12s %-10s %-8s %-6s %-4s %-5s %-3s %-3s %-3s %s${RESET}\n" "$path" "$size" "$tran" "$rm" "$rota" "$type" "$mnt" "$sys" "$ign" "$model"
+			printf "${COLOR_MAGENTA}%-12s %-10s %-8s %-6s %-4s %-5s %-3s %-3s %-3s %s${COLOR_CLEAR}\n" "$path" "$size" "$tran" "$rm" "$rota" "$type" "$mnt" "$sys" "$ign" "$model"
 		else
 			printf "%-12s %-10s %-8s %-6s %-4s %-5s %-3s %-3s %-3s %s\n" "$path" "$size" "$tran" "$rm" "$rota" "$type" "$mnt" "$sys" "$ign" "$model"
 		fi
@@ -645,8 +627,8 @@ bytes_of_device() {
 confirm_countdown() {
 	local seconds="$1"
 	echo
-	echo -e "${BOLD}About to write the image to the target device.${RESET}"
-	echo -e "${RED}${BOLD}THIS WILL DESTROY ALL DATA on the target device.${RESET}"
+	echo -e "${COLOR_BOLD}About to write the image to the target device.${COLOR_CLEAR}"
+	echo -e "${COLOR_RED}${COLOR_BOLD}THIS WILL DESTROY ALL DATA on the target device.${COLOR_CLEAR}"
 	echo
 	if [[ "$SKIP_CONFIRM" == "true" ]]; then
 		warn "[--yes] Skipping countdown. Press Ctrl-C NOW to abort."
@@ -654,10 +636,10 @@ confirm_countdown() {
 		return 0
 	fi
 
-	info "Proceeding in ${BOLD}${seconds}${RESET}${CYAN} seconds. Press Ctrl-C to abort.${RESET}"
+	info "Proceeding in ${COLOR_BOLD}${seconds}${COLOR_CLEAR}${COLOR_CYAN} seconds. Press Ctrl-C to abort.${COLOR_CLEAR}"
 	trap 'echo; error "Aborted."; exit 130' INT
 	while [[ "$seconds" -gt 0 ]]; do
-		printf "${DIM}  %2d...${RESET}\r" "$seconds"
+		printf "${COLOR_DIM}  %2d...${COLOR_CLEAR}\r" "$seconds"
 		sleep 1
 		seconds=$((seconds - 1))
 	done
@@ -687,7 +669,7 @@ prompt_for_device() {
 	OUTPUT_DEVICE="${OUTPUT_DEVICE//[[:space:]]/}"
 	if [[ -z "$OUTPUT_DEVICE" ]]; then
 		echo
-		info "All disks (MNT=${YELLOW}yes${RESET}, SYS=${RED}yes${RESET}):"
+		info "All disks (MNT=${COLOR_YELLOW}yes${COLOR_CLEAR}, SYS=${COLOR_RED}yes${COLOR_CLEAR}):"
 		list_all_disks
 		echo
 		read -r -p "$(echo -e "Enter the full device path to write to (e.g., /dev/sdX): ")" OUTPUT_DEVICE
@@ -1181,10 +1163,10 @@ main() {
 	name="$(lsblk -dno NAME "${OUTPUT_DEVICE}")"
 
 	section "Planned write summary"
-	echo "Input image: ${BOLD}${INPUT_IMAGE}${RESET}"
-	echo "Image size:  ${BOLD}${img_size_h}${RESET}"
+	echo "Input image: ${COLOR_BOLD}${INPUT_IMAGE}${COLOR_CLEAR}"
+	echo "Image size:  ${COLOR_BOLD}${img_size_h}${COLOR_CLEAR}"
 	echo
-	echo "Target device: ${BOLD}${OUTPUT_DEVICE}${RESET} (${name})"
+	echo "Target device: ${COLOR_BOLD}${OUTPUT_DEVICE}${COLOR_CLEAR} (${name})"
 	echo "  Type:       ${type}"
 	echo "  Size:       ${dev_size_h}"
 	echo "  Model:      ${model:-N/A}"
@@ -1194,7 +1176,7 @@ main() {
 	# Extra confirmation for large targets (> 128 GiB)
 	local threshold=$((128 * 1024 * 1024 * 1024))
 	if [[ "${dev_size_bytes}" -gt "${threshold}" ]]; then
-		warn "Target device capacity ${BOLD}${dev_size_h}${RESET} exceeds 128GiB."
+		warn "Target device capacity ${COLOR_BOLD}${dev_size_h}${COLOR_CLEAR} exceeds 128GiB."
 		if [[ "${INTERACTIVE}" == "true" ]]; then
 			local ans2
 			ans2="$(prompt_yes_no "Are you absolutely sure you want to image a ${dev_size_h} device?" "n")"
