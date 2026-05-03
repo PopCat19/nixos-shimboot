@@ -40,11 +40,11 @@ sudo ./tools/write/write-shimboot-image.sh
 
 | Directory | Purpose |
 |-----------|---------|
-| `tools/build/` | Image assembly, driver harvesting, partitioning |
-| `tools/write/` | Safe USB flashing with interactive device selection |
-| `tools/rescue/` | Boot troubleshooting, generation management, chroot recovery |
-| `tools/lib/` | Shared logging, device detection, Nix helpers |
-| `tools/inspect/` | Image inspection and log collection |
+| tools/build/ | Image assembly, driver harvesting, partitioning |
+| tools/write/ | Safe USB flashing with interactive device selection |
+| tools/rescue/ | Boot troubleshooting, generation management, chroot recovery |
+| tools/lib/ | Shared logging, device detection, Nix helpers |
+| tools/inspect/ | Image inspection and log collection |
 
 </details>
 

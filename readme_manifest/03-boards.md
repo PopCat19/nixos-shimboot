@@ -7,9 +7,9 @@
 | grunt | AMD | 4.14.75 | 257.x |
 | octopus | Intel | 4.14.91 | 257.x |
 | hatch | Intel | 4.19.84 | 257.x |
-| dedede | Intel | 5.4.85 | 258 [x] · 259 [x] · 260 ~~[ ]~~ |
+| dedede | Intel | 5.4.85 | 258 ✓ · 259 ✓ |
 | zork | AMD | 5.4.85 | 257.x |
-| nissa | Intel | 5.15.74 | 258 [ ] |
+| nissa | Intel | 5.15.74 | 258 ✗ |
 
 Systemd is pinned to 257.9 via a separate `nixpkgs` input, locked to a commit before the 258 bump ([d27b392/flake.nix#L20](https://github.com/PopCat19/nixos-shimboot/blob/d27b392/flake.nix#L20)).
 
