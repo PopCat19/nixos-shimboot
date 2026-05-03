@@ -19,9 +19,9 @@ This occurs because the ChromeOS LSM blocks tmpfs mounts even when running as ro
 
 The workaround converts tmpfs mounts to bind mounts, which are allowed by the ChromeOS LSM. This is implemented through:
 
-1. **SUID bwrap wrapper** — provides namespace creation capabilities
-2. **bwrap-safe wrapper** — converts tmpfs mounts to bind mounts
-3. **Helper scripts** — simplify setup and usage
+1. **SUID bwrap wrapper** - provides namespace creation capabilities
+2. **bwrap-safe wrapper** - converts tmpfs mounts to bind mounts
+3. **Helper scripts** - simplify setup and usage
 
 ## Implementation
 
@@ -29,8 +29,8 @@ The workaround converts tmpfs mounts to bind mounts, which are allowed by the Ch
 
 The [`security.nix`](shimboot_config/base_configuration/system/security.nix) module creates two SUID wrappers:
 
-- `bwrap` — standard SUID wrapper for namespace creation
-- `bwrap-safe` — wrapper that converts tmpfs to bind mounts
+- `bwrap` - standard SUID wrapper for namespace creation
+- `bwrap-safe` - wrapper that converts tmpfs to bind mounts
 
 ### Helper Scripts
 
@@ -126,9 +126,9 @@ This directory is:
 
 ### Limitations
 
-1. **Performance** — bind mounts may have slightly different performance characteristics than tmpfs
-2. **Disk space** — cache directories consume disk space (cleaned on reboot)
-3. **Compatibility** — some applications may expect true tmpfs behavior
+1. **Performance** - bind mounts may have slightly different performance characteristics than tmpfs
+2. **Disk space** - cache directories consume disk space (cleaned on reboot)
+3. **Compatibility** - some applications may expect true tmpfs behavior
 
 ## Troubleshooting
 

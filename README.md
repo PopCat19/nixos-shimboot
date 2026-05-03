@@ -22,7 +22,7 @@ ChromeOS RMA shims are bootable recovery images that run even on enterprise-enro
 
 The ChromeOS kernel fails systemd's API filesystem mounts. Systemd resolves mount targets through `/proc/self/fd/`, which the ChromeOS kernel handles differently. The patch replaces this with a direct `mount()` call ([d27b392/patches/systemd-mountpoint-util-chromeos.patch](https://github.com/PopCat19/nixos-shimboot/blob/d27b392/patches/systemd-mountpoint-util-chromeos.patch)).
 
-The patch is needed whenever systemd components run in the boot chain — as the init system, or as supporting daemons like udev. Inits that don't pull systemd components, like Alpine's OpenRC, work without the patch.
+The patch is needed whenever systemd components run in the boot chain, as the init system or as supporting daemons like udev. Inits that don't pull systemd components, like Alpine's OpenRC, work without the patch.
 
 Artix's OpenRC pulls `udev` and related packages split from systemd source, so the patch is still needed there ([shimboot#405 (comment)](https://github.com/ading2210/shimboot/issues/405#issuecomment-4234987149)).
 
@@ -212,11 +212,11 @@ Afterwards, the imaged usb/sd is ready to boot.
 
 A terminal opens automatically on first boot. Run `setup-nixos` to step through:
 
-1. **WiFi** — connects and enables autoconnect
-2. **Expand rootfs** — grows the partition to fill the USB drive
-3. **Verify config** — checks `~/nixos-shimboot`, optionally pulls updates
-4. **Link `/etc/nixos`** — runs `setup-nixos-shimboot` to wire flake for `nixos-rebuild`
-5. **Rebuild** — optional first rebuild from base config
+1. **WiFi** - connects and enables autoconnect
+2. **Expand rootfs** - grows the partition to fill the USB drive
+3. **Verify config** - checks `~/nixos-shimboot`, optionally pulls updates
+4. **Link `/etc/nixos`** - runs `setup-nixos-shimboot` to wire flake for `nixos-rebuild`
+5. **Rebuild** - optional first rebuild from base config
 
 After completing, the system is usable as a minimal NixOS install. For a full
 desktop environment, layer on the companion config repo.
@@ -323,7 +323,7 @@ nixos-shimboot/                       # build system + ChromeOS HAL
 └── manifests/                        # ChromeOS shim chunk manifests
 ```
 
-The tree is designed to be self-documenting. Module headers with `Purpose:` blocks serve as in-code docs — explore by directory rather than relying on external references.
+The tree is designed to be self-documenting. Module headers with `Purpose:` blocks serve as in-code docs, explore by directory rather than relying on external references.
 
 This repo follows the [dev-mini](https://github.com/PopCat19/dev-conventions) conventions.
 
@@ -403,9 +403,9 @@ This occurs because the ChromeOS LSM blocks tmpfs mounts even when running as ro
 
 The workaround converts tmpfs mounts to bind mounts, which are allowed by the ChromeOS LSM. This is implemented through:
 
-1. **SUID bwrap wrapper** — provides namespace creation capabilities
-2. **bwrap-safe wrapper** — converts tmpfs mounts to bind mounts
-3. **Helper scripts** — simplify setup and usage
+1. **SUID bwrap wrapper** - provides namespace creation capabilities
+2. **bwrap-safe wrapper** - converts tmpfs mounts to bind mounts
+3. **Helper scripts** - simplify setup and usage
 
 ## Implementation
 
@@ -413,8 +413,8 @@ The workaround converts tmpfs mounts to bind mounts, which are allowed by the Ch
 
 The [`security.nix`](shimboot_config/base_configuration/system/security.nix) module creates two SUID wrappers:
 
-- `bwrap` — standard SUID wrapper for namespace creation
-- `bwrap-safe` — wrapper that converts tmpfs to bind mounts
+- `bwrap` - standard SUID wrapper for namespace creation
+- `bwrap-safe` - wrapper that converts tmpfs to bind mounts
 
 ### Helper Scripts
 
@@ -510,9 +510,9 @@ This directory is:
 
 ### Limitations
 
-1. **Performance** — bind mounts may have slightly different performance characteristics than tmpfs
-2. **Disk space** — cache directories consume disk space (cleaned on reboot)
-3. **Compatibility** — some applications may expect true tmpfs behavior
+1. **Performance** - bind mounts may have slightly different performance characteristics than tmpfs
+2. **Disk space** - cache directories consume disk space (cleaned on reboot)
+3. **Compatibility** - some applications may expect true tmpfs behavior
 
 ## Troubleshooting
 
@@ -629,4 +629,4 @@ Users unfamiliar with Nix should try it in a VM first ([nixos.org/download](http
 </details>
 <!-- END fragment: 13-roadmap.md -->
 
-<!-- generated: 20260503-59c1064 -->
+<!-- generated: 20260503-77b883b -->

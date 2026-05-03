@@ -80,11 +80,11 @@ Afterwards, the imaged usb/sd is ready to boot.
 
 A terminal opens automatically on first boot. Run `setup-nixos` to step through:
 
-1. **WiFi** — connects and enables autoconnect
-2. **Expand rootfs** — grows the partition to fill the USB drive
-3. **Verify config** — checks `~/nixos-shimboot`, optionally pulls updates
-4. **Link `/etc/nixos`** — runs `setup-nixos-shimboot` to wire flake for `nixos-rebuild`
-5. **Rebuild** — optional first rebuild from base config
+1. **WiFi** - connects and enables autoconnect
+2. **Expand rootfs** - grows the partition to fill the USB drive
+3. **Verify config** - checks `~/nixos-shimboot`, optionally pulls updates
+4. **Link `/etc/nixos`** - runs `setup-nixos-shimboot` to wire flake for `nixos-rebuild`
+5. **Rebuild** - optional first rebuild from base config
 
 After completing, the system is usable as a minimal NixOS install. For a full
 desktop environment, layer on the companion config repo.

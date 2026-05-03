@@ -22,7 +22,7 @@ nixos-shimboot/                       # build system + ChromeOS HAL
 └── manifests/                        # ChromeOS shim chunk manifests
 ```
 
-The tree is designed to be self-documenting. Module headers with `Purpose:` blocks serve as in-code docs — explore by directory rather than relying on external references.
+The tree is designed to be self-documenting. Module headers with `Purpose:` blocks serve as in-code docs, explore by directory rather than relying on external references.
 
 This repo follows the [dev-mini](https://github.com/PopCat19/dev-conventions) conventions.
 
