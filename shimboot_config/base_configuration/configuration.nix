@@ -47,7 +47,6 @@ let
   desktopModules = [
     ./system/kill-frecon.nix
     ./system/hyprland.nix
-    ./system/setup-experience.nix
     ./system/display-manager.nix
     ./system/xdg-portals.nix
     ./system/fonts.nix
