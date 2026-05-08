@@ -47,8 +47,10 @@
       pkgs = import nixpkgs { inherit system; };
 
       # Import systemd from pinned nixpkgs for systemd 257.9
-      # Systemd 258+ uses open_tree/move_mount syscalls unavailable on older upstream
-# kernels, but tested working on dedede (5.4.85) — per-board compat varies
+      # Systemd 258+ requires mount_setattr (kernel 5.12), unavailable on
+      # ChromeOS shim kernels. 257.9 + mount patch is the stable baseline;
+      # 259.x tested working on dedede (5.4.85 includes open_tree/move_mount
+      # from 5.2 but not mount_setattr). 260 requires kernel >= 5.10.
       # See: https://github.com/PopCat19/nixos-shimboot/issues/405
       pkgsSystemd = import nixpkgs-systemd { inherit system; };
 
