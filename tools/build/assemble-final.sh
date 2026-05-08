@@ -1038,9 +1038,16 @@ safe_exec sudo mkfs.ext4 -q "${MKFS_EXT4_FLAGS[@]}" "${LOOPDEV}p1"
 safe_exec sudo dd if="$ORIGINAL_KERNEL" of="${LOOPDEV}p2" bs=1M conv=fsync status=progress
 safe_exec sudo mkfs.ext2 -q "${LOOPDEV}p3"
 
+# Disable GUI pinentry for unattended cryptsetup (build environment may have DE integration)
+export GPG_TTY=/dev/null
+export PINENTRY=/dev/null
+
 if [ "$LUKS_ENABLED" -eq 1 ]; then
 	log_info "LUKS2: formatting rootfs partition with encryption ..."
 	if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
+		# Vendor partition p4 still needs formatting even when rootfs is LUKS
+		safe_exec sudo mkfs.ext4 -q -O ^has_journal,^orphan_file,^metadata_csum_seed \
+			-L "shimboot_vendor" "${LOOPDEV}p4"
 		echo "$LUKS_PASSWORD" | safe_exec sudo cryptsetup luksFormat --type luks2 "${LOOPDEV}p5"
 		echo "$LUKS_PASSWORD" | safe_exec sudo cryptsetup open --allow-discards "${LOOPDEV}p5" rootfs
 		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_FLAGS[@]}" /dev/mapper/rootfs
