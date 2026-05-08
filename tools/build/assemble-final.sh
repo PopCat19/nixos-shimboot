@@ -75,6 +75,8 @@ Options:
   --cleanup-rootfs         Clean up old rootfs generations
   --cleanup-keep N         Keep last N generations (default: 3)
   --cleanup-no-dry-run     Actually delete in cleanup (default: dry-run)
+  --luks                   Enable LUKS2 encryption for rootfs partition
+  --luks-password PASS     LUKS2 passphrase (skip interactive prompt)
   --dry-run                Show what would be done without executing destructive operations (global)
   --prewarm-cache          Attempt to fetch from Cachix before building
   --push-to-cachix         Automatically push Nix derivations to Cachix after successful build
@@ -103,6 +105,15 @@ while [ $# -gt 0 ]; do
 	--no-sudo)
 		SKIP_SUDO=1
 		shift
+		;;
+	--luks)
+		LUKS_ENABLED=1
+		shift
+		;;
+	--luks-password)
+		LUKS_PASSWORD="${2:-}"
+		LUKS_ENABLED=1
+		shift 2
 		;;
 	*)
 		REMAINING_ARGS+=("$1")
@@ -133,6 +144,8 @@ CLEANUP_KEEP=""
 PREWARM_CACHE="${PREWARM_CACHE:-0}"
 PUSH_TO_CACHIX="${PUSH_TO_CACHIX:-0}"
 DRIVERS_MODE="${DRIVERS_MODE:-}"
+LUKS_ENABLED=0
+LUKS_PASSWORD=""
 
 # === Main Argument Parsing (onboarding + args work together) ===
 # If args provided, use them; otherwise prompt interactively
@@ -178,6 +191,15 @@ while [ $# -gt 0 ]; do
 	--dry-run)
 		DRY_RUN=1
 		shift
+		;;
+	--luks)
+		LUKS_ENABLED=1
+		shift
+		;;
+	--luks-password)
+		LUKS_PASSWORD="${2:-}"
+		LUKS_ENABLED=1
+		shift 2
 		;;
 	--prewarm-cache)
 		PREWARM_CACHE=1
@@ -295,6 +317,30 @@ SECREOF
 	fi
 fi
 
+# LUKS2 password onboarding (when --luks)
+if [ "$LUKS_ENABLED" -eq 1 ] && [ -z "$LUKS_PASSWORD" ]; then
+	if [ -t 0 ]; then
+		echo
+		echo "[assemble-final] LUKS2 encryption enabled. Set a passphrase for the rootfs."
+		while true; do
+			read -rsp "Enter LUKS2 passphrase: " passwd1
+			echo
+			read -rsp "Retype passphrase: " passwd2
+			echo
+			if [ "$passwd1" = "$passwd2" ]; then
+				LUKS_PASSWORD="$passwd1"
+				break
+			else
+				echo "Passphrases do not match. Please try again."
+			fi
+		done
+		log_info "LUKS2 passphrase set (interactive)"
+	else
+		log_error "LUKS2 enabled but no passphrase provided. Use --luks-password PASS."
+		exit 1
+	fi
+fi
+
 # Validate args after onboarding
 if [ -z "$BOARD" ]; then
 	echo "[assemble-final] Error: Board name cannot be empty. Use --board <name>." >&2
@@ -320,7 +366,7 @@ require_sudo() {
 		SUDO_ENV=()
 		for var in BOARD BOARD_EXPLICITLY_SET CACHIX_AUTH_TOKEN ROOTFS_FLAVOR DRIVERS_MODE \
 			FIRMWARE_UPSTREAM DRY_RUN INSPECT_AFTER CLEANUP_ROOTFS CLEANUP_NO_DRY_RUN \
-			CLEANUP_KEEP PREWARM_CACHE PUSH_TO_CACHIX WIFI_SSID; do
+			CLEANUP_KEEP PREWARM_CACHE PUSH_TO_CACHIX WIFI_SSID LUKS_ENABLED LUKS_PASSWORD; do
 			if [ -n "${!var:-}" ]; then SUDO_ENV+=("$var=${!var}"); fi
 		done
 		exec sudo -E -H "${SUDO_ENV[@]}" "$0" --no-sudo "$@"
@@ -438,6 +484,7 @@ if [ "${SKIP_SUDO:-0}" -eq 1 ]; then
 	log_info "Drivers mode: ${DRIVERS_MODE:-vendor} (vendor|inject|none)"
 	log_info "Upstream firmware: ${FIRMWARE_UPSTREAM} (0=disabled, 1=enabled)"
 	log_info "Push to Cachix: ${PUSH_TO_CACHIX} (0=disabled, 1=enabled, derivations only)"
+	log_info "LUKS2 encryption: ${LUKS_ENABLED} (0=disabled, 1=enabled)"
 	if [ "${ROOTFS_FLAVOR}" = "headless" ]; then
 		log_info "WiFi: configured via shimboot_config/secrets.nix"
 	fi
@@ -626,9 +673,13 @@ if [ "$PREWARM_CACHE" -eq 1 ]; then
 	log_step "Pre-warm" "Attempting to fetch from Cachix"
 
 	# Try to substitute without building
+	INITRAMFS_ATTR="initramfs-patching-${BOARD}"
+	if [ "$LUKS_ENABLED" -eq 1 ]; then
+		INITRAMFS_ATTR="initramfs-patching-luks-${BOARD}"
+	fi
 	nix build --dry-run \
 		."#extracted-kernel-${BOARD}" \
-		."#initramfs-patching-${BOARD}" \
+		."#${INITRAMFS_ATTR}" \
 		."#${RAW_ROOTFS_ATTR}" \
 		2>&1 | grep "will be fetched" || log_info "Nothing to fetch"
 fi
@@ -637,10 +688,16 @@ fi
 CURRENT_STEP="1/17"
 log_step "$CURRENT_STEP" "Building Nix outputs (parallel)"
 
+# Select initramfs variant (standard or LUKS) before parallel build
+INITRAMFS_ATTR="initramfs-patching-${BOARD}"
+if [ "$LUKS_ENABLED" -eq 1 ]; then
+	INITRAMFS_ATTR="initramfs-patching-luks-${BOARD}"
+fi
+
 # Build all in parallel, capture PIDs
 nix build "${NIX_BUILD_FLAGS[@]}" ."#extracted-kernel-${BOARD}" &
 KERNEL_PID=$!
-nix build "${NIX_BUILD_FLAGS[@]}" ."#initramfs-patching-${BOARD}" &
+nix build "${NIX_BUILD_FLAGS[@]}" ".#${INITRAMFS_ATTR}" &
 INITRAMFS_PID=$!
 
 # Headless+WiFi builds use path: fetcher to include untracked secrets.nix
@@ -669,7 +726,11 @@ wait $ROOTFS_PID || {
 
 # Get paths (instant since already built)
 ORIGINAL_KERNEL="$(nix build --impure --accept-flake-config ".#extracted-kernel-${BOARD}" --print-out-paths)/p2.bin"
-PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config ".#initramfs-patching-${BOARD}" --print-out-paths)/patched-initramfs"
+INITRAMFS_ATTR="initramfs-patching-${BOARD}"
+if [ "$LUKS_ENABLED" -eq 1 ]; then
+	INITRAMFS_ATTR="initramfs-patching-luks-${BOARD}"
+fi
+PATCHED_INITRAMFS="$(nix build --impure --accept-flake-config ".#${INITRAMFS_ATTR}" --print-out-paths)/patched-initramfs"
 # Resolve rootfs image from derivation output with three-tier fallback
 RAW_ROOTFS_OUT="$(nix build --impure --accept-flake-config "${ROOTFS_FETCHER}${RAW_ROOTFS_ATTR}" --print-out-paths)"
 if [ -f "$RAW_ROOTFS_OUT/nixos.img" ]; then
@@ -961,15 +1022,28 @@ safe_exec sudo mkfs.ext4 -q "${MKFS_EXT4_FLAGS[@]}" "${LOOPDEV}p1"
 safe_exec sudo dd if="$ORIGINAL_KERNEL" of="${LOOPDEV}p2" bs=1M conv=fsync status=progress
 safe_exec sudo mkfs.ext2 -q "${LOOPDEV}p3"
 
-if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
-	# Vendor partition (drivers/firmware donor) - p4
-	safe_exec sudo mkfs.ext4 -q -O ^has_journal,^orphan_file,^metadata_csum_seed \
-		-L "shimboot_vendor" "${LOOPDEV}p4"
-	# Rootfs is p5
-	safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_FLAGS[@]}" "${LOOPDEV}p5"
+if [ "$LUKS_ENABLED" -eq 1 ]; then
+	log_info "LUKS2: formatting rootfs partition with encryption ..."
+	if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
+		echo "$LUKS_PASSWORD" | safe_exec sudo cryptsetup luksFormat --type luks2 "${LOOPDEV}p5"
+		echo "$LUKS_PASSWORD" | safe_exec sudo cryptsetup open --allow-discards "${LOOPDEV}p5" rootfs
+		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_FLAGS[@]}" /dev/mapper/rootfs
+	else
+		echo "$LUKS_PASSWORD" | safe_exec sudo cryptsetup luksFormat --type luks2 "${LOOPDEV}p4"
+		echo "$LUKS_PASSWORD" | safe_exec sudo cryptsetup open --allow-discards "${LOOPDEV}p4" rootfs
+		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_FLAGS[@]}" /dev/mapper/rootfs
+	fi
 else
-	# Rootfs directly as p4
-	safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_FLAGS[@]}" "${LOOPDEV}p4"
+	if [ "$HAS_VENDOR_PARTITION" -eq 1 ]; then
+		# Vendor partition (drivers/firmware donor) - p4
+		safe_exec sudo mkfs.ext4 -q -O ^has_journal,^orphan_file,^metadata_csum_seed \
+			-L "shimboot_vendor" "${LOOPDEV}p4"
+		# Rootfs is p5
+		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_FLAGS[@]}" "${LOOPDEV}p5"
+	else
+		# Rootfs directly as p4
+		safe_exec sudo mkfs.ext4 -q -L "$ROOTFS_NAME" "${MKFS_EXT4_FLAGS[@]}" "${LOOPDEV}p4"
+	fi
 fi
 
 # After Step 12: Format partitions
@@ -1011,7 +1085,11 @@ LOOPROOT=$(sudo losetup --show -fP "$WORKDIR/rootfs.img")
 RAW_ROOTFS_PART=$(detect_rootfs_partition "$LOOPROOT")
 log_info "Source rootfs partition: p${RAW_ROOTFS_PART}"
 safe_exec sudo mount "${LOOPROOT}p${RAW_ROOTFS_PART}" "$WORKDIR/mnt_src_rootfs"
-safe_exec sudo mount "${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "$WORKDIR/mnt_rootfs"
+if [ "$LUKS_ENABLED" -eq 1 ]; then
+	safe_exec sudo mount /dev/mapper/rootfs "$WORKDIR/mnt_rootfs"
+else
+	safe_exec sudo mount "${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "$WORKDIR/mnt_rootfs"
+fi
 # Use partition block size for accurate pv progress (avoids >100% due to fs metadata)
 total_bytes=$(blockdev --getsize64 "${LOOPROOT}p${RAW_ROOTFS_PART}")
 (cd "$WORKDIR/mnt_src_rootfs" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_rootfs" && sudo tar xf -)
@@ -1199,6 +1277,10 @@ esac
 
 # Unmount rootfs
 safe_exec sudo umount "$WORKDIR/mnt_rootfs"
+if [ "$LUKS_ENABLED" -eq 1 ]; then
+	log_info "LUKS2: closing rootfs mapper ..."
+	safe_exec sudo cryptsetup close rootfs || true
+fi
 
 # Detach loop devices used for target image
 safe_exec sudo losetup -d "$LOOPDEV"
