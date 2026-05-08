@@ -15,7 +15,7 @@
   # Root filesystem configuration with USB-optimized mount options
   # noatime: skip access time updates (reduces writes, improves read performance)
   # commit=30: journal sync interval in seconds (lower for hard reset safety)
-  fileSystems."/" = lib.mkForce {
+  fileSystems."/" = lib.mkDefault {
     device = "/dev/disk/by-label/nixos";
     fsType = "ext4";
     options = [

@@ -5,14 +5,13 @@
 # Related: boot.nix, filesystems.nix, security.nix
 #
 # This module:
-# - Configures initrd to include cryptsetup and required kernel modules
 # - Sets up filesystem to expect decrypted mapper device
 # - Provides options for LUKS2 configuration customization
 # - Integrates with shimboot bootloader LUKS handling
 #
-# CPU-specific configuration:
-# - Intel: Includes aesni_intel for hardware AES acceleration
-# - AMD/ARM: Uses generic dm-crypt modules (different crypto acceleration)
+# Note: The shimboot bootloader handles LUKS unlock (not NixOS initrd),
+# so boot.initrd settings are intentionally omitted. The bootloader runs
+# its own initramfs with bundled cryptsetup.
 {
   lib,
   pkgs,
@@ -22,76 +21,54 @@
 
 let
   cfg = config.shimboot.luks2;
-
-  # Import board database and get current board's config
-  boards = import ../../boards/default.nix { inherit lib; };
-  inherit (config.shimboot) board;
-  boardConfig = boards.${board};
-
-  # Base modules for all architectures
-  baseModules = [
-    "dm-crypt"
-    "dm-mod"
-    "cryptd"
-  ];
-
-  # Intel-specific: hardware AES acceleration
-  intelModules = [ "aesni_intel" ];
-
-  # Select modules based on CPU type
-  luksModules = baseModules ++ (lib.optionals (boardConfig.cpu == "intel") intelModules);
 in
 {
   options.shimboot.luks2 = {
     enable = lib.mkEnableOption "LUKS2 encrypted root filesystem support";
 
-    device = lib.mkOption {
-      type = lib.types.str;
-      default = "/dev/disk/by-label/nixos-encrypted";
-      description = "Path to the LUKS2 encrypted device";
-    };
-
-    mapperName = lib.mkOption {
-      type = lib.types.str;
-      default = "rootfs";
-      description = "Name for the decrypted mapper device";
-    };
-
-    filesystem = lib.mkOption {
-      type = lib.types.enum [
-        "ext4"
-        "btrfs"
-        "xfs"
-      ];
-      default = "ext4";
-      description = "Filesystem type for the decrypted root";
+    allowDiscards = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Allow TRIM/discard on the LUKS device. Improves SSD/eMMC performance
+        but may leak filesystem metadata (size/usage patterns) to an attacker
+        with physical access.
+      '';
     };
 
     keyFile = lib.mkOption {
       type = lib.types.nullOr lib.types.path;
       default = null;
-      description = "Optional keyfile for automatic unlocking";
+      description = ''
+        Optional keyfile for automatic unlocking. Path is resolved inside
+        the initramfs environment (e.g. /bootloader/opt/luks.key).
+      '';
+    };
+
+    fallbackToPassword = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        If keyFile is set but fails, prompt for passphrase interactively.
+        If false, boot halts on keyfile failure.
+      '';
     };
   };
 
   config = lib.mkIf cfg.enable {
-    # Add cryptsetup to initrd
-    boot.initrd = {
-      availableKernelModules = luksModules;
-
-      # Include cryptsetup in initrd for LUKS handling
-      extraUtilsCommands = ''
-        copy_bin_and_libs ${pkgs.cryptsetup}/bin/cryptsetup
-      '';
-    };
-
-    # Configure filesystem for decrypted mapper device
+    # Override root filesystem to use decrypted mapper device.
+    # mkForce overrides filesystems.nix which uses mkDefault.
     fileSystems."/" = lib.mkForce {
-      device = "/dev/mapper/${cfg.mapperName}";
-      fsType = cfg.filesystem;
+      device = "/dev/mapper/rootfs";
+      fsType = "ext4";
+      options = [
+        "noatime"
+        "commit=30"
+        "errors=remount-ro"
+      ];
     };
 
-    # Add cryptsetup to system packages for management
+    # Add cryptsetup to system packages for runtime management
     environment.systemPackages = with pkgs; [
       cryptsetup
     ];
