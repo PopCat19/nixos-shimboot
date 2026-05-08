@@ -144,8 +144,8 @@ CLEANUP_KEEP=""
 PREWARM_CACHE="${PREWARM_CACHE:-0}"
 PUSH_TO_CACHIX="${PUSH_TO_CACHIX:-0}"
 DRIVERS_MODE="${DRIVERS_MODE:-}"
-LUKS_ENABLED=0
-LUKS_PASSWORD=""
+LUKS_ENABLED="${LUKS_ENABLED:-0}"
+LUKS_PASSWORD="${LUKS_PASSWORD:-}"
 
 # === Main Argument Parsing (onboarding + args work together) ===
 # If args provided, use them; otherwise prompt interactively
