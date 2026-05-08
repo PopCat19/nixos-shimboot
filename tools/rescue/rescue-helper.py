@@ -20,7 +20,7 @@ from typing import Optional
 
 # Import lib modules
 from lib.console import console, log_section, log_info, log_error, log_success, HAS_RICH
-from lib.mounts import mounted
+from lib.mounts import mounted, luks_mounted
 from lib.system import ensure_root, detect_nixos_partition, check_partition_exists
 
 # Import commands (this registers them)
@@ -381,7 +381,7 @@ def main() -> int:
     mountpoint = Path("/mnt/nixos-rescue")
     
     try:
-        with mounted(partition, mountpoint, "ro") as mp:
+        with luks_mounted(partition, mountpoint, "ro") as mp:
             return main_menu(mp, partition, mounted_rw=False)
     except Exception as e:
         log_error(f"Rescue helper failed: {e}")

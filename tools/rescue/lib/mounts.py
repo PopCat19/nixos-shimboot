@@ -258,3 +258,141 @@ def find_shell_path(mountpoint: Path) -> Optional[Path]:
             return candidate
     
     return None
+
+
+def is_luks_partition(partition: Path) -> bool:
+    """Detect if a partition is LUKS-encrypted.
+    
+    Args:
+        partition: Path to partition device
+    
+    Returns:
+        True if LUKS header detected
+    """
+    try:
+        subprocess.run(
+            ["cryptsetup", "luksDump", str(partition)],
+            check=True,
+            capture_output=True,
+        )
+        return True
+    except subprocess.CalledProcessError:
+        return False
+
+
+def unlock_luks(partition: Path, mapper_name: str = "rescue-rootfs") -> Path:
+    """Unlock a LUKS partition interactively.
+    
+    Prompts for passphrase up to 3 attempts.
+    
+    Args:
+        partition: Path to LUKS partition
+        mapper_name: Name for /dev/mapper device
+    
+    Returns:
+        Path to mapper device
+    
+    Raises:
+        MountError: If unlock fails after all attempts
+    """
+    target = partition
+    keyfile = Path("/bootloader/opt/luks.key")
+    
+    # Try keyfile first
+    if keyfile.exists():
+        try:
+            subprocess.run(
+                [
+                    "cryptsetup", "open", "--allow-discards",
+                    "--key-file", str(keyfile),
+                    str(partition), mapper_name,
+                ],
+                check=True,
+                capture_output=True,
+            )
+            log_info(f"LUKS: unlocked via keyfile → /dev/mapper/{mapper_name}")
+            return Path(f"/dev/mapper/{mapper_name}")
+        except subprocess.CalledProcessError:
+            log_warn("LUKS: keyfile failed, falling back to passphrase")
+    
+    # Interactive passphrase
+    for attempt in range(1, 4):
+        console.print()
+        passphrase = console.input(
+            f"Enter LUKS passphrase ({attempt}/3): ",
+            password=True,
+        )
+        try:
+            proc = subprocess.Popen(
+                [
+                    "cryptsetup", "open", "--allow-discards",
+                    "--key-file", "-", str(partition), mapper_name,
+                ],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            proc.communicate(input=passphrase.encode())
+            if proc.returncode == 0:
+                log_info(f"LUKS: unlocked via passphrase → /dev/mapper/{mapper_name}")
+                return Path(f"/dev/mapper/{mapper_name}")
+        except subprocess.CalledProcessError:
+            pass
+        log_error(f"LUKS: incorrect passphrase (attempt {attempt}/3)")
+    
+    raise MountError(f"Failed to unlock LUKS partition {partition}")
+
+
+def close_luks(mapper_name: str = "rescue-rootfs") -> None:
+    """Close a LUKS mapper device.
+    
+    Args:
+        mapper_name: Name of /dev/mapper device to close
+    """
+    try:
+        subprocess.run(
+            ["cryptsetup", "close", mapper_name],
+            check=True,
+            capture_output=True,
+        )
+        log_info(f"LUKS: closed /dev/mapper/{mapper_name}")
+    except subprocess.CalledProcessError:
+        pass
+
+
+@contextmanager
+def luks_mounted(
+    partition: Path,
+    mountpoint: Path,
+    mode: str = "ro",
+) -> Generator[Path, None, None]:
+    """Context manager for mounting a partition, with automatic LUKS unlock.
+    
+    Detects LUKS encryption, prompts for passphrase if needed,
+    unlocks the device, mounts it, and cleans up on exit.
+    
+    Args:
+        partition: Path to partition device
+        mountpoint: Where to mount
+        mode: "ro" for read-only, "rw" for read-write
+    
+    Yields:
+        Path to mountpoint
+    
+    Raises:
+        MountError: If unlock or mount fails
+    """
+    from lib.console import console
+    
+    if not is_luks_partition(partition):
+        with mounted(partition, mountpoint, mode) as mp:
+            yield mp
+        return
+    
+    mapper = unlock_luks(partition)
+    try:
+        with mounted(mapper, mountpoint, mode) as mp:
+            yield mp
+    finally:
+        close_luks()
+        log_info("LUKS: mapper cleaned up")
