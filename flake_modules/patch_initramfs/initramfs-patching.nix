@@ -22,6 +22,7 @@ let
         builtins.elem (nixpkgs.lib.getName pkg) [
           "initramfs-extraction-${board}"
           "initramfs-patching-${board}"
+          "initramfs-patching-luks-${board}"
         ];
     };
   };
