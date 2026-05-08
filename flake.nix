@@ -161,12 +161,12 @@
           # withVConsole not available in pinned nixpkgs-systemd
           withVmspawn = false;
           withTests = false;
-        }).overrideAttrs (old: {
-          patches = (old.patches or [ ]) ++ [
-            ./patches/systemd-mountpoint-util-chromeos.patch
-          ];
-        });
-
+        }).overrideAttrs
+          (old: {
+            patches = (old.patches or [ ]) ++ [
+              ./patches/systemd-mountpoint-util-chromeos.patch
+            ];
+          });
 
       # Import module outputs
       # Core system and development modules
@@ -250,13 +250,13 @@
         chromeos = {
           imports = [ ./shimboot_config/base_configuration/configuration.nix ];
           _module.args = {
-            systemd257 = systemd257;
-            systemdMinimal257 = systemdMinimal257;
+            inherit systemd257;
+            inherit systemdMinimal257;
           };
           # Apply overlay to replace systemdMinimal with 257.9 variant
           # This ensures udevadm verify uses the correct systemd version
           nixpkgs.overlays = [
-            (final: prev: { systemdMinimal = systemdMinimal257; })
+            (_final: _prev: { systemdMinimal = systemdMinimal257; })
           ];
         };
 

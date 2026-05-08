@@ -23,7 +23,7 @@ let
 
   # Overlay to replace systemdMinimal with systemdMinimal257
   # This ensures udevadm verify uses the same version as the target systemd
-  systemd257Overlay = final: prev: {
+  systemd257Overlay = _final: _prev: {
     systemdMinimal = systemdMinimal257;
   };
 

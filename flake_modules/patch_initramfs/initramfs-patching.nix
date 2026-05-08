@@ -36,7 +36,9 @@ let
 
   # Shared derivation builder for initramfs patching
   mkInitramfsPatching =
-    { withCryptsetup ? false }:
+    {
+      withCryptsetup ? false,
+    }:
     pkgs.stdenv.mkDerivation {
       name = if withCryptsetup then "initramfs-patching-luks-${board}" else "initramfs-patching-${board}";
       src = extractedInitramfs;
@@ -99,10 +101,11 @@ let
       '';
 
       meta = with pkgs.lib; {
-        description = if withCryptsetup then
-          "Patch ChromeOS initramfs with custom bootloader and LUKS support"
+        description =
+          if withCryptsetup then
+            "Patch ChromeOS initramfs with custom bootloader and LUKS support"
           else
-          "Patch ChromeOS initramfs with custom bootloader files";
+            "Patch ChromeOS initramfs with custom bootloader files";
         license = licenses.unfree;
         platforms = platforms.linux;
         maintainers = [ "shimboot developers" ];

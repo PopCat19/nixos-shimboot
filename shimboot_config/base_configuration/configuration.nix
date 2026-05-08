@@ -15,7 +15,6 @@
 {
   lib,
   pkgs,
-  config,
   userConfig,
   ...
 }:

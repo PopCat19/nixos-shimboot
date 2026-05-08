@@ -9,10 +9,7 @@
 # - Thermal management approach
 #
 # Reference: https://cros.download/ for board recovery images
-{
-  ...
-}:
-{
+_: {
   # Intel boards (Jasper Lake / Apollo Lake / Alder Lake / Gemini Lake)
   # All use Intel WiFi (AX201/AX210), Intel GPU, require intel_pstate
 
