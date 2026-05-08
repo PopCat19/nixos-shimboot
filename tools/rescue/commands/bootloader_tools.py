@@ -411,7 +411,7 @@ def cmd_sync_repo(partition: Path) -> int:
         # Prefer rsync if available, fallback to cp -a
         if subprocess.run(["which", "rsync"], capture_output=True).returncode == 0:
             subprocess.run(
-                ["rsync", "-a", "--delete",
+                ["rsync", "-a",
                  str(repo_bootloader) + "/",
                  str(temp_mount) + "/"],
                 check=True,
