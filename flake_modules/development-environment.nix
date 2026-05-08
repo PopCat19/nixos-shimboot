@@ -22,6 +22,7 @@ in
       parted
       util-linux # losetup, mount, etc.
       e2fsprogs # mkfs.ext4
+      cryptsetup # LUKS2 encryption
       pv # progress viewer
       zstd # compression
       vboot_reference # cgpt, futility
@@ -44,6 +45,7 @@ in
       echo "Tools available:"
       echo "  - cgpt, futility      - ChromeOS GPT utilities"
       echo "  - parted, losetup     - Disk management"
+      echo "  - cryptsetup          - LUKS2 encryption"
       echo "  - pv, zstd            - Progress & compression"
       echo ""
       echo "Common commands:"
@@ -52,6 +54,7 @@ in
       echo "  nix build \"path:$PWD#raw-rootfs-headless\"  # Headless with WiFi (includes secrets.nix)"
       echo "  nix build .#chromeos-shim-dedede        # Build shim"
       echo "  sudo ./tools/build/assemble-final.sh --board dedede --rootfs base"
+      echo "  sudo ./tools/build/assemble-final.sh --board dedede --rootfs base --luks"
       echo ""
       echo "Formatting:"
       echo "  nix fmt                # Format all Nix files"
