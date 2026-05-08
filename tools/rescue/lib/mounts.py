@@ -284,6 +284,33 @@ def find_shell_path(mountpoint: Path) -> Optional[Path]:
     return None
 
 
+def find_existing_mapper(partition: Path) -> Path | None:
+    """Find an existing dm-crypt mapper that points to this partition.
+    
+    When the running system was booted from a LUKS device, the partition
+    is already unlocked. Creating a second mapper to the same underlying
+    device causes I/O conflicts. Reuse the existing mapper instead.
+    
+    Args:
+        partition: Path to partition device (e.g. /dev/sdc5)
+    
+    Returns:
+        Path to existing /dev/mapper device, or None if not found
+    """
+    slave_name = partition.name  # e.g. "sdc5"
+    for dm_dir in Path("/sys/class/block").glob("dm-*"):
+        slaves_dir = dm_dir / "slaves"
+        if not slaves_dir.exists():
+            continue
+        for slave in slaves_dir.iterdir():
+            if slave.name == slave_name:
+                name_file = dm_dir / "dm" / "name"
+                if name_file.exists():
+                    mapper_name = name_file.read_text().strip()
+                    return Path(f"/dev/mapper/{mapper_name}")
+    return None
+
+
 def is_luks_partition(partition: Path) -> bool:
     """Detect if a partition is LUKS-encrypted.
     
@@ -406,6 +433,7 @@ def luks_mounted(
     Detects LUKS encryption, prompts for passphrase if needed,
     unlocks the device, mounts it, and cleans up on exit.
     Uses a unique mapper name per invocation to avoid udiskie conflicts.
+    Reuses existing mappers when the system is already booted from the device.
     
     Args:
         partition: Path to partition device
@@ -420,6 +448,14 @@ def luks_mounted(
     """
     if not is_luks_partition(partition):
         with mounted(partition, mountpoint, mode) as mp:
+            yield mp
+        return
+    
+    # Check if partition is already unlocked (e.g. booted from this device)
+    existing = find_existing_mapper(partition)
+    if existing:
+        log_info(f"LUKS: reusing existing mapper {existing}")
+        with mounted(existing, mountpoint, mode) as mp:
             yield mp
         return
     
