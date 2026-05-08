@@ -520,7 +520,32 @@ boot_target() {
 	mkdir /newroot
 
 	if [ -x "$(command -v cryptsetup)" ] && cryptsetup luksDump "$target" >/dev/null 2>&1; then
-		cryptsetup open $target rootfs
+		# Try keyfile first, then interactive passphrase with retries
+		local luks_opened=0
+		if [ -f "/bootloader/opt/luks.key" ]; then
+			if cryptsetup open --key-file /bootloader/opt/luks.key --allow-discards "$target" rootfs >/dev/null 2>&1; then
+				log "LUKS: unlocked via keyfile"
+				luks_opened=1
+			else
+				err "LUKS: keyfile failed, falling back to passphrase"
+			fi
+		fi
+		local attempt=1
+		while [ "$luks_opened" -eq 0 ] && [ "$attempt" -le 3 ]; do
+			printf "Enter LUKS2 passphrase (%s/3): " "$attempt"
+			read -r luks_pass
+			if printf '%s' "$luks_pass" | cryptsetup open --allow-discards --key-file - "$target" rootfs >/dev/null 2>&1; then
+				log "LUKS: unlocked via passphrase"
+				luks_opened=1
+			else
+				err "LUKS: incorrect passphrase (attempt $attempt/3)"
+				attempt=$((attempt + 1))
+			fi
+		done
+		if [ "$luks_opened" -eq 0 ]; then
+			err "LUKS: failed to unlock after 3 attempts"
+			return 1
+		fi
 		if ! mount -t ext4 /dev/mapper/rootfs /newroot 2>/dev/null; then
 			if ! mount /dev/mapper/rootfs /newroot; then
 				err "mount failed for LUKS rootfs: /dev/mapper/rootfs"
