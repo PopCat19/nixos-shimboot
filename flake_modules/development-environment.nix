@@ -23,6 +23,7 @@ in
       util-linux # losetup, mount, etc.
       e2fsprogs # mkfs.ext4
       cryptsetup # LUKS2 encryption
+      rsync # bootloader sync
       pv # progress viewer
       zstd # compression
       vboot_reference # cgpt, futility
