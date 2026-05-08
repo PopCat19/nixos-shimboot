@@ -371,12 +371,20 @@ def cmd_sync_repo(partition: Path) -> int:
         
         # Sync repo files
         log_info("Syncing from repo ...")
-        subprocess.run(
-            ["rsync", "-a", "--delete",
-             str(repo_bootloader) + "/",
-             str(temp_mount) + "/"],
-            check=True,
-        )
+        # Prefer rsync if available, fallback to cp -a
+        if subprocess.run(["which", "rsync"], capture_output=True).returncode == 0:
+            subprocess.run(
+                ["rsync", "-a", "--delete",
+                 str(repo_bootloader) + "/",
+                 str(temp_mount) + "/"],
+                check=True,
+            )
+        else:
+            # Fallback: cp -a without delete
+            subprocess.run(
+                ["cp", "-a", str(repo_bootloader) + "/.", str(temp_mount) + "/"],
+                check=True,
+            )
         
         log_success("Bootloader synced")
         
