@@ -68,6 +68,9 @@ let
         echo "Overlaying bootloader files into initramfs ..."
         cp -a ${bootloaderDir}/* work/ || true
 
+        echo "Fixing permissions after overlay ..."
+        chmod -R u+w work/
+
         ${pkgs.lib.optionalString withCryptsetup ''
           echo "Injecting static cryptsetup for LUKS2 boot ..."
           install -Dm755 ${cryptsetupStatic}/bin/cryptsetup work/bin/cryptsetup
