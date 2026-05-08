@@ -523,22 +523,43 @@ boot_target() {
 		# Try keyfile first, then interactive passphrase with retries
 		local luks_opened=0
 		if [ -f "/bootloader/opt/luks.key" ]; then
+			printf "  Trying keyfile /bootloader/opt/luks.key ...\n"
 			if cryptsetup open --key-file /bootloader/opt/luks.key --allow-discards "$target" rootfs >/dev/null 2>&1; then
-				log "LUKS: unlocked via keyfile"
+				printf "  ✓ Unlocked via keyfile\n"
 				luks_opened=1
 			else
-				err "LUKS: keyfile failed, falling back to passphrase"
+				printf "  ✗ Keyfile failed, falling back to passphrase\n"
 			fi
 		fi
 		local attempt=1
 		while [ "$luks_opened" -eq 0 ] && [ "$attempt" -le 3 ]; do
-			printf "Enter LUKS2 passphrase (%s/3): " "$attempt"
-			read -r luks_pass
+			local luks_pass=""
+
+			# Hide terminal echo for passphrase entry
+			stty -echo 2>/dev/null || true
+			printf "Enter LUKS2 passphrase (%s/3, hidden) [Ctrl+C to return to menu]: " "$attempt"
+			if ! read -r luks_pass; then
+				# Interrupted (Ctrl+C) or EOF — restore terminal and return to menu
+				stty echo 2>/dev/null || true
+				printf "\n"
+				err "LUKS: cancelled, returning to menu"
+				return 1
+			fi
+			stty echo 2>/dev/null || true
+			printf "\n"
+
+			if [ -z "$luks_pass" ]; then
+				printf "  ✗ Empty passphrase (attempt %s/3)\n" "$attempt"
+				attempt=$((attempt + 1))
+				continue
+			fi
+
+			printf "  Verifying passphrase ...\n"
 			if printf '%s' "$luks_pass" | cryptsetup open --allow-discards --key-file - "$target" rootfs >/dev/null 2>&1; then
-				log "LUKS: unlocked via passphrase"
+				printf "  ✓ Passphrase correct, unlocked\n"
 				luks_opened=1
 			else
-				err "LUKS: incorrect passphrase (attempt $attempt/3)"
+				printf "  ✗ Incorrect passphrase\n"
 				attempt=$((attempt + 1))
 			fi
 		done
