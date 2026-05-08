@@ -351,23 +351,41 @@ def cmd_sync_repo(partition: Path) -> int:
         log_info("Sync cancelled")
         return 0
     
+    # Create full backup before any changes
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup_path = Path("/tmp/bootloader-backup") / f"bootloader_backup_{timestamp}.tar.gz"
+    backup_path.parent.mkdir(exist_ok=True)
+    
     temp_mount = Path("/tmp/bootloader-sync")
     temp_mount.mkdir(parents=True, exist_ok=True)
     
     try:
-        # Mount bootloader partition rw
+        # Mount bootloader partition read-only first for backup
+        subprocess.run(
+            ["mount", "-o", "ro", str(bootloader_part), str(temp_mount)],
+            check=True,
+        )
+        log_info(f"Backing up current bootloader → {backup_path}")
+        subprocess.run(
+            ["tar", "-czf", str(backup_path), "-C", str(temp_mount), "."],
+            check=True,
+        )
+        log_success(f"Backup created: {backup_path}")
+        subprocess.run(["umount", str(temp_mount)], check=False)
+        
+        # Now remount rw for sync
         subprocess.run(
             ["mount", "-o", "rw", str(bootloader_part), str(temp_mount)],
             check=True,
         )
-        log_info(f"Mounted {bootloader_part} at {temp_mount}")
+        log_info(f"Mounted {bootloader_part} at {temp_mount} (rw)")
         
-        # Backup existing bootstrap.sh
+        # Also back up just bootstrap.sh for quick comparison
         existing = temp_mount / "bin" / "bootstrap.sh"
         if existing.exists():
             backup = temp_mount / "bin" / "bootstrap.sh.bak"
             subprocess.run(["cp", "-a", str(existing), str(backup)], check=False)
-            log_info("Backed up existing bootstrap.sh")
         
         # Sync repo files
         log_info("Syncing from repo ...")
@@ -389,15 +407,20 @@ def cmd_sync_repo(partition: Path) -> int:
         log_success("Bootloader synced")
         
         # Show what changed
-        result = subprocess.run(
-            ["diff", "-q", str(backup), str(existing)]
-            if backup.exists() else ["true"],
-            capture_output=True,
-        )
-        if result.returncode == 0:
-            log_info("bootstrap.sh unchanged")
-        else:
-            log_success("bootstrap.sh updated")
+        if existing.exists() and backup.exists():
+            result = subprocess.run(
+                ["diff", "-q", str(backup), str(existing)],
+                capture_output=True,
+            )
+            if result.returncode == 0:
+                log_info("bootstrap.sh unchanged")
+            else:
+                log_success("bootstrap.sh updated")
+        
+        log_info("")
+        log_info("If the new bootloader fails, restore with:")
+        log_info(f"  tar -xzf {backup_path} -C /tmp/bootloader-sync")
+        log_info("Or use: [10] Bootloader Tools → [4] Restore from backup")
     except subprocess.CalledProcessError as e:
         log_error(f"Sync failed: {e}")
         return 1
