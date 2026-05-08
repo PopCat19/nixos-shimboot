@@ -532,12 +532,19 @@ boot_target() {
 			fi
 		fi
 		local attempt=1
+		printf "\n"
+		printf "  ════════════════════════════════════════\n"
+		printf "  LUKS2 encrypted rootfs detected\n"
+		printf "  Passphrase input is hidden (no echo)\n"
+		printf "  Press Ctrl+C to return to the menu\n"
+		printf "  ════════════════════════════════════════\n"
+		printf "\n"
 		while [ "$luks_opened" -eq 0 ] && [ "$attempt" -le 3 ]; do
 			local luks_pass=""
 
 			# Hide terminal echo for passphrase entry
 			stty -echo 2>/dev/null || true
-			printf "Enter LUKS2 passphrase (%s/3, hidden) [Ctrl+C to return to menu]: " "$attempt"
+			printf "  Passphrase (%s/3): " "$attempt"
 			if ! read -r luks_pass; then
 				# Interrupted (Ctrl+C) or EOF — restore terminal and return to menu
 				stty echo 2>/dev/null || true
