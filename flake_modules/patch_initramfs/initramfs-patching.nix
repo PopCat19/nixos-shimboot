@@ -59,6 +59,9 @@ let
         echo "Unpacking initramfs.tar from extracted initramfs into work/ ..."
         tar --no-same-owner -xf "$src/initramfs.tar" -C work
 
+        echo "Fixing permissions for Nix builder ..."
+        chmod -R u+w work/
+
         echo "Removing original init from initramfs ..."
         rm -f work/init
 
@@ -67,9 +70,7 @@ let
 
         ${pkgs.lib.optionalString withCryptsetup ''
           echo "Injecting static cryptsetup for LUKS2 boot ..."
-          mkdir -p work/bin
-          cp ${cryptsetupStatic}/bin/cryptsetup work/bin/
-          chmod +x work/bin/cryptsetup
+          install -Dm755 ${cryptsetupStatic}/bin/cryptsetup work/bin/cryptsetup
         ''}
 
         echo "Ensuring files in bin/ are executable if present ..."
