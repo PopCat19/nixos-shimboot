@@ -12,8 +12,9 @@
 from __future__ import annotations
 
 import subprocess
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Optional
+from typing import Generator, Optional
 
 from lib.console import console, log_info, log_warn, log_error, log_success, log_section, confirm_action
 from commands import register_command
