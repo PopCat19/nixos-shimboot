@@ -15,7 +15,30 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Generator, Optional
 
-from lib.console import log_info, log_warn, log_success, log_error
+from lib.console import console, log_info, log_warn, log_success, log_error
+
+# Find cryptsetup binary (available in nix develop, but may be missing outside)
+_CRYPTSETUP_PATH: str | None = None
+
+def _find_cryptsetup() -> str:
+    """Locate cryptsetup binary, with NixOS fallback."""
+    global _CRYPTSETUP_PATH
+    if _CRYPTSETUP_PATH is not None:
+        return _CRYPTSETUP_PATH
+    # Check PATH first
+    if subprocess.run(["which", "cryptsetup"], capture_output=True).returncode == 0:
+        _CRYPTSETUP_PATH = "cryptsetup"
+        return _CRYPTSETUP_PATH
+    # NixOS system fallback
+    nixos_paths = [
+        Path("/run/current-system/sw/bin/cryptsetup"),
+        Path("/nix/var/nix/profiles/system/sw/bin/cryptsetup"),
+    ]
+    for p in nixos_paths:
+        if p.exists():
+            _CRYPTSETUP_PATH = str(p)
+            return _CRYPTSETUP_PATH
+    raise MountError("cryptsetup not found. Run inside nix develop or install cryptsetup.")
 
 
 class MountError(Exception):
@@ -271,7 +294,7 @@ def is_luks_partition(partition: Path) -> bool:
     """
     try:
         subprocess.run(
-            ["cryptsetup", "luksDump", str(partition)],
+            [_find_cryptsetup(), "luksDump", str(partition)],
             check=True,
             capture_output=True,
         )
@@ -303,7 +326,7 @@ def unlock_luks(partition: Path, mapper_name: str = "rescue-rootfs") -> Path:
         try:
             subprocess.run(
                 [
-                    "cryptsetup", "open", "--allow-discards",
+                    _find_cryptsetup(), "open", "--allow-discards",
                     "--key-file", str(keyfile),
                     str(partition), mapper_name,
                 ],
@@ -325,7 +348,7 @@ def unlock_luks(partition: Path, mapper_name: str = "rescue-rootfs") -> Path:
         try:
             proc = subprocess.Popen(
                 [
-                    "cryptsetup", "open", "--allow-discards",
+                    _find_cryptsetup(), "open", "--allow-discards",
                     "--key-file", "-", str(partition), mapper_name,
                 ],
                 stdin=subprocess.PIPE,
@@ -351,7 +374,7 @@ def close_luks(mapper_name: str = "rescue-rootfs") -> None:
     """
     try:
         subprocess.run(
-            ["cryptsetup", "close", mapper_name],
+            [_find_cryptsetup(), "close", mapper_name],
             check=True,
             capture_output=True,
         )
