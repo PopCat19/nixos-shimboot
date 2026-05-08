@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -19,15 +20,13 @@ from lib.console import log_error, log_info
 
 
 def ensure_root() -> None:
-    """Exit if not running as root.
+    """Ensure running as root, re-exec with sudo if not.
     
-    Raises:
-        SystemExit: If not root
+    Re-executes the script with sudo -E -H to preserve environment.
     """
     if os.geteuid() != 0:
-        log_error("This script must be run as root")
-        log_info("Usage: sudo rescue-helper.py [partition]")
-        raise SystemExit(1)
+        log_info("Re-executing with sudo ...")
+        os.execvp('sudo', ['sudo', '-E', '-H', sys.executable] + sys.argv)
 
 
 def get_partition_device(disk: str, partition_num: int) -> str:

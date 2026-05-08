@@ -383,6 +383,9 @@ def main() -> int:
     try:
         with luks_mounted(partition, mountpoint, "ro") as mp:
             return main_menu(mp, partition, mounted_rw=False)
+    except KeyboardInterrupt:
+        log_info("Interrupted by user")
+        return 130
     except Exception as e:
         log_error(f"Rescue helper failed: {e}")
         return 1

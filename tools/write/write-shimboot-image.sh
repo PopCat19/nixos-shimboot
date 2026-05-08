@@ -1163,10 +1163,10 @@ main() {
 	name="$(lsblk -dno NAME "${OUTPUT_DEVICE}")"
 
 	section "Planned write summary"
-	echo "Input image: ${COLOR_BOLD}${INPUT_IMAGE}${COLOR_CLEAR}"
-	echo "Image size:  ${COLOR_BOLD}${img_size_h}${COLOR_CLEAR}"
+	echo -e "Input image: ${COLOR_BOLD}${INPUT_IMAGE}${COLOR_CLEAR}"
+	echo -e "Image size:  ${COLOR_BOLD}${img_size_h}${COLOR_CLEAR}"
 	echo
-	echo "Target device: ${COLOR_BOLD}${OUTPUT_DEVICE}${COLOR_CLEAR} (${name})"
+	echo -e "Target device: ${COLOR_BOLD}${OUTPUT_DEVICE}${COLOR_CLEAR} (${name})"
 	echo "  Type:       ${type}"
 	echo "  Size:       ${dev_size_h}"
 	echo "  Model:      ${model:-N/A}"

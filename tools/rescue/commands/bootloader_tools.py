@@ -456,60 +456,64 @@ def run(
     partition: Optional[Path] = None,
 ) -> int:
     """Bootloader tools menu."""
-    while True:
-        log_section("Bootloader Tools")
-        
-        print("  [1] List bootloader layout")
-        print("  [2] View bootstrap.sh")
-        print("  [3] Edit bootstrap.sh")
-        print("  [4] Backup or Restore bootloader")
-        print("  [5] Inspect kernel/initramfs")
-        print("  [6] Check ChromeOS GPT flags")
-        print("  [7] Sync from repo (rapid iteration)")
-        print("  [0] Back to main menu")
-        console.print()
-        
-        choice = console.input("Select: ").strip()
-        
-        if choice == "0":
-            return 0
-        elif choice == "1":
-            if partition:
-                cmd_list_layout(partition)
+    try:
+        while True:
+            log_section("Bootloader Tools")
+            
+            print("  [1] List bootloader layout")
+            print("  [2] View bootstrap.sh")
+            print("  [3] Edit bootstrap.sh")
+            print("  [4] Backup or Restore bootloader")
+            print("  [5] Inspect kernel/initramfs")
+            print("  [6] Check ChromeOS GPT flags")
+            print("  [7] Sync from repo (rapid iteration)")
+            print("  [0] Back to main menu")
+            console.print()
+            
+            choice = console.input("Select: ").strip()
+            
+            if choice == "0":
+                return 0
+            elif choice == "1":
+                if partition:
+                    cmd_list_layout(partition)
+                else:
+                    log_error("No partition specified")
+            elif choice == "2":
+                if partition:
+                    cmd_view_bootstrap(partition)
+                else:
+                    log_error("No partition specified")
+            elif choice == "3":
+                if partition:
+                    cmd_edit_bootstrap(partition)
+                else:
+                    log_error("No partition specified")
+            elif choice == "4":
+                if partition:
+                    cmd_backup_restore(partition)
+                else:
+                    log_error("No partition specified")
+            elif choice == "5":
+                if partition:
+                    cmd_inspect_kernel(partition)
+                else:
+                    log_error("No partition specified")
+            elif choice == "6":
+                if partition:
+                    cmd_check_gpt(partition)
+                else:
+                    log_error("No partition specified")
+            elif choice == "7":
+                if partition:
+                    cmd_sync_repo(partition)
+                else:
+                    log_error("No partition specified")
             else:
-                log_error("No partition specified")
-        elif choice == "2":
-            if partition:
-                cmd_view_bootstrap(partition)
-            else:
-                log_error("No partition specified")
-        elif choice == "3":
-            if partition:
-                cmd_edit_bootstrap(partition)
-            else:
-                log_error("No partition specified")
-        elif choice == "4":
-            if partition:
-                cmd_backup_restore(partition)
-            else:
-                log_error("No partition specified")
-        elif choice == "5":
-            if partition:
-                cmd_inspect_kernel(partition)
-            else:
-                log_error("No partition specified")
-        elif choice == "6":
-            if partition:
-                cmd_check_gpt(partition)
-            else:
-                log_error("No partition specified")
-        elif choice == "7":
-            if partition:
-                cmd_sync_repo(partition)
-            else:
-                log_error("No partition specified")
-        else:
-            log_error("Invalid choice")
+                log_error("Invalid choice")
+    except KeyboardInterrupt:
+        log_info("Returning to main menu")
+        return 0
 
 
 # Register commands
@@ -519,7 +523,7 @@ register_command(
     number="10",
     handler=run,
     description="Inspect bootloader, view/edit bootstrap.sh, backup/restore",
-    tested=False,  # [untested]
+    tested=True
 )
 
 register_command(
@@ -528,5 +532,5 @@ register_command(
     number="14",
     handler=lambda mountpoint, partition: cmd_sync_repo(partition) if partition else 1,
     description="Rapidly sync repo bootloader/ into image p3 without rebuild",
-    tested=False,  # [untested]
+    tested=True
 )
