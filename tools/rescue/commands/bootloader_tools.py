@@ -42,51 +42,82 @@ def find_bootloader_partition(partition: Path) -> Optional[Path]:
         return Path(f"{base}3")
 
 
-def find_bootloader_dir(mountpoint: Path) -> Optional[Path]:
-    """Find bootloader directory in rootfs or partition.
+@contextmanager
+def bootloader_mounted(partition: Path):
+    """Mount the bootloader partition (p3) to a temp directory.
     
-    Args:
-        mountpoint: Mounted rootfs
-    
-    Returns:
-        Path to bootloader directory or None
+    Yields the mountpoint. Auto-unmounts on exit.
+    Handles udiskie auto-mounts on p3.
     """
-    # Check inline bootloader first
-    inline = mountpoint / "bootloader"
-    if (inline / "bin" / "bootstrap.sh").exists():
-        return inline
+    bootloader_part = find_bootloader_partition(partition)
+    if not bootloader_part or not bootloader_part.exists():
+        raise RuntimeError(f"Bootloader partition not found for {partition}")
     
-    # Otherwise need to mount partition 3
-    return None
-
-
-def cmd_list_layout(mountpoint: Path) -> int:
-    """List bootloader layout."""
-    bootloader_dir = find_bootloader_dir(mountpoint)
+    temp_mount = Path("/tmp/bootloader-inspect")
+    temp_mount.mkdir(parents=True, exist_ok=True)
     
-    if not bootloader_dir:
-        log_error("Bootloader directory not found")
-        return 1
-    
-    log_section("Bootloader Layout")
-    
+    # Unmount any existing mounts on p3 (udiskie)
     try:
         result = subprocess.run(
-            ["find", str(bootloader_dir), "-maxdepth", "2", "-type", "f"],
+            ["lsblk", "-no", "MOUNTPOINT", str(bootloader_part)],
             capture_output=True,
             text=True,
             check=False,
         )
-        
-        files = result.stdout.strip().split("\n")[:25]
-        for f in files:
-            if f:
-                try:
-                    stat = Path(f).stat()
-                    size = stat.st_size
-                    print(f"  {f} ({size} bytes)")
-                except:
-                    print(f"  {f}")
+        existing = [line.strip() for line in result.stdout.split("\n") if line.strip()]
+        for mp in existing:
+            subprocess.run(["umount", "-l", mp], check=False, capture_output=True)
+    except Exception:
+        pass
+    
+    subprocess.run(
+        ["mount", "-o", "ro", str(bootloader_part), str(temp_mount)],
+        check=True,
+    )
+    try:
+        yield temp_mount
+    finally:
+        subprocess.run(["umount", "-l", str(temp_mount)], check=False)
+
+
+def find_bootloader_dir(mountpoint: Path) -> Optional[Path]:
+    """Find bootloader directory.
+    
+    For our architecture, bootloader lives in p3 (ext2), not inline.
+    Returns None so callers use bootloader_mounted() instead.
+    
+    Args:
+        mountpoint: Mounted rootfs (unused)
+    
+    Returns:
+        None — bootloader is on separate p3 partition
+    """
+    return None
+
+
+def cmd_list_layout(partition: Path) -> int:
+    """List bootloader layout from p3."""
+    log_section("Bootloader Layout")
+    
+    try:
+        with bootloader_mounted(partition) as bootloader_dir:
+            result = subprocess.run(
+                ["find", str(bootloader_dir), "-maxdepth", "2", "-type", "f"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            
+            files = result.stdout.strip().split("\n")[:25]
+            for f in files:
+                if f:
+                    rel = f.replace(str(bootloader_dir), "")
+                    try:
+                        stat = Path(f).stat()
+                        size = stat.st_size
+                        print(f"  {rel} ({size} bytes)")
+                    except:
+                        print(f"  {rel}")
     except Exception as e:
         log_error(f"Failed to list layout: {e}")
         return 1
@@ -94,30 +125,24 @@ def cmd_list_layout(mountpoint: Path) -> int:
     return 0
 
 
-def cmd_view_bootstrap(mountpoint: Path) -> int:
-    """View bootstrap.sh."""
-    bootloader_dir = find_bootloader_dir(mountpoint)
-    
-    if not bootloader_dir:
-        log_error("Bootloader directory not found")
-        return 1
-    
-    bootstrap = bootloader_dir / "bin" / "bootstrap.sh"
-    if not bootstrap.exists():
-        log_error(f"bootstrap.sh not found in {bootloader_dir}/bin")
-        return 1
-    
+def cmd_view_bootstrap(partition: Path) -> int:
+    """View bootstrap.sh from p3."""
     try:
-        content = bootstrap.read_text()
-        log_section("bootstrap.sh")
-        
-        # Show first 100 lines
-        lines = content.split("\n")[:100]
-        for line in lines:
-            print(line)
-        
-        if len(content.split("\n")) > 100:
-            print(f"\n... ({len(content.split(chr(10))) - 100} more lines)")
+        with bootloader_mounted(partition) as bootloader_dir:
+            bootstrap = bootloader_dir / "bin" / "bootstrap.sh"
+            if not bootstrap.exists():
+                log_error("bootstrap.sh not found")
+                return 1
+            
+            content = bootstrap.read_text()
+            log_section("bootstrap.sh")
+            
+            lines = content.split("\n")[:100]
+            for line in lines:
+                print(line)
+            
+            if len(content.split("\n")) > 100:
+                print(f"\n... ({len(content.split(chr(10))) - 100} more lines)")
     except Exception as e:
         log_error(f"Failed to read bootstrap.sh: {e}")
         return 1
@@ -125,36 +150,21 @@ def cmd_view_bootstrap(mountpoint: Path) -> int:
     return 0
 
 
-def cmd_edit_bootstrap(mountpoint: Path, partition: Optional[Path] = None) -> int:
-    """Edit bootstrap.sh."""
-    bootloader_dir = find_bootloader_dir(mountpoint)
-    
-    if not bootloader_dir:
-        log_error("Bootloader directory not found")
-        return 1
-    
-    bootstrap = bootloader_dir / "bin" / "bootstrap.sh"
-    if not bootstrap.exists():
-        log_error(f"bootstrap.sh not found")
-        return 1
-    
-    # Need to remount rw
-    if partition:
-        log_info("Remounting read-write...")
-        try:
-            subprocess.run(["umount", str(mountpoint)], check=False)
-            subprocess.run(
-                ["mount", "-o", "rw", str(partition), str(mountpoint)],
-                check=False,
-            )
-        except Exception as e:
-            log_warn(f"Remount warning: {e}")
-    
-    editor = console.input("Editor command (default: nano): ").strip() or "nano"
-    
+def cmd_edit_bootstrap(partition: Path) -> int:
+    """Edit bootstrap.sh on the bootloader partition."""
     try:
-        subprocess.run([editor, str(bootstrap)], check=False)
-        log_success("Edit complete")
+        with bootloader_mounted(partition) as bootloader_dir:
+            bootstrap = bootloader_dir / "bin" / "bootstrap.sh"
+            if not bootstrap.exists():
+                log_error("bootstrap.sh not found")
+                return 1
+            
+            # Remount rw for editing
+            subprocess.run(["mount", "-o", "remount,rw", str(bootloader_dir)], check=False)
+            
+            editor = console.input("Editor command (default: nano): ").strip() or "nano"
+            subprocess.run([editor, str(bootstrap)], check=False)
+            log_success("Edit complete")
     except Exception as e:
         log_error(f"Failed to edit: {e}")
         return 1
@@ -162,45 +172,37 @@ def cmd_edit_bootstrap(mountpoint: Path, partition: Optional[Path] = None) -> in
     return 0
 
 
-def cmd_backup_restore(mountpoint: Path) -> int:
-    """Backup or restore bootloader."""
-    bootloader_dir = find_bootloader_dir(mountpoint)
-    
-    if not bootloader_dir:
-        log_error("Bootloader directory not found")
-        return 1
-    
+def cmd_backup_restore(partition: Path) -> int:
+    """Backup or restore bootloader from p3."""
     backup_dir = Path("/tmp/bootloader-backup")
     backup_dir.mkdir(exist_ok=True)
     
     log_section("Bootloader Backup/Restore")
-    print(f"  [1] Create backup")
-    print(f"  [2] Restore from backup")
+    print(f"  [1] Create backup from p3")
+    print(f"  [2] Restore to p3")
     print(f"  [0] Cancel")
     console.print()
     
     choice = console.input("Select: ").strip()
     
     if choice == "1":
-        # Create backup
         from datetime import datetime
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_path = backup_dir / f"bootloader_backup_{timestamp}.tar.gz"
         
         log_info(f"Creating backup: {backup_path}")
         try:
-            subprocess.run(
-                ["tar", "-czf", str(backup_path), "-C", str(bootloader_dir.parent), 
-                 bootloader_dir.name],
-                check=True,
-            )
+            with bootloader_mounted(partition) as bootloader_dir:
+                subprocess.run(
+                    ["tar", "-czf", str(backup_path), "-C", str(bootloader_dir), "."],
+                    check=True,
+                )
             log_success(f"Backup created: {backup_path}")
         except Exception as e:
             log_error(f"Backup failed: {e}")
             return 1
     
     elif choice == "2":
-        # List available backups
         backups = list(backup_dir.glob("bootloader_backup_*.tar.gz"))
         if not backups:
             log_warn("No backups found")
@@ -216,17 +218,19 @@ def cmd_backup_restore(mountpoint: Path) -> int:
             return 1
         
         selected = backups[int(idx) - 1]
-        log_warn("This will overwrite bootloader files!")
+        log_warn("This will overwrite bootloader files on p3!")
         
         if not confirm_action("Proceed with restore"):
             log_info("Restore cancelled")
             return 0
         
         try:
-            subprocess.run(
-                ["tar", "-xzf", str(selected), "-C", str(bootloader_dir.parent)],
-                check=True,
-            )
+            with bootloader_mounted(partition) as bootloader_dir:
+                subprocess.run(["mount", "-o", "remount,rw", str(bootloader_dir)], check=False)
+                subprocess.run(
+                    ["tar", "-xzf", str(selected), "-C", str(bootloader_dir)],
+                    check=True,
+                )
             log_success("Bootloader restored")
         except Exception as e:
             log_error(f"Restore failed: {e}")
@@ -469,13 +473,25 @@ def run(
         if choice == "0":
             return 0
         elif choice == "1":
-            cmd_list_layout(mountpoint)
+            if partition:
+                cmd_list_layout(partition)
+            else:
+                log_error("No partition specified")
         elif choice == "2":
-            cmd_view_bootstrap(mountpoint)
+            if partition:
+                cmd_view_bootstrap(partition)
+            else:
+                log_error("No partition specified")
         elif choice == "3":
-            cmd_edit_bootstrap(mountpoint, partition)
+            if partition:
+                cmd_edit_bootstrap(partition)
+            else:
+                log_error("No partition specified")
         elif choice == "4":
-            cmd_backup_restore(mountpoint)
+            if partition:
+                cmd_backup_restore(partition)
+            else:
+                log_error("No partition specified")
         elif choice == "5":
             if partition:
                 cmd_inspect_kernel(partition)
