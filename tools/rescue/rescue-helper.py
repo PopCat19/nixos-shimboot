@@ -378,7 +378,7 @@ def main() -> int:
     log_info(f"Target partition: {partition}")
     
     # Mount and run menu
-    mountpoint = Path("/mnt/nixos-rescue")
+    mountpoint = Path("/tmp/nixos-rescue")
     
     try:
         with luks_mounted(partition, mountpoint, "ro") as mp:
