@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 from contextlib import contextmanager
 from pathlib import Path
@@ -303,14 +304,16 @@ def is_luks_partition(partition: Path) -> bool:
         return False
 
 
-def unlock_luks(partition: Path, mapper_name: str = "rescue-rootfs") -> Path:
+def unlock_luks(partition: Path, mapper_name: str | None = None) -> Path:
     """Unlock a LUKS partition interactively.
     
     Prompts for passphrase up to 3 attempts.
+    Uses a unique mapper name by default to avoid conflicts with udiskie
+    or stale mappers from previous runs.
     
     Args:
         partition: Path to LUKS partition
-        mapper_name: Name for /dev/mapper device
+        mapper_name: Name for /dev/mapper device (default: rescue-rootfs-PID)
     
     Returns:
         Path to mapper device
@@ -318,6 +321,9 @@ def unlock_luks(partition: Path, mapper_name: str = "rescue-rootfs") -> Path:
     Raises:
         MountError: If unlock fails after all attempts
     """
+    if mapper_name is None:
+        mapper_name = f"rescue-{os.getpid()}"
+    
     target = partition
     keyfile = Path("/bootloader/opt/luks.key")
     
@@ -372,7 +378,7 @@ def unlock_luks(partition: Path, mapper_name: str = "rescue-rootfs") -> Path:
     raise MountError(f"Failed to unlock LUKS partition {partition}")
 
 
-def close_luks(mapper_name: str = "rescue-rootfs") -> None:
+def close_luks(mapper_name: str) -> None:
     """Close a LUKS mapper device.
     
     Args:
@@ -399,6 +405,7 @@ def luks_mounted(
     
     Detects LUKS encryption, prompts for passphrase if needed,
     unlocks the device, mounts it, and cleans up on exit.
+    Uses a unique mapper name per invocation to avoid udiskie conflicts.
     
     Args:
         partition: Path to partition device
@@ -411,17 +418,16 @@ def luks_mounted(
     Raises:
         MountError: If unlock or mount fails
     """
-    from lib.console import console
-    
     if not is_luks_partition(partition):
         with mounted(partition, mountpoint, mode) as mp:
             yield mp
         return
     
-    mapper = unlock_luks(partition)
+    mapper_name = f"rescue-{os.getpid()}"
+    mapper = unlock_luks(partition, mapper_name)
     try:
         with mounted(mapper, mountpoint, mode) as mp:
             yield mp
     finally:
-        close_luks()
+        close_luks(mapper_name)
         log_info("LUKS: mapper cleaned up")
