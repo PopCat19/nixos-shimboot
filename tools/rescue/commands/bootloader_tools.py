@@ -317,6 +317,89 @@ def cmd_check_gpt(partition: Path) -> int:
     return 0
 
 
+def cmd_sync_repo(partition: Path) -> int:
+    """Sync bootloader from current repo into p3 partition.
+    
+    For rapid iteration on bootstrap.sh without full rebuild.
+    """
+    import os
+    
+    bootloader_part = find_bootloader_partition(partition)
+    if not bootloader_part or not bootloader_part.exists():
+        log_error(f"Bootloader partition not found: {bootloader_part}")
+        return 1
+    
+    # Find repo bootloader directory
+    repo_dir = Path(os.getcwd())
+    repo_bootloader = repo_dir / "bootloader"
+    if not (repo_bootloader / "bin" / "bootstrap.sh").exists():
+        # Try parent dirs
+        for parent in repo_dir.parents:
+            candidate = parent / "bootloader" / "bin" / "bootstrap.sh"
+            if candidate.exists():
+                repo_bootloader = parent / "bootloader"
+                break
+    
+    if not (repo_bootloader / "bin" / "bootstrap.sh").exists():
+        log_error(f"Repo bootloader/ not found (cwd: {repo_dir})")
+        return 1
+    
+    log_info(f"Bootloader partition: {bootloader_part}")
+    log_info(f"Repo source: {repo_bootloader}")
+    
+    if not confirm_action("Sync repo bootloader into image"):
+        log_info("Sync cancelled")
+        return 0
+    
+    temp_mount = Path("/tmp/bootloader-sync")
+    temp_mount.mkdir(parents=True, exist_ok=True)
+    
+    try:
+        # Mount bootloader partition rw
+        subprocess.run(
+            ["mount", "-o", "rw", str(bootloader_part), str(temp_mount)],
+            check=True,
+        )
+        log_info(f"Mounted {bootloader_part} at {temp_mount}")
+        
+        # Backup existing bootstrap.sh
+        existing = temp_mount / "bin" / "bootstrap.sh"
+        if existing.exists():
+            backup = temp_mount / "bin" / "bootstrap.sh.bak"
+            subprocess.run(["cp", "-a", str(existing), str(backup)], check=False)
+            log_info("Backed up existing bootstrap.sh")
+        
+        # Sync repo files
+        log_info("Syncing from repo ...")
+        subprocess.run(
+            ["rsync", "-a", "--delete",
+             str(repo_bootloader) + "/",
+             str(temp_mount) + "/"],
+            check=True,
+        )
+        
+        log_success("Bootloader synced")
+        
+        # Show what changed
+        result = subprocess.run(
+            ["diff", "-q", str(backup), str(existing)]
+            if backup.exists() else ["true"],
+            capture_output=True,
+        )
+        if result.returncode == 0:
+            log_info("bootstrap.sh unchanged")
+        else:
+            log_success("bootstrap.sh updated")
+    except subprocess.CalledProcessError as e:
+        log_error(f"Sync failed: {e}")
+        return 1
+    finally:
+        log_info("Unmounting ...")
+        subprocess.run(["umount", "-l", str(temp_mount)], check=False)
+    
+    return 0
+
+
 def run(
     mountpoint: Path,
     partition: Optional[Path] = None,
@@ -331,6 +414,7 @@ def run(
         print("  [4] Backup or Restore bootloader")
         print("  [5] Inspect kernel/initramfs")
         print("  [6] Check ChromeOS GPT flags")
+        print("  [7] Sync from repo (rapid iteration)")
         print("  [0] Back to main menu")
         console.print()
         
@@ -356,16 +440,30 @@ def run(
                 cmd_check_gpt(partition)
             else:
                 log_error("No partition specified")
+        elif choice == "7":
+            if partition:
+                cmd_sync_repo(partition)
+            else:
+                log_error("No partition specified")
         else:
             log_error("Invalid choice")
 
 
-# Register command
+# Register commands
 register_command(
     id="bootloader",
     name="Bootloader Tools",
     number="10",
     handler=run,
     description="Inspect bootloader, view/edit bootstrap.sh, backup/restore",
+    tested=False,  # [untested]
+)
+
+register_command(
+    id="sync-bootloader",
+    name="Sync Bootloader from Repo",
+    number="14",
+    handler=lambda mountpoint, partition: cmd_sync_repo(partition) if partition else 1,
+    description="Rapidly sync repo bootloader/ into image p3 without rebuild",
     tested=False,  # [untested]
 )
