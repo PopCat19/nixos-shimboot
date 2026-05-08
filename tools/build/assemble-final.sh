@@ -506,6 +506,9 @@ safe_exec() {
 require_sudo
 
 # === Cleanup workspace ===
+# Close stale LUKS mappers before building
+cleanup_luks_mappers
+
 if [ -d "$WORKDIR" ]; then
 	log_info "Cleaning up old work directory..."
 	# Detach any loops left over from a previous run before unlinking the files;
@@ -568,9 +571,22 @@ cleanup_loop_devices() {
 	done
 }
 
+# Close stale LUKS mappers from previous runs
+cleanup_luks_mappers() {
+	if [ -e "/dev/mapper/rootfs" ]; then
+		log_warn "Closing stale LUKS mapper /dev/mapper/rootfs"
+		safe_exec sudo cryptsetup close rootfs 2>/dev/null || true
+	fi
+	if [ -e "/dev/mapper/rootfs_inspect" ]; then
+		log_warn "Closing stale LUKS mapper /dev/mapper/rootfs_inspect"
+		safe_exec sudo cryptsetup close rootfs_inspect 2>/dev/null || true
+	fi
+}
+
 # Update main cleanup function
 cleanup() {
 	log_info "Cleanup: unmounting and detaching loop devices..."
+	cleanup_luks_mappers
 	set +e
 
 	# Unmount with retries
