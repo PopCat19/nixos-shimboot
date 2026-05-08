@@ -455,14 +455,16 @@ def luks_mounted(
     existing = find_existing_mapper(partition)
     if existing:
         log_info(f"LUKS: reusing existing mapper {existing}")
-        with mounted(existing, mountpoint, mode) as mp:
+        # Reuse existing mapper — mount rw since the running system already has it rw
+        with mounted(existing, mountpoint, "rw") as mp:
             yield mp
         return
     
     mapper_name = f"rescue-{os.getpid()}"
     mapper = unlock_luks(partition, mapper_name)
     try:
-        with mounted(mapper, mountpoint, mode) as mp:
+        # Mount rw: a dirty ext4 journal from a previous boot will fail on ro mount with EIO
+        with mounted(mapper, mountpoint, "rw") as mp:
             yield mp
     finally:
         close_luks(mapper_name)
