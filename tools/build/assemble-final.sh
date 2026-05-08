@@ -1352,7 +1352,12 @@ if [ "$INSPECT_AFTER" = "--inspect" ]; then
 	safe_exec sudo partx -o NR,START,END,SIZE,TYPE,NAME,UUID -g --show "$IMAGE"
 	LOOPDEV=$(sudo losetup --show -fP "$IMAGE")
 	mkdir -p "$WORKDIR/inspect_rootfs"
-	safe_exec sudo mount "${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "$WORKDIR/inspect_rootfs"
+	if [ "$LUKS_ENABLED" -eq 1 ]; then
+		echo "$LUKS_PASSWORD" | safe_exec sudo cryptsetup open --key-file - "${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" rootfs_inspect
+		safe_exec sudo mount /dev/mapper/rootfs_inspect "$WORKDIR/inspect_rootfs"
+	else
+		safe_exec sudo mount "${LOOPDEV}p${ROOTFS_PARTITION_INDEX}" "$WORKDIR/inspect_rootfs"
+	fi
 	sudo ls -l "$WORKDIR/inspect_rootfs"
 	if [ -f "$WORKDIR/inspect_rootfs/sbin/init" ]; then
 		log_info "Init found at /sbin/init: $(file -b "$WORKDIR/inspect_rootfs/sbin/init")"
@@ -1362,5 +1367,8 @@ if [ "$INSPECT_AFTER" = "--inspect" ]; then
 		log_error "Init missing"
 	fi
 	safe_exec sudo umount "$WORKDIR/inspect_rootfs"
+	if [ "$LUKS_ENABLED" -eq 1 ]; then
+		 safe_exec sudo cryptsetup close rootfs_inspect || true
+	fi
 	safe_exec sudo losetup -d "$LOOPDEV"
 fi
