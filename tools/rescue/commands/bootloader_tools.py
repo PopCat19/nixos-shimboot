@@ -347,6 +347,21 @@ def cmd_sync_repo(partition: Path) -> int:
     log_info(f"Bootloader partition: {bootloader_part}")
     log_info(f"Repo source: {repo_bootloader}")
     
+    # Check for existing mounts on bootloader partition and clear them
+    try:
+        result = subprocess.run(
+            ["lsblk", "-no", "MOUNTPOINT", str(bootloader_part)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        existing_mps = [line.strip() for line in result.stdout.split("\n") if line.strip()]
+        for mp in existing_mps:
+            log_warn(f"Unmounting existing mount: {mp}")
+            subprocess.run(["umount", "-l", mp], check=False, capture_output=True)
+    except Exception:
+        pass
+    
     if not confirm_action("Sync repo bootloader into image"):
         log_info("Sync cancelled")
         return 0
