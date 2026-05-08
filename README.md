@@ -616,7 +616,7 @@ Users unfamiliar with Nix should try it in a VM first ([nixos.org/download](http
 - [x] Export `nixosModules.chromeos` as hardware abstraction layer
 - [x] GitHub CI with caching
 - [x] ZRAM
-- [x] LUKS2 (config present, untested)
+- [x] LUKS2 encryption (passphrase, keyfile, rescue tooling)
 
 ### Pending
 
@@ -631,4 +631,4 @@ Users unfamiliar with Nix should try it in a VM first ([nixos.org/download](http
 </details>
 <!-- END fragment: 13-roadmap.md -->
 
-<!-- generated: 20260504-38288be -->
+<!-- generated: 20260508-f98c89b -->

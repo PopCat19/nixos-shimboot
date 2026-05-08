@@ -15,7 +15,7 @@
 - [x] Export `nixosModules.chromeos` as hardware abstraction layer
 - [x] GitHub CI with caching
 - [x] ZRAM
-- [x] LUKS2 (config present, untested)
+- [x] LUKS2 encryption (passphrase, keyfile, rescue tooling)
 
 ### Pending
 
