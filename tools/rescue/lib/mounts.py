@@ -68,6 +68,27 @@ def find_existing_mounts(partition: Path) -> list[str]:
         return []
 
 
+def find_mountpoints(device: Path) -> list[str]:
+    """Find current mount points for a block device.
+    
+    Args:
+        device: Path to block device (e.g. /dev/mapper/rootfs)
+    
+    Returns:
+        List of mount point paths
+    """
+    try:
+        result = subprocess.run(
+            ["lsblk", "-no", "MOUNTPOINT", str(device)],
+            capture_output=True,
+            text=True,
+        )
+        mounts = [line.strip() for line in result.stdout.split("\n") if line.strip()]
+        return mounts
+    except subprocess.CalledProcessError:
+        return []
+
+
 def unmount_all(partition: Path) -> bool:
     """Unmount all mount points for a partition.
     
@@ -455,7 +476,23 @@ def luks_mounted(
     existing = find_existing_mapper(partition)
     if existing:
         log_info(f"LUKS: reusing existing mapper {existing}")
-        # Reuse existing mapper — mount rw since the running system already has it rw
+        # Check if already mounted — if so, bind-mount to avoid double mount EIO
+        existing_mps = find_mountpoints(existing)
+        if existing_mps:
+            bind_src = existing_mps[0]
+            log_info(f"LUKS: bind-mounting {bind_src} → {mountpoint}")
+            mountpoint.mkdir(parents=True, exist_ok=True)
+            subprocess.run(
+                ["mount", "--bind", bind_src, str(mountpoint)],
+                check=True,
+            )
+            try:
+                yield mountpoint
+            finally:
+                log_info(f"Unmounting bind mount {mountpoint}")
+                subprocess.run(["umount", "-l", str(mountpoint)], check=False)
+            return
+        # Not mounted yet — mount normally (rw to avoid dirty journal EIO)
         with mounted(existing, mountpoint, "rw") as mp:
             yield mp
         return
