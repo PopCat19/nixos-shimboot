@@ -57,10 +57,7 @@ let
 
         mkdir -p work
         echo "Unpacking initramfs.tar from extracted initramfs into work/ ..."
-        tar -xf "$src/initramfs.tar" -C work
-
-        echo "Fixing permissions for Nix builder ..."
-        chmod -R u+w work/
+        tar --no-same-owner -xf "$src/initramfs.tar" -C work
 
         echo "Removing original init from initramfs ..."
         rm -f work/init
