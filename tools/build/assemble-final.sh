@@ -1072,10 +1072,13 @@ safe_exec sudo mount "${LOOPDEV}p3" "$WORKDIR/mnt_bootloader" || {
 	handle_error "$CURRENT_STEP"
 }
 total_bytes=$(sudo du -sb "$PATCHED_INITRAMFS" | cut -f1)
-(cd "$PATCHED_INITRAMFS" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_bootloader" && sudo tar xf -) || {
+(cd "$PATCHED_INITRAMFS" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_bootloader" && sudo tar xf - && cd /) || {
 	log_error "Failed to populate bootloader partition"
 	handle_error "$CURRENT_STEP"
 }
+# Allow kernel to release mountpoint before umount
+sync
+sleep 1
 safe_exec sudo umount "$WORKDIR/mnt_bootloader"
 
 # === Step 14: Populate rootfs partition ===
@@ -1092,7 +1095,9 @@ else
 fi
 # Use partition block size for accurate pv progress (avoids >100% due to fs metadata)
 total_bytes=$(blockdev --getsize64 "${LOOPROOT}p${RAW_ROOTFS_PART}")
-(cd "$WORKDIR/mnt_src_rootfs" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_rootfs" && sudo tar xf -)
+(cd "$WORKDIR/mnt_src_rootfs" && sudo tar cf - .) | pv -s "$total_bytes" | (cd "$WORKDIR/mnt_rootfs" && sudo tar xf - && cd /)
+sync
+sleep 1
 
 # Get username from userConfig
 USERNAME="$(nix eval --impure --accept-flake-config --expr "(import ./shimboot_config/user-config.nix {}).user.username" --json | jq -r .)"
