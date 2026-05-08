@@ -15,7 +15,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Generator, Optional
 
-from lib.console import console, log_info, log_warn, log_success, log_error
+from lib.console import console, HAS_RICH, log_info, log_warn, log_success, log_error
 
 # Find cryptsetup binary (available in nix develop, but may be missing outside)
 _CRYPTSETUP_PATH: str | None = None
@@ -341,10 +341,16 @@ def unlock_luks(partition: Path, mapper_name: str = "rescue-rootfs") -> Path:
     # Interactive passphrase
     for attempt in range(1, 4):
         console.print()
-        passphrase = console.input(
-            f"Enter LUKS passphrase ({attempt}/3): ",
-            password=True,
-        )
+        if HAS_RICH:
+            passphrase = console.input(
+                f"Enter LUKS passphrase ({attempt}/3): ",
+                password=True,
+            )
+        else:
+            import getpass
+            passphrase = getpass.getpass(
+                f"Enter LUKS passphrase ({attempt}/3): "
+            )
         try:
             proc = subprocess.Popen(
                 [
