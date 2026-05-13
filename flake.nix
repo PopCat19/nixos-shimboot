@@ -255,8 +255,12 @@
           };
           # Apply overlay to replace systemdMinimal with 257.9 variant
           # This ensures udevadm verify uses the correct systemd version
+          # Also skip nix functional tests (fail on low-resource ChromeOS devices)
           nixpkgs.overlays = [
             (_final: _prev: { systemdMinimal = systemdMinimal257; })
+            (_final: _prev: {
+              nix = _prev.nix.overrideAttrs (_: { doCheck = false; });
+            })
           ];
         };
 
