@@ -5,7 +5,8 @@
 # This module:
 # - Defines Nix experimental features
 # - Configures binary caches and trusted keys
-# - Sets up garbage collection
+# - Disables sandbox (ChromeOS kernel limitation)
+# - Disables nix.gc (delegated to programs.nh.clean)
 { lib, userConfig, ... }:
 let
   userData = userConfig.user or userConfig;
@@ -15,6 +16,7 @@ in
   nix.settings = {
     max-jobs = 1;
     cores = 0;
+    sandbox = false;
     experimental-features = [
       "nix-command"
       "flakes"
@@ -44,11 +46,9 @@ in
     ];
   };
 
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 30d";
-  };
+  # GC delegated to programs.nh.clean (see system/nh.nix).
+  # nix.gc and programs.nh.clean must not both be enabled.
+  nix.gc.automatic = false;
 
   nixpkgs.config.allowUnfree = true;
 }

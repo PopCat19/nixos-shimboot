@@ -40,6 +40,7 @@ let
     ./system/services.nix
     ./system/sshd.nix
     ./system/zram.nix
+    ./system/nh.nix
   ];
 
   # Desktop modules - gated by shimboot.headless in each module
@@ -72,8 +73,8 @@ in
   # Keep only 10 system generations before garbage collection runs
   systemd.services.nix-limit-generations = {
     description = "Limit NixOS system generations to 10";
-    before = [ "nix-gc.service" ];
-    wantedBy = [ "nix-gc.service" ];
+    before = [ "nh-clean.service" ];
+    wantedBy = [ "nh-clean.service" ];
     serviceConfig = {
       Type = "oneshot";
       ExecStart = "${lib.getBin pkgs.nix}/bin/nix-env --delete-generations +10 -p /nix/var/nix/profiles/system";

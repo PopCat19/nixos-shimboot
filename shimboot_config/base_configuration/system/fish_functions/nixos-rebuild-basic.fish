@@ -112,8 +112,8 @@ function nixos-rebuild-basic
         end
     end
 
-    # Build nixos-rebuild arguments
-    set -l rebuild_args $action --flake .
+    # Build nh os arguments
+    set -l rebuild_args $action .
 
     # Kernel < 5.6 lacks sandbox support (ChromeOS shim kernels)
     set -l kver (uname -r)
@@ -123,19 +123,16 @@ function nixos-rebuild-basic
         else
             set_color yellow; echo "[WARN] Kernel $kver (< 5.6) detected. Disabling sandbox."; set_color normal
         end
-        set -a rebuild_args --option sandbox false
+        set -a rebuild_args -- --option sandbox false
     end
 
     # Rebuild phase
-    # Get display name for flake target
-    set -l flake_dir (basename $NIXOS_CONFIG_DIR)
     set -l flake_target (hostname)
-    set -l flake_display "$flake_dir#$flake_target"
 
     if test "$auto_mode" = true
-        echo "[STEP] Running nixos-rebuild $action for $flake_display..."
+        echo "[STEP] Running nh os $action for $flake_target..."
         set -l result
-        if sudo nixos-rebuild $rebuild_args
+        if sudo nh os $rebuild_args --bypass-root-check
             echo "[SUCCESS] Build succeeded"
         else
             echo "[ERROR] Build failed" >&2
@@ -147,10 +144,10 @@ function nixos-rebuild-basic
             return 1
         end
     else
-        set_color blue; echo "[STEP] Running NixOS rebuild..."; set_color normal
-        set_color cyan; echo "Command: sudo nixos-rebuild $action --flake $flake_display"; set_color normal
+        set_color blue; echo "[STEP] Running nh os rebuild..."; set_color normal
+        set_color cyan; echo "Command: sudo nh os $action"; set_color normal
 
-        if not sudo nixos-rebuild $rebuild_args
+        if not sudo nh os $rebuild_args --bypass-root-check
             set_color red; echo "[ERROR] Build failed"; set_color normal
 
             if test "$did_commit" = true; and test "$rollback_on_fail" = true
