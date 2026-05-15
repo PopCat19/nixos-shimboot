@@ -8,6 +8,7 @@
 # - Parses BEGIN/END fragment markers in README.md
 # - Strips generator-added <details> wrappers for wrapped fragments
 # - Writes extracted content to readme_manifest/*.md
+# - Updates checksum cache to prevent redundant re-generation
 
 set -Eeuo pipefail
 

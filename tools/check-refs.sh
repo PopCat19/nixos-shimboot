@@ -2,13 +2,13 @@
 
 # check-refs.sh
 #
-# Purpose: Validate all file references in markdown docs point to existing files
+# Purpose: Validate file references and line-number citations in markdown documentation
 #
 # This module:
-# - Scans all .md files for local file path references
-# - Verifies each referenced file exists in the repo
-# - Validates line-number citations (#L20, #L60-L61) against actual file length
-# - Reports errors with file:line context like Rust compiler diagnostics
+# - Scans all markdown files for local file paths and links
+# - Verifies referenced files exist in the repository
+# - Validates line-number anchors (#L...) against actual file length
+# - Reports errors with file:line context for easier debugging
 
 set -Eeuo pipefail
 

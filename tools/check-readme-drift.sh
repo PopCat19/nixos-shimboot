@@ -8,7 +8,7 @@
 # - Extracts all commit hashes referenced in README permalinks
 # - Compares each cited commit to current HEAD
 # - Reports how many commits behind each citation has drifted
-# - Flags citations from commits no longer in history (rebased/force-pushed away)
+# - Flags citations from commits no longer in history
 # - Suggests which fragments need updating
 
 set -Eeuo pipefail

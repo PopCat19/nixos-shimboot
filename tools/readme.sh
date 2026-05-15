@@ -2,13 +2,12 @@
 
 # readme.sh
 #
-# Purpose: Unified entry point for readme workflow (generate, validate, drift check)
+# Purpose: Unified entry point for README workflow (generate, validate, drift check)
 #
-# Usage:
-#   tools/readme.sh sync      - regenerate README from fragments, validate refs
-#   tools/readme.sh extract   - reverse: README.md → fragments
-#   tools/readme.sh check     - validate refs + drift (read-only, no writes)
-#   tools/readme.sh all       - sync + check (full pre-commit)
+# This module:
+# - Coordinates README generation from fragments
+# - Executes reference validation and commit citation drift checks
+# - Provides subcommands for synchronization, extraction, and validation
 
 set -Eeuo pipefail
 
