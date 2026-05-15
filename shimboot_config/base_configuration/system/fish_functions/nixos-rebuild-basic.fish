@@ -28,6 +28,7 @@ function nixos-rebuild-basic
     set -l do_system_rollback false
     set -l force_no_sandbox false
     set -l did_commit false
+    set -l extra_args
 
     set -l i 1
     while test $i -le (count $argv)
@@ -49,6 +50,9 @@ function nixos-rebuild-basic
                 set rollback_on_fail false
             case "--no-sandbox" "no-sandbox"
                 set force_no_sandbox true
+            case "--*"
+                # Capture all other double-dash flags (like --offline)
+                set -a extra_args $argv[$i]
             case "*"
                 if test -z "$commit_message"
                     set commit_message $argv[$i]
@@ -150,9 +154,18 @@ function nixos-rebuild-basic
     if test "$use_nh" = true
         set rebuild_cmd sudo nh os
         set -a rebuild_args $NIXOS_CONFIG_DIR --hostname $flake_target --bypass-root-check
+
+        # Pass extra flags (like --offline) to nix via --
+        if test -n "$extra_args"
+            set -a rebuild_args -- $extra_args
+        end
     else
         set rebuild_cmd sudo nixos-rebuild
         set -a rebuild_args --flake $NIXOS_CONFIG_DIR#$flake_target
+
+        if test -n "$extra_args"
+            set -a rebuild_args $extra_args
+        end
     end
 
     # Sandbox is always disabled for shimboot to support old kernels in fleet
