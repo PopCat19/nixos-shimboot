@@ -15,6 +15,7 @@ in
   devShells.${system}.default = pkgs.mkShell {
     buildInputs = with pkgs; [
       # Nix tooling
+      nh
       nixpkgs-fmt
       alejandra # Better formatter
 
@@ -50,10 +51,14 @@ in
       echo "  - pv, zstd            - Progress & compression"
       echo ""
       echo "Common commands:"
-      echo "  nix build .#raw-rootfs-base            # Build base rootfs"
-      echo "  nix build .#raw-rootfs-headless        # Build headless rootfs (SSH-only)"
+      echo "  nix build .#raw-rootfs-base            # Build base rootfs image"
+      echo "  nix build .#raw-rootfs-headless        # Build headless rootfs image"
       echo "  nix build \"path:$PWD#raw-rootfs-headless\"  # Headless with WiFi (includes secrets.nix)"
       echo "  nix build .#chromeos-shim-dedede        # Build shim"
+      echo ""
+      echo "  nh os build .#nixos-shimboot            # Build system closure (desktop)"
+      echo "  nh os build .#nixos-shimboot-headless   # Build system closure (headless)"
+      echo "  nh clean all --keep-since 30d           # GC system + user closures"
       echo "  sudo ./tools/build/assemble-final.sh --board dedede --rootfs base"
       echo "  sudo ./tools/build/assemble-final.sh --board dedede --rootfs base --luks"
       echo ""
