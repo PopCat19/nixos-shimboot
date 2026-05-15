@@ -32,22 +32,22 @@ function nixos-rebuild-basic
     set -l i 1
     while test $i -le (count $argv)
         switch $argv[$i]
-            case "--dry-run"
+            case "--dry-run" "dry-run"
                 set action "build"
-            case "--test"
+            case "--test" "test"
                 set action "test"
-            case "--auto"
+            case "--auto" "auto"
                 set auto_mode true
                 set rollback_on_fail true  # Default rollback in auto mode
-            case "--push"
+            case "--push" "push"
                 set push_on_success true
-            case "--no-push"
+            case "--no-push" "no-push"
                 set no_push true
-            case "--rollback"
+            case "--rollback" "rollback"
                 set do_system_rollback true
-            case "--no-rollback"
+            case "--no-rollback" "no-rollback"
                 set rollback_on_fail false
-            case "--no-sandbox"
+            case "--no-sandbox" "no-sandbox"
                 set force_no_sandbox true
             case "*"
                 if test -z "$commit_message"
@@ -164,8 +164,7 @@ function nixos-rebuild-basic
     set -a rebuild_args -- --option sandbox false
 
     if test "$auto_mode" = true
-        echo "[STEP] Running $rebuild_cmd $action for $flake_target..."
-        set -l result
+        echo "[STEP] Running $rebuild_cmd $rebuild_args..."
         if $rebuild_cmd $rebuild_args
             echo "[SUCCESS] Build succeeded"
         else
@@ -178,8 +177,8 @@ function nixos-rebuild-basic
             return 1
         end
     else
-        set_color blue; echo "[STEP] Running $rebuild_cmd..."; set_color normal
-        set_color cyan; echo "Command: $rebuild_cmd $action"; set_color normal
+        set_color blue; echo "[STEP] Running rebuild..."; set_color normal
+        set_color cyan; echo "Command: $rebuild_cmd $rebuild_args"; set_color normal
 
         if not $rebuild_cmd $rebuild_args
             set_color red; echo "[ERROR] Build failed"; set_color normal
