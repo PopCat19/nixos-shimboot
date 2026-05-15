@@ -36,6 +36,7 @@ let
     ./system/power-management.nix
     ./system/users.nix
     ./system/fish.nix
+    ./system/modules/proxy.nix
     ./system/luks2.nix
     ./system/services.nix
     ./system/sshd.nix

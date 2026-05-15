@@ -221,12 +221,6 @@ in
       "fish/functions/nix-shell-unfree.fish".text =
         builtins.readFile ./fish_functions/nix-shell-unfree.fish;
 
-      "fish/functions/proxify.fish".text = builtins.readFile ./fish_functions/proxify.fish;
-
-      "fish/functions/proxy-off.fish".text = builtins.readFile ./fish_functions/proxy-off.fish;
-
-      "fish/functions/proxy-on.fish".text = builtins.readFile ./fish_functions/proxy-on.fish;
-
       "fish/functions/show-shortcuts.fish".text = builtins.readFile ./fish_functions/show-shortcuts.fish;
 
       "fish/functions/fix-fish-history.fish".text =
