@@ -1,19 +1,16 @@
 # nix-flake-update.fish
 #
-# Purpose: Update NixOS flake inputs with compatibility checks
+# Purpose: Update Nix flake inputs with compatibility checks
 #
 # This function:
 # - Checks kernel version for sandbox compatibility
 # - Creates backup of flake.lock before updating
 # - Updates flake inputs and shows changes
-# - Auto-commits changes to git
+# - Auto-commits changes to git (if in git repo)
 # - Restores backup on failure
 
-function nixos-flake-update
-    set -l original_dir (pwd)
-    cd "$NIXOS_CONFIG_DIR"
-
-    set_color blue; echo "[STEP] Updating NixOS flake inputs..."; set_color normal
+function nix-flake-update
+    set_color blue; echo "[STEP] Updating Nix flake inputs..."; set_color normal
 
     set -l update_args
     if shimboot-kernel-needs-sandbox
@@ -73,9 +70,8 @@ function nixos-flake-update
     else
         set_color red; echo "[ERROR] Update failed. Restoring backup..."; set_color normal
         test -f flake.lock.bak; and mv flake.lock.bak flake.lock
-        cd "$original_dir"
         return 1
     end
 
-    cd "$original_dir"
+    return 0
 end

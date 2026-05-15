@@ -160,18 +160,21 @@ function nixos-rebuild-basic
         end
     end
 
+    # Rebuild phase
+    set -l flake_target (hostname)
+
     # Build arguments
     set -l rebuild_cmd
     set -l rebuild_args $action
     if test "$use_nh" = true
         set rebuild_cmd sudo nh os
-        set -a rebuild_args . --bypass-root-check
+        set -a rebuild_args $NIXOS_CONFIG_DIR --hostname $flake_target --bypass-root-check
     else
         set rebuild_cmd sudo nixos-rebuild
-        set -a rebuild_args --flake .
+        set -a rebuild_args --flake $NIXOS_CONFIG_DIR#$flake_target
     end
 
-    # Kernel < 5.6 lacks sandbox support; --no-sandbox forces it unconditionally
+    # Kernel < 5.6 lacks sandbox support
     set -l kver (uname -r)
     if test "$force_no_sandbox" = true
         if test "$auto_mode" = true
@@ -188,9 +191,6 @@ function nixos-rebuild-basic
         end
         set -a rebuild_args -- --option sandbox false
     end
-
-    # Rebuild phase
-    set -l flake_target (hostname)
 
     if test "$auto_mode" = true
         echo "[STEP] Running $rebuild_cmd $action for $flake_target..."

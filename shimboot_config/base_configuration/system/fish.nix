@@ -28,6 +28,8 @@ let
   # Users can remap these via their own fish config
   coreAbbrs = ''
     abbr -a nrb nixos-rebuild-basic
+    abbr -a nrs nixos-status
+    abbr -a flup nix-flake-update
     abbr -a cdn 'cd $NIXOS_CONFIG_DIR'
     abbr -a lfh list-fish-helpers
   '';
@@ -205,12 +207,21 @@ in
       "fish/functions/nixos-rebuild-auto.fish".text =
         builtins.readFile ./fish_functions/nixos-rebuild-auto.fish;
 
+      "fish/functions/nix-flake-update.fish".text = builtins.readFile ./fish_functions/nix-flake-update.fish;
+
+      "fish/functions/nixos-status.fish".text = builtins.readFile ./fish_functions/nixos-status.fish;
+
+      "fish/functions/cnup.fish".text = builtins.readFile ./fish_functions/cnup.fish;
+
+      "fish/functions/lsa.fish".text = builtins.readFile ./fish_functions/lsa.fish;
+
+      "fish/functions/fix-fish-history.fish".text = builtins.readFile ./fish_functions/fix-fish-history.fish;
+
       "fish/functions/shimboot-kernel-needs-sandbox.fish".text =
         builtins.readFile ./fish_functions/shimboot-kernel-needs-sandbox.fish;
 
       "fish/functions/list-fish-helpers.fish".text =
         builtins.readFile ./fish_functions/list-fish-helpers.fish;
-
     };
 
     # You can still provide helpful CLI wrappers as actual binaries if needed

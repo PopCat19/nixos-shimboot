@@ -159,8 +159,10 @@ function nixos-status
     end
 
     # Quick commands reminder
+    set -l flake_path $NIXOS_CONFIG_DIR
+    set -l flake_target (hostname)
     set_color yellow; echo "💡 Quick Commands:"; set_color normal
-    set_color white; echo "   nh os switch           # Rebuild system"; set_color normal
-    set_color white; echo "   nh clean all           # Clean old generations"; set_color normal
-    set_color white; echo "   nh os list-generations # Full generation list"; set_color normal
+    set_color white; echo "   nh os switch $flake_path --hostname $flake_target  # Rebuild system"; set_color normal
+    set_color white; echo "   nh clean all                                          # Clean old generations"; set_color normal
+    set_color white; echo "   nh os list-generations                                # Full generation list"; set_color normal
 end
