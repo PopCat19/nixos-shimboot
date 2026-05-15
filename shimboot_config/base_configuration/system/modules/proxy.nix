@@ -90,7 +90,7 @@ function proxify
     end
 
     if set -q all_proxy
-        set -l proxy_addr (string replace -r '^[^:]+://' '' "$all_proxy")
+        set -l proxy_addr (string replace -r '^[^:]+://' \"\" \"$all_proxy\")
         set_color cyan; echo "[RUN] $cmd_args[1] -> $proxy_addr"; set_color normal
 
         set -l cmd_name (basename "$cmd_args[1]")
