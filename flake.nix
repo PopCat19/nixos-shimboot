@@ -12,6 +12,17 @@
 #
 # Note: This is the base branch. For full desktop config, use --config-branch default
 {
+  nixConfig = {
+    extra-substituters = [
+      "https://shimboot-systemd-nixos.cachix.org"
+      "https://numtide.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "shimboot-systemd-nixos.cachix.org-1:vCWmEtJq7hA2UOLN0s3njnGs9/EuX06kD7qOJMo2kAA="
+      "numtide.cachix.org-1:2ps1kLBUWnLAnBIRTV6l6hEQuv59S++4Nux7496Z6tw="
+    ];
+  };
+
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -240,9 +251,6 @@
       nixosConfigurations = systemConfigurationOutputs.nixosConfigurations or { };
     in
     {
-      # Cachix configuration for binary cache
-      inherit ((import ./flake_modules/cachix-config.nix { })) nixConfig;
-
       nixosModules = {
         # Full ChromeOS base configuration (boot, fs, hw, users, nix settings)
         # Wraps configuration.nix to inject systemd257 and systemdMinimal257 overlay
@@ -259,7 +267,9 @@
           nixpkgs.overlays = [
             (_final: _prev: { systemdMinimal = systemdMinimal257; })
             (_final: _prev: {
-              nix = _prev.nix.overrideAttrs (_: { doCheck = false; });
+              nix = _prev.nix.overrideAttrs (_: {
+                doCheck = false;
+              });
             })
           ];
         };
