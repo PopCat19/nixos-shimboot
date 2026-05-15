@@ -26,20 +26,12 @@ function cnup
             end
         end
 
-        set -l sandbox_args
-        set -l nixshell_sandbox_args
-        set -l kver (uname -r)
-        if shimboot-kernel-needs-sandbox
-            set_color yellow
-            echo "[WARN] Kernel $kver (< 5.6) detected. Disabling sandbox."
-            set_color normal
-            set sandbox_args --option sandbox false
-            set nixshell_sandbox_args --no-sandbox
-        else
-            set_color green
-            echo "[INFO] Kernel $kver detected. Using default sandbox."
-            set_color normal
-        end
+        # Sandbox is always disabled for shimboot to support old kernels in fleet
+        set_color yellow
+        echo "[INFO] Sandbox disabled (shimboot policy)"
+        set_color normal
+        set -l sandbox_args --option sandbox false
+        set -l nixshell_sandbox_args --no-sandbox
 
         set -l check_cmd ''
         if not set -q _flag_no_flake; and not set -q _flag_no_check

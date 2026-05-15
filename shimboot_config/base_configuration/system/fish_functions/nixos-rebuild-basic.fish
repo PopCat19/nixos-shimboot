@@ -174,23 +174,13 @@ function nixos-rebuild-basic
         set -a rebuild_args --flake $NIXOS_CONFIG_DIR#$flake_target
     end
 
-    # Kernel < 5.6 lacks sandbox support
-    set -l kver (uname -r)
-    if test "$force_no_sandbox" = true
-        if test "$auto_mode" = true
-            echo "[WARN] Sandbox disabled (--no-sandbox)"
-        else
-            set_color yellow; echo "[WARN] Sandbox disabled (--no-sandbox)"; set_color normal
-        end
-        set -a rebuild_args -- --option sandbox false
-    else if shimboot-kernel-needs-sandbox
-        if test "$auto_mode" = true
-            echo "[WARN] Kernel $kver (< 5.6) detected. Disabling sandbox."
-        else
-            set_color yellow; echo "[WARN] Kernel $kver (< 5.6) detected. Disabling sandbox."; set_color normal
-        end
-        set -a rebuild_args -- --option sandbox false
+    # Sandbox is always disabled for shimboot to support old kernels in fleet
+    if test "$auto_mode" = true
+        echo "[INFO] Sandbox disabled (shimboot policy)"
+    else
+        set_color yellow; echo "[INFO] Sandbox disabled (shimboot policy)"; set_color normal
     end
+    set -a rebuild_args -- --option sandbox false
 
     if test "$auto_mode" = true
         echo "[STEP] Running $rebuild_cmd $action for $flake_target..."

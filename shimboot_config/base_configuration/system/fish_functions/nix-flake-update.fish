@@ -12,11 +12,9 @@
 function nix-flake-update
     set_color blue; echo "[STEP] Updating Nix flake inputs..."; set_color normal
 
-    set -l update_args
-    if shimboot-kernel-needs-sandbox
-        set_color yellow; echo "[WARN] Legacy kernel detected. Disabling sandbox."; set_color normal
-        set update_args --option sandbox false
-    end
+    # Sandbox is always disabled for shimboot to support old kernels in fleet
+    set_color yellow; echo "[INFO] Sandbox disabled (shimboot policy)"; set_color normal
+    set -l update_args --option sandbox false
 
     test -f flake.lock; and cp flake.lock flake.lock.bak
     set -l old_hash (test -f flake.lock; and sha256sum flake.lock | cut -d' ' -f1)
