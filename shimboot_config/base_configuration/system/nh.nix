@@ -15,12 +15,12 @@ let
 in
 {
   programs.nh = {
-    enable = true;
-    flake = userConfig.env.NIXOS_CONFIG_DIR;
+    enable = lib.mkDefault true;
+    flake = lib.mkDefault userConfig.env.NIXOS_CONFIG_DIR;
 
     clean = {
-      enable = true;
-      extraArgs = "--keep-since 30d --keep 5";
+      enable = lib.mkDefault true;
+      extraArgs = lib.mkDefault "--keep-since 30d --keep 5";
     };
   };
 
