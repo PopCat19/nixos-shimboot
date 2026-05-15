@@ -2,8 +2,8 @@
 #
 # Purpose: Update Nix flake inputs with compatibility checks
 #
-# This function:
-# - Checks kernel version for sandbox compatibility
+# This module:
+# - Always disables sandbox for shimboot compatibility
 # - Creates backup of flake.lock before updating
 # - Updates flake inputs and shows changes
 # - Auto-commits changes to git (if in git repo)

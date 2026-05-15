@@ -2,18 +2,12 @@
 #
 # Purpose: Display NixOS system status and health information
 #
-# Usage:
-#   nixos-status          # Show full system status
-#   nixos-status --gen    # Show generation history only
-#   nixos-status --store  # Show nix store statistics only
-#   nixos-status --clean  # Clean old generations and optimize store
-#
-# Shows:
-#   - Current system version and generation
-#   - Kernel version and boot entries
-#   - Available generations with dates
-#   - Nix store size and optimization status
-#   - Home Manager generations (if available)
+# This module:
+# - Shows current system version and generation built time
+# - Lists recent generations using nh os
+# - Displays Nix store statistics and reclaimable space
+# - Provides Home Manager status and quick command hints
+# - Implements clean mode for store optimization via nh clean
 
 function nixos-status
     set -l show_generations true

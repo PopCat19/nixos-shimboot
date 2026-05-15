@@ -2,30 +2,11 @@
 #
 # Purpose: Unified NixOS rebuild with commit/push support
 #
-# Usage:
-#   nrb                           # Just rebuild
-#   nrb "commit message"          # Commit + rebuild + push
-#   nrb --dry-run                 # Build without switching
-#   nrb --dry-run "msg"           # Commit + dry-run
-#   nrb --auto "msg"              # Non-interactive (LLM mode)
-#   nrb --auto --push "msg"       # Non-interactive with push
-#   nrb --test "msg"              # Test build (no switch)
-#
-# Options:
-#   --dry-run       Build without switching
-#   --test          Test configuration without switching
-#   --auto          Non-interactive mode (no prompts, clear exit codes)
-#   --push          Push after success (implies commit message required)
-#   --no-push       Skip push even with commit message
-#   --rollback      Rollback to previous NixOS generation (skips rebuild)
-#   --no-rollback   Keep changes on failure
-#   --no-sandbox    Force-disable Nix sandbox (for shimboot, old kernels, etc.)
-#
-# Exit codes (auto mode):
-#   0 - Success
-#   1 - Build failed
-#   2 - Commit failed
-#   3 - Push failed
+# This module:
+# - Detects nh availability and falls back to nixos-rebuild
+# - Performs git commit/push workflow around rebuild
+# - Supports system generation rollback and dry-run builds
+# - Always disables sandbox for shimboot compatibility
 
 function nixos-rebuild-basic
     # Validate NIXOS_CONFIG_DIR

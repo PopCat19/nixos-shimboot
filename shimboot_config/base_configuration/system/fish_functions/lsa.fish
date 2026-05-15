@@ -1,13 +1,12 @@
-#!/usr/bin/env fish
-
-# LSA Function
+# lsa.fish
 #
 # Purpose: Display git-tracked files as a tree structure
-# Dependencies: git, tree
-# Related: list-fish-helpers.fish, fish.nix
 #
-# This function:
+# This module:
 # - Checks if current directory is a git repository or subdirectory
+# - Lists all git-tracked files using git ls-files
+# - Pipes output to tree command for visual representation
+# - Provides helpful error messages if tools are missing
 # - Lists all git-tracked files using git ls-files
 # - Pipes output to tree command for visual representation
 # - Provides helpful error messages if tools are missing

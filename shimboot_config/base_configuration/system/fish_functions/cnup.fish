@@ -1,16 +1,14 @@
-#!/usr/bin/env fish
-
-# Cnup Function
+# cnup.fish
 #
 # Purpose: Comprehensive NixOS configuration linting and formatting
 #
-# This function:
+# This module:
 # - Runs statix to fix security issues and bad practices
 # - Removes dead nix code with deadnix
 # - Formats code with treefmt (RFC-style, from nixfmt-tree package)
 # - Validates flake configuration (unless --no-flake or --no-check)
 # - Automatically uses nix-shell if tools are not available
-# - Detects kernel version and disables sandbox for older kernels
+# - Always disables sandbox for shimboot compatibility
 
 function cnup
     argparse no-flake no-check -- $argv

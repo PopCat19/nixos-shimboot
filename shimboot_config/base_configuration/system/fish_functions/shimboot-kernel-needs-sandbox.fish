@@ -1,5 +1,3 @@
-#!/usr/bin/env fish
-
 # shimboot-kernel-needs-sandbox.fish
 #
 # Purpose: Detect whether the running kernel requires Nix sandbox disabled

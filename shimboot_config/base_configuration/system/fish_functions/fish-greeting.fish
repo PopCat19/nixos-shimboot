@@ -1,13 +1,13 @@
-#!/usr/bin/env fish
-
-# Fish Greeting Function
+# fish-greeting.fish
 #
-# Purpose: Display customized shell greeting with system information.
+# Purpose: Display customized shell greeting with system information
 #
-# This function:
+# This module:
 # - Shows user@hostname with colors
 # - Displays fastfetch system info with caching
 # - Shows system uptime
+# - Displays configuration directory and git status
+# - Lists available helper functions
 # - Displays NixOS config directory and git status
 # - Lists available helper functions
 

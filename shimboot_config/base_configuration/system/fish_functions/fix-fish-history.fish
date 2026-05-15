@@ -1,13 +1,12 @@
-#!/usr/bin/env fish
-
-# Fix Fish History Function
+# fix-fish-history.fish
 #
-# Purpose: Repair corrupted Fish shell history file.
-# Dependencies: fish, history command, tail, cp
-# Related: fish.nix, list-fish-helpers.fish
+# Purpose: Repair corrupted Fish shell history file
 #
-# This function:
+# This module:
 # - Creates backup of history file
+# - Attempts repair via history merge
+# - Falls back to truncation if merge fails
+# - Preserves recent history entries
 # - Attempts repair via history merge
 # - Falls back to truncation if merge fails
 # - Preserves recent history entries

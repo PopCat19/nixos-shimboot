@@ -1,13 +1,12 @@
-#!/usr/bin/env fish
-
-# List Fish Helpers Function
+# list-fish-helpers.fish
 #
-# Purpose: Display all available Fish functions and abbreviations.
-# Dependencies: fish, functions, abbr, awk, grep
-# Related: fish.nix, fish-greeting.fish
+# Purpose: Display all available Fish functions and abbreviations
 #
-# This function:
+# This module:
 # - Lists all custom Fish functions
+# - Shows all Fish abbreviations
+# - Provides usage tips for discovery
+# - Formats output for readability
 # - Shows all Fish abbreviations
 # - Provides usage tips for discovery
 # - Formats output for readability
