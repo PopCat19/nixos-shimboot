@@ -4,11 +4,12 @@
 #
 # This module:
 # - Installs nh package and sets NH_FLAKE env var
-# - Replaces nix.gc with nh clean systemd timer
+# - Runs nh clean all timer for system + user profile closures
 # - Grants passwordless sudo for nh os subcommands
-# - Enables build-tree visualization and change diffs
+# - Supports both flat ({username}) and nested ({user.username}) userConfig shapes
 { lib, userConfig, ... }:
 let
+  # Support both flat and nested userConfig layouts
   userData = userConfig.user or userConfig;
   username = userData.username or userConfig.username;
 in
@@ -29,6 +30,10 @@ in
       commands = [
         {
           command = "/run/current-system/sw/bin/nh";
+          options = [ "SETENV" "NOPASSWD" ];
+        }
+        {
+          command = "${userConfig.env.NIXOS_CONFIG_DIR}/result/sw/bin/nh";
           options = [ "SETENV" "NOPASSWD" ];
         }
       ];
