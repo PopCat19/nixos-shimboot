@@ -27,17 +27,11 @@ function proxify
     end
 
     if not set -q all_proxy
-        set_color yellow; echo -n "[WARN] No proxy env. Enable? [Y/n] "; set_color normal
-        read -l confirm
-        switch $confirm
-            case '' Y y Yes yes YES
-                proxy_on
-                if not set -q all_proxy
-                    set_color red; echo "[ERROR] proxy_on failed or proxy is still unset"; set_color normal
-                    return 1
-                end
-            case '*'
-                set_color yellow; echo "[SKIP] Running without proxy"; set_color normal
+        set_color yellow; echo "[INFO] Enabling proxy..."; set_color normal
+        proxy_on
+        if not set -q all_proxy
+            set_color red; echo "[ERROR] proxy_on failed to set all_proxy"; set_color normal
+            return 1
         end
     end
 
@@ -51,13 +45,16 @@ function proxify
         if contains $cmd_name $chromium_apps
             set cmd_args $cmd_args --proxy-server="socks5://$proxy_addr"
         else if command -q proxychains4
-            set -l tmpconf (mktemp)
+            set -l tmpconf (mktemp -t proxychains.XXXXXX.conf)
             printf '%s\n' 'strict_chain' 'proxy_dns' '[ProxyList]' "socks5 $proxy_addr" > $tmpconf
+            
+            # Keep config alive longer to ensure app reads it (especially for slow starters)
+            # We cleanup in background but wait significantly longer
             begin
-                # Wait for proxychains to read config, then clean up
-                sleep 2
+                sleep 60
                 rm -f $tmpconf
             end &
+            
             set cmd_args proxychains4 -q -f $tmpconf $cmd_args
         end
     end
