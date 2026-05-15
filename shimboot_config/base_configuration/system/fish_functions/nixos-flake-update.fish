@@ -1,14 +1,12 @@
-#!/usr/bin/env fish
-
-# NixOS Flake Update Function
+# nix-flake-update.fish
 #
-# Purpose: Update NixOS flake inputs with compatibility checks.
+# Purpose: Update NixOS flake inputs with compatibility checks
 #
 # This function:
 # - Checks kernel version for sandbox compatibility
-# - Creates backup of flake.lock
-# - Updates flake inputs
-# - Shows changes and provides next steps
+# - Creates backup of flake.lock before updating
+# - Updates flake inputs and shows changes
+# - Auto-commits changes to git
 # - Restores backup on failure
 
 function nixos-flake-update
@@ -20,46 +18,63 @@ function nixos-flake-update
     set -l update_args
     if shimboot-kernel-needs-sandbox
         set_color yellow; echo "[WARN] Legacy kernel detected. Disabling sandbox."; set_color normal
-        set update_args "--option" "sandbox" "false"
+        set update_args --option sandbox false
     end
 
     test -f flake.lock; and cp flake.lock flake.lock.bak
     set -l old_hash (test -f flake.lock; and sha256sum flake.lock | cut -d' ' -f1)
 
-    set_color cyan; echo "Command: nix flake update $update_args"; set_color normal
-    
-    if nix flake update $update_args
-    set_color green; echo "[SUCCESS] Update successful."; set_color normal
-    
-    set -l new_hash (sha256sum flake.lock | cut -d' ' -f1)
-    
-    if test "$old_hash" = "$new_hash"
-    set_color green; echo "[INFO] No changes detected in inputs."; set_color normal
-    rm -f flake.lock.bak
+    if set -q update_args[1]
+        set_color cyan; echo "Command: nix flake update $update_args"; set_color normal
+        nix flake update $update_args
     else
-    set_color green; echo "[INFO] Changes detected:"; set_color normal
-    echo "---------------------------------------------------"
-    
-    if command -v diff >/dev/null
-    diff -u3 --color=always flake.lock.bak flake.lock 2>/dev/null; or true
-    end
-    
-    if command -v jq >/dev/null
-    set_color green; echo "[INFO] Updated Inputs:"; set_color normal
-    jq -r '.nodes | to_entries[] | select(.value.locked) | .key' flake.lock | head -n 10 | sed 's/^/   • /'
+        set_color cyan; echo "Command: nix flake update"; set_color normal
+        nix flake update
     end
 
-    echo "---------------------------------------------------"
-    set_color cyan; echo "[INFO] Next steps:"; set_color normal
-    echo "   • Test: nrb dry-run"
-    echo "   • Apply: nrb switch"
-    echo "   • Revert: mv flake.lock.bak flake.lock"
-    end
+    if test $status -eq 0
+        set_color green; echo "[SUCCESS] Update successful."; set_color normal
+
+        set -l new_hash (sha256sum flake.lock | cut -d' ' -f1)
+
+        if test "$old_hash" = "$new_hash"
+            set_color green; echo "[INFO] No changes detected in inputs."; set_color normal
+            rm -f flake.lock.bak
+        else
+            set_color green; echo "[INFO] Changes detected:"; set_color normal
+            echo "---------------------------------------------------"
+
+            if command -v diff >/dev/null
+                diff -u3 --color=always flake.lock.bak flake.lock 2>/dev/null; or true
+            end
+
+            if command -v jq >/dev/null
+                set_color green; echo "[INFO] Updated Inputs:"; set_color normal
+                jq -r '.nodes | to_entries[] | select(.value.locked) | .key' flake.lock | head -n 10 | while read -l input
+                    echo "   • $input"
+                end
+            end
+
+            echo "---------------------------------------------------"
+
+            # Auto-commit changes
+            if test -d .git
+                set -l timestamp (date -u +"%Y-%m-%d")
+                git add flake.lock
+                git commit -m "chore(flake): update inputs $timestamp"
+                set_color green; echo "[INFO] Changes committed to git."; set_color normal
+            end
+
+            rm -f flake.lock.bak
+            set_color cyan; echo "[INFO] Next steps:"; set_color normal
+            echo "   • Test: nrb dry-run"
+            echo "   • Apply: nrb"
+        end
     else
-    set_color red; echo "[ERROR] Update failed. Restoring backup..."; set_color normal
-    test -f flake.lock.bak; and mv flake.lock.bak flake.lock
-    cd "$original_dir"
-    return 1
+        set_color red; echo "[ERROR] Update failed. Restoring backup..."; set_color normal
+        test -f flake.lock.bak; and mv flake.lock.bak flake.lock
+        cd "$original_dir"
+        return 1
     end
 
     cd "$original_dir"

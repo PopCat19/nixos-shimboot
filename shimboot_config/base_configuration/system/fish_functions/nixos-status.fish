@@ -48,17 +48,9 @@ function nixos-status
         set_color blue; echo "╚══════════════════════════════════════════════════════════════╝"; set_color normal
         echo ""
 
-        # Delete old generations
-        set_color cyan; echo "[STEP] Removing old generations..."; set_color normal
-        sudo nix-collect-garbage -d
-
-        # Optimize store
-        set_color cyan; echo "[STEP] Optimizing nix store..."; set_color normal
-        sudo nix-store --optimize
-
-        # Repair references (optional, can fix broken symlinks)
-        set_color cyan; echo "[STEP] Verifying store integrity..."; set_color normal
-        sudo nix-store --verify --check-contents --repair
+        # Delete old generations and clean store
+        set_color cyan; echo "[STEP] Running nh clean..."; set_color normal
+        nh clean all --keep-since 30d --keep 5
 
         set_color green; echo "[SUCCESS] Cleanup complete!"; set_color normal
         return 0
@@ -87,7 +79,7 @@ function nixos-status
         set -l gen_number (basename $current_gen | string replace 'system-' '')
 
         # Get generation creation time
-        set -l gen_info (nixos-rebuild list-generations 2>/dev/null | grep -E "^$gen_number\s")
+        set -l gen_info (nh os list-generations 2>/dev/null | grep -E "^$gen_number\s")
         if test -n "$gen_info"
             set -l gen_time (echo $gen_info | awk '{print $2 " " $3}')
             set_color white; echo "│ Generation: "(set_color cyan)"$gen_number"(set_color normal)" (built $gen_time)"; set_color normal
@@ -106,7 +98,7 @@ function nixos-status
 
         # Generation history
         set_color green; echo "┌── Recent Generations ────────────────────────────────────────"; set_color normal
-        nixos-rebuild list-generations 2>/dev/null | head -10 | while read -l gen_line
+        nh os list-generations 2>/dev/null | head -10 | while read -l gen_line
             set -l parts (string split ' ' $gen_line)
             set -l gen_num $parts[1]
             set -l gen_date $parts[2]
@@ -168,7 +160,7 @@ function nixos-status
 
     # Quick commands reminder
     set_color yellow; echo "💡 Quick Commands:"; set_color normal
-    set_color white; echo "   nixos-rebuild switch --flake .  # Rebuild system"; set_color normal
-    set_color white; echo "   nixos-status --clean            # Clean old generations"; set_color normal
-    set_color white; echo "   nixos-rebuild list-generations  # Full generation list"; set_color normal
+    set_color white; echo "   nh os switch           # Rebuild system"; set_color normal
+    set_color white; echo "   nh clean all           # Clean old generations"; set_color normal
+    set_color white; echo "   nh os list-generations # Full generation list"; set_color normal
 end
