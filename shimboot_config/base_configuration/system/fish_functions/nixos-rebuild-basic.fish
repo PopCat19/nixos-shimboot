@@ -76,14 +76,27 @@ function nixos-rebuild-basic
         set use_nh true
     end
 
+    # Prepare proxy environment variables for sudo
+    set -l proxy_env
+    if set -q all_proxy
+        set -a proxy_env http_proxy=$http_proxy
+        set -a proxy_env https_proxy=$https_proxy
+        set -a proxy_env all_proxy=$all_proxy
+        set -a proxy_env no_proxy=$no_proxy
+        set -a proxy_env HTTP_PROXY=$http_proxy
+        set -a proxy_env HTTPS_PROXY=$https_proxy
+        set -a proxy_env ALL_PROXY=$all_proxy
+        set -a proxy_env NO_PROXY=$no_proxy
+    end
+
     # System rollback: switch to previous generation, skip rebuild
     if test "$do_system_rollback" = true
         if test "$auto_mode" = true
             echo "[STEP] Rolling back to previous NixOS generation..."
             if test "$use_nh" = true
-                sudo nh os rollback --bypass-root-check
+                sudo $proxy_env nh os rollback --bypass-root-check
             else
-                sudo nixos-rebuild switch --rollback
+                sudo $proxy_env nixos-rebuild switch --rollback
             end
             if test $status -eq 0
                 echo "[SUCCESS] Rolled back to previous generation"
@@ -97,9 +110,9 @@ function nixos-rebuild-basic
         else
             set_color blue; echo "[STEP] Rolling back to previous NixOS generation..."; set_color normal
             if test "$use_nh" = true
-                sudo nh os rollback --bypass-root-check
+                sudo $proxy_env nh os rollback --bypass-root-check
             else
-                sudo nixos-rebuild switch --rollback
+                sudo $proxy_env nixos-rebuild switch --rollback
             end
             if test $status -eq 0
                 set_color green; echo "[SUCCESS] Rolled back to previous generation"; set_color normal
@@ -152,7 +165,7 @@ function nixos-rebuild-basic
     set -l rebuild_cmd
     set -l rebuild_args $action
     if test "$use_nh" = true
-        set rebuild_cmd sudo nh os
+        set rebuild_cmd sudo $proxy_env nh os
         set -a rebuild_args $NIXOS_CONFIG_DIR --hostname $flake_target --bypass-root-check
 
         # Pass extra flags (like --offline) to nix via --
@@ -160,7 +173,7 @@ function nixos-rebuild-basic
             set -a rebuild_args -- $extra_args
         end
     else
-        set rebuild_cmd sudo nixos-rebuild
+        set rebuild_cmd sudo $proxy_env nixos-rebuild
         set -a rebuild_args --flake $NIXOS_CONFIG_DIR#$flake_target
 
         if test -n "$extra_args"
@@ -174,7 +187,12 @@ function nixos-rebuild-basic
     else
         set_color yellow; echo "[INFO] Sandbox disabled (shimboot policy)"; set_color normal
     end
-    set -a rebuild_args -- --option sandbox false
+
+    if test "$use_nh" = true
+        set -a rebuild_args -- --option sandbox false
+    else
+        set -a rebuild_args --option sandbox false
+    end
 
     if test "$auto_mode" = true
         echo "[STEP] Running $rebuild_cmd $rebuild_args..."

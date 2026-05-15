@@ -18,6 +18,11 @@ function proxy_on
     set -gx all_proxy "socks5h://$_host:$_socks_port"
     set -gx no_proxy "localhost,127.0.0.1,::1"
 
+    set -gx HTTP_PROXY $http_proxy
+    set -gx HTTPS_PROXY $https_proxy
+    set -gx ALL_PROXY $all_proxy
+    set -gx NO_PROXY $no_proxy
+
     if command -q systemctl
         systemctl --user set-environment http_proxy=$http_proxy
         systemctl --user set-environment https_proxy=$https_proxy
@@ -28,15 +33,17 @@ function proxy_on
         sudo systemctl set-environment \
             http_proxy=$http_proxy \
             https_proxy=$https_proxy \
+            all_proxy=$all_proxy \
             HTTP_PROXY=$http_proxy \
             HTTPS_PROXY=$https_proxy \
+            ALL_PROXY=$all_proxy \
             no_proxy=$no_proxy \
             NO_PROXY=$no_proxy
         sudo systemctl restart nix-daemon
     end
 
     if command -q dbus-update-activation-environment
-        dbus-update-activation-environment --systemd http_proxy https_proxy all_proxy no_proxy 2>/dev/null
+        dbus-update-activation-environment --systemd http_proxy https_proxy all_proxy no_proxy HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY 2>/dev/null
     end
 
     set_color green; echo -n "[OK] "
