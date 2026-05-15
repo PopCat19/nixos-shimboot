@@ -5,11 +5,11 @@
 # Purpose: Concatenate readme fragments into README.md with boundary markers
 #
 # This module:
-# - Detects manual README edits and auto-rebases them into fragments first
+# - Detects manual README edits and auto-rebases them into fragments
 # - Reads fragments from readme_manifest/ in numeric order
 # - Wraps specified fragments in HTML5 <details> sections
 # - Emits BEGIN/END markers for reverse extraction
-# - Writes combined output to README.md
+# - Writes combined output to README.md with generation metadata
 
 set -Eeuo pipefail
 
@@ -28,6 +28,9 @@ validate_manifest() {
 
   for fragment in "$MANIFEST_DIR"/*.md; do
     name="$(basename "$fragment")"
+
+    # Skip context.md
+    [[ "$name" == "context.md" ]] && continue
 
     # Must match NN-name.md pattern
     if [[ ! "$name" =~ ^([0-9]{2})-.+\.md$ ]]; then
