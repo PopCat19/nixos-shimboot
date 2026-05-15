@@ -44,18 +44,6 @@ function proxify
 
         if contains $cmd_name $chromium_apps
             set cmd_args $cmd_args --proxy-server="socks5://$proxy_addr"
-        else if command -q proxychains4
-            set -l tmpconf (mktemp -t proxychains.XXXXXX.conf)
-            printf '%s\n' 'strict_chain' 'proxy_dns' '[ProxyList]' "socks5 $proxy_addr" > $tmpconf
-            
-            # Keep config alive longer to ensure app reads it (especially for slow starters)
-            # We cleanup in background but wait significantly longer
-            begin
-                sleep 60
-                rm -f $tmpconf
-            end &
-            
-            set cmd_args proxychains4 -q -f $tmpconf $cmd_args
         end
     end
 
