@@ -30,11 +30,17 @@ in
       commands = [
         {
           command = "/run/current-system/sw/bin/nh";
-          options = [ "SETENV" "NOPASSWD" ];
+          options = [
+            "SETENV"
+            "NOPASSWD"
+          ];
         }
         {
           command = "${userConfig.env.NIXOS_CONFIG_DIR}/result/sw/bin/nh";
-          options = [ "SETENV" "NOPASSWD" ];
+          options = [
+            "SETENV"
+            "NOPASSWD"
+          ];
         }
       ];
     }
