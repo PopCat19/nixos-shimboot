@@ -127,14 +127,16 @@ let
 
         # Populate nix store from closure
         echo "=== Populating nix store ==="
-        echo "  Closure paths: $(wc -l < "$closureInfo/store-paths")"
         mkdir -p rootfs-content/nix/store
-        # Use tar with transform to strip /nix/store/ prefix
-        # This avoids permission issues with cp -a on read-only store paths
-        xargs tar -cf store-contents.tar \
-          --transform 's|^/nix/store/||' < "$closureInfo/store-paths" 2>&1
-        echo "  Extracting..."
-        tar -xf store-contents.tar -C rootfs-content/nix/store
+        for p in $(cat "$closureInfo/store-paths"); do
+          name=$(basename "$p")
+          if [ -d "$p" ]; then
+            mkdir -p "rootfs-content/nix/store/$name"
+            cp -rd --remove-destination "$p/." "rootfs-content/nix/store/$name/" 2>/dev/null
+          else
+            cp -d "$p" "rootfs-content/nix/store/$name" 2>/dev/null
+          fi
+        done
         ln -sf "$rootfsToplevel" rootfs-content/nix/var/nix/profiles/system
 
         # === 2. Calculate partition sizes ===
