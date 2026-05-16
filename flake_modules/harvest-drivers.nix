@@ -3,10 +3,10 @@
 # Purpose: Extract ChromeOS kernel modules and firmware from shim/recovery images
 #
 # This module:
-# - Extracts squashfs rootfs partitions from ChromeOS shim/recovery images
+# - Extracts rootfs partitions from ChromeOS shim/recovery images (squashfs or ext4)
 # - Collects /lib/modules, /lib/firmware, and /etc/modprobe.d
 # - Outputs a derivation consumable by repart-based image assembly
-# - Uses dd + unsquashfs (no loop devices or mount required)
+# - Uses dd + unsquashfs + debugfs (no loop devices or mount required)
 {
   self,
   nixpkgs,
@@ -36,6 +36,7 @@ in
     nativeBuildInputs = with pkgs; [
       gptfdisk
       squashfsTools
+      e2fsprogs
       coreutils
       gawk
       gnugrep
@@ -46,6 +47,31 @@ in
 
         mkdir -p work harvested
 
+        # Check if an image is ext4 by looking for the superblock magic
+        is_ext4() {
+          local img="$1"
+          local magic
+          magic=$(dd if="$img" bs=1 skip=1080 count=2 2>/dev/null | od -An -tx1 | tr -d ' \n')
+          [ "$magic" = "53ef" ]
+        }
+
+        # Try to extract an ext4 image using debugfs rdump
+        extract_ext4() {
+          local img="$1"
+          local outdir="$2"
+          if ! is_ext4 "$img"; then
+            return 1
+          fi
+          echo "  Found ext4 filesystem"
+          mkdir -p "$outdir"
+          if debugfs -R "rdump / $outdir" "$img" >/dev/null 2>&1; then
+            echo "  Extracted to $outdir"
+            return 0
+          fi
+          rm -rf "$outdir" 2>/dev/null || true
+          return 1
+        }
+
         harvest_image() {
           local img="$1"
           local label="$2"
@@ -54,7 +80,7 @@ in
 
           echo "Processing $label: $(basename $img)"
 
-          # Find rootfs partition (usually the largest squashfs partition)
+          # Find rootfs partition (usually the largest squashfs or ext4 partition)
           for pn in 4 5 6 3; do
             part_num=$(sgdisk -i "$pn" -p "$img" 2>/dev/null | grep -i "partition" | awk '{print $2}' | tr -d ':' || true)
             if [ -n "$part_num" ] && [ "$part_num" = "$pn" ] 2>/dev/null; then
@@ -72,6 +98,8 @@ in
                   echo "  Extracted rootfs from $label partition $pn"
                   return 0
                 fi
+              elif extract_ext4 "work/$loc.img" "work/''${label}_rootfs"; then
+                return 0
               fi
             fi
           done
@@ -93,10 +121,12 @@ in
                 echo "  Extracted rootfs from $label partition $i"
                 return 0
               fi
+            elif extract_ext4 "work/$loc.img" "work/''${label}_rootfs"; then
+              return 0
             fi
           done
 
-          echo "  WARNING: No squashfs rootfs found in $label"
+          echo "  WARNING: No squashfs or ext4 rootfs found in $label"
           return 1
         }
 
