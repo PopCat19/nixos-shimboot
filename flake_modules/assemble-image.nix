@@ -141,6 +141,12 @@ let
         rdfind -makehardlinks true -followsymlinks false \
           rootfs-content/nix/store 2>/dev/null || true
 
+        # Create essential system directories and symlinks (NixOS activation equivalent)
+        echo "=== Setting up system directories ==="
+        mkdir -p rootfs-content/bin rootfs-content/etc rootfs-content/var
+        SH_PATH=$(readlink -f "$rootfsToplevel/sw/bin/sh") || true
+        [ -n "$SH_PATH" ] && ln -sf "$SH_PATH" rootfs-content/bin/sh
+
         # === 2. Calculate partition sizes ===
         BOOT_SIZE_MB=20
         [ -d "$patchedInitramfs/patched-initramfs" ] && \
