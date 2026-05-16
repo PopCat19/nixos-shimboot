@@ -183,6 +183,8 @@ in
       if [ -d harvested/modprobe.d ]; then
         cp -a harvested/modprobe.d "$out/modprobe.d"
       fi
+      # Remove broken symlinks left over from ChromeOS build tree references
+      find "$out" -type l -exec sh -c 'test ! -e "$1"' _ {} \; -delete 2>/dev/null || true
       # Metadata
       echo "${board}" > "$out/board.txt"
       MOD_COUNT=$(find "$out/lib/modules" -name "*.ko" 2>/dev/null | wc -l || echo 0)
