@@ -96,7 +96,8 @@
 
               for unit in breakpoint-pre-udev.service breakpoint-pre-basic.service breakpoint-pre-mount.service breakpoint-pre-switch-root.service systemd-factory-reset-complete.service systemd-journalctl@.service; do
                 if [ ! -e "$UNITDIR/$unit" ]; then
-                  printf '[Unit]\nDescription=%%s (stub - not in 257.9)\nDefaultDependencies=no\nRefuseManualStart=yes\n\n[Service]\nType=oneshot\nExecStart=/bin/true\nRemainAfterExit=yes\n' "${unit%.*}" > "$UNITDIR/$unit"
+                  name=$(echo "$unit" | sed 's/\..*$//')
+                  printf '[Unit]\nDescription=%s (stub - not in 257.9)\nDefaultDependencies=no\nRefuseManualStart=yes\n\n[Service]\nType=oneshot\nExecStart=/bin/true\nRemainAfterExit=yes\n' "$name" > "$UNITDIR/$unit"
                 fi
               done
 
