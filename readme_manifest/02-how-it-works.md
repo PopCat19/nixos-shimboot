@@ -5,7 +5,7 @@ Based on [ading2210/shimboot](https://github.com/ading2210/shimboot), which firs
 
 ChromeOS RMA shims are bootable recovery images that run even on enterprise-enrolled devices. The shim's root filesystem is unverified, allowing it to be replaced with a Linux rootfs.
 
-The ChromeOS kernel fails systemd's API filesystem mounts. Systemd resolves mount targets through `/proc/self/fd/`, which the ChromeOS kernel handles differently. The patch replaces this with a direct `mount()` call ([d27b392/patches/systemd-mountpoint-util-chromeos.patch](https://github.com/PopCat19/nixos-shimboot/blob/d27b392/patches/systemd-mountpoint-util-chromeos.patch)).
+The ChromeOS kernel fails systemd's API filesystem mounts. Systemd resolves mount targets through `/proc/self/fd/`, which the ChromeOS kernel handles differently. The patch replaces this with a direct `mount()` call ([cb0ea14/patches/systemd-mountpoint-util-chromeos.patch](https://github.com/PopCat19/nixos-shimboot/blob/cb0ea14/patches/systemd-mountpoint-util-chromeos.patch)).
 
 The patch is needed whenever systemd components run in the boot chain, as the init system or as supporting daemons like udev. Inits that don't pull systemd components, like Alpine's OpenRC, work without the patch.
 
