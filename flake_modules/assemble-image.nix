@@ -70,10 +70,11 @@ let
     { headless ? false }:
     let
       rootfsConfig = mkRootfsConfig { inherit headless; };
-      rootfsToplevel = rootfsConfig.config.system.build.toplevel;
-      closureInfo = pkgs.closureInfo {
-        rootPaths = [ rootfsToplevel ];
-      };
+
+      # Use the fully-activated raw rootfs image (same as raw-rootfs-* outputs)
+      # This produces a bootable NixOS system with /bin/sh, /etc, activation applied
+      rawRootfsImage = rootfsConfig.config.system.build.images.raw;
+
       hostname = rootfsConfig.config.networking.hostName;
       username = userConfig.user.username;
     in
@@ -83,18 +84,15 @@ let
       dontConfigure = true;
 
       # Track all inputs for Nix dependency management
-      inherit extractedKernel patchedInitramfs harvestedDrivers rootfsToplevel closureInfo;
+      inherit extractedKernel patchedInitramfs harvestedDrivers rawRootfsImage;
       inherit hostname username;
 
-      # systemd-repart is the only "big" tool we need
-      # No parted, no losetup, no mount, no loop devices
       nativeBuildInputs = with pkgs; [
         gptfdisk           # sgdisk (partition creation)
         parted             # partition naming (supports colons)
-        e2fsprogs          # mkfs.ext4/ext2 with -d
+        e2fsprogs          # mkfs.ext4/ext2 with -d, debugfs, resize2fs
         util-linux         # truncate, dd
         vboot_reference    # cgpt (ChromeOS boot flags)
-        rdfind             # hardlink duplicate files (nix-store --optimise equivalent)
         coreutils
         gnused
         gawk
@@ -116,7 +114,7 @@ let
         runHook preBuild
 
         # === 1. Prepare content directories first (needed for size calc) ===
-        mkdir -p boot-content vendor-content rootfs-content/nix/store rootfs-content/nix/var/nix/profiles
+        mkdir -p boot-content vendor-content
 
         if [ -d "$patchedInitramfs/patched-initramfs" ]; then
           cp -a "$patchedInitramfs/patched-initramfs/." boot-content/
@@ -126,26 +124,17 @@ let
           cp -a "$harvestedDrivers/lib/." vendor-content/
         fi
 
-        # Populate nix store from closure
-        echo "=== Populating nix store ==="
-        mkdir -p rootfs-content/nix/store
-        for p in $(cat "$closureInfo/store-paths"); do
-          name=$(basename "$p")
-          tar -cf - -C /nix/store "$name" 2>/dev/null | \
-            tar -xf - -C rootfs-content/nix/store 2>/dev/null || true
-        done
-        ln -sf "$rootfsToplevel" rootfs-content/nix/var/nix/profiles/system
-
-        # Optimize: hardlink duplicate files (equivalent to nix-store --optimise)
-        echo "=== Optimizing nix store ==="
-        rdfind -makehardlinks true -followsymlinks false \
-          rootfs-content/nix/store 2>/dev/null || true
-
-        # Create essential system directories and symlinks (NixOS activation equivalent)
-        echo "=== Setting up system directories ==="
-        mkdir -p rootfs-content/bin rootfs-content/etc rootfs-content/var
-        SH_PATH=$(readlink -f "$rootfsToplevel/sw/bin/sh") || true
-        [ -n "$SH_PATH" ] && ln -sf "$SH_PATH" rootfs-content/bin/sh
+        # Extract rootfs partition from the fully-activated NixOS raw image
+        echo "=== Extracting rootfs from raw image ==="
+        RAW_ROOTFS_START=$(sgdisk -p "$rawRootfsImage" 2>/dev/null | grep -E "^\s+[0-9]" | head -1 | awk '{print $2}')
+        RAW_ROOTFS_SIZE=$(sgdisk -p "$rawRootfsImage" 2>/dev/null | grep -E "^\s+[0-9]" | head -1 | awk '{print $3}')
+        echo "  Partition 1: start=$RAW_ROOTFS_START sectors, size=$RAW_ROOTFS_SIZE sectors"
+        if [ -n "$RAW_ROOTFS_START" ] && [ -n "$RAW_ROOTFS_SIZE" ]; then
+          dd if="$rawRootfsImage" of=rootfs.img bs=512 skip="$RAW_ROOTFS_START" count="$RAW_ROOTFS_SIZE" status=none 2>/dev/null
+        else
+          echo "  ERROR: Could not find rootfs partition in raw image"
+          exit 1
+        fi
 
         # === 2. Calculate partition sizes ===
         BOOT_SIZE_MB=20
@@ -159,9 +148,10 @@ let
           VENDOR_SIZE_MB=$(( VENDOR_SIZE_MB * 115 / 100 + 20 ))
         fi
 
-        # Estimate rootfs size from closure size + 20% overhead for fs metadata
-        ROOTFS_SIZE_MB=$(du -sm rootfs-content 2>/dev/null | cut -f1 || echo 2048)
-        ROOTFS_SIZE_MB=$(( ROOTFS_SIZE_MB * 120 / 100 + 512 ))
+        # Rootfs size: use extracted raw rootfs image size
+        ROOTFS_SIZE_MB=$(du -m rootfs.img 2>/dev/null | cut -f1 || echo 6400)
+        # Add 5% overhead for partition alignment
+        ROOTFS_SIZE_MB=$(( ROOTFS_SIZE_MB * 105 / 100 ))
 
         STATE_START=1
         KERNEL_START=2
@@ -241,16 +231,19 @@ let
           dd if=vendor.img of="$IMAGE" bs=512 seek=$(( OFFSET4 / 512 )) conv=notrunc status=none
         fi
 
-        # Partition 5: ROOTFS (ext4 with NixOS system)
+        # Partition 5: ROOTFS (ext4 with NixOS system from raw image)
         echo "  ROOTFS: ext4 filesystem"
         OFFSET5=$(get_part_offset 5)
+        # Resize the rootfs to fill the partition
+        e2fsck -fy rootfs.img 2>/dev/null || true
         PART5_SECTORS=$(sgdisk -i 5 -p "$IMAGE" 2>/dev/null | grep "Partition size" | awk '{print $3}')
         PART5_SEC_SIZE=$(sgdisk -i 5 -p "$IMAGE" 2>/dev/null | grep "Sector size" | awk '{print $4}' | sed 's/[^0-9]//g')
         PART5_SEC_SIZE=''${PART5_SEC_SIZE:-512}
         PART5_BYTES=$(( PART5_SECTORS * PART5_SEC_SIZE ))
-        truncate -s "$PART5_BYTES" rootfs.img
-        mkfs.ext4 -F -L nixos -d rootfs-content/ rootfs.img
-        dd if=rootfs.img of="$IMAGE" bs=512 seek=$(( OFFSET5 / 512 )) conv=notrunc status=none
+        truncate -s "$PART5_BYTES" rootfs_resized.img
+        dd if=rootfs.img of=rootfs_resized.img bs=1M conv=notrunc,fsync status=none 2>/dev/null
+        resize2fs rootfs_resized.img 2>/dev/null || true
+        dd if=rootfs_resized.img of="$IMAGE" bs=512 seek=$(( OFFSET5 / 512 )) conv=notrunc status=none
 
         echo "=== Partition setup complete ==="
 
