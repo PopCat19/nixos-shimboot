@@ -126,11 +126,18 @@ let
 
         # Extract rootfs partition from the fully-activated NixOS raw image
         echo "=== Extracting rootfs from raw image ==="
-        RAW_ROOTFS_START=$(sgdisk -p "$rawRootfsImage" 2>/dev/null | grep -E "^\s+[0-9]" | head -1 | awk '{print $2}')
-        RAW_ROOTFS_SIZE=$(sgdisk -p "$rawRootfsImage" 2>/dev/null | grep -E "^\s+[0-9]" | head -1 | awk '{print $3}')
+        RAW_IMAGE=$(ls "$rawRootfsImage"/*.img 2>/dev/null | head -1)
+        if [ -z "$RAW_IMAGE" ]; then
+          echo "  ERROR: No .img file found in $rawRootfsImage"
+          ls "$rawRootfsImage"/ 2>/dev/null
+          exit 1
+        fi
+        echo "  Raw image: $(basename "$RAW_IMAGE")"
+        RAW_ROOTFS_START=$(sgdisk -p "$RAW_IMAGE" 2>/dev/null | grep -E "^\s+[0-9]" | head -1 | awk '{print $2}')
+        RAW_ROOTFS_SIZE=$(sgdisk -p "$RAW_IMAGE" 2>/dev/null | grep -E "^\s+[0-9]" | head -1 | awk '{print $3}')
         echo "  Partition 1: start=$RAW_ROOTFS_START sectors, size=$RAW_ROOTFS_SIZE sectors"
         if [ -n "$RAW_ROOTFS_START" ] && [ -n "$RAW_ROOTFS_SIZE" ]; then
-          dd if="$rawRootfsImage" of=rootfs.img bs=512 skip="$RAW_ROOTFS_START" count="$RAW_ROOTFS_SIZE" status=none 2>/dev/null
+          dd if="$RAW_IMAGE" of=rootfs.img bs=512 skip="$RAW_ROOTFS_START" count="$RAW_ROOTFS_SIZE" status=none 2>/dev/null
         else
           echo "  ERROR: Could not find rootfs partition in raw image"
           exit 1
