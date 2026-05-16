@@ -94,6 +94,7 @@ let
         e2fsprogs          # mkfs.ext4/ext2 with -d
         util-linux         # truncate, dd
         vboot_reference    # cgpt (ChromeOS boot flags)
+        rdfind             # hardlink duplicate files (nix-store --optimise equivalent)
         coreutils
         gnused
         gawk
@@ -134,6 +135,11 @@ let
             tar -xf - -C rootfs-content/nix/store 2>/dev/null || true
         done
         ln -sf "$rootfsToplevel" rootfs-content/nix/var/nix/profiles/system
+
+        # Optimize: hardlink duplicate files (equivalent to nix-store --optimise)
+        echo "=== Optimizing nix store ==="
+        rdfind -makehardlinks true -followsymlinks false \
+          rootfs-content/nix/store 2>/dev/null || true
 
         # === 2. Calculate partition sizes ===
         BOOT_SIZE_MB=20
