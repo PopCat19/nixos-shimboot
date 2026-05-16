@@ -366,6 +366,12 @@ cachix use shimboot-systemd-nixos
 
 </details>
 
+### CI Cache Strategy
+
+CI uses Cachix daemon mode (post-build hook). Only locally-compiled derivations are pushed -- substituted paths from cache.nixos.org are never re-uploaded.
+
+A cache-hit check runs before each build. If the toplevel closure already exists on Cachix, the build is skipped entirely. On cache miss, daemon mode pushes each derivation as it finishes compiling, naturally excluding Hydra-cached dependencies from the upload.
+
 <!-- END fragment: 07-binary-cache.md -->
 <!-- BEGIN fragment: 08-limitations.md -->
 
@@ -631,4 +637,4 @@ Users unfamiliar with Nix should try it in a VM first ([nixos.org/download](http
 </details>
 <!-- END fragment: 13-roadmap.md -->
 
-<!-- generated: 20260508-f98c89b -->
+<!-- generated: 20260516-07ce993 -->
