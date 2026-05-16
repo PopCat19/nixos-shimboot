@@ -196,7 +196,7 @@ let
           parted --script "$IMAGE" name 4 "shimboot_rootfs:vendor"
         fi
 
-        parted --script "$IMAGE" name 5 "shimboot_rootfs:main"
+        parted --script "$IMAGE" name 5 "shimboot_rootfs:nixos"
 
         # === 5. Create and populate filesystem partitions ===
         echo "=== Creating filesystems ==="
