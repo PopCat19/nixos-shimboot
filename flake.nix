@@ -92,7 +92,7 @@
             postInstall = (old.postInstall or "") + ''
               # Auto-generate stubs for units expected by nixos-unstable but missing in 257.9
               # Units added in systemd 258+
-              MISSING_UNITS="breakpoint-pre-udev.service breakpoint-pre-basic.service breakpoint-pre-mount.service breakpoint-pre-switch-root.service systemd-factory-reset-complete.service factory-reset-now.target"
+               MISSING_UNITS="breakpoint-pre-udev.service breakpoint-pre-basic.service breakpoint-pre-mount.service breakpoint-pre-switch-root.service systemd-factory-reset-complete.service factory-reset-now.target systemd-journalctl.socket systemd-journalctl@.service"
 
               for unit in $MISSING_UNITS; do
                 if [ ! -e "$out/example/systemd/system/$unit" ]; then
@@ -225,6 +225,24 @@
           inherit self nixpkgs board;
         };
 
+      # dev-exp: Nix-first image assembly
+      # These are the new prototype modules replacing assemble-final.sh orchestration
+      harvestedDriversOutputs =
+        board:
+        import ./flake_modules/harvest-drivers.nix {
+          inherit self nixpkgs board;
+        };
+      assembleImageOutputs =
+        board:
+        import ./flake_modules/assemble-image.nix {
+          inherit
+            self
+            nixpkgs
+            board
+            systemd257
+            ;
+        };
+
       # Generate packages for each board
       boardPackages =
         board:
@@ -232,7 +250,9 @@
         // (chromeosSourcesOutputs board).packages.${system} or { }
         // (kernelExtractionOutputs board).packages.${system} or { }
         // (initramfsExtractionOutputs board).packages.${system} or { }
-        // (initramfsPatchingOutputs board).packages.${system} or { };
+        // (initramfsPatchingOutputs board).packages.${system} or { }
+        // (harvestedDriversOutputs board).packages.${system} or { }
+        // (assembleImageOutputs board).packages.${system} or { };
 
       # Merge packages from all modules
       packages = {
