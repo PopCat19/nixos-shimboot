@@ -153,10 +153,9 @@ let
           VENDOR_SIZE_MB=$(( VENDOR_SIZE_MB * 115 / 100 + 20 ))
         fi
 
-        # Estimate rootfs size from closure size + 50% overhead for fs metadata
+        # Estimate rootfs size from closure size + 20% overhead for fs metadata
         ROOTFS_SIZE_MB=$(du -sm rootfs-content 2>/dev/null | cut -f1 || echo 2048)
-        ROOTFS_SIZE_MB=$(( ROOTFS_SIZE_MB * 150 / 100 + 256 ))
-        [ "$ROOTFS_SIZE_MB" -lt 8192 ] && ROOTFS_SIZE_MB=8192
+        ROOTFS_SIZE_MB=$(( ROOTFS_SIZE_MB * 120 / 100 + 512 ))
 
         STATE_START=1
         KERNEL_START=2
