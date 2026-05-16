@@ -88,30 +88,38 @@
               withSysupdate = false;
             };
             # udev is always built in systemd 257.9 (no separate meson option)
-            # Create stub files for units added in systemd 258+ but expected by nixos-unstable
+            # Create proper NOOP stubs for units added in systemd 258+ but expected by nixos-unstable
             postInstall = (old.postInstall or "") + ''
-              # Auto-generate stubs for units expected by nixos-unstable but missing in 257.9
-              # Units added in systemd 258+
-               MISSING_UNITS="breakpoint-pre-udev.service breakpoint-pre-basic.service breakpoint-pre-mount.service breakpoint-pre-switch-root.service systemd-factory-reset-complete.service factory-reset-now.target systemd-journalctl.socket systemd-journalctl@.service"
+              # Stub out service units missing from 257.9 but expected by nixos-unstable
+              UNITDIR="$out/example/systemd/system"
+              mkdir -p "$UNITDIR"
 
-              for unit in $MISSING_UNITS; do
-                if [ ! -e "$out/example/systemd/system/$unit" ]; then
-                  name=$(echo "$unit" | sed 's/\.[^.]*$//')
-                  printf "[Unit]\nDescription=%s (stub - not in systemd 257.9)\n" "$name" > "$out/example/systemd/system/$unit"
+              for unit in breakpoint-pre-udev.service breakpoint-pre-basic.service breakpoint-pre-mount.service breakpoint-pre-switch-root.service systemd-factory-reset-complete.service systemd-journalctl@.service; do
+                if [ ! -e "$UNITDIR/$unit" ]; then
+                  printf '[Unit]\nDescription=%%s (stub - not in 257.9)\nDefaultDependencies=no\nRefuseManualStart=yes\n\n[Service]\nType=oneshot\nExecStart=/bin/true\nRemainAfterExit=yes\n' "${unit%.*}" > "$UNITDIR/$unit"
                 fi
               done
 
+              # target stub
+              if [ ! -e "$UNITDIR/factory-reset-now.target" ]; then
+                printf '[Unit]\nDescription=factory-reset-now (stub - not in 257.9)\nRefuseManualStart=yes\n' > "$UNITDIR/factory-reset-now.target"
+              fi
+
+              # socket stub
+              if [ ! -e "$UNITDIR/systemd-journalctl.socket" ]; then
+                printf '[Unit]\nDescription=systemd-journalctl (stub - not in 257.9)\nDefaultDependencies=no\nBefore=sockets.target\n\n[Socket]\nListenStream=/run/systemd/io.systemd.JournalAccess\nSymlinks=/run/varlink/registry/io.systemd.JournalAccess\nFileDescriptorName=varlink\n' > "$UNITDIR/systemd-journalctl.socket"
+              fi
+
               # Factory-reset setup
-              mkdir -p $out/example/systemd/system/factory-reset.target.wants
+              mkdir -p "$UNITDIR/factory-reset.target.wants"
 
               # Binaries added in systemd 258+
-              MISSING_BINS="systemd-factory-reset system-generators/systemd-factory-reset-generator"
-
-              mkdir -p $out/lib/systemd/system-generators
-              for bin in $MISSING_BINS; do
-                if [ ! -e "$out/lib/systemd/$bin" ]; then
-                  printf '#!/bin/sh\n# Stub - not available in systemd 257.9\nexit 0\n' > "$out/lib/systemd/$bin"
-                  chmod +x "$out/lib/systemd/$bin"
+              BINDIR="$out/lib/systemd"
+              mkdir -p "$BINDIR/system-generators"
+              for bin in systemd-factory-reset system-generators/systemd-factory-reset-generator; do
+                if [ ! -e "$BINDIR/$bin" ]; then
+                  printf '#!/bin/sh\n# Stub - not available in systemd 257.9\nexit 0\n' > "$BINDIR/$bin"
+                  chmod +x "$BINDIR/$bin"
                 fi
               done
             '';
