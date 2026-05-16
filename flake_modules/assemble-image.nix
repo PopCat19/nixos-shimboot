@@ -130,12 +130,8 @@ let
         mkdir -p rootfs-content/nix/store
         for p in $(cat "$closureInfo/store-paths"); do
           name=$(basename "$p")
-          if [ -d "$p" ]; then
-            mkdir -p "rootfs-content/nix/store/$name"
-            cp -rd --remove-destination "$p/." "rootfs-content/nix/store/$name/" 2>/dev/null
-          else
-            cp -d "$p" "rootfs-content/nix/store/$name" 2>/dev/null
-          fi
+          tar -cf - -C /nix/store "$name" 2>/dev/null | \
+            tar -xf - -C rootfs-content/nix/store 2>/dev/null || true
         done
         ln -sf "$rootfsToplevel" rootfs-content/nix/var/nix/profiles/system
 
