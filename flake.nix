@@ -249,6 +249,7 @@
             nixpkgs
             board
             systemd257
+            systemdMinimal257
             ;
         };
 
