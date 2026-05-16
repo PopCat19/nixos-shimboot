@@ -72,35 +72,64 @@ in
           return 1
         }
 
+        # Parse partition start sector from sgdisk -i output
+        get_start_sector() {
+          local img="$1" pn="$2"
+          sgdisk -i "$pn" "$img" 2>/dev/null | grep "First sector" | awk '{print $3}'
+        }
+
+        # Parse partition size in sectors from sgdisk -i output
+        get_size_sectors() {
+          local img="$1" pn="$2"
+          sgdisk -i "$pn" "$img" 2>/dev/null | grep "Partition size" | awk '{print $3}'
+        }
+
+        # Check partition exists by verifying start sector is non-empty
+        partition_exists() {
+          local img="$1" pn="$2"
+          local s
+          s=$(get_start_sector "$img" "$pn")
+          [ -n "$s" ]
+        }
+
         harvest_image() {
           local img="$1"
           local label="$2"
-          local part_num
-          local start size fstype
 
           echo "Processing $label: $(basename $img)"
 
-          # Find rootfs partition (usually the largest squashfs or ext4 partition)
-          for pn in 4 5 6 3; do
-            part_num=$(sgdisk -i "$pn" -p "$img" 2>/dev/null | grep -i "partition" | awk '{print $2}' | tr -d ':' || true)
-            if [ -n "$part_num" ] && [ "$part_num" = "$pn" ] 2>/dev/null; then
-              start=$(sgdisk -i "$pn" -p "$img" 2>/dev/null | grep "Partition start sector" | awk '{print $4}')
-              size=$(sgdisk -i "$pn" -p "$img" 2>/dev/null | grep "Partition size" | awk '{print $4}' | sed 's/sectors//')
-              fstype=$(sgdisk -i "$pn" -p "$img" 2>/dev/null | grep "Partition GUID code" | awk '{print $4}')
-              [ -z "$start" ] && continue
-              echo "  Partition $pn: start=$start size=$size type=$fstype"
-              loc="''${label}_p''${pn}"
-              dd if="$img" of="work/$loc.img" bs=512 skip="$start" count="$size" status=none 2>/dev/null || continue
-              if unsquashfs -s "work/$loc.img" >/dev/null 2>&1; then
-                echo "  Found squashfs in $label partition $pn"
-                unsquashfs -d "work/''${label}_rootfs" "work/$loc.img" >/dev/null 2>&1 || true
-                if [ -d "work/''${label}_rootfs" ]; then
-                  echo "  Extracted rootfs from $label partition $pn"
-                  return 0
-                fi
-              elif extract_ext4 "work/$loc.img" "work/''${label}_rootfs"; then
+          # Helper: try to extract rootfs from a partition
+          try_extract_partition() {
+            local pn="$1"
+            if ! partition_exists "$img" "$pn"; then
+              return 1
+            fi
+            local start size
+            start=$(get_start_sector "$img" "$pn")
+            size=$(get_size_sectors "$img" "$pn")
+            [ -z "$start" ] && return 1
+            [ -z "$size" ] && return 1
+            echo "  Partition $pn: start=$start size=$size"
+            local loc="''${label}_p$pn"
+            dd if="$img" of="work/$loc.img" bs=512 skip="$start" count="$size" status=none 2>/dev/null || return 1
+            if unsquashfs -s "work/$loc.img" >/dev/null 2>&1; then
+              echo "  Found squashfs in $label partition $pn"
+              unsquashfs -d "work/''${label}_rootfs" "work/$loc.img" >/dev/null 2>&1 || true
+              if [ -d "work/''${label}_rootfs" ]; then
+                echo "  Extracted rootfs from $label partition $pn"
                 return 0
               fi
+            fi
+            if extract_ext4 "work/$loc.img" "work/''${label}_rootfs"; then
+              return 0
+            fi
+            return 1
+          }
+
+          # Find rootfs partition (usually the largest squashfs or ext4 partition)
+          for pn in 4 5 6 3; do
+            if partition_exists "$img" "$pn"; then
+              try_extract_partition "$pn" && return 0
             fi
           done
 
@@ -109,21 +138,7 @@ in
           num_parts=$(sgdisk -p "$img" 2>/dev/null | grep -c "^   [0-9]" || echo 0)
           echo "  $label has $num_parts partitions, trying each..."
           for ((i=1; i<=num_parts; i++)); do
-            start=$(sgdisk -i "$i" -p "$img" 2>/dev/null | grep "Partition start sector" | awk '{print $4}')
-            size=$(sgdisk -i "$i" -p "$img" 2>/dev/null | grep "Partition size" | awk '{print $4}' | sed 's/sectors//')
-            [ -z "$start" ] && continue
-            loc="''${label}_p$i"
-            dd if="$img" of="work/$loc.img" bs=512 skip="$start" count="$size" status=none 2>/dev/null || continue
-            if unsquashfs -s "work/$loc.img" >/dev/null 2>&1; then
-              echo "  Found squashfs in $label partition $i"
-              unsquashfs -d "work/''${label}_rootfs" "work/$loc.img" >/dev/null 2>&1 || true
-              if [ -d "work/''${label}_rootfs" ]; then
-                echo "  Extracted rootfs from $label partition $i"
-                return 0
-              fi
-            elif extract_ext4 "work/$loc.img" "work/''${label}_rootfs"; then
-              return 0
-            fi
+            try_extract_partition "$i" && return 0
           done
 
           echo "  WARNING: No squashfs or ext4 rootfs found in $label"
