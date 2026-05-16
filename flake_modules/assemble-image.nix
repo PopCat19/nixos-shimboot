@@ -230,21 +230,6 @@ let
           dd if=vendor.img of="$IMAGE" bs=512 seek=$(( OFFSET4 / 512 )) conv=notrunc status=none
         fi
 
-        # Prepare rootfs content: populate nix store from closure
-        mkdir -p rootfs-content/nix/store rootfs-content/nix/var/nix/profiles
-        storePaths=$(cat "$closureInfo/store-paths")
-        total=$(echo "$storePaths" | wc -l)
-        count=0
-        echo "Populating nix store ($total paths)..."
-        for p in $storePaths; do
-          count=$((count + 1))
-          name=$(basename "$p")
-          echo "  [$count/$total] $name"
-          mkdir -p "rootfs-content/nix/store/$name"
-          cp -a "$p/." "rootfs-content/nix/store/$name/"
-        done
-        ln -sf "$rootfsToplevel" rootfs-content/nix/var/nix/profiles/system
-
         # Partition 5: ROOTFS (ext4 with NixOS system)
         echo "  ROOTFS: ext4 filesystem"
         OFFSET5=$(get_part_offset 5)
