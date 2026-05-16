@@ -71,6 +71,9 @@ let
     let
       rootfsConfig = mkRootfsConfig { inherit headless; };
       rootfsToplevel = rootfsConfig.config.system.build.toplevel;
+      closureInfo = pkgs.closureInfo {
+        rootPaths = [ rootfsToplevel ];
+      };
       hostname = rootfsConfig.config.networking.hostName;
       username = userConfig.user.username;
     in
@@ -80,13 +83,14 @@ let
       dontConfigure = true;
 
       # Track all inputs for Nix dependency management
-      inherit extractedKernel patchedInitramfs harvestedDrivers rootfsToplevel;
+      inherit extractedKernel patchedInitramfs harvestedDrivers rootfsToplevel closureInfo;
       inherit hostname username;
 
       # systemd-repart is the only "big" tool we need
       # No parted, no losetup, no mount, no loop devices
       nativeBuildInputs = with pkgs; [
-        gptfdisk           # sgdisk (partition querying)
+        gptfdisk           # sgdisk (partition creation)
+        parted             # partition naming (supports colons)
         e2fsprogs          # mkfs.ext4/ext2 with -d
         util-linux         # truncate, dd
         vboot_reference    # cgpt (ChromeOS boot flags)
@@ -110,7 +114,30 @@ let
         ''
         runHook preBuild
 
-        # === 1. Calculate partition sizes ===
+        # === 1. Prepare content directories first (needed for size calc) ===
+        mkdir -p boot-content vendor-content rootfs-content/nix/store rootfs-content/nix/var/nix/profiles
+
+        if [ -d "$patchedInitramfs/patched-initramfs" ]; then
+          cp -a "$patchedInitramfs/patched-initramfs/." boot-content/
+        fi
+
+        if [ -d "$harvestedDrivers/lib" ]; then
+          cp -a "$harvestedDrivers/lib/." vendor-content/
+        fi
+
+        # Populate nix store from closure
+        echo "=== Populating nix store ==="
+        echo "  Closure paths: $(wc -l < "$closureInfo/store-paths")"
+        mkdir -p rootfs-content/nix/store
+        # Use tar with transform to strip /nix/store/ prefix
+        # This avoids permission issues with cp -a on read-only store paths
+        xargs tar -cf store-contents.tar \
+          --transform 's|^/nix/store/||' < "$closureInfo/store-paths" 2>&1
+        echo "  Extracting..."
+        tar -xf store-contents.tar -C rootfs-content/nix/store
+        ln -sf "$rootfsToplevel" rootfs-content/nix/var/nix/profiles/system
+
+        # === 2. Calculate partition sizes ===
         BOOT_SIZE_MB=20
         [ -d "$patchedInitramfs/patched-initramfs" ] && \
           BOOT_SIZE_MB=$(du -sm "$patchedInitramfs/patched-initramfs" 2>/dev/null | cut -f1 || echo 20)
@@ -122,7 +149,10 @@ let
           VENDOR_SIZE_MB=$(( VENDOR_SIZE_MB * 115 / 100 + 20 ))
         fi
 
-        ROOTFS_SIZE_MB=8192
+        # Estimate rootfs size from closure size + 50% overhead for fs metadata
+        ROOTFS_SIZE_MB=$(du -sm rootfs-content 2>/dev/null | cut -f1 || echo 2048)
+        ROOTFS_SIZE_MB=$(( ROOTFS_SIZE_MB * 150 / 100 + 256 ))
+        [ "$ROOTFS_SIZE_MB" -lt 8192 ] && ROOTFS_SIZE_MB=8192
 
         STATE_START=1
         KERNEL_START=2
@@ -136,46 +166,33 @@ let
         TOTAL_MB=$(( ROOTFS_START + ROOTFS_SIZE_MB ))
         ${echoLayout}
 
-        # === 2. Create empty image ===
+        # === 3. Create empty image ===
         IMAGE=$PWD/shimboot.img
         truncate -s "''${TOTAL_MB}M" "$IMAGE"
-
-        # === 3. Prepare content directories ===
-        mkdir -p boot-content vendor-content
-
-        if [ -d "$patchedInitramfs/patched-initramfs" ]; then
-          cp -a "$patchedInitramfs/patched-initramfs/." boot-content/
-        fi
-
-        if [ -d "$harvestedDrivers/lib" ]; then
-          cp -a "$harvestedDrivers/lib/." vendor-content/
-        fi
 
         # === 4. Create GPT partition table ===
         echo "=== Creating GPT partition table ==="
         sgdisk -o "$IMAGE"
 
-        sgdisk -n 1:1M:+1M \
-               -t 1:0FC63DAF-8483-4772-8E79-3D69D8477DE4 \
-               -c 1:STATE "$IMAGE"
+        sgdisk -n 1:1M:+1M -t 1:0FC63DAF-8483-4772-8E79-3D69D8477DE4 "$IMAGE"
+        sgdisk -n 2:0:+32M -t 2:FE3A2A5D-4F32-41A7-B725-ACCC3285A309 "$IMAGE"
+        sgdisk -n 3:0:+"''${BOOT_SIZE_MB}M" -t 3:3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC "$IMAGE"
+        if [ "$VENDOR_SIZE_MB" -gt 0 ]; then
+          sgdisk -n 4:0:+"''${VENDOR_SIZE_MB}M" -t 4:0FC63DAF-8483-4772-8E79-3D69D8477DE4 "$IMAGE"
+        fi
+        sgdisk -n 5:0:0 -t 5:3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC "$IMAGE"
 
-        sgdisk -n 2:0:+32M \
-               -t 2:FE3A2A5D-4F32-41A7-B725-ACCC3285A309 \
-               -c 2:KERNEL "$IMAGE"
-
-        sgdisk -n 3:0:+"''${BOOT_SIZE_MB}M" \
-               -t 3:3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC \
-               -c 3:BOOT "$IMAGE"
+        # Set partition names via parted (supports colons, unlike sgdisk -c)
+        parted --script "$IMAGE" \
+          name 1 STATE \
+          name 2 KERNEL \
+          name 3 BOOT
 
         if [ "$VENDOR_SIZE_MB" -gt 0 ]; then
-          sgdisk -n 4:0:+"''${VENDOR_SIZE_MB}M" \
-                 -t 4:0FC63DAF-8483-4772-8E79-3D69D8477DE4 \
-                 -c 4:VENDOR "$IMAGE"
+          parted --script "$IMAGE" name 4 "shimboot_rootfs:vendor"
         fi
 
-        sgdisk -n 5:0:0 \
-               -t 5:3CB8E202-3B7E-47DD-8A3C-7FF2A13CFCEC \
-               -c 5:ROOTFS "$IMAGE"
+        parted --script "$IMAGE" name 5 "shimboot_rootfs:main"
 
         # === 5. Create and populate filesystem partitions ===
         echo "=== Creating filesystems ==="
@@ -211,15 +228,24 @@ let
           echo "  VENDOR: ext4 filesystem"
           OFFSET4=$(get_part_offset 4)
           truncate -s "''${VENDOR_SIZE_MB}M" vendor.img
-          mkfs.ext4 -F -d vendor-content/ vendor.img
+          mkfs.ext4 -F -L shimboot_vendor -d vendor-content/ vendor.img
           dd if=vendor.img of="$IMAGE" bs=512 seek=$(( OFFSET4 / 512 )) conv=notrunc status=none
         fi
 
-        # Prepare rootfs content
-        mkdir -p rootfs-content
-        if [ -d "$rootfsToplevel" ]; then
-          cp -a "$rootfsToplevel/." rootfs-content/ 2>/dev/null || true
-        fi
+        # Prepare rootfs content: populate nix store from closure
+        mkdir -p rootfs-content/nix/store rootfs-content/nix/var/nix/profiles
+        storePaths=$(cat "$closureInfo/store-paths")
+        total=$(echo "$storePaths" | wc -l)
+        count=0
+        echo "Populating nix store ($total paths)..."
+        for p in $storePaths; do
+          count=$((count + 1))
+          name=$(basename "$p")
+          echo "  [$count/$total] $name"
+          mkdir -p "rootfs-content/nix/store/$name"
+          cp -a "$p/." "rootfs-content/nix/store/$name/"
+        done
+        ln -sf "$rootfsToplevel" rootfs-content/nix/var/nix/profiles/system
 
         # Partition 5: ROOTFS (ext4 with NixOS system)
         echo "  ROOTFS: ext4 filesystem"
@@ -229,7 +255,7 @@ let
         PART5_SEC_SIZE=''${PART5_SEC_SIZE:-512}
         PART5_BYTES=$(( PART5_SECTORS * PART5_SEC_SIZE ))
         truncate -s "$PART5_BYTES" rootfs.img
-        mkfs.ext4 -F -d rootfs-content/ rootfs.img
+        mkfs.ext4 -F -L nixos -d rootfs-content/ rootfs.img
         dd if=rootfs.img of="$IMAGE" bs=512 seek=$(( OFFSET5 / 512 )) conv=notrunc status=none
 
         echo "=== Partition setup complete ==="
