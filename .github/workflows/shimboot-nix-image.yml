@@ -141,7 +141,7 @@ jobs:
 
       - name: Compress and artifact
         run: |
-          set -e
+          set -o pipefail
           IMAGE_PATH="${{ steps.build.outputs.image_path }}"
           BOARD="${{ matrix.board }}"
           HEADLESS="${{ github.event.inputs.headless }}"
@@ -158,7 +158,7 @@ jobs:
           ARTIFACT_BASE="${BOARD}-shimboot-nix${HEADLESS_SUFFIX}"
 
           echo "Compressing $(basename "$IMAGE_FILE") → ${ARTIFACT_BASE}.img.zst"
-          stdbuf -oL pv "$IMAGE_FILE" | stdbuf -oL zstd -15 --long -T0 -o "${ARTIFACT_BASE}.img.zst"
+          zstd -15 --long -T0 "$IMAGE_FILE" -o "${ARTIFACT_BASE}.img.zst"
 
           if [ "${{ github.event.inputs.include_checksum }}" = "true" ]; then
             sha256sum "${ARTIFACT_BASE}.img.zst" > "${ARTIFACT_BASE}.img.zst.sha256"
