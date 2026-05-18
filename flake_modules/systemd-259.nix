@@ -123,8 +123,7 @@ let
           (nixosPatchesDir + "/0018-meson-Don-t-link-ssh-dropins.patch")
         ]
         ++ lib.optionals (stdenv.hostPlatform.isLinux && stdenv.hostPlatform.isGnu) [
-          # In nixpkgs-259 this was 0019; our local copy is numbered 0020
-          (nixosPatchesDir + "/0020-timesyncd-disable-NSCD-when-DNSSEC-validation-is-dis.patch")
+          (nixosPatchesDir + "/0019-timesyncd-disable-NSCD-when-DNSSEC-validation-is-dis.patch")
         ]
         # Shimboot-specific patches
         ++ [
@@ -406,7 +405,7 @@ let
           UNITDIR="$out/example/systemd/system"
           mkdir -p "$UNITDIR"
 
-          for unit in breakpoint-pre-udev.service breakpoint-pre-basic.service breakpoint-pre-mount.service breakpoint-pre-switch-root.service systemd-factory-reset-complete.service systemd-journalctl@.service; do
+          for unit in breakpoint-pre-udev.service breakpoint-pre-basic.service breakpoint-pre-mount.service breakpoint-pre-switch-root.service systemd-factory-reset-complete.service systemd-journalctl@.service systemd-bsod.service; do
             if [ ! -e "$UNITDIR/$unit" ]; then
               name="$(echo "$unit" | sed 's/\..*$//')"
               printf '[Unit]\nDescription=%s (stub - not in 259.5)\nDefaultDependencies=no\nRefuseManualStart=yes\n\n[Service]\nType=oneshot\nExecStart=/bin/true\nRemainAfterExit=yes\n' "$name" > "$UNITDIR/$unit"
@@ -431,6 +430,12 @@ let
               chmod +x "$BINDIR/$bin"
             fi
           done
+
+          # systemd-bsod needs HAVE_QRENCODE (disabled). NixOS initrd expects it.
+          if [ ! -e "$out/lib/systemd/systemd-bsod" ]; then
+            printf '#!/bin/sh\n# Stub - qrencode disabled in systemd 259.5 build\nexit 0\n' > "$out/lib/systemd/systemd-bsod"
+            chmod +x "$out/lib/systemd/systemd-bsod"
+          fi
         ''
         + lib.optionalString (!withKernelInstall) ''
           find $out -name "*kernel-install*" -exec rm {} \;
@@ -501,6 +506,7 @@ let
 in
 rec {
   # Full systemd 259.5 — PID 1, udevd, all services
+  # Flags match nixpkgs-259 defaults (features nixos-unstable modules expect).
   systemd259 = makeOverridable (mkSystemd {
     withAcl = true;
     withAnalyze = true;
@@ -527,14 +533,14 @@ rec {
     withMachined = false;
     withNetworkd = true;
     withNss = true;
-    withOomd = false;
+    withOomd = true;
     withOpenSSL = true;
-    withPam = false;
+    withPam = true;
     withPasswordQuality = false;
     withPCRE2 = false;
     withPolkit = false;
-    withPortabled = false;
-    withQrencode = false;
+    withPortabled = true;
+    withQrencode = true;
     withRemote = false;
     withResolved = true;
     withShellCompletions = false;
