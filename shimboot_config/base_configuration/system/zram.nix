@@ -4,57 +4,24 @@
 #
 # This module:
 # - Loads zram kernel module at boot
-# - Configures compressed swap with lzo-rle algorithm
-# - Sets swap priority for ChromeOS memory-constrained hardware
-{ lib, pkgs, ... }:
-let
-  algorithm = "lzo-rle";
-  memPercent = 60;
-  swapPriority = 100;
-in
+# - Uses native nixpkgs zramSwap (zram-generator backed)
+# - Sets compression (lzo-rle) and swap priority for memory-constrained hardware
+# - Configures VM sysctls for constrained-memory operation
+{ lib, ... }:
 {
   # Load zram kernel module at boot
   boot.kernelModules = [ "zram" ];
 
-  # Manual zram swap setup — avoids nixpkgs zram-generator which pulls in a
-  # package incompatible with pinned systemd 259.5, causing DEPEND/TIME loops.
-  systemd.services.zram-setup = {
-    description = "Configure zram swap device";
-    wantedBy = [ "swap.target" ];
-    after = [ "dev-zram0.device" ];
-    before = [ "swap.target" ];
-    bindsTo = [ "dev-zram0.device" ];
-    unitConfig.StopWhenUnneeded = true;
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-    };
-    path = with pkgs; [ kmod coreutils util-linux ];
-    script = ''
-      set -e
-      # Ensure module loaded
-      modprobe zram 2>/dev/null || true
-      ZRAM0=/sys/block/zram0
-      if [ ! -e "$ZRAM0" ]; then
-        echo "zram0: device not found, aborting" >&2
-        exit 1
-      fi
-      # Reset if previously configured
-      echo 1 > "$ZRAM0/reset" 2>/dev/null || true
-      # Set compression algorithm
-      echo "${algorithm}" > "$ZRAM0/comp_algorithm"
-      # Calculate size: memPercent of total RAM
-      total_kb=$(awk '/MemTotal/ {print $2}' /proc/meminfo)
-      size_kb=$(( total_kb * ${toString memPercent} / 100 ))
-      echo "$(( size_kb * 1024 ))" > "$ZRAM0/disksize"
-      # Create and activate swap
-      mkswap /dev/zram0
-      swapon -p ${toString swapPriority} /dev/zram0
-    '';
+  # Native ZRAM swap via systemd zram-generator
+  # Replaces the previous manual /sys/block/zram0 oneshot hack
+  zramSwap = {
+    enable = lib.mkDefault true;
+    algorithm = lib.mkDefault "lzo-rle";
+    memoryPercent = lib.mkDefault 60;
+    priority = lib.mkDefault 100;
   };
 
-  services.zram-generator.enable = lib.mkForce false;
-
+  # VM tuning for ChromeOS memory-constrained hardware
   boot.kernel.sysctl = {
     "vm.swappiness" = lib.mkForce 60;
     "vm.page-cluster" = lib.mkForce 3;
