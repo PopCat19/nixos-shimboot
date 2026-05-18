@@ -17,157 +17,106 @@ This occurs because the ChromeOS LSM blocks tmpfs mounts even when running as ro
 
 ## Solution
 
-The workaround converts tmpfs mounts to bind mounts, which are allowed by the ChromeOS LSM. This is implemented through:
+The workaround converts tmpfs mounts to bind mounts, which are allowed by the ChromeOS LSM. A single self-contained wrapper, `bwrap-safe`, intercepts `--tmpfs` arguments, replaces each with a `--bind` to a `mktemp`-created directory, then execs the real SUID bwrap.
 
-1. **SUID bwrap wrapper** - provides namespace creation capabilities
-2. **bwrap-safe wrapper** - converts tmpfs mounts to bind mounts
-3. **Helper scripts** - simplify setup and usage
+The design follows the `proxify` pattern — explicit, self-contained, no side effects beyond the invocation:
+
+```bash
+bwrap-safe --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp -- ./myprogram
+```
 
 ## Implementation
 
 ### Security Configuration
 
-The [`security.nix`](shimboot_config/base_configuration/system/security.nix) module creates two SUID wrappers:
+The [`security.nix`](shimboot_config/base_configuration/system/security.nix) module creates two wrappers:
 
-- `bwrap` - standard SUID wrapper for namespace creation
-- `bwrap-safe` - wrapper that converts tmpfs to bind mounts
+- `bwrap` — SUID wrapper for namespace creation (ChromeOS kernels restrict unprivileged user namespaces)
+- `bwrap-safe` — argument-rewriting wrapper (no SUID needed; the real bwrap handles elevation)
 
-### Helper Scripts
+The `bwrap-safe` wrapper:
 
-#### bwrap-lsm-workaround.sh
+1. Creates a per-invocation unique directory via `mktemp -d` for each `--tmpfs` mount
+2. Replaces `--tmpfs DIR` / `--tmpfs=DIR` with `--bind <mktemp-dir>`
+3. Sets a `trap EXIT` to remove all created directories when bwrap finishes
+4. Execs the real SUID `/run/wrappers/bin/bwrap` with the transformed arguments
 
-A standalone script that can be used as a drop-in replacement for bwrap. It intercepts `--tmpfs` arguments and converts them to bind mounts using a cache directory.
+No global PATH manipulation or setup scripts are needed — `bwrap-safe` is a transparent drop-in prefix.
 
-**Usage:**
+### Steam Integration
+
+Steam's pressure-vessel runtime uses an internal `srt-bwrap` binary. The [`fix-steam-bwrap.sh`](shimboot_config/base_configuration/system/helpers/fix-steam-bwrap.sh) script replaces it with a symlink to `/run/wrappers/bin/bwrap-safe`.
+
+Note: Steam client updates re-download `srt-bwrap`, clobbering the symlink. Re-run the fix script after each Steam update.
+
+## Usage
+
 ```bash
-bwrap-lsm-workaround --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp ./app.AppImage
-```
+# AppImages and Nix packages — prefix with bwrap-safe
+bwrap-safe --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp ./YourApp.AppImage
 
-#### setup-bwrap-workaround.sh
-
-Interactive script that:
-- Creates bwrap cache directory with proper permissions
-- Tests bwrap functionality
-- Creates user-local wrappers
-- Provides usage instructions
-
-**Usage:**
-```bash
-setup-bwrap-workaround
-```
-
-#### fix-steam-bwrap.sh
-
-Patches Steam's internal bwrap (`srt-bwrap`) with the system bwrap-safe wrapper.
-
-**Usage:**
-```bash
+# Steam — one-time patch (re-run after Steam updates)
 fix-steam-bwrap
-```
-
-## Usage Examples
-
-### For AppImages
-
-```bash
-# Using the system wrapper
-/run/wrappers/bin/bwrap-safe --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp ./YourApp.AppImage
-
-# Using the helper script
-bwrap-lsm-workaround --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp ./YourApp.AppImage
-```
-
-### For Nix Packages
-
-Many Nix packages that use bwrap internally will automatically benefit from the bwrap-safe wrapper if it's in the system PATH.
-
-### For Steam
-
-```bash
-# Run the fix script (only needed once per Steam installation)
-fix-steam-bwrap
-
-# Then launch Steam normally
 steam
-```
 
-### Manual bwrap Usage
-
-```bash
 # Test basic functionality
-bwrap-safe --ro-bind / / --dev /dev --proc /proc echo "test"
+bwrap-safe --ro-bind / / --dev /dev --proc /proc echo "works"
 
-# Test tmpfs workaround
-bwrap-safe --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp echo "tmpfs test"
+# Test tmpfs workaround (should not error)
+bwrap-safe --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp echo "tmpfs ok"
 ```
 
 ## Technical Details
 
 ### How It Works
 
-1. The `bwrap-safe` wrapper intercepts bwrap command-line arguments
-2. When it encounters `--tmpfs`, it:
-   - Creates a unique directory in the cache directory
-   - Sets permissions to 700 (user-only access)
-   - Replaces `--tmpfs` with `--bind` pointing to the cache directory
-3. Executes the real bwrap with modified arguments
+1. The `bwrap-safe` wrapper intercepts command-line arguments
+2. When it encounters `--tmpfs` (or `--tmpfs=DIR`):
+   - Creates a unique directory via `mktemp -d` under `$XDG_RUNTIME_DIR/bwrap-cache/`
+   - Sets permissions to 700
+   - Replaces the `--tmpfs` argument with `--bind <mktemp-dir>`
+3. Registers a `trap EXIT` handler to remove all created directories
+4. Execs the real SUID bwrap with the transformed arguments
 
 ### Cache Directory
 
-The bwrap cache directory is located at:
+Temp directories are created under:
 ```
-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/bwrap-cache
+${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/bwrap-cache/tmpfs-XXXXXXXX
 ```
 
-This directory is:
-- Created automatically with proper permissions
-- Unique per user
-- Cleaned up on reboot (located in runtime directory)
+Per-invocation cleanup via `trap EXIT` means directories are removed as soon as bwrap exits, not just on reboot. The parent `bwrap-cache/` directory itself persists (empty) for the session lifetime.
 
 ### Limitations
 
-1. **Performance** - bind mounts may have slightly different performance characteristics than tmpfs
-2. **Disk space** - cache directories consume disk space (cleaned on reboot)
-3. **Compatibility** - some applications may expect true tmpfs behavior
+- **Performance** — bind mounts may have slightly different characteristics than tmpfs
+- **Compatibility** — some applications may expect true tmpfs behavior (e.g., size limits via `--tmpfs-size`)
+- **`fix-steam-bwrap.sh`** needs re-running after Steam updates
 
 ## Troubleshooting
 
 ### bwrap still fails with "Operation not permitted"
 
-1. Check if bwrap-safe wrapper exists:
+1. Check wrappers exist:
    ```bash
-   ls -la /run/wrappers/bin/bwrap-safe
+   ls -la /run/wrappers/bin/bwrap /run/wrappers/bin/bwrap-safe
    ```
 
-2. Verify SUID permissions:
+2. Verify `bwrap` has SUID permission:
    ```bash
-   ls -la /run/wrappers/bin/bwrap
+   stat -c '%a %n' /run/wrappers/bin/bwrap
+   # Should show 4xxx (SUID bit set)
    ```
 
-3. Test basic bwrap functionality:
+3. Test basic functionality:
    ```bash
    bwrap --ro-bind / / --dev /dev --proc /proc echo "test"
    ```
 
-### Cache directory issues
-
-1. Check cache directory permissions:
-   ```bash
-   ls -la "${XDG_RUNTIME_DIR}/bwrap-cache"
-   ```
-
-2. Manually create cache directory:
-   ```bash
-   mkdir -p "${XDG_RUNTIME_DIR}/bwrap-cache"
-   chmod 700 "${XDG_RUNTIME_DIR}/bwrap-cache"
-   ```
-
 ### Application-specific issues
 
-Some applications may have their own bwrap configurations. In these cases:
+Some applications bundle their own bwrap. For these:
 
-1. Check if the application has a bwrap configuration file
-2. Modify it to use `bwrap-safe` instead of `bwrap`
-3. Or set up a wrapper script for the application
-
-
+1. Check if the application has a bwrap configuration or environment variable for overriding the binary path
+2. Point it at `/run/wrappers/bin/bwrap-safe` instead of the bundled bwrap
+3. Steam specifically: run `fix-steam-bwrap` after each client update
