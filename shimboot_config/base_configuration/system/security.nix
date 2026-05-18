@@ -15,7 +15,7 @@ let
   # Transparent to everything — Steam, Flatpak, bwrap, Nix packages.
   mountShim = pkgs.stdenv.mkDerivation {
     name = "bwrap-mount-shim";
-    src = ../../patches/bwrap-mount-shim.c;
+    src = ../../../patches/bwrap-mount-shim.c;
     dontUnpack = true;
     buildPhase = ''
       $CC -shared -fPIC -o mount_shim.so "$src" -ldl
