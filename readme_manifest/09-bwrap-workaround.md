@@ -45,19 +45,26 @@ No global PATH manipulation or setup scripts are needed — `bwrap-safe` is a tr
 
 ### Steam Integration
 
-Steam's pressure-vessel runtime uses an internal `srt-bwrap` binary. The [`fix-steam-bwrap.sh`](shimboot_config/base_configuration/system/helpers/fix-steam-bwrap.sh) script replaces it with a symlink to `/run/wrappers/bin/bwrap-safe`.
+Steam's pressure-vessel runtime uses an internal `srt-bwrap` binary.
+Two approaches, in order of preference:
 
-Note: Steam client updates re-download `srt-bwrap`, clobbering the symlink. Re-run the fix script after each Steam update.
+1. **LD_PRELOAD shim (recommended):** `bwrap-mount-shim steam` — wraps
+   Steam with the mount() interceptor, transparent to everything Steam
+   launches. No symlink patching, survives Steam updates.
+2. **Symlink patch:** The [`fix-steam-bwrap.sh`](shimboot_config/base_configuration/system/helpers/fix-steam-bwrap.sh)
+   script replaces `srt-bwrap` with a symlink to `bwrap-safe`. Must be
+   re-run after each Steam client update.
 
 ## Usage
 
 ```bash
 # AppImages and Nix packages — prefix with bwrap-safe
 bwrap-safe --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp ./YourApp.AppImage
+bwrap-safe ./myapp  # convenience mode auto-adds sandbox defaults
 
-# Steam — one-time patch (re-run after Steam updates)
-fix-steam-bwrap
-steam
+# Steam, Flatpak, desktop apps — LD_PRELOAD shim (transparent)
+bwrap-mount-shim steam
+bwrap-mount-shim flatpak run com.example.App
 
 # Test basic functionality
 bwrap-safe --ro-bind / / --dev /dev --proc /proc echo "works"

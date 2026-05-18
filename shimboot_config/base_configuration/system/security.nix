@@ -10,6 +10,30 @@
 # - Provides secure privilege escalation mechanisms
 # - Creates SUID wrapper for bubblewrap to bypass ChromeOS kernel restrictions
 { pkgs, ... }:
+let
+  # LD_PRELOAD shim: intercepts mount("tmpfs", ...) → bind mount
+  # Transparent to everything — Steam, Flatpak, bwrap, anything.
+  mountShim = pkgs.stdenv.mkDerivation {
+    name = "bwrap-mount-shim";
+    src = ../../patches/bwrap-mount-shim.c;
+    dontUnpack = true;
+    buildPhase = ''
+      $CC -shared -fPIC -o mount_shim.so "$src" -ldl
+    '';
+    installPhase = ''
+      mkdir -p "$out/lib"
+      cp mount_shim.so "$out/lib/mount_shim.so"
+    '';
+    meta.license = pkgs.lib.licenses.gpl3;
+  };
+
+  # Convenience wrapper: bwrap-mount-shim steam
+  # Sets LD_PRELOAD and execs the command.
+  mountShimWrapper = pkgs.writeShellScriptBin "bwrap-mount-shim" ''
+    export LD_PRELOAD="${mountShim}/lib/mount_shim.so''${LD_PRELOAD:+:}$LD_PRELOAD"
+    exec "$@"
+  '';
+in
 {
   security.polkit.enable = true;
   security.rtkit.enable = true;
@@ -79,9 +103,12 @@
     '';
   };
 
-  # Ensure the wrapper is in the system path
-  # Programs looking for 'bwrap' will find the SUID version first.
+  # Ensure wrappers are in the system path
+  # bwrap-safe: SUID bwrap for namespaces + argument-rewriting wrapper
+  # bwrap-mount-shim: LD_PRELOAD shim for transparent Steam/Flatpak support
   environment.systemPackages = [
     pkgs.bubblewrap
+    mountShim
+    mountShimWrapper
   ];
 }
