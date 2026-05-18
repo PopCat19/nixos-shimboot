@@ -24,44 +24,52 @@
     setuid = true;
   };
 
-  # Create a wrapper script that works around ChromeOS LSM restrictions
-  # The chromiumos LSM blocks tmpfs mounts, so tmpfs converted to bind mounts
+  # Transparent wrapper: converts --tmpfs to --bind to bypass ChromeOS LSM.
+  # Usage: bwrap-safe [same args as bwrap]
+  #
+  # Design follows the proxify pattern — explicit, self-contained, no side
+  # effects beyond the invocation. Each --tmpfs gets a unique mktemp directory
+  # that is cleaned up when bwrap exits. No global PATH manipulation needed.
+  #
+  # Does not need SUID itself; the real bwrap at /run/wrappers/bin/bwrap
+  # handles namespace creation.
   security.wrappers.bwrap-safe = {
     owner = "root";
     group = "root";
     source = pkgs.writeShellScript "bwrap-safe" ''
-      # Wrapper that converts tmpfs mounts to bind mounts
-      # to work around ChromeOS LSM restrictions
       BWRAP_REAL="/run/wrappers/bin/bwrap"
-      BWRAP_CACHE_DIR="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/bwrap-cache"
-      mkdir -p "$BWRAP_CACHE_DIR"
+      CACHE="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/bwrap-cache"
+      mkdir -p "$CACHE"
 
       args=()
-      skip_next=false
-      tmpfs_count=0
+      dirs=""
 
-      for arg in "$@"; do
-        if [[ "$skip_next" == "true" ]]; then
-          skip_next=false
-          continue
-        fi
-
-        if [[ "$arg" == "--tmpfs" ]]; then
-          tmpfs_dir="''${BWRAP_CACHE_DIR}/tmpfs-''${tmpfs_count}"
-          mkdir -p "$tmpfs_dir"
-          chmod 700 "$tmpfs_dir"
-          args+=("--bind" "$tmpfs_dir")
-          tmpfs_count=$((tmpfs_count + 1))
-          skip_next=true
-          continue
-        fi
-
-        args+=("$arg")
+      while [ $# -gt 0 ]; do
+        case "$1" in
+          --tmpfs)
+            d=$(mktemp -d "$CACHE/tmpfs-XXXXXXXX")
+            chmod 700 "$d"
+            dirs="$dirs $d"
+            args+=("--bind" "$d")
+            shift 2
+            ;;
+          --tmpfs=*)
+            d=$(mktemp -d "$CACHE/tmpfs-XXXXXXXX")
+            chmod 700 "$d"
+            dirs="$dirs $d"
+            args+=("--bind" "$d")
+            shift
+            ;;
+          *)
+            args+=("$1")
+            shift
+            ;;
+        esac
       done
 
+      trap 'for d in $dirs; do rm -rf "$d" 2>/dev/null; done' EXIT
       exec "$BWRAP_REAL" "''${args[@]}"
     '';
-    setuid = true;
   };
 
   # Ensure the wrapper is in the system path
