@@ -63,7 +63,7 @@
         inherit pkgs;
         patchesDir = ./patches;
       };
-      inherit (systemdPackages) systemd259 systemdMinimal259 systemdLibs259;
+      inherit (systemdPackages) systemd259 systemdMinimal259;
 
       # Import module outputs
       # Core system and development modules
@@ -75,7 +75,6 @@
             nixpkgs
             board
             systemd259
-            systemdMinimal259
             ;
         };
       systemConfigurationOutputs = import ./flake_modules/system-configuration.nix {
@@ -83,7 +82,6 @@
           self
           nixpkgs
           systemd259
-          systemdMinimal259
           ;
       };
       developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix {
@@ -127,7 +125,6 @@
             nixpkgs
             board
             systemd259
-            systemdMinimal259
             ;
         };
 
@@ -161,22 +158,16 @@
     {
       nixosModules = {
         # Full ChromeOS base configuration (boot, fs, hw, users, nix settings)
-        # Wraps configuration.nix to inject systemd259 and systemdMinimal259 overlay
-        # so consumers importing this module don't need to provide them separately
+        # Wraps configuration.nix to inject systemd259.
+        # Build-time udevadm verify uses nixpkgs-unstable's 260.1 udevadm;
+        # runtime udevd is 259.5 via systemd.package = systemd259.
+        # The version mismatch is benign: 259.5 warns on unknown OPTIONS,
+        # gracefully ignores unknown tokens.
         chromeos = {
           imports = [ ./shimboot_config/base_configuration/configuration.nix ];
           _module.args = {
             inherit systemd259;
-            inherit systemdMinimal259;
           };
-          # Apply overlay to replace systemdMinimal with 259.5 variant
-          # This ensures udevadm verify uses the correct systemd version
-          nixpkgs.overlays = [
-            (_final: _prev: {
-              systemdMinimal = systemdMinimal259;
-              systemdLibs = systemdLibs259;
-            })
-          ];
         };
 
         # Shimboot options (shimboot.headless mkEnableOption)

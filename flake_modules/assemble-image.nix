@@ -19,7 +19,6 @@
   nixpkgs,
   board,
   systemd259,
-  systemdMinimal259,
 }:
 let
   system = "x86_64-linux";
@@ -35,13 +34,6 @@ let
   # User config for board, hostname, username
   userConfig = import ../shimboot_config/user-config.nix { };
 
-  # === Overlay to match systemdMinimal with target systemd version ===
-  # systemdMinimal provides udevadm; without this overlay it comes from
-  # nixpkgs-unstable (260.x) while systemd-udevd is 259.5 — version mismatch
-  systemd259Overlay = _final: _prev: {
-    systemdMinimal = systemdMinimal259;
-  };
-
   # === Build the NixOS system closure (same base as raw-rootfs-base) ===
   mkRootfsConfig =
     { headless ? false }:
@@ -56,8 +48,6 @@ let
           boot.loader.grub.enable = false;
           boot.loader.systemd-boot.enable = false;
         }
-        # Apply overlay to replace systemdMinimal with 259.5 variant
-        { nixpkgs.overlays = [ systemd259Overlay ]; }
       ] ++ nixpkgs.lib.optional headless { shimboot.headless = true; };
       specialArgs = {
         inherit self userConfig systemd259;
