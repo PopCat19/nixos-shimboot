@@ -1,5 +1,22 @@
 {
   "nodes": {
+    "linux-firmware": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1778106593,
+        "narHash": "sha256-wndG97ocehkxfeEMhuyH6jvbwgtya7XBuwRNMBiVibo=",
+        "ref": "master",
+        "rev": "f2ab21221b09930714cf3a723f0ba920ac281b2b",
+        "revCount": 1693,
+        "type": "git",
+        "url": "https://chromium.googlesource.com/chromiumos/third_party/linux-firmware"
+      },
+      "original": {
+        "ref": "master",
+        "type": "git",
+        "url": "https://chromium.googlesource.com/chromiumos/third_party/linux-firmware"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1778443072,
@@ -18,6 +35,7 @@
     },
     "root": {
       "inputs": {
+        "linux-firmware": "linux-firmware",
         "nixpkgs": "nixpkgs"
       }
     }

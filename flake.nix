@@ -25,6 +25,13 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+    # Upstream ChromiumOS linux-firmware for driver harvesting
+    # Full clone is large (~3GB) but cached in Nix store after first fetch
+    linux-firmware = {
+      url = "git+https://chromium.googlesource.com/chromiumos/third_party/linux-firmware?ref=master";
+      flake = false;
+    };
   };
 
   # Combine all outputs from modules
@@ -32,6 +39,7 @@
     {
       self,
       nixpkgs,
+      linux-firmware,
       ...
     }:
     let
@@ -115,7 +123,7 @@
       harvestedDriversOutputs =
         board:
         import ./flake_modules/harvest-drivers.nix {
-          inherit self nixpkgs board;
+          inherit self nixpkgs board linux-firmware;
         };
       assembleImageOutputs =
         board:

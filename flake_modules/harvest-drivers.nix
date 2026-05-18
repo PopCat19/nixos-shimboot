@@ -10,6 +10,7 @@
 {
   self,
   nixpkgs,
+  linux-firmware,
   board ? "dedede",
 }:
 let
@@ -24,14 +25,9 @@ let
   shim = self.packages.${system}."chromeos-shim-${board}";
   recovery = self.packages.${system}."chromeos-recovery-${board}";
 
-  # Upstream ChromiumOS linux-firmware for augmentation
-  # Uses git fetch (not tarball) since googlesource archive URLs with
-  # the +archive path format are broken by fetchTarball's URL encoding.
-  # Full clone is large (~3GB) but cached in Nix store after first fetch.
-  upstreamFirmware = builtins.fetchGit {
-    url = "https://chromium.googlesource.com/chromiumos/third_party/linux-firmware.git";
-    ref = "refs/heads/master";
-  };
+  # Upstream ChromiumOS linux-firmware (flake input)
+  # Full clone is large (~3GB) but cached in Nix store after first fetch
+  upstreamFirmware = linux-firmware;
 in
 {
   packages.${system}."harvested-drivers-${board}" = pkgs.stdenv.mkDerivation {
