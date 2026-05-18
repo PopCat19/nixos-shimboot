@@ -94,7 +94,7 @@ let
         util-linux         # truncate, dd
         vboot_reference    # cgpt (ChromeOS boot flags)
         nix                # nix-store --optimise
-        guestfs-tools      # guestmount (FUSE, no kernel privileges)
+        fakeroot           # preserve file ownership during debugfs extract
         coreutils
         gnused
         gawk
@@ -108,6 +108,7 @@ let
       buildPhase =
         # NOTE: ''${ escapes Nix interpolation to pass ${} through to bash
         let
+          flavor = if headless then "headless" else "base";
           echoLayout = ''
             echo "Image layout: ''${TOTAL_MB}M total"
             echo "  STATE:   ''${STATE_START}-2M"
@@ -151,71 +152,76 @@ let
           exit 1
         fi
 
-        # === 1.5 Store optimization + git clone (mount-based, optional) ===
-        # These steps require mounting the rootfs; use guestmount (FUSE)
-        # which works without kernel privileges. Skip gracefully if unavailable.
+        # === 1.5 Store optimization + git clone (debugfs + fakeroot, no mount) ===
+        # Run entire post-processing under fakeroot: debugfs rdump preserves
+        # ownership, nix-store optimises the closure, git clone sets up
+        # self-repair metadata, mkfs.ext4 rebuilds with correct permissions.
         optimize_and_clone() {
           local img="$1"
           local user="$2"
-          local mnt="rootfs-mnt"
+          local staging="$PWD/rootfs-staging"
 
-          if ! command -v guestmount >/dev/null 2>&1; then
-            echo "  guestmount not available, skipping rootfs post-processing"
-            return 1
-          fi
+          echo "=== Rootfs post-processing (debugfs + fakeroot, no mount) ==="
+          mkdir -p "$staging"
 
-          mkdir -p "$mnt"
-          echo "  Mounting rootfs with guestmount (FUSE)..."
-          if ! guestmount -a "$img" -i --rw "$mnt" 2>/dev/null; then
-            echo "  guestmount failed (FUSE may not be available in sandbox)"
-            rmdir "$mnt" 2>/dev/null || true
-            return 1
-          fi
+          fakeroot -- bash -c '
+            set -euo pipefail
+            img="$1"
+            user="$2"
+            staging="$3"
+            nixos_src="$4"
+            board="$5"
+            flavor="$6"
+            hostname="$7"
+            username="$8"
 
-          # --- Store optimization: hard-link identical files in /nix/store ---
-          if [ -d "$mnt/nix/store" ]; then
-            echo "  Running nix-store --optimise..."
-            nix-store --store "$mnt" --optimise -vv 2>&1 | tail -5 || true
-          else
-            echo "  No /nix/store found in rootfs, skipping optimization"
-          fi
+            echo "  Extracting rootfs with debugfs rdump..."
+            debugfs -R "rdump / $staging" "$img" 2>&1 | grep -v "Invalid argument while changing ownership" || true
 
-          # --- Git clone: set up nixos-shimboot for self-repair ---
-          local clone_dest="$mnt/home/$user/nixos-shimboot"
-          if [ -n "$user" ] && [ -d "$mnt/home/$user" ]; then
-            echo "  Setting up nixos-shimboot at $clone_dest"
-            rm -rf "$clone_dest" 2>/dev/null || true
-            mkdir -p "$(dirname "$clone_dest")"
-
-            # Copy flake source from Nix store (no .git, so init fresh)
-            if [ -d "$NIXOS_SHIMBOOT_SRC" ]; then
-              cp -a "$NIXOS_SHIMBOOT_SRC/." "$clone_dest/"
+            # Store optimization: hard-link identical files in /nix/store
+            if [ -d "$staging/nix/store" ]; then
+              echo "  Running nix-store --optimise..."
+              nix-store --store "local?root=$staging" --optimise -vv 2>&1 | tail -5 || true
             else
-              echo "  WARNING: NIXOS_SHIMBOOT_SRC not found, skipping"
+              echo "  No /nix/store found in staging, skipping optimization"
             fi
 
-            # Initialize git repo and set remote
-            git -C "$clone_dest" init 2>/dev/null || true
-            git -C "$clone_dest" remote add origin \
-              "https://github.com/PopCat19/nixos-shimboot.git" 2>/dev/null || true
-
-            # Write build metadata
-            cat > "$clone_dest/.shimboot_build_info" <<METAMETA
+            # Git clone: nixos-shimboot for self-repair
+            local clone_dest="$staging/home/$user/nixos-shimboot"
+            if [ -n "$user" ] && [ -d "$staging/home/$user" ]; then
+              echo "  Setting up nixos-shimboot at $clone_dest"
+              rm -rf "$clone_dest" 2>/dev/null || true
+              mkdir -p "$(dirname "$clone_dest")"
+              if [ -d "$nixos_src" ]; then
+                cp -a "$nixos_src/." "$clone_dest/"
+              else
+                echo "  WARNING: NIXOS_SHIMBOOT_SRC not found, skipping"
+              fi
+              git -C "$clone_dest" init 2>/dev/null || true
+              git -C "$clone_dest" remote add origin \
+                "https://github.com/PopCat19/nixos-shimboot.git" 2>/dev/null || true
+              cat > "$clone_dest/.shimboot_build_info" <<METAMETA
 # Shimboot build metadata
-BUILD_BOARD=${board}
-BUILD_FLAVOR=${if headless then "headless" else "base"}
-BUILD_HOSTNAME=${hostname}
-BUILD_USERNAME=${username}
+BUILD_BOARD=$board
+BUILD_FLAVOR=$flavor
+BUILD_HOSTNAME=$hostname
+BUILD_USERNAME=$username
 METAMETA
-            chown -R 1000:1000 "$clone_dest" 2>/dev/null || true
-          else
-            echo "  Skipping git clone: /home/$user not found in rootfs"
-          fi
+              echo "  Done"
+            else
+              echo "  Skipping git clone: /home/$user not found in staging"
+            fi
 
-          # Unmount and verify
-          guestunmount "$mnt" 2>/dev/null || true
-          rmdir "$mnt" 2>/dev/null || true
-          echo "  Running e2fsck after modifications..."
+            # Rebuild optimized ext4 from staging directory
+            echo "  Rebuilding ext4 from optimized staging..."
+            img_size=$(stat -c%s "$img")
+            rm -f "$img"
+            truncate -s "$img_size" "$img"
+            mkfs.ext4 -F -d "$staging" "$img" 2>&1 | tail -3
+          ' -- "$img" "$user" "$staging" "$NIXOS_SHIMBOOT_SRC" "${board}" "${flavor}" "$hostname" "$username"
+
+          rm -rf "$staging" 2>/dev/null || true
+          echo "  Running e2fsck after rebuild..."
           e2fsck -fy "$img" 2>/dev/null || true
           return 0
         }
