@@ -1,12 +1,12 @@
 # Context
 
-- bwrap-lsm-workaround.sh — Standalone bwrap wrapper that converts tmpfs to bind mounts for ChromeOS LSM compatibility (superseded by bwrap-safe in security.nix)
-- bwrap-wrapper.sh — Transparent wrapper that intercepts bwrap calls and converts tmpfs to bind mounts (superseded by bwrap-safe in security.nix)
+- bwrap-lsm-workaround.sh — Standalone tmpfs→bind wrapper (superseded by bwrap-mount-shim LD_PRELOAD approach)
+- bwrap-wrapper.sh — Transparent bwrap tmpfs→bind interceptor (superseded by bwrap-mount-shim)
 - expand-rootfs.sh — Expands root partition to full disk capacity
-- fix-steam-bwrap.sh — Symlinks Steam's srt-bwrap to bwrap-safe (superseded by bwrap-mount-shim LD_PRELOAD approach; rots on Steam update)
+- fix-steam-bwrap.sh — Legacy symlink patch for Steam's srt-bwrap (superseded by bwrap-mount-shim; rots on Steam update)
 - helpers.nix — Provide system packages for helper scripts with dependencies
-- setup-bwrap-path.sh — Automatically integrates bwrap-wrapper into system PATH (deprecated; use explicit bwrap-safe prefix)
-- setup-bwrap-workaround.sh — Configures bwrap workarounds for ChromeOS LSM restrictions (superseded by bwrap-safe in security.nix)
+- setup-bwrap-path.sh — Legacy PATH integration for bwrap-wrapper (superseded by bwrap-mount-shim)
+- setup-bwrap-workaround.sh — Legacy bwrap workaround configuration (superseded by bwrap-mount-shim)
 - migrate-hostname.sh — Migrates hostname configuration
 - migrate-nixos-shimboot.sh — Migrates NixOS configuration
 - migrate-username.sh — Migrates username configuration

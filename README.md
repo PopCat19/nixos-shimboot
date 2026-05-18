@@ -409,88 +409,75 @@ This occurs because the ChromeOS LSM blocks tmpfs mounts even when running as ro
 
 ## Solution
 
-The workaround converts tmpfs mounts to bind mounts, which are allowed by the ChromeOS LSM. A single self-contained wrapper, `bwrap-safe`, intercepts `--tmpfs` arguments, replaces each with a `--bind` to a `mktemp`-created directory, then execs the real SUID bwrap.
-
-The design follows the `proxify` pattern — explicit, self-contained, no side effects beyond the invocation:
+A single tool, `bwrap-mount-shim`, uses `LD_PRELOAD` to intercept `mount()` calls at the libc level and convert `tmpfs` mounts to `bind` mounts (which the ChromeOS LSM allows). It works transparently for everything — no argument parsing, no per-application configuration.
 
 ```bash
-bwrap-safe --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp -- ./myprogram
+bwrap-mount-shim steam                    # Steam, Flatpak (transparent LD_PRELOAD)
+bwrap-mount-shim ./myapp                  # auto-sandbox with bwrap defaults
+bwrap-mount-shim --ro-bind / / -- ... --  # explicit bwrap control
 ```
+
+The first form only sets `LD_PRELOAD` — the program runs its own bwrap internally, and the shim intercepts tmpfs at the mount() level.
+
+The second form auto-wraps the command in a bwrap sandbox with sensible defaults (`ro-bind /`, `/dev`, `/proc`, `tmpfs /tmp`).
 
 ## Implementation
 
 ### Security Configuration
 
-The [`security.nix`](shimboot_config/base_configuration/system/security.nix) module creates two wrappers:
+The [`security.nix`](shimboot_config/base_configuration/system/security.nix) module provides:
 
 - `bwrap` — SUID wrapper for namespace creation (ChromeOS kernels restrict unprivileged user namespaces)
-- `bwrap-safe` — argument-rewriting wrapper (no SUID needed; the real bwrap handles elevation)
+- `bwrap-mount-shim` — LD_PRELOAD shim compiled from [`mount_shim.c`](patches/bwrap-mount-shim.c), plus a convenience wrapper script
 
-The `bwrap-safe` wrapper:
-
-1. Creates a per-invocation unique directory via `mktemp -d` for each `--tmpfs` mount
-2. Replaces `--tmpfs DIR` / `--tmpfs=DIR` with `--bind <mktemp-dir>`
-3. Sets a `trap EXIT` to remove all created directories when bwrap finishes
-4. Execs the real SUID `/run/wrappers/bin/bwrap` with the transformed arguments
-
-No global PATH manipulation or setup scripts are needed — `bwrap-safe` is a transparent drop-in prefix.
+The C shim intercepts `mount("tmpfs", ...)` calls, creates a unique directory via `mkdtemp` under `$BWRAP_CACHE_DIR` (default: `/tmp/bwrap-cache`), and converts the call to `mount("bind", ...)`. Created directories are cleaned up on normal exit via `atexit`.
 
 ### Steam Integration
 
-Steam's pressure-vessel runtime uses an internal `srt-bwrap` binary.
-Two approaches, in order of preference:
+Steam's pressure-vessel runtime uses an internal `srt-bwrap` binary. The LD_PRELOAD shim intercepts `mount()` inside that process, so `bwrap-mount-shim steam` is all that's needed — no symlink patching, survives Steam updates.
 
-1. **LD_PRELOAD shim (recommended):** `bwrap-mount-shim steam` — wraps
-   Steam with the mount() interceptor, transparent to everything Steam
-   launches. No symlink patching, survives Steam updates.
-2. **Symlink patch:** The [`fix-steam-bwrap.sh`](shimboot_config/base_configuration/system/helpers/fix-steam-bwrap.sh)
-   script replaces `srt-bwrap` with a symlink to `bwrap-safe`. Must be
-   re-run after each Steam client update.
+The legacy [`fix-steam-bwrap.sh`](shimboot_config/base_configuration/system/helpers/fix-steam-bwrap.sh) (symlink patch) remains available but requires re-running after each Steam client update.
 
 ## Usage
 
 ```bash
-# AppImages and Nix packages — prefix with bwrap-safe
-bwrap-safe --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp ./YourApp.AppImage
-bwrap-safe ./myapp  # convenience mode auto-adds sandbox defaults
-
-# Steam, Flatpak, desktop apps — LD_PRELOAD shim (transparent)
+# Steam, Flatpak — transparent LD_PRELOAD
 bwrap-mount-shim steam
 bwrap-mount-shim flatpak run com.example.App
 
-# Test basic functionality
-bwrap-safe --ro-bind / / --dev /dev --proc /proc echo "works"
+# AppImages, standalone apps — auto-sandbox
+bwrap-mount-shim ./YourApp.AppImage
 
-# Test tmpfs workaround (should not error)
-bwrap-safe --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp echo "tmpfs ok"
+# Explicit bwrap control
+bwrap-mount-shim --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp -- ./myapp
 ```
 
 ## Technical Details
 
 ### How It Works
 
-1. The `bwrap-safe` wrapper intercepts command-line arguments
-2. When it encounters `--tmpfs` (or `--tmpfs=DIR`):
-   - Creates a unique directory via `mktemp -d` under `$XDG_RUNTIME_DIR/bwrap-cache/`
-   - Sets permissions to 700
-   - Replaces the `--tmpfs` argument with `--bind <mktemp-dir>`
-3. Registers a `trap EXIT` handler to remove all created directories
-4. Execs the real SUID bwrap with the transformed arguments
+1. `mount_shim.so` is loaded via `LD_PRELOAD`
+2. It resolves the real `mount()` via `dlsym(RTLD_NEXT, "mount")`
+3. When `mount("tmpfs", ...)` is called:
+   - Creates a unique directory via `mkdtemp` under `$BWRAP_CACHE_DIR/tmpfs-XXXXXX`
+   - Registers the directory for cleanup via `atexit`
+   - Redirects to `mount(NULL, target, NULL, MS_BIND, data)`
+4. All other mount calls pass through to the real `mount()` unchanged
 
 ### Cache Directory
 
 Temp directories are created under:
 ```
-${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/bwrap-cache/tmpfs-XXXXXXXX
+${BWRAP_CACHE_DIR:-/tmp/bwrap-cache}/tmpfs-XXXXXXXX
 ```
 
-Per-invocation cleanup via `trap EXIT` means directories are removed as soon as bwrap exits, not just on reboot. The parent `bwrap-cache/` directory itself persists (empty) for the session lifetime.
+Directories are cleaned up on normal process exit via `atexit`. On signal kill or abrupt namespace teardown, cleanup may not run — `/tmp` is cleared on reboot regardless.
 
 ### Limitations
 
 - **Performance** — bind mounts may have slightly different characteristics than tmpfs
 - **Compatibility** — some applications may expect true tmpfs behavior (e.g., size limits via `--tmpfs-size`)
-- **`fix-steam-bwrap.sh`** needs re-running after Steam updates
+- **Cleanup** — `atexit` is best-effort; directories may persist until reboot on abnormal exit
 
 ## Troubleshooting
 
@@ -498,27 +485,28 @@ Per-invocation cleanup via `trap EXIT` means directories are removed as soon as 
 
 1. Check wrappers exist:
    ```bash
-   ls -la /run/wrappers/bin/bwrap /run/wrappers/bin/bwrap-safe
+   ls -la /run/wrappers/bin/bwrap
+   which bwrap-mount-shim
    ```
 
-2. Verify `bwrap` has SUID permission:
+2. Verify bwrap has SUID permission:
    ```bash
    stat -c '%a %n' /run/wrappers/bin/bwrap
    # Should show 4xxx (SUID bit set)
    ```
 
-3. Test basic functionality:
+3. Test with the shim:
    ```bash
-   bwrap --ro-bind / / --dev /dev --proc /proc echo "test"
+   bwrap-mount-shim bwrap --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp echo "works"
    ```
 
 ### Application-specific issues
 
-Some applications bundle their own bwrap. For these:
+Some applications bundle their own bwrap. The LD_PRELOAD shim handles these transparently — no per-application configuration needed. If tmpfs calls still fail, verify the shim is loaded:
 
-1. Check if the application has a bwrap configuration or environment variable for overriding the binary path
-2. Point it at `/run/wrappers/bin/bwrap-safe` instead of the bundled bwrap
-3. Steam specifically: run `fix-steam-bwrap` after each client update
+```bash
+LD_PRELOAD=/path/to/mount_shim.so ldd /path/to/app | grep mount_shim
+```
 
 </details>
 <!-- END fragment: 09-bwrap-workaround.md -->
@@ -595,4 +583,4 @@ Users unfamiliar with Nix should try it in a VM first ([nixos.org/download](http
 </details>
 <!-- END fragment: 13-roadmap.md -->
 
-<!-- generated: 20260518-666a4af -->
+<!-- generated: 20260518-9852dc0 -->
