@@ -25,14 +25,16 @@
   };
 
   # Transparent wrapper: converts --tmpfs to --bind to bypass ChromeOS LSM.
-  # Usage: bwrap-safe [same args as bwrap]
+  # Usage:
+  #   bwrap-safe ./myapp              ← convenience: auto-adds sandbox defaults
+  #   bwrap-safe --flags... -- cmd     ← explicit: full bwrap control
   #
   # Design follows the proxify pattern — explicit, self-contained, no side
   # effects beyond the invocation. Each --tmpfs gets a unique mktemp directory
-  # that is cleaned up when bwrap exits. No global PATH manipulation needed.
+  # that is cleaned up when bwrap exits.
   #
-  # Does not need SUID itself; the real bwrap at /run/wrappers/bin/bwrap
-  # handles namespace creation.
+  # If the first argument is not a flag (does not start with --), standard
+  # bwrap sandbox boilerplate is prepended: ro-bind /, /dev, /proc, tmpfs /tmp.
   security.wrappers.bwrap-safe = {
     owner = "root";
     group = "root";
@@ -40,6 +42,11 @@
       BWRAP_REAL="/run/wrappers/bin/bwrap"
       CACHE="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/bwrap-cache"
       mkdir -p "$CACHE"
+
+      # Convenience mode: if first arg is not a flag, prepend sandbox defaults
+      if [ $# -gt 0 ] && [ "''${1#-}" = "$1" ]; then
+        set -- --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp -- "$@"
+      fi
 
       args=()
       dirs=""

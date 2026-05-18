@@ -1,0 +1,26 @@
+# Context
+
+- `audio.nix` — Configure audio services for ChromeOS compatibility
+- `boot.nix` — Configure bootloader and kernel settings for shimboot
+- `display-manager.nix` — Configure X server, LightDM, and systemd logind for ChromeOS devices
+- `environment.nix` — Set system-wide environment variables for all users
+- `filesystems.nix` — Configure filesystems for single-partition ChromeOS setup
+- `fish.nix` — Configure Fish shell with functions, abbreviations, and Starship prompt
+- `fonts.nix` — Configure minimal base fonts for system compatibility
+- `hardware.nix` — Configure hardware settings for ChromeOS devices
+- `headless-services.nix` — Provide headless-specific systemd services
+- `hyprland.nix` — Configure Hyprland window manager for ChromeOS devices
+- `kill-frecon.nix` — Configure service to kill frecon and prepare for X11
+- `localization.nix` — Configure system locale and timezone settings
+- `luks2.nix` — Configure LUKS2 encrypted root filesystem support for shimboot
+- `networking.nix` — Configure network services for ChromeOS compatibility
+- `nh.nix` — Configure nh (nix-community/nh) as the Nix CLI helper
+- `packages.nix` — Install absolutely minimal essential system packages only
+- `power-management.nix` — Configure system power and CPU scaling for ChromeOS devices
+- `security.nix` — Configure system security and authorization
+- `services.nix` — Configure essential system services
+- `sshd.nix` — Configure OpenSSH server for remote access
+- `systemd-patch.nix` — Configure systemd to use pinned 259.5 with ChromeOS + pidfd_spawn patches
+- `users.nix` — Configure system users for shimboot
+- `xdg-portals.nix` — Configure XDG portals and desktop integration for ChromeOS devices
+- `zram.nix` — Configure ZRAM compressed swap for ChromeOS devices

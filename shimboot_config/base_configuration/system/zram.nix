@@ -1,3 +1,11 @@
+# ZRAM Configuration Module
+#
+# Purpose: Configure ZRAM compressed swap for ChromeOS devices
+#
+# This module:
+# - Loads zram kernel module at boot
+# - Configures compressed swap with lzo-rle algorithm
+# - Sets swap priority for ChromeOS memory-constrained hardware
 { lib, pkgs, ... }:
 let
   algorithm = "lzo-rle";
