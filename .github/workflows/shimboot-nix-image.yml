@@ -95,6 +95,7 @@ jobs:
       - name: Build shimboot image (Nix derivation)
         id: build
         run: |
+          set -o pipefail
           BOARD="${{ matrix.board }}"
           HEADLESS="${{ github.event.inputs.headless }}"
 

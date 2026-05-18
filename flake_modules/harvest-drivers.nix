@@ -29,8 +29,8 @@ let
   # the +archive path format are broken by fetchTarball's URL encoding.
   # Full clone is large (~3GB) but cached in Nix store after first fetch.
   upstreamFirmware = builtins.fetchGit {
-    url = "https://chromium.googlesource.com/chromiumos/third_party/linux-firmware";
-    ref = "main";
+    url = "https://chromium.googlesource.com/chromiumos/third_party/linux-firmware.git";
+    ref = "refs/heads/master";
   };
 in
 {
