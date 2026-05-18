@@ -9,11 +9,18 @@
 {
   self,
   nixpkgs,
-  systemd257,
+  systemd259,
+  systemdMinimal259,
   ...
 }:
 let
   system = "x86_64-linux";
+
+  # Overlay to replace systemdMinimal with systemdMinimal259
+  # This ensures udevadm verify uses the same version as the target systemd
+  systemd259Overlay = _final: _prev: {
+    systemdMinimal = systemdMinimal259;
+  };
 
   # Import user config from flattened location
   userConfig = import ../shimboot_config/user-config.nix { };
@@ -40,13 +47,16 @@ let
             nixpkgs.hostPlatform = system;
             boot.kernelParams = [ "console=ttyS0,115200" ];
           }
+
+          # Apply overlay to replace systemdMinimal with 259.5 variant
+          { nixpkgs.overlays = [ systemd259Overlay ]; }
         ]
         ++ nixpkgs.lib.optional headless { shimboot.headless = true; };
         specialArgs = {
           inherit
             self
             userConfig
-            systemd257
+            systemd259
             ;
           inherit (self) inputs;
         };

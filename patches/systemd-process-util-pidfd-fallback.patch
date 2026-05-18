@@ -1,0 +1,28 @@
+--- a/src/basic/process-util.c
++++ b/src/basic/process-util.c
+@@ -2208,8 +2208,23 @@
+
+                 r = pidfd_spawn(&pidfd, path, NULL, &attr, argv, envp);
+         }
+-        if (r != 0)
++        if (r != 0) {
++                if (ERRNO_IS_NOT_SUPPORTED(r)) {
++                        pid_t pid;
++
++                        r = posix_spawn(&pid, path, NULL, &attr, argv, envp);
++                        if (r != 0)
++                                return -r;
++
++                        r = pidref_set_pid(ret_pidref, pid);
++                        if (r < 0)
++                                return r;
++
++                        return 0;
++                }
++
+                 return -r;
++        }
+
+         r = pidref_set_pidfd_consume(ret_pidref, TAKE_FD(pidfd));
+         if (r < 0)
+

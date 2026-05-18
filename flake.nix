@@ -26,9 +26,12 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
-    # Pinned nixpkgs for systemd 257.9 package definition
+    # Pinned nixpkgs for systemd 259.5 package definition
     # We use the package from here but override stdenv to unstable's for glibc compat
-    nixpkgs-systemd.url = "github:NixOS/nixpkgs/d3736636ac39ed678e557977b65d620ca75142d0";
+    # 259.x is the last version that supports kernels < 5.10 (close_range, STATX_MNT_ID,
+    # MS_NOSYMFOLLOW still have fallbacks). 260 removed fallbacks for open_tree/move_mount.
+    # See: https://github.com/systemd/systemd/blob/v260/NEWS
+    nixpkgs-259.url = "github:NixOS/nixpkgs/666304f6f14b59f7e6edb360e1fc161b8ebf6a21";
   };
 
   # Combine all outputs from modules
@@ -36,7 +39,7 @@
     {
       self,
       nixpkgs,
-      nixpkgs-systemd,
+      nixpkgs-259,
       ...
     }:
     let
@@ -57,28 +60,28 @@
       # Import nixpkgs-unstable for stdenv (glibc 2.42)
       pkgs = import nixpkgs { inherit system; };
 
-      # Import systemd from pinned nixpkgs for systemd 257.9
-      # Systemd 258+ requires mount_setattr (kernel 5.12), unavailable on
-      # ChromeOS shim kernels. 257.9 + mount patch is the stable baseline;
-      # 259.x tested working on dedede (5.4.85 includes open_tree/move_mount
-      # from 5.2 but not mount_setattr). 260 requires kernel >= 5.10.
-      # See: https://github.com/PopCat19/nixos-shimboot/issues/405
-      pkgsSystemd = import nixpkgs-systemd { inherit system; };
+      # Import systemd from pinned nixpkgs for systemd 259.5
+      # Systemd 260+ requires mount_setattr (kernel 5.12), unavailable on
+      # ChromeOS shim kernels. 259.x works on dedede (5.4.85) and has graceful
+      # fallbacks for all kernel features below baseline (close_range, STATX_MNT_ID,
+      # MS_NOSYMFOLLOW, open_tree/move_mount).
+      # Ref: https://github.com/ading2210/shimboot/issues/405
+      pkgsSystemd259 = import nixpkgs-259 { inherit system; };
 
-      # Systemd 257.9 with ChromeOS patch and missing unit stubs
+      # Systemd 259.5 with ChromeOS + pidfd_spawn patches
       # Built with unstable's stdenv to match glibc version for initramfs compatibility
       # Passed via specialArgs, not overlay (avoids cross-version function arg issues)
-      systemd257 =
-        (pkgsSystemd.systemd.override {
+      systemd259 =
+        (pkgsSystemd259.systemd.override {
           # Use unstable's stdenv to get glibc 2.42 matching rest of initramfs
           inherit (pkgs) stdenv;
         }).overrideAttrs
           (old: {
             patches = (old.patches or [ ]) ++ [
               ./patches/systemd-mountpoint-util-chromeos.patch
+              ./patches/systemd-process-util-pidfd-fallback.patch
             ];
             # Add passthru attributes expected by nixos-unstable modules
-            # Note: withTpm2Units=false to avoid missing systemd-tpm2-clear.service (not in 257.9)
             passthru = old.passthru or { } // {
               withLogind = true;
               withNspawn = true;
@@ -87,53 +90,46 @@
               withPortabled = false;
               withSysupdate = false;
             };
-            # udev is always built in systemd 257.9 (no separate meson option)
-            # Create proper NOOP stubs for units added in systemd 258+ but expected by nixos-unstable
+            # Create NOOP stubs for units added after 259.5 but expected by nixos-unstable
             postInstall = (old.postInstall or "") + ''
-              # Stub out service units missing from 257.9 but expected by nixos-unstable
               UNITDIR="$out/example/systemd/system"
               mkdir -p "$UNITDIR"
 
               for unit in breakpoint-pre-udev.service breakpoint-pre-basic.service breakpoint-pre-mount.service breakpoint-pre-switch-root.service systemd-factory-reset-complete.service systemd-journalctl@.service; do
                 if [ ! -e "$UNITDIR/$unit" ]; then
                   name=$(echo "$unit" | sed 's/\..*$//')
-                  printf '[Unit]\nDescription=%s (stub - not in 257.9)\nDefaultDependencies=no\nRefuseManualStart=yes\n\n[Service]\nType=oneshot\nExecStart=/bin/true\nRemainAfterExit=yes\n' "$name" > "$UNITDIR/$unit"
+                  printf '[Unit]\nDescription=%s (stub - not in 259.5)\nDefaultDependencies=no\nRefuseManualStart=yes\n\n[Service]\nType=oneshot\nExecStart=/bin/true\nRemainAfterExit=yes\n' "$name" > "$UNITDIR/$unit"
                 fi
               done
 
-              # target stub
               if [ ! -e "$UNITDIR/factory-reset-now.target" ]; then
-                printf '[Unit]\nDescription=factory-reset-now (stub - not in 257.9)\nRefuseManualStart=yes\n' > "$UNITDIR/factory-reset-now.target"
+                printf '[Unit]\nDescription=factory-reset-now (stub - not in 259.5)\nRefuseManualStart=yes\n' > "$UNITDIR/factory-reset-now.target"
               fi
 
-              # socket stub
               if [ ! -e "$UNITDIR/systemd-journalctl.socket" ]; then
-                printf '[Unit]\nDescription=systemd-journalctl (stub - not in 257.9)\nDefaultDependencies=no\nBefore=sockets.target\n\n[Socket]\nListenStream=/run/systemd/io.systemd.JournalAccess\nSymlinks=/run/varlink/registry/io.systemd.JournalAccess\nFileDescriptorName=varlink\n' > "$UNITDIR/systemd-journalctl.socket"
+                printf '[Unit]\nDescription=systemd-journalctl (stub - not in 259.5)\nDefaultDependencies=no\nBefore=sockets.target\n\n[Socket]\nListenStream=/run/systemd/io.systemd.JournalAccess\nSymlinks=/run/varlink/registry/io.systemd.JournalAccess\nFileDescriptorName=varlink\n' > "$UNITDIR/systemd-journalctl.socket"
               fi
 
-              # Factory-reset setup
               mkdir -p "$UNITDIR/factory-reset.target.wants"
 
-              # Binaries added in systemd 258+
               BINDIR="$out/lib/systemd"
               mkdir -p "$BINDIR/system-generators"
               for bin in systemd-factory-reset system-generators/systemd-factory-reset-generator; do
                 if [ ! -e "$BINDIR/$bin" ]; then
-                  printf '#!/bin/sh\n# Stub - not available in systemd 257.9\nexit 0\n' > "$BINDIR/$bin"
+                  printf '#!/bin/sh\n# Stub - not available in systemd 259.5\nexit 0\n' > "$BINDIR/$bin"
                   chmod +x "$BINDIR/$bin"
                 fi
               done
             '';
           });
 
-      # SystemdMinimal 257.9 for udev rules verification
-      # Matches systemdMinimal override pattern from nixpkgs but using pinned 257.9
+      # SystemdMinimal 259.5 for udev rules verification
+      # Matches systemdMinimal override pattern from nixpkgs but using pinned 259.5
       # This ensures udevadm verify uses the same version as the target systemd
-      # Note: Parameters must match those available in pinned nixpkgs-systemd
-      systemdMinimal257 =
-        (pkgsSystemd.systemd.override {
+      systemdMinimal259 =
+        (pkgsSystemd259.systemd.override {
           inherit (pkgs) stdenv;
-          pname = "systemd-minimal-257";
+          pname = "systemd-minimal-259";
           withAcl = false;
           withAnalyze = false;
           withApparmor = false;
@@ -178,13 +174,14 @@
           withUkify = false;
           withUserDb = false;
           withUtmp = false;
-          # withVConsole not available in pinned nixpkgs-systemd
+          # withVConsole not available in pinned nixpkgs-259
           withVmspawn = false;
           withTests = false;
         }).overrideAttrs
           (old: {
             patches = (old.patches or [ ]) ++ [
               ./patches/systemd-mountpoint-util-chromeos.patch
+              ./patches/systemd-process-util-pidfd-fallback.patch
             ];
           });
 
@@ -197,15 +194,15 @@
             self
             nixpkgs
             board
-            systemd257
+            systemd259
             ;
         };
       systemConfigurationOutputs = import ./flake_modules/system-configuration.nix {
         inherit
           self
           nixpkgs
-          systemd257
-          systemdMinimal257
+          systemd259
+          systemdMinimal259
           ;
       };
       developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix {
@@ -248,8 +245,8 @@
             self
             nixpkgs
             board
-            systemd257
-            systemdMinimal257
+            systemd259
+            systemdMinimal259
             ;
         };
 
@@ -267,8 +264,8 @@
       # Merge packages from all modules
       packages = {
         ${system} = nixpkgs.lib.foldl' (acc: board: acc // (boardPackages board)) {
-          systemd = systemd257;
-          systemdMinimal = systemdMinimal257;
+          systemd = systemd259;
+          systemdMinimal = systemdMinimal259;
         } supportedBoards;
       };
 
@@ -283,24 +280,18 @@
     {
       nixosModules = {
         # Full ChromeOS base configuration (boot, fs, hw, users, nix settings)
-        # Wraps configuration.nix to inject systemd257 and systemdMinimal257 overlay
+        # Wraps configuration.nix to inject systemd259 and systemdMinimal259 overlay
         # so consumers importing this module don't need to provide them separately
         chromeos = {
           imports = [ ./shimboot_config/base_configuration/configuration.nix ];
           _module.args = {
-            inherit systemd257;
-            inherit systemdMinimal257;
+            inherit systemd259;
+            inherit systemdMinimal259;
           };
-          # Apply overlay to replace systemdMinimal with 257.9 variant
+          # Apply overlay to replace systemdMinimal with 259.5 variant
           # This ensures udevadm verify uses the correct systemd version
-          # Also skip nix functional tests (fail on low-resource ChromeOS devices)
           nixpkgs.overlays = [
-            (_final: _prev: { systemdMinimal = systemdMinimal257; })
-            (_final: _prev: {
-              nix = _prev.nix.overrideAttrs (_: {
-                doCheck = false;
-              });
-            })
+            (_final: _prev: { systemdMinimal = systemdMinimal259; })
           ];
         };
 

@@ -21,7 +21,7 @@ in
   config = lib.mkIf notHeadless {
     systemd.services.kill-frecon = lib.mkForce {
       description = "Kill frecon to allow X11 to start";
-      wantedBy = [ "graphical.target" ];
+      wantedBy = [ "multi-user.target" ];
       before = [ "display-manager.service" ];
       serviceConfig = {
         Type = "oneshot";

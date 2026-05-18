@@ -1,10 +1,10 @@
 # systemd-patch.nix
 #
-# Purpose: Configure systemd to use pinned 257.9 with ChromeOS compatibility patch
+# Purpose: Configure systemd to use pinned 259.5 with ChromeOS + pidfd_spawn patches
 #
 # This module:
-# - Sets systemd.package to systemd257 from specialArgs
-# - Suppresses unit files missing from systemd 257.9 (added in 258+)
+# - Sets systemd.package to systemd259 from specialArgs
+# - Suppresses unit files missing from systemd 259.5 (added in 258+)
 #
 # Systemd version constraint:
 # - Ceiling: 259.x (260 requires kernel >= 5.10)
@@ -14,14 +14,14 @@
 #   get_sub_mounts/bind_mount_submounts would also need these on boot path.
 # - Ref: https://github.com/ading2210/shimboot/issues/405
 {
-  systemd257,
+  systemd259,
   lib,
   ...
 }:
 {
-  systemd.package = lib.mkForce systemd257;
+  systemd.package = lib.mkForce systemd259;
 
-  # Suppress units that don't exist in systemd 257.9 (added in 258+)
+  # Suppress units that don't exist in systemd 259.5 (added in 258+)
   systemd.suppressedSystemUnits = lib.mkForce [
     "systemd-factory-reset-request.service"
     "systemd-factory-reset-reboot.service"

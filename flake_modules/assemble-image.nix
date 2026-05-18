@@ -18,8 +18,8 @@
   self,
   nixpkgs,
   board,
-  systemd257,
-  systemdMinimal257,
+  systemd259,
+  systemdMinimal259,
 }:
 let
   system = "x86_64-linux";
@@ -37,9 +37,9 @@ let
 
   # === Overlay to match systemdMinimal with target systemd version ===
   # systemdMinimal provides udevadm; without this overlay it comes from
-  # nixpkgs-unstable (260.x) while systemd-udevd is 257.9 — version mismatch
-  systemd257Overlay = _final: _prev: {
-    systemdMinimal = systemdMinimal257;
+  # nixpkgs-unstable (260.x) while systemd-udevd is 259.5 — version mismatch
+  systemd259Overlay = _final: _prev: {
+    systemdMinimal = systemdMinimal259;
   };
 
   # === Build the NixOS system closure (same base as raw-rootfs-base) ===
@@ -56,11 +56,11 @@ let
           boot.loader.grub.enable = false;
           boot.loader.systemd-boot.enable = false;
         }
-        # Apply overlay to replace systemdMinimal with 257.9 variant
-        { nixpkgs.overlays = [ systemd257Overlay ]; }
+        # Apply overlay to replace systemdMinimal with 259.5 variant
+        { nixpkgs.overlays = [ systemd259Overlay ]; }
       ] ++ nixpkgs.lib.optional headless { shimboot.headless = true; };
       specialArgs = {
-        inherit self userConfig systemd257;
+        inherit self userConfig systemd259;
         inherit (self) inputs;
       };
     };
@@ -71,9 +71,9 @@ let
   harvestedDrivers = self.packages.${system}."harvested-drivers-${board}";
 
   # === systemd with repart support ===
-  # Use the patched 257.9 with repart enabled (the full systemd, not systemdMinimal)
-  # systemd257 has repart enabled by default
-  systemdWithRepart = systemd257;
+  # Use the patched 259.5 with repart enabled (the full systemd, not systemdMinimal)
+  # systemd259 has repart enabled by default
+  systemdWithRepart = systemd259;
 
   # === Build the complete shimboot image ===
   mkShimbootImage =

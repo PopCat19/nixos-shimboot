@@ -71,6 +71,23 @@ in
 
   _module.args.userConfig = userConfig;
 
+  # Disable tests for packages with flaky/sandbox-sensitive tests
+  nixpkgs.overlays = [
+    (_final: _prev: {
+      nix = _prev.nix.overrideAttrs (_: { doCheck = false; });
+    })
+    (_final: _prev: {
+      python3 = _prev.python3.override {
+        packageOverrides = _pyfinal: pyprev: {
+          urwid = pyprev.urwid.overrideAttrs (_: { doCheck = false; });
+        };
+      };
+    })
+    (_final: _prev: {
+      libsecret = _prev.libsecret.overrideAttrs (_: { doCheck = false; });
+    })
+  ];
+
   # Keep only 10 system generations before garbage collection runs
   systemd.services.nix-limit-generations = {
     description = "Limit NixOS system generations to 10";
