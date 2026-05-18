@@ -28,14 +28,15 @@ let
   };
 
   # Single entry point. Usage:
-  #   bwrap-mount-shim steam              ← LD_PRELOAD only (Steam runs its own bwrap)
-  #   bwrap-mount-shim ./myapp            ← auto-wraps in bwrap with sandbox defaults
-  #   bwrap-mount-shim --flags... -- cmd  ← explicit bwrap control
+  #   bwrap-mount-shim steam              ← LD_PRELOAD only
+  #   bwrap-mount-shim --sandbox ./myapp   ← auto-sandbox with bwrap defaults
+  #   bwrap-mount-shim --flags... -- cmd   ← explicit bwrap control
   mountShimBin = pkgs.writeShellScriptBin "bwrap-mount-shim" ''
     export LD_PRELOAD="${mountShim}/lib/mount_shim.so''${LD_PRELOAD:+:}$LD_PRELOAD"
 
-    # Convenience: if first arg is not a bwrap flag, auto-wrap in sandbox
-    if [ $# -gt 0 ] && [ "''${1#-}" = "$1" ]; then
+    # --sandbox: wrap in bwrap with sensible defaults
+    if [ "$1" = "--sandbox" ]; then
+      shift
       exec /run/wrappers/bin/bwrap \
         --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp -- "$@"
     fi

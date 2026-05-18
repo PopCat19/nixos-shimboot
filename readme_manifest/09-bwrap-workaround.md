@@ -20,14 +20,14 @@ This occurs because the ChromeOS LSM blocks tmpfs mounts even when running as ro
 A single tool, `bwrap-mount-shim`, uses `LD_PRELOAD` to intercept `mount()` calls at the libc level and convert `tmpfs` mounts to `bind` mounts (which the ChromeOS LSM allows). It works transparently for everything — no argument parsing, no per-application configuration.
 
 ```bash
-bwrap-mount-shim steam                    # Steam, Flatpak (transparent LD_PRELOAD)
-bwrap-mount-shim ./myapp                  # auto-sandbox with bwrap defaults
+bwrap-mount-shim steam                    # LD_PRELOAD only — Steam runs its own bwrap
+bwrap-mount-shim --sandbox ./myapp        # auto-sandbox with bwrap defaults
 bwrap-mount-shim --ro-bind / / -- ... --  # explicit bwrap control
 ```
 
 The first form only sets `LD_PRELOAD` — the program runs its own bwrap internally, and the shim intercepts tmpfs at the mount() level.
 
-The second form auto-wraps the command in a bwrap sandbox with sensible defaults (`ro-bind /`, `/dev`, `/proc`, `tmpfs /tmp`).
+The second form (`--sandbox`) wraps the command in a bwrap sandbox with sensible defaults (`ro-bind /`, `/dev`, `/proc`, `tmpfs /tmp`).
 
 ## Implementation
 
@@ -49,12 +49,12 @@ The legacy [`fix-steam-bwrap.sh`](shimboot_config/base_configuration/system/help
 ## Usage
 
 ```bash
-# Steam, Flatpak — transparent LD_PRELOAD
+# Steam, Flatpak — LD_PRELOAD only (they run their own bwrap)
 bwrap-mount-shim steam
 bwrap-mount-shim flatpak run com.example.App
 
-# AppImages, standalone apps — auto-sandbox
-bwrap-mount-shim ./YourApp.AppImage
+# AppImages, standalone apps — LD_PRELOAD + bwrap sandbox
+bwrap-mount-shim --sandbox ./YourApp.AppImage
 
 # Explicit bwrap control
 bwrap-mount-shim --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp -- ./myapp
