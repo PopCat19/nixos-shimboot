@@ -23,12 +23,19 @@ let
 
   shim = self.packages.${system}."chromeos-shim-${board}";
   recovery = self.packages.${system}."chromeos-recovery-${board}";
+
+  # Upstream ChromiumOS linux-firmware for augmentation
+  # Shallow clone from googlesource; cached in Nix store after first fetch
+  upstreamFirmware = builtins.fetchGit {
+    url = "https://chromium.googlesource.com/chromiumos/third_party/linux-firmware";
+    ref = "main";
+  };
 in
 {
   packages.${system}."harvested-drivers-${board}" = pkgs.stdenv.mkDerivation {
     name = "harvested-drivers-${board}";
 
-    inherit shim recovery;
+    inherit shim recovery upstreamFirmware;
 
     dontUnpack = true;
     dontConfigure = true;
@@ -170,6 +177,38 @@ in
         MOD_COUNT=$(find harvested/lib/modules -name "*.ko" 2>/dev/null | wc -l || echo 0)
         FW_COUNT=$(find harvested/lib/firmware -type f 2>/dev/null | wc -l || echo 0)
         echo "Harvested: $MOD_COUNT kernel modules, $FW_COUNT firmware files"
+
+        # === Augment with upstream ChromiumOS linux-firmware ===
+        if [ -d "$upstreamFirmware" ] && [ "$(ls -A "$upstreamFirmware" 2>/dev/null)" ]; then
+          echo "Augmenting firmware with upstream linux-firmware..."
+          mkdir -p harvested/lib/firmware
+          cp -a "$upstreamFirmware/." harvested/lib/firmware/ 2>/dev/null || true
+          FW_AFTER=$(find harvested/lib/firmware -type f 2>/dev/null | wc -l || echo 0)
+          echo "Firmware after augmentation: $FW_AFTER files (was $FW_COUNT)"
+        else
+          echo "Upstream firmware not available, skipping augmentation"
+        fi
+
+        # === Prune unused firmware to reduce image size ===
+        # Keep only firmware families essential for Chromebook boot, WiFi, and graphics
+        echo "Pruning firmware (keeping Chromebook-essential families)..."
+        FW_BEFORE=$(find harvested/lib/firmware -type f 2>/dev/null | wc -l || echo 0)
+        if [ -d harvested/lib/firmware ] && [ "$FW_BEFORE" -gt 0 ]; then
+          find harvested/lib/firmware -type f \
+            ! -path "*/intel/*" \
+            ! -path "*/iwlwifi/*" \
+            ! -path "*/rtw88/*" \
+            ! -path "*/rtw89/*" \
+            ! -path "*/brcm/*" \
+            ! -path "*/ath10k/*" \
+            ! -path "*/mediatek/*" \
+            ! -name "regulatory.db*" \
+            ! -name "*.ucode" \
+            -delete 2>/dev/null || true
+          find harvested/lib/firmware -type d -empty -delete 2>/dev/null || true
+        fi
+        FW_AFTER=$(find harvested/lib/firmware -type f 2>/dev/null | wc -l || echo 0)
+        echo "Firmware pruned: $FW_BEFORE -> $FW_AFTER files"
 
         runHook postBuild
       '';

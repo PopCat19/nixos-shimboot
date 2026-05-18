@@ -93,10 +93,17 @@ let
         e2fsprogs          # mkfs.ext4/ext2 with -d, debugfs, resize2fs
         util-linux         # truncate, dd
         vboot_reference    # cgpt (ChromeOS boot flags)
+        nix                # nix-store --optimise
+        guestfs-tools      # guestmount (FUSE, no kernel privileges)
         coreutils
         gnused
         gawk
+        git                # clone into rootfs for self-repair
       ];
+
+      # Flake source for git clone into rootfs (self-repair capability)
+      # self is the flake input; "${self}" resolves to its store path
+      NIXOS_SHIMBOOT_SRC = "${self}";
 
       buildPhase =
         # NOTE: ''${ escapes Nix interpolation to pass ${} through to bash
@@ -143,6 +150,77 @@ let
           echo "  ERROR: Could not find rootfs partition in raw image"
           exit 1
         fi
+
+        # === 1.5 Store optimization + git clone (mount-based, optional) ===
+        # These steps require mounting the rootfs; use guestmount (FUSE)
+        # which works without kernel privileges. Skip gracefully if unavailable.
+        optimize_and_clone() {
+          local img="$1"
+          local user="$2"
+          local mnt="rootfs-mnt"
+
+          if ! command -v guestmount >/dev/null 2>&1; then
+            echo "  guestmount not available, skipping rootfs post-processing"
+            return 1
+          fi
+
+          mkdir -p "$mnt"
+          echo "  Mounting rootfs with guestmount (FUSE)..."
+          if ! guestmount -a "$img" -i --rw "$mnt" 2>/dev/null; then
+            echo "  guestmount failed (FUSE may not be available in sandbox)"
+            rmdir "$mnt" 2>/dev/null || true
+            return 1
+          fi
+
+          # --- Store optimization: hard-link identical files in /nix/store ---
+          if [ -d "$mnt/nix/store" ]; then
+            echo "  Running nix-store --optimise..."
+            nix-store --store "$mnt" --optimise -vv 2>&1 | tail -5 || true
+          else
+            echo "  No /nix/store found in rootfs, skipping optimization"
+          fi
+
+          # --- Git clone: set up nixos-shimboot for self-repair ---
+          local clone_dest="$mnt/home/$user/nixos-shimboot"
+          if [ -n "$user" ] && [ -d "$mnt/home/$user" ]; then
+            echo "  Setting up nixos-shimboot at $clone_dest"
+            rm -rf "$clone_dest" 2>/dev/null || true
+            mkdir -p "$(dirname "$clone_dest")"
+
+            # Copy flake source from Nix store (no .git, so init fresh)
+            if [ -d "$NIXOS_SHIMBOOT_SRC" ]; then
+              cp -a "$NIXOS_SHIMBOOT_SRC/." "$clone_dest/"
+            else
+              echo "  WARNING: NIXOS_SHIMBOOT_SRC not found, skipping"
+            fi
+
+            # Initialize git repo and set remote
+            git -C "$clone_dest" init 2>/dev/null || true
+            git -C "$clone_dest" remote add origin \
+              "https://github.com/PopCat19/nixos-shimboot.git" 2>/dev/null || true
+
+            # Write build metadata
+            cat > "$clone_dest/.shimboot_build_info" <<METAMETA
+# Shimboot build metadata
+BUILD_BOARD=${board}
+BUILD_FLAVOR=${if headless then "headless" else "base"}
+BUILD_HOSTNAME=${hostname}
+BUILD_USERNAME=${username}
+METAMETA
+            chown -R 1000:1000 "$clone_dest" 2>/dev/null || true
+          else
+            echo "  Skipping git clone: /home/$user not found in rootfs"
+          fi
+
+          # Unmount and verify
+          guestunmount "$mnt" 2>/dev/null || true
+          rmdir "$mnt" 2>/dev/null || true
+          echo "  Running e2fsck after modifications..."
+          e2fsck -fy "$img" 2>/dev/null || true
+          return 0
+        }
+
+        optimize_and_clone rootfs.img "$username" || true
 
         # === 2. Calculate partition sizes ===
         BOOT_SIZE_MB=20
