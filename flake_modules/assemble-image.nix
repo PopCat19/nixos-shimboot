@@ -144,10 +144,11 @@ let
         fi
         echo "  Raw image: $(basename "$RAW_IMAGE")"
         RAW_ROOTFS_START=$(sgdisk -p "$RAW_IMAGE" 2>/dev/null | grep -E "^\s+[0-9]" | head -1 | awk '{print $2}')
-        RAW_ROOTFS_SIZE=$(sgdisk -p "$RAW_IMAGE" 2>/dev/null | grep -E "^\s+[0-9]" | head -1 | awk '{print $3}')
-        echo "  Partition 1: start=$RAW_ROOTFS_START sectors, size=$RAW_ROOTFS_SIZE sectors"
-        if [ -n "$RAW_ROOTFS_START" ] && [ -n "$RAW_ROOTFS_SIZE" ]; then
-          dd if="$RAW_IMAGE" of=rootfs.img bs=512 skip="$RAW_ROOTFS_START" count="$RAW_ROOTFS_SIZE" status=none 2>/dev/null
+        RAW_ROOTFS_END=$(sgdisk -p "$RAW_IMAGE" 2>/dev/null | grep -E "^\s+[0-9]" | head -1 | awk '{print $3}')
+        RAW_ROOTFS_SECTORS=$(( RAW_ROOTFS_END - RAW_ROOTFS_START + 1 ))
+        echo "  Partition 1: start=$RAW_ROOTFS_START sectors, end=$RAW_ROOTFS_END, sectors=$RAW_ROOTFS_SECTORS"
+        if [ -n "$RAW_ROOTFS_START" ] && [ -n "$RAW_ROOTFS_END" ]; then
+          dd if="$RAW_IMAGE" of=rootfs.img bs=512 skip="$RAW_ROOTFS_START" count="$RAW_ROOTFS_SECTORS" status=none 2>/dev/null
         else
           echo "  ERROR: Could not find rootfs partition in raw image"
           exit 1
