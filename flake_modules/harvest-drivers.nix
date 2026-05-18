@@ -24,11 +24,11 @@ let
   shim = self.packages.${system}."chromeos-shim-${board}";
   recovery = self.packages.${system}."chromeos-recovery-${board}";
 
-  # Upstream ChromiumOS linux-firmware for augmentation
-  # Shallow clone from googlesource; cached in Nix store after first fetch
-  upstreamFirmware = builtins.fetchGit {
-    url = "https://chromium.googlesource.com/chromiumos/third_party/linux-firmware";
-    ref = "main";
+  # Upstream ChromiumOS linux-firmware tarball for augmentation
+  # Uses archive URL to avoid full git clone (repo is several GB)
+  # Cached in Nix store after first fetch
+  upstreamFirmware = builtins.fetchTarball {
+    url = "https://chromium.googlesource.com/chromiumos/third_party/linux-firmware/+archive/refs/heads/main.tar.gz";
   };
 in
 {
