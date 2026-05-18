@@ -165,10 +165,15 @@ let
           VENDOR_SIZE_MB=$(( VENDOR_SIZE_MB * 115 / 100 + 20 ))
         fi
 
-        # Rootfs size: use extracted raw rootfs image size
-        ROOTFS_SIZE_MB=$(du -m rootfs.img 2>/dev/null | cut -f1 || echo 6400)
-        # Add 5% overhead for partition alignment
-        ROOTFS_SIZE_MB=$(( ROOTFS_SIZE_MB * 105 / 100 ))
+        # Rootfs size: use minimum filesystem size from block usage, not file size
+        # (raw EFI images have oversized partitions; du measures the partition, not content)
+        MIN_BLKS=$(resize2fs -P rootfs.img 2>&1 | grep -oP '\d+' || echo 0)
+        if [ "$MIN_BLKS" -gt 0 ]; then
+          MIN_MB=$(( MIN_BLKS * 4 / 1024 ))
+        else
+          MIN_MB=$(du -sm rootfs.img 2>/dev/null | cut -f1 || echo 6400)
+        fi
+        ROOTFS_SIZE_MB=$(( MIN_MB * 110 / 100 + 100 ))
 
         STATE_START=1
         KERNEL_START=2
