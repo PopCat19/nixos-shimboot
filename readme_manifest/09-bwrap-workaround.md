@@ -1,8 +1,5 @@
 ## Overview
 
-> [!WARNING]
-> Untested. The scripts exist but have not been verified working on any board so far.
-
 ChromeOS's security model includes a Linux Security Module (LSM) called `chromiumos` that restricts certain operations, including mounting tmpfs filesystems. This causes issues with `bwrap` (bubblewrap), which is commonly used for sandboxing applications like Steam, AppImages, and various Nix packages.
 
 ## Problem
@@ -17,17 +14,34 @@ This occurs because the ChromeOS LSM blocks tmpfs mounts even when running as ro
 
 ## Solution
 
-A single tool, `bwrap-mount-shim`, uses `LD_PRELOAD` to intercept `mount()` calls at the libc level and convert `tmpfs` mounts to `bind` mounts (which the ChromeOS LSM allows). It works transparently for everything — no argument parsing, no per-application configuration.
+On dedede (kernel 5.4.85), SUID bwrap alone handles tmpfs — the `chromiumos`
+LSM does not block `mount("tmpfs", ...)` when running as root via
+`security.wrappers.bwrap`. No additional workaround is needed for basic bwrap
+sandboxing.
+
+For boards where the LSM blocks tmpfs despite SUID (unconfirmed for any board
+so far), `bwrap-mount-shim` provides an LD_PRELOAD-based fallback that
+intercepts `mount()` at the libc level and converts tmpfs to bind mounts.
+
+Flatpak on kernel 5.4 has a separate incompatibility: `flatpak run` uses
+`statx` with fields not available until kernel 5.8, producing `ENODATA`.
+As a workaround, `bwrap-mount-shim --sandbox` or direct bwrap invocation can
+launch flatpak apps bypassing flatpak's sandbox setup.
+
+### Usage
 
 ```bash
-bwrap-mount-shim steam                    # LD_PRELOAD only — Steam runs its own bwrap
-bwrap-mount-shim --sandbox ./myapp        # auto-sandbox with bwrap defaults
-bwrap-mount-shim --ro-bind / / -- ... --  # explicit bwrap control
+# SUID bwrap — works on dedede without any shim
+bwrap --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp -- ./myapp
+
+# bwrap-mount-shim — optional LD_PRELOAD fallback
+bwrap-mount-shim steam                    # LD_PRELOAD only
+bwrap-mount-shim --sandbox ./myapp        # LD_PRELOAD + bwrap sandbox
+
+# Flatpak apps — bypass flatpak's broken sandbox on 5.4
+bwrap-mount-shim --sandbox -- \
+  /var/lib/flatpak/app/.../files/bin/app
 ```
-
-The first form only sets `LD_PRELOAD` — the program runs its own bwrap internally, and the shim intercepts tmpfs at the mount() level.
-
-The second form (`--sandbox`) wraps the command in a bwrap sandbox with sensible defaults (`ro-bind /`, `/dev`, `/proc`, `tmpfs /tmp`).
 
 ## Implementation
 
@@ -42,23 +56,14 @@ The C shim intercepts `mount("tmpfs", ...)` calls, creates a unique directory vi
 
 ### Steam Integration
 
-Steam's pressure-vessel runtime uses an internal `srt-bwrap` binary. The LD_PRELOAD shim intercepts `mount()` inside that process, so `bwrap-mount-shim steam` is all that's needed — no symlink patching, survives Steam updates.
+Steam compatibility is unverified on shimboot hardware. On Debian-based
+shimboot (upstream), Steam works with SUID bwrap alone ([shimboot#26](https://github.com/ading2210/shimboot/issues/26)).
+If the ChromeOS LSM blocks tmpfs on a given board, `bwrap-mount-shim steam`
+can be used as a fallback — the LD_PRELOAD shim intercepts `mount()` inside
+`pressure-vessel` without any symlink patching or per-update maintenance.
 
-The legacy [`fix-steam-bwrap.sh`](shimboot_config/base_configuration/system/helpers/fix-steam-bwrap.sh) (symlink patch) remains available but requires re-running after each Steam client update.
-
-## Usage
-
-```bash
-# Steam, Flatpak — LD_PRELOAD only (they run their own bwrap)
-bwrap-mount-shim steam
-bwrap-mount-shim flatpak run com.example.App
-
-# AppImages, standalone apps — LD_PRELOAD + bwrap sandbox
-bwrap-mount-shim --sandbox ./YourApp.AppImage
-
-# Explicit bwrap control
-bwrap-mount-shim --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp -- ./myapp
-```
+The legacy [`fix-steam-bwrap.sh`](shimboot_config/base_configuration/system/helpers/fix-steam-bwrap.sh)
+(symlink patch) remains available but rots on Steam client updates.
 
 ## Technical Details
 
