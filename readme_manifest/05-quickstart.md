@@ -4,7 +4,7 @@
 - ChromeOS RMA shim image for your specific board
 - USB drive with at least 16GB, recommended ≥32GB
 - NixOS system or any Linux with Nix installed for building the image
-- Root/wheel access for loop mounts and imaging (could work inside docker/WSL2 container, but untested)
+- The pure-Nix build runs without sudo; the shell orchestrator needs root for loop mounts
 
 ## Quick Build and Flash
 
@@ -17,7 +17,18 @@ cd nixos-shimboot
 
 ### 2. Build the Shimboot Image
 
-Use the `tools/build/assemble-final.sh` script to build a shimboot image that combines the NixOS rootfs with the ChromeOS shim. Replace `BOARD` with your Chromebook's board name:
+**Option A: Nix derivation (simpler, no sudo)**
+
+```bash
+nix build .#shimboot-image-dedede
+```
+
+For other variants: `-headless`, `-luks`, `-headless-luks`.
+See [Building an Image](#building-an-image) for all options.
+
+**Option B: Shell orchestrator (legacy)**
+
+Replace `BOARD` with your Chromebook's board name:
 
 ```bash
 # For dedede board (e.g., HP Chromebook 11 G9 EE) - base image
