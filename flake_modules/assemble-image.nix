@@ -146,7 +146,7 @@ let
         ''
         runHook preBuild
 
-        # === 1. Prepare content directories first (needed for size calc) ===
+        # === 1. Prepare content dirs (needed for size calc) ===
         mkdir -p boot-content vendor-content
 
         if [ -d "$patchedInitramfs/patched-initramfs" ]; then
@@ -377,8 +377,11 @@ METAMETA
         PART5_SEC_SIZE=$(sgdisk -i 5 -p "$IMAGE" 2>/dev/null | grep "Sector size" | awk '{print $4}' | sed 's/[^0-9]//g')
         PART5_SEC_SIZE=''${PART5_SEC_SIZE:-512}
         PART5_BYTES=$(( PART5_SECTORS * PART5_SEC_SIZE ))
+        # Shrink rootfs.img to minimum first, then expand to partition size
+        resize2fs -M rootfs.img 2>/dev/null || true
         truncate -s "$PART5_BYTES" rootfs_resized.img
         dd if=rootfs.img of=rootfs_resized.img bs=1M conv=notrunc,fsync status=none 2>/dev/null
+        truncate -s "$PART5_BYTES" rootfs_resized.img
         resize2fs rootfs_resized.img 2>/dev/null || true
         dd if=rootfs_resized.img of="$IMAGE" bs=512 seek=$(( OFFSET5 / 512 )) conv=notrunc status=none
 
