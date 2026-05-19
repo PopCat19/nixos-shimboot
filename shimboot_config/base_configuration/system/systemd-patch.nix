@@ -29,5 +29,6 @@
     "factory-reset.target.wants"
     "systemd-oomd.service"
     "systemd-oomd.socket"
+    "systemd-user-sessions.service"
   ];
 }
