@@ -23,12 +23,15 @@
 
   # Suppress units that don't exist in systemd 259.5 (added in 258+)
   # Also suppress oomd — ChromeOS kernel 5.4.85 lacks cgroup v2 PSI
+  #
+  # Note: systemd-user-sessions.service is NOT suppressed — a stub exists
+  # in systemd259 and is required by logind + all display managers. Its
+  # absence prevents user session environment initialization (PATH, D-Bus).
   systemd.suppressedSystemUnits = lib.mkForce [
     "systemd-factory-reset-request.service"
     "systemd-factory-reset-reboot.service"
     "factory-reset.target.wants"
     "systemd-oomd.service"
     "systemd-oomd.socket"
-    "systemd-user-sessions.service"
   ];
 }

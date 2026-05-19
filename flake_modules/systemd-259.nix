@@ -428,7 +428,7 @@ let
           for unit in breakpoint-pre-udev.service breakpoint-pre-basic.service breakpoint-pre-mount.service breakpoint-pre-switch-root.service systemd-factory-reset-complete.service systemd-journalctl@.service systemd-bsod.service systemd-user-sessions.service; do
             if [ ! -e "$UNITDIR/$unit" ]; then
               name="$(echo "$unit" | sed 's/\..*$//')"
-              printf '[Unit]\nDescription=%s (stub - not in 259.5)\nDefaultDependencies=no\nRefuseManualStart=yes\n\n[Service]\nType=oneshot\nExecStart=/bin/true\nRemainAfterExit=yes\n' "$name" > "$UNITDIR/$unit"
+              printf '[Unit]\nDescription=%s (stub - not in 259.5)\nDefaultDependencies=no\nRefuseManualStart=yes\n\n[Service]\nType=oneshot\nExecStart=%s/bin/true\nRemainAfterExit=yes\n' "$name" '${pkgs.coreutils}' > "$UNITDIR/$unit"
             fi
           done
 
