@@ -533,9 +533,9 @@ rec {
     withMachined = false;
     withNetworkd = true;
     withNss = true;
-    withOomd = true;
+    withOomd = false;
     withOpenSSL = true;
-    withPam = true;
+    withPam = false;
     withPasswordQuality = false;
     withPCRE2 = false;
     withPolkit = false;
