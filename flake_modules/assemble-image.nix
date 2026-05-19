@@ -28,6 +28,9 @@ let
     inherit system;
     config.allowUnfreePredicate = pkg: builtins.elem (nixpkgs.lib.getName pkg) [
       "shimboot-image-${board}"
+      "shimboot-image-${board}-headless"
+      "shimboot-image-${board}-luks"
+      "shimboot-image-${board}-headless-luks"
     ];
   };
 
@@ -36,19 +39,29 @@ let
 
   # === Build the NixOS system closure (same base as raw-rootfs-base) ===
   mkRootfsConfig =
-    { headless ? false }:
+    {
+      headless ? false,
+      enableLUKS ? false,
+      wifi ? null,
+    }:
     nixpkgs.lib.nixosSystem {
       inherit system;
       modules = [
         ../shimboot_config/base_configuration/configuration.nix
         {
           nixpkgs.hostPlatform = system;
-          # bootloader is handled by ChromeOS chain-load — disable NixOS
-          # bootloader to prevent it from trying to write to disk
           boot.loader.grub.enable = false;
           boot.loader.systemd-boot.enable = false;
         }
-      ] ++ nixpkgs.lib.optional headless { shimboot.headless = true; };
+      ] ++ nixpkgs.lib.optional headless { shimboot.headless = true; }
+        ++ nixpkgs.lib.optional enableLUKS { shimboot.luks2.enable = true; }
+        ++ nixpkgs.lib.optional (wifi != null) {
+          networking.wireless = nixpkgs.lib.mkForce {
+            enable = true;
+            userControlled = false;
+            networks."${wifi.ssid}".psk = wifi.psk;
+          };
+        };
       specialArgs = {
         inherit self userConfig systemd259;
         inherit (self) inputs;
@@ -57,8 +70,13 @@ let
 
   # === Input derivations (from flake) ===
   extractedKernel = self.packages.${system}."extracted-kernel-${board}";
-  patchedInitramfs = self.packages.${system}."initramfs-patching-${board}";
+  patchedInitramfsBase = self.packages.${system}."initramfs-patching-${board}";
+  patchedInitramfsLuks = self.packages.${system}."initramfs-patching-luks-${board}";
   harvestedDrivers = self.packages.${system}."harvested-drivers-${board}";
+
+  # Resolve initramfs based on LUKS flag
+  resolveInitramfs = enableLUKS:
+    if enableLUKS then patchedInitramfsLuks else patchedInitramfsBase;
 
   # === systemd with repart support ===
   # Use the patched 259.5 with repart enabled (the full systemd, not systemdMinimal)
@@ -67,9 +85,16 @@ let
 
   # === Build the complete shimboot image ===
   mkShimbootImage =
-    { headless ? false }:
+    {
+      headless ? false,
+      enableLUKS ? false,
+      wifi ? null,
+    }:
     let
-      rootfsConfig = mkRootfsConfig { inherit headless; };
+      rootfsConfig = mkRootfsConfig { inherit headless enableLUKS wifi; };
+      luksSuffix = if enableLUKS then "-luks" else "";
+      headlessSuffix = if headless then "-headless" else "";
+      patchedInitramfs = resolveInitramfs enableLUKS;
 
       # Use the fully-activated raw rootfs image (same as raw-rootfs-* outputs)
       # This produces a bootable NixOS system with /bin/sh, /etc, activation applied
@@ -79,7 +104,7 @@ let
       username = userConfig.user.username;
     in
     pkgs.stdenv.mkDerivation {
-      name = "shimboot-image-${board}";
+      name = "shimboot-image-${board}${headlessSuffix}${luksSuffix}";
       dontUnpack = true;
       dontConfigure = true;
 
@@ -227,6 +252,19 @@ METAMETA
         }
 
         optimize_and_clone rootfs.img "$username" || true
+
+        # === 1.6 LUKS2: image is LUKS-capable but unencrypted ===
+        # dm-crypt (/dev/mapper/control) is unavailable in the Nix sandbox,
+        # so the actual LUKS container wrapping must happen post-build.
+        # The image ships with cryptsetup in the initramfs and LUKS-enabled
+        # /etc config — ready for wrapping with:
+        #   sudo tools/write/wrap-luks.sh --image shimboot.img
+        ${if enableLUKS then ''
+        echo "=== LUKS2: image is LUKS-capable (wrapping is post-build) ==="
+        echo "  Initramfs includes static cryptsetup"
+        echo "  Rootfs expects /dev/mapper/rootfs"
+        echo "  To wrap: sudo tools/write/wrap-luks.sh --image $out/shimboot.img"
+        '' else ""}
 
         # === 2. Calculate partition sizes ===
         BOOT_SIZE_MB=20
@@ -413,5 +451,7 @@ in
   packages.${system} = {
     "shimboot-image-${board}" = mkShimbootImage { headless = false; };
     "shimboot-image-${board}-headless" = mkShimbootImage { headless = true; };
+    "shimboot-image-${board}-luks" = mkShimbootImage { headless = false; enableLUKS = true; };
+    "shimboot-image-${board}-headless-luks" = mkShimbootImage { headless = true; enableLUKS = true; };
   };
 }
