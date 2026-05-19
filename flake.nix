@@ -81,6 +81,36 @@
           ./patches/systemd-mountpoint-util-chromeos.patch
           ./patches/systemd-process-util-pidfd-fallback.patch
         ];
+        # nixpkgs-unstable logind.nix reads these passthru attrs;
+        # the pinned nixpkgs's systemd predates that convention.
+        passthru = (old.passthru or { }) // {
+          withLogind = true;
+          withHostnamed = true;
+          withLocaled = true;
+          withTimedated = true;
+          withNetworkd = true;
+          withResolved = true;
+          withPortabled = true;
+          withHomed = false;
+          withImportd = false;
+          withMachined = false;
+          withCryptsetup = true;
+          withRepart = true;
+          withSysupdate = false;
+          withBootloader = false;
+          withEfi = false;
+          withFido2 = false;
+          withTpm2Tss = false;
+          withKmod = true;
+          withNspawn = true;
+          withUtmp = true;
+          withVconsole = true;
+          withTpm2Units = false;
+          interfaceVersion = 2;
+          inherit (pkgsSystemd) util-linux;
+          inherit (pkgsSystemd) kmod;
+          inherit (pkgsSystemd) kbd;
+        };
       });
 
       # Import module outputs
