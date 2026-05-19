@@ -26,6 +26,13 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    # Pinned nixpkgs for systemd 257.9 — the ceiling for shim kernels <5.10.
+    # systemd 258+ requires mount_setattr (kernel 5.12), unavailable on
+    # ChromeOS shim kernels. 257.9 has graceful fallbacks and working
+    # systemd-user-sessions. Built via overrideAttrs (no custom derivation).
+    # Ref: https://github.com/ading2210/shimboot/issues/405
+    nixpkgs-systemd.url = "github:NixOS/nixpkgs/d3736636ac39ed678e557977b65d620ca75142d0";
+
     # Upstream ChromiumOS linux-firmware for driver harvesting
     # Full clone is large (~3GB) but cached in Nix store after first fetch
     linux-firmware = {
@@ -39,6 +46,7 @@
     {
       self,
       nixpkgs,
+      nixpkgs-systemd,
       linux-firmware,
       ...
     }:
@@ -60,18 +68,20 @@
       # Import nixpkgs-unstable for all packages
       pkgs = import nixpkgs { inherit system; };
 
-      # Systemd 259.5 built with nixpkgs-unstable packages (zero old-nixpkgs imports)
-      # All build deps (python3, meson, bison, openssl…) come from Hydra-cached unstable.
-      # Only systemd itself compiles locally.
+      # Pinned systemd 257.9 via overrideAttrs — the same approach gen 117 used.
+      # Keeps native build config (PAM on → systemd-user-sessions binary built,
+      # proper unit templates, wants symlinks). Only adds ChromeOS patches.
       #
-      # Systemd 260+ requires mount_setattr (kernel 5.12), unavailable on
-      # ChromeOS shim kernels. 259.x has graceful fallbacks.
+      # Ceiling: 259.x (260 requires mount_setattr, kernel 5.12).
+      # 257.9 proven working on dedede 5.4.85, octopus 4.14.x.
       # Ref: https://github.com/ading2210/shimboot/issues/405
-      systemdPackages = import ./flake_modules/systemd-259.nix {
-        inherit pkgs;
-        patchesDir = ./patches;
-      };
-      inherit (systemdPackages) systemd259 systemdMinimal259;
+      pkgsSystemd = import nixpkgs-systemd { inherit system; };
+      systemd257 = pkgsSystemd.systemd.overrideAttrs (old: {
+        patches = (old.patches or [ ]) ++ [
+          ./patches/systemd-mountpoint-util-chromeos.patch
+          ./patches/systemd-process-util-pidfd-fallback.patch
+        ];
+      });
 
       # Import module outputs
       # Core system and development modules
@@ -82,14 +92,14 @@
             self
             nixpkgs
             board
-            systemd259
+            systemd257
             ;
         };
       systemConfigurationOutputs = import ./flake_modules/system-configuration.nix {
         inherit
           self
           nixpkgs
-          systemd259
+          systemd257
           ;
       };
       developmentEnvironmentOutputs = import ./flake_modules/development-environment.nix {
@@ -137,7 +147,7 @@
             self
             nixpkgs
             board
-            systemd259
+            systemd257
             ;
         };
 
@@ -155,8 +165,7 @@
       # Merge packages from all modules
       packages = {
         ${system} = nixpkgs.lib.foldl' (acc: board: acc // (boardPackages board)) {
-          systemd = systemd259;
-          systemdMinimal = systemdMinimal259;
+          systemd = systemd257;
         } supportedBoards;
       };
 
@@ -171,15 +180,11 @@
     {
       nixosModules = {
         # Full ChromeOS base configuration (boot, fs, hw, users, nix settings)
-        # Wraps configuration.nix to inject systemd259.
-        # Build-time udevadm verify uses nixpkgs-unstable's 260.1 udevadm;
-        # runtime udevd is 259.5 via systemd.package = systemd259.
-        # The version mismatch is benign: 259.5 warns on unknown OPTIONS,
-        # gracefully ignores unknown tokens.
+        # Wraps configuration.nix to inject systemd257.
         chromeos = {
           imports = [ ./shimboot_config/base_configuration/configuration.nix ];
           _module.args = {
-            inherit systemd259;
+            inherit systemd257;
           };
         };
 

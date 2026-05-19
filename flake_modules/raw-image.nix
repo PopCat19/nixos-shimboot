@@ -9,7 +9,7 @@
 {
   self,
   nixpkgs,
-  systemd259,
+  systemd257,
   ...
 }:
 let
@@ -46,7 +46,7 @@ let
           inherit
             self
             userConfig
-            systemd259
+            systemd257
             ;
           inherit (self) inputs;
         };

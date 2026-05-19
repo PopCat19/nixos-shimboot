@@ -18,7 +18,7 @@
   self,
   nixpkgs,
   board,
-  systemd259,
+  systemd257,
 }:
 let
   system = "x86_64-linux";
@@ -66,7 +66,7 @@ let
         };
       };
       specialArgs = {
-        inherit self userConfig systemd259;
+        inherit self userConfig systemd257;
         inherit (self) inputs;
       };
     };
@@ -82,7 +82,7 @@ let
 
   # === systemd with repart support ===
   # Use the patched 259.5 with repart enabled (the full systemd, not systemdMinimal)
-  # systemd259 has repart enabled by default
+  # systemd257 has repart enabled by default
 
   # === Build the complete shimboot image ===
   mkShimbootImage =
