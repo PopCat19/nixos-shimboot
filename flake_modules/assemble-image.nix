@@ -286,7 +286,9 @@ METAMETA
         else
           MIN_MB=$(du -sm rootfs.img 2>/dev/null | cut -f1 || echo 6400)
         fi
-        ROOTFS_SIZE_MB=$(( MIN_MB * 110 / 100 + 100 ))
+        # Tighter sizing: 5% growth + 50M pad (vs old 10% + 100M)
+        # Matches assemble-final's du-based approach more closely
+        ROOTFS_SIZE_MB=$(( MIN_MB + MIN_MB / 20 + 50 ))
 
         STATE_START=1
         KERNEL_START=2
