@@ -460,8 +460,12 @@ let
             chmod +x "$BINDIR/systemd-user-sessions"
           fi
           if [ ! -e "$UNITDIR/systemd-user-sessions.service" ]; then
-            printf '[Unit]\nDescription=Permit User Sessions\nDocumentation=man:systemd-user-sessions.service(8)\nAfter=remote-fs.target nss-user-lookup.target network.target\nWants=remote-fs.target nss-user-lookup.target network.target\n\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=%s/lib/systemd/systemd-user-sessions start\nExecStop=%s/lib/systemd/systemd-user-sessions stop\n' "$out" "$out" > "$UNITDIR/systemd-user-sessions.service"
+            printf '[Unit]\nDescription=Permit User Sessions\nDocumentation=man:systemd-user-sessions.service(8)\nAfter=remote-fs.target nss-user-lookup.target network.target home.mount\n\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=%s/lib/systemd/systemd-user-sessions start\nExecStop=%s/lib/systemd/systemd-user-sessions stop\n' "$out" "$out" > "$UNITDIR/systemd-user-sessions.service"
           fi
+          # Link into multi-user.target.wants so the unit actually gets started.
+          # The native systemd build ships this symlink; our stub must too.
+          mkdir -p "$UNITDIR/multi-user.target.wants"
+          ln -sf "$UNITDIR/systemd-user-sessions.service" "$UNITDIR/multi-user.target.wants/systemd-user-sessions.service"
 
           # systemd-bsod needs HAVE_QRENCODE (disabled). NixOS initrd expects it.
           if [ ! -e "$out/lib/systemd/systemd-bsod" ]; then
