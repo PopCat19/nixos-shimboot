@@ -33,7 +33,11 @@ in
       Type = "oneshot";
       RemainAfterExit = true;
     };
-    path = with pkgs; [ kmod coreutils util-linux ];
+    path = with pkgs; [
+      kmod
+      coreutils
+      util-linux
+    ];
     script = ''
       set -e
       modprobe zram 2>/dev/null || true

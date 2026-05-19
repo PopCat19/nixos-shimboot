@@ -74,7 +74,6 @@ let
       withVConsole,
       withKmod ? true,
       withLogTrace ? false,
-      withKexectools ? false,
       withLibseccomp ? true,
       withSelinux ? false,
       withLibarchive ? true,
@@ -101,35 +100,34 @@ let
       # revision; patch 0019 there is install-unit_file_exists (not in 259's set)
       # and patch 0020 is the timesyncd one nixpkgs-259 calls 0019.
       # Use exact filenames matching what nixpkgs-259 had.
-      patches =
-        [
-          (nixosPatchesDir + "/0001-Start-device-units-for-uninitialised-encrypted-devic.patch")
-          (nixosPatchesDir + "/0002-Don-t-try-to-unmount-nix-or-nix-store.patch")
-          (nixosPatchesDir + "/0003-Fix-NixOS-containers.patch")
-          (nixosPatchesDir + "/0004-Add-some-NixOS-specific-unit-directories.patch")
-          (nixosPatchesDir + "/0005-Get-rid-of-a-useless-message-in-user-sessions.patch")
-          (nixosPatchesDir + "/0006-hostnamed-localed-timedated-disable-methods-that-cha.patch")
-          (nixosPatchesDir + "/0007-Change-usr-share-zoneinfo-to-etc-zoneinfo.patch")
-          (nixosPatchesDir + "/0008-localectl-use-etc-X11-xkb-for-list-x11.patch")
-          (nixosPatchesDir + "/0009-add-rootprefix-to-lookup-dir-paths.patch")
-          (nixosPatchesDir + "/0010-systemd-shutdown-execute-scripts-in-etc-systemd-syst.patch")
-          (nixosPatchesDir + "/0011-systemd-sleep-execute-scripts-in-etc-systemd-system-.patch")
-          (nixosPatchesDir + "/0012-path-util.h-add-placeholder-for-DEFAULT_PATH_NORMAL.patch")
-          (nixosPatchesDir + "/0013-inherit-systemd-environment-when-calling-generators.patch")
-          (nixosPatchesDir + "/0014-core-don-t-taint-on-unmerged-usr.patch")
-          (nixosPatchesDir + "/0015-tpm2_context_init-fix-driver-name-checking.patch")
-          (nixosPatchesDir + "/0016-systemctl-edit-suggest-systemdctl-edit-runtime-on-sy.patch")
-          (nixosPatchesDir + "/0017-meson.build-do-not-create-systemdstatedir.patch")
-          (nixosPatchesDir + "/0018-meson-Don-t-link-ssh-dropins.patch")
-        ]
-        ++ lib.optionals (stdenv.hostPlatform.isLinux && stdenv.hostPlatform.isGnu) [
-          (nixosPatchesDir + "/0019-timesyncd-disable-NSCD-when-DNSSEC-validation-is-dis.patch")
-        ]
-        # Shimboot-specific patches
-        ++ [
-          (patchesDir + "/systemd-mountpoint-util-chromeos.patch")
-          (patchesDir + "/systemd-process-util-pidfd-fallback.patch")
-        ];
+      patches = [
+        (nixosPatchesDir + "/0001-Start-device-units-for-uninitialised-encrypted-devic.patch")
+        (nixosPatchesDir + "/0002-Don-t-try-to-unmount-nix-or-nix-store.patch")
+        (nixosPatchesDir + "/0003-Fix-NixOS-containers.patch")
+        (nixosPatchesDir + "/0004-Add-some-NixOS-specific-unit-directories.patch")
+        (nixosPatchesDir + "/0005-Get-rid-of-a-useless-message-in-user-sessions.patch")
+        (nixosPatchesDir + "/0006-hostnamed-localed-timedated-disable-methods-that-cha.patch")
+        (nixosPatchesDir + "/0007-Change-usr-share-zoneinfo-to-etc-zoneinfo.patch")
+        (nixosPatchesDir + "/0008-localectl-use-etc-X11-xkb-for-list-x11.patch")
+        (nixosPatchesDir + "/0009-add-rootprefix-to-lookup-dir-paths.patch")
+        (nixosPatchesDir + "/0010-systemd-shutdown-execute-scripts-in-etc-systemd-syst.patch")
+        (nixosPatchesDir + "/0011-systemd-sleep-execute-scripts-in-etc-systemd-system-.patch")
+        (nixosPatchesDir + "/0012-path-util.h-add-placeholder-for-DEFAULT_PATH_NORMAL.patch")
+        (nixosPatchesDir + "/0013-inherit-systemd-environment-when-calling-generators.patch")
+        (nixosPatchesDir + "/0014-core-don-t-taint-on-unmerged-usr.patch")
+        (nixosPatchesDir + "/0015-tpm2_context_init-fix-driver-name-checking.patch")
+        (nixosPatchesDir + "/0016-systemctl-edit-suggest-systemdctl-edit-runtime-on-sy.patch")
+        (nixosPatchesDir + "/0017-meson.build-do-not-create-systemdstatedir.patch")
+        (nixosPatchesDir + "/0018-meson-Don-t-link-ssh-dropins.patch")
+      ]
+      ++ lib.optionals (stdenv.hostPlatform.isLinux && stdenv.hostPlatform.isGnu) [
+        (nixosPatchesDir + "/0019-timesyncd-disable-NSCD-when-DNSSEC-validation-is-dis.patch")
+      ]
+      # Shimboot-specific patches
+      ++ [
+        (patchesDir + "/systemd-mountpoint-util-chromeos.patch")
+        (patchesDir + "/systemd-process-util-pidfd-fallback.patch")
+      ];
 
       postPatch = ''
         substituteInPlace src/basic/path-util.h --replace "@defaultPathNormal@" "${builtins.placeholder "out"}/bin/"
@@ -143,194 +141,216 @@ let
         patchShebangs tools test src/!(rpm|kernel-install|ukify) src/kernel-install/test-kernel-install.sh
       '';
 
-      outputs = [ "out" "dev" ] ++ lib.optional (!buildLibsOnly) "man";
+      outputs = [
+        "out"
+        "dev"
+      ]
+      ++ lib.optional (!buildLibsOnly) "man";
       separateDebugInfo = true;
       __structuredAttrs = true;
 
-      nativeBuildInputs =
-        [
-          pkgs.pkg-config
-          pkgs.makeBinaryWrapper
-          pkgs.gperf
-          pkgs.ninja
-          pkgs.meson
-          pkgs.glibcLocales
-          pkgs.m4
-          pkgs.autoPatchelfHook
-          pkgs.intltool
-          pkgs.gettext
-          pkgs.libxslt
-          pkgs.docbook_xsl
-          pkgs.docbook_xml_dtd_42
-          pkgs.docbook_xml_dtd_45
-          pkgs.bash
-          (pkgs.python3Packages.python.withPackages (
-            ps: with ps; [ lxml jinja2 ] ++ lib.optional withEfi ps.pyelftools
-          ))
-        ]
-        ++ lib.optionals withLibBPF [
-          pkgs.bpftools
-          pkgs.llvmPackages.clang
-          pkgs.llvmPackages.libllvm
-        ];
+      nativeBuildInputs = [
+        pkgs.pkg-config
+        pkgs.makeBinaryWrapper
+        pkgs.gperf
+        pkgs.ninja
+        pkgs.meson
+        pkgs.glibcLocales
+        pkgs.m4
+        pkgs.autoPatchelfHook
+        pkgs.intltool
+        pkgs.gettext
+        pkgs.libxslt
+        pkgs.docbook_xsl
+        pkgs.docbook_xml_dtd_42
+        pkgs.docbook_xml_dtd_45
+        pkgs.bash
+        (pkgs.python3Packages.python.withPackages (
+          ps:
+          with ps;
+          [
+            lxml
+            jinja2
+          ]
+          ++ lib.optional withEfi ps.pyelftools
+        ))
+      ]
+      ++ lib.optionals withLibBPF [
+        pkgs.bpftools
+        pkgs.llvmPackages.clang
+        pkgs.llvmPackages.libllvm
+      ];
 
       autoPatchelfFlags = [ "--keep-libc" ];
 
-      buildInputs =
-        [
-          pkgs.libxcrypt
-          pkgs.libuuid
-          stdenv.cc.libc.linuxHeaders
-        ]
-        ++ lib.optionals withGcrypt [ pkgs.libgcrypt pkgs.libgpg-error ]
-        ++ lib.optionals withOpenSSL [ pkgs.openssl ]
-        ++ lib.optional withTests pkgs.glib
-        ++ lib.optional withAcl pkgs.acl
-        ++ lib.optional withApparmor pkgs.libapparmor
-        ++ lib.optional withAudit pkgs.audit
-        ++ lib.optional wantCurl (lib.getDev pkgs.curl)
-        ++ lib.optionals withCompression [ pkgs.zlib pkgs.bzip2 pkgs.lz4 pkgs.xz pkgs.zstd ]
-        ++ lib.optional withCoredump pkgs.elfutils
-        ++ lib.optional withCryptsetup (lib.getDev pkgs.cryptsetup.dev)
-        ++ lib.optional withKmod pkgs.kmod
-        ++ lib.optional withLibidn2 pkgs.libidn2
-        ++ lib.optional withLibseccomp pkgs.libseccomp
-        ++ lib.optional withPam pkgs.pam
-        ++ lib.optional withPCRE2 pkgs.pcre2
-        ++ lib.optionals withRemote [ pkgs.libmicrohttpd pkgs.gnutls ]
-        ++ lib.optionals (withHomed || withCryptsetup) [ pkgs.p11-kit pkgs.libfido2 ]
-        ++ lib.optionals withLibBPF [ pkgs.libbpf ]
-        ++ lib.optional withTpm2Tss pkgs.tpm2-tss
-        ++ lib.optionals withPasswordQuality [ pkgs.libpwquality ]
-        ++ lib.optionals withQrencode [ pkgs.qrencode ]
-        ++ lib.optionals withLibarchive [ pkgs.libarchive ];
+      buildInputs = [
+        pkgs.libxcrypt
+        pkgs.libuuid
+        stdenv.cc.libc.linuxHeaders
+      ]
+      ++ lib.optionals withGcrypt [
+        pkgs.libgcrypt
+        pkgs.libgpg-error
+      ]
+      ++ lib.optionals withOpenSSL [ pkgs.openssl ]
+      ++ lib.optional withTests pkgs.glib
+      ++ lib.optional withAcl pkgs.acl
+      ++ lib.optional withApparmor pkgs.libapparmor
+      ++ lib.optional withAudit pkgs.audit
+      ++ lib.optional wantCurl (lib.getDev pkgs.curl)
+      ++ lib.optionals withCompression [
+        pkgs.zlib
+        pkgs.bzip2
+        pkgs.lz4
+        pkgs.xz
+        pkgs.zstd
+      ]
+      ++ lib.optional withCoredump pkgs.elfutils
+      ++ lib.optional withCryptsetup (lib.getDev pkgs.cryptsetup.dev)
+      ++ lib.optional withKmod pkgs.kmod
+      ++ lib.optional withLibidn2 pkgs.libidn2
+      ++ lib.optional withLibseccomp pkgs.libseccomp
+      ++ lib.optional withPam pkgs.pam
+      ++ lib.optional withPCRE2 pkgs.pcre2
+      ++ lib.optionals withRemote [
+        pkgs.libmicrohttpd
+        pkgs.gnutls
+      ]
+      ++ lib.optionals (withHomed || withCryptsetup) [
+        pkgs.p11-kit
+        pkgs.libfido2
+      ]
+      ++ lib.optionals withLibBPF [ pkgs.libbpf ]
+      ++ lib.optional withTpm2Tss pkgs.tpm2-tss
+      ++ lib.optionals withPasswordQuality [ pkgs.libpwquality ]
+      ++ lib.optionals withQrencode [ pkgs.qrencode ]
+      ++ lib.optionals withLibarchive [ pkgs.libarchive ];
 
       mesonBuildType = "release";
 
-      mesonFlags =
-        [
-          (lib.mesonOption "time-epoch" releaseTimestamp)
-          (lib.mesonOption "version-tag" finalAttrs.version)
-          (lib.mesonOption "mode" "release")
-          (lib.mesonOption "tty-gid" "3")
-          (lib.mesonOption "pamconfdir" "${builtins.placeholder "out"}/etc/pam.d")
-          (lib.mesonOption "shellprofiledir" "${builtins.placeholder "out"}/etc/profile.d")
-          (lib.mesonOption "debug-shell" "/bin/sh")
-          (lib.mesonOption "default-user-shell" "/run/current-system/sw/bin/bash")
-          (lib.mesonOption "split-bin" "false")
-          (lib.mesonOption "dbuspolicydir" "${builtins.placeholder "out"}/share/dbus-1/system.d")
-          (lib.mesonOption "dbussessionservicedir" "${builtins.placeholder "out"}/share/dbus-1/services")
-          (lib.mesonOption "dbussystemservicedir" "${builtins.placeholder "out"}/share/dbus-1/system-services")
-          (lib.mesonOption "pkgconfiglibdir" "${builtins.placeholder "dev"}/lib/pkgconfig")
-          (lib.mesonOption "pkgconfigdatadir" "${builtins.placeholder "dev"}/share/pkgconfig")
-          (lib.mesonOption "sbat-distro" "nixos")
-          (lib.mesonOption "sbat-distro-summary" "NixOS")
-          (lib.mesonOption "sbat-distro-url" "https://nixos.org/")
-          (lib.mesonOption "sbat-distro-pkgname" pname)
-          (lib.mesonOption "sbat-distro-version" finalAttrs.version)
-          (lib.mesonOption "system-uid-max" "999")
-          (lib.mesonOption "system-gid-max" "999")
-          (lib.mesonOption "sysvinit-path" "")
-          (lib.mesonOption "sysvrcnd-path" "")
-          (lib.mesonOption "sulogin-path" "${lib.getOutput "login" pkgs.util-linux}/bin/sulogin")
-          (lib.mesonOption "nologin-path" "${lib.getOutput "login" pkgs.util-linux}/bin/nologin")
-          (lib.mesonOption "mount-path" "${lib.getOutput "mount" pkgs.util-linux}/bin/mount")
-          (lib.mesonOption "umount-path" "${lib.getOutput "mount" pkgs.util-linux}/bin/umount")
-          (lib.mesonOption "swapon-path" "${lib.getOutput "swap" pkgs.util-linux}/sbin/swapon")
-          (lib.mesonOption "swapoff-path" "${lib.getOutput "swap" pkgs.util-linux}/sbin/swapoff")
-          (lib.mesonOption "sshconfdir" "")
-          (lib.mesonOption "sshdconfdir" "no")
-          (lib.mesonOption "rpmmacrosdir" "no")
+      mesonFlags = [
+        (lib.mesonOption "time-epoch" releaseTimestamp)
+        (lib.mesonOption "version-tag" finalAttrs.version)
+        (lib.mesonOption "mode" "release")
+        (lib.mesonOption "tty-gid" "3")
+        (lib.mesonOption "pamconfdir" "${builtins.placeholder "out"}/etc/pam.d")
+        (lib.mesonOption "shellprofiledir" "${builtins.placeholder "out"}/etc/profile.d")
+        (lib.mesonOption "debug-shell" "/bin/sh")
+        (lib.mesonOption "default-user-shell" "/run/current-system/sw/bin/bash")
+        (lib.mesonOption "split-bin" "false")
+        (lib.mesonOption "dbuspolicydir" "${builtins.placeholder "out"}/share/dbus-1/system.d")
+        (lib.mesonOption "dbussessionservicedir" "${builtins.placeholder "out"}/share/dbus-1/services")
+        (lib.mesonOption "dbussystemservicedir" "${builtins.placeholder "out"}/share/dbus-1/system-services")
+        (lib.mesonOption "pkgconfiglibdir" "${builtins.placeholder "dev"}/lib/pkgconfig")
+        (lib.mesonOption "pkgconfigdatadir" "${builtins.placeholder "dev"}/share/pkgconfig")
+        (lib.mesonOption "sbat-distro" "nixos")
+        (lib.mesonOption "sbat-distro-summary" "NixOS")
+        (lib.mesonOption "sbat-distro-url" "https://nixos.org/")
+        (lib.mesonOption "sbat-distro-pkgname" pname)
+        (lib.mesonOption "sbat-distro-version" finalAttrs.version)
+        (lib.mesonOption "system-uid-max" "999")
+        (lib.mesonOption "system-gid-max" "999")
+        (lib.mesonOption "sysvinit-path" "")
+        (lib.mesonOption "sysvrcnd-path" "")
+        (lib.mesonOption "sulogin-path" "${lib.getOutput "login" pkgs.util-linux}/bin/sulogin")
+        (lib.mesonOption "nologin-path" "${lib.getOutput "login" pkgs.util-linux}/bin/nologin")
+        (lib.mesonOption "mount-path" "${lib.getOutput "mount" pkgs.util-linux}/bin/mount")
+        (lib.mesonOption "umount-path" "${lib.getOutput "mount" pkgs.util-linux}/bin/umount")
+        (lib.mesonOption "swapon-path" "${lib.getOutput "swap" pkgs.util-linux}/sbin/swapon")
+        (lib.mesonOption "swapoff-path" "${lib.getOutput "swap" pkgs.util-linux}/sbin/swapoff")
+        (lib.mesonOption "sshconfdir" "")
+        (lib.mesonOption "sshdconfdir" "no")
+        (lib.mesonOption "rpmmacrosdir" "no")
 
-          # Features
-          (lib.mesonBool "tests" withTests)
-          (lib.mesonEnable "glib" withTests)
-          (lib.mesonEnable "dbus" withTests)
-          (lib.mesonEnable "bzip2" withCompression)
-          (lib.mesonEnable "lz4" withCompression)
-          (lib.mesonEnable "xz" withCompression)
-          (lib.mesonEnable "zstd" withCompression)
-          (lib.mesonEnable "zlib" withCompression)
-          (lib.mesonEnable "nss-mymachines" (withNss && withMachined))
-          (lib.mesonEnable "nss-resolve" withNss)
-          (lib.mesonBool "nss-myhostname" withNss)
-          (lib.mesonBool "nss-systemd" withNss)
-          (lib.mesonEnable "libcryptsetup" withCryptsetup)
-          (lib.mesonEnable "libcryptsetup-plugins" withCryptsetup)
-          (lib.mesonEnable "p11kit" (withHomed || withCryptsetup))
-          (lib.mesonEnable "libfido2" withFido2)
-          (lib.mesonEnable "openssl" withOpenSSL)
-          (lib.mesonEnable "pwquality" withPasswordQuality)
-          (lib.mesonEnable "passwdqc" false)
-          (lib.mesonEnable "remote" withRemote)
-          (lib.mesonEnable "microhttpd" withRemote)
-          (lib.mesonEnable "pam" withPam)
-          (lib.mesonEnable "acl" withAcl)
-          (lib.mesonEnable "audit" withAudit)
-          (lib.mesonEnable "apparmor" withApparmor)
-          (lib.mesonEnable "gcrypt" withGcrypt)
-          (lib.mesonEnable "importd" withImportd)
-          (lib.mesonEnable "homed" withHomed)
-          (lib.mesonEnable "polkit" withPolkit)
-          (lib.mesonEnable "elfutils" withCoredump)
-          (lib.mesonEnable "libcurl" wantCurl)
-          (lib.mesonEnable "libidn" false)
-          (lib.mesonEnable "libidn2" withLibidn2)
-          (lib.mesonEnable "repart" withRepart)
-          (lib.mesonEnable "sysupdate" withSysupdate)
-          (lib.mesonEnable "sysupdated" withSysupdate)
-          (lib.mesonEnable "seccomp" withLibseccomp)
-          (lib.mesonEnable "selinux" withSelinux)
-          (lib.mesonEnable "tpm2" withTpm2Tss)
-          (lib.mesonEnable "pcre2" withPCRE2)
-          (lib.mesonEnable "bpf-framework" withLibBPF)
-          (lib.mesonEnable "bootloader" false)
-          (lib.mesonEnable "ukify" withUkify)
-          (lib.mesonEnable "kmod" withKmod)
-          (lib.mesonEnable "qrencode" withQrencode)
-          (lib.mesonEnable "vmspawn" withVmspawn)
-          (lib.mesonEnable "libarchive" withLibarchive)
-          (lib.mesonEnable "xenctrl" false)
-          (lib.mesonEnable "gnutls" false)
-          (lib.mesonEnable "xkbcommon" false)
-          (lib.mesonEnable "man" true)
-          (lib.mesonEnable "nspawn" withNspawn)
-          (lib.mesonBool "vconsole" withVConsole)
-          (lib.mesonBool "analyze" withAnalyze)
-          (lib.mesonBool "logind" withLogind)
-          (lib.mesonBool "localed" withLocaled)
-          (lib.mesonBool "hostnamed" withHostnamed)
-          (lib.mesonBool "machined" withMachined)
-          (lib.mesonBool "networkd" withNetworkd)
-          (lib.mesonBool "oomd" withOomd)
-          (lib.mesonBool "portabled" withPortabled)
-          (lib.mesonBool "hwdb" withHwdb)
-          (lib.mesonBool "timedated" withTimedated)
-          (lib.mesonBool "timesyncd" withTimesyncd)
-          (lib.mesonBool "userdb" withUserDb)
-          (lib.mesonBool "coredump" withCoredump)
-          (lib.mesonBool "firstboot" withFirstboot)
-          (lib.mesonBool "resolve" withResolved)
-          (lib.mesonBool "sysusers" withSysusers)
-          (lib.mesonBool "efi" withEfi)
-          (lib.mesonBool "utmp" withUtmp)
-          (lib.mesonBool "log-trace" withLogTrace)
-          (lib.mesonBool "kernel-install" withKernelInstall)
-          (lib.mesonBool "quotacheck" false)
-          (lib.mesonBool "ldconfig" false)
-          (lib.mesonBool "install-sysconfdir" false)
-          (lib.mesonBool "create-log-dirs" false)
-          (lib.mesonBool "smack" true)
-          (lib.mesonBool "b_pie" true)
-        ]
-        ++ lib.optionals withVConsole [
-          (lib.mesonOption "loadkeys-path" "${pkgs.kbd}/bin/loadkeys")
-          (lib.mesonOption "setfont-path" "${pkgs.kbd}/bin/setfont")
-        ]
-        ++ lib.optionals (withShellCompletions == false) [
-          (lib.mesonOption "bashcompletiondir" "no")
-          (lib.mesonOption "zshcompletiondir" "no")
-        ];
+        # Features
+        (lib.mesonBool "tests" withTests)
+        (lib.mesonEnable "glib" withTests)
+        (lib.mesonEnable "dbus" withTests)
+        (lib.mesonEnable "bzip2" withCompression)
+        (lib.mesonEnable "lz4" withCompression)
+        (lib.mesonEnable "xz" withCompression)
+        (lib.mesonEnable "zstd" withCompression)
+        (lib.mesonEnable "zlib" withCompression)
+        (lib.mesonEnable "nss-mymachines" (withNss && withMachined))
+        (lib.mesonEnable "nss-resolve" withNss)
+        (lib.mesonBool "nss-myhostname" withNss)
+        (lib.mesonBool "nss-systemd" withNss)
+        (lib.mesonEnable "libcryptsetup" withCryptsetup)
+        (lib.mesonEnable "libcryptsetup-plugins" withCryptsetup)
+        (lib.mesonEnable "p11kit" (withHomed || withCryptsetup))
+        (lib.mesonEnable "libfido2" withFido2)
+        (lib.mesonEnable "openssl" withOpenSSL)
+        (lib.mesonEnable "pwquality" withPasswordQuality)
+        (lib.mesonEnable "passwdqc" false)
+        (lib.mesonEnable "remote" withRemote)
+        (lib.mesonEnable "microhttpd" withRemote)
+        (lib.mesonEnable "pam" withPam)
+        (lib.mesonEnable "acl" withAcl)
+        (lib.mesonEnable "audit" withAudit)
+        (lib.mesonEnable "apparmor" withApparmor)
+        (lib.mesonEnable "gcrypt" withGcrypt)
+        (lib.mesonEnable "importd" withImportd)
+        (lib.mesonEnable "homed" withHomed)
+        (lib.mesonEnable "polkit" withPolkit)
+        (lib.mesonEnable "elfutils" withCoredump)
+        (lib.mesonEnable "libcurl" wantCurl)
+        (lib.mesonEnable "libidn" false)
+        (lib.mesonEnable "libidn2" withLibidn2)
+        (lib.mesonEnable "repart" withRepart)
+        (lib.mesonEnable "sysupdate" withSysupdate)
+        (lib.mesonEnable "sysupdated" withSysupdate)
+        (lib.mesonEnable "seccomp" withLibseccomp)
+        (lib.mesonEnable "selinux" withSelinux)
+        (lib.mesonEnable "tpm2" withTpm2Tss)
+        (lib.mesonEnable "pcre2" withPCRE2)
+        (lib.mesonEnable "bpf-framework" withLibBPF)
+        (lib.mesonEnable "bootloader" false)
+        (lib.mesonEnable "ukify" withUkify)
+        (lib.mesonEnable "kmod" withKmod)
+        (lib.mesonEnable "qrencode" withQrencode)
+        (lib.mesonEnable "vmspawn" withVmspawn)
+        (lib.mesonEnable "libarchive" withLibarchive)
+        (lib.mesonEnable "xenctrl" false)
+        (lib.mesonEnable "gnutls" false)
+        (lib.mesonEnable "xkbcommon" false)
+        (lib.mesonEnable "man" true)
+        (lib.mesonEnable "nspawn" withNspawn)
+        (lib.mesonBool "vconsole" withVConsole)
+        (lib.mesonBool "analyze" withAnalyze)
+        (lib.mesonBool "logind" withLogind)
+        (lib.mesonBool "localed" withLocaled)
+        (lib.mesonBool "hostnamed" withHostnamed)
+        (lib.mesonBool "machined" withMachined)
+        (lib.mesonBool "networkd" withNetworkd)
+        (lib.mesonBool "oomd" withOomd)
+        (lib.mesonBool "portabled" withPortabled)
+        (lib.mesonBool "hwdb" withHwdb)
+        (lib.mesonBool "timedated" withTimedated)
+        (lib.mesonBool "timesyncd" withTimesyncd)
+        (lib.mesonBool "userdb" withUserDb)
+        (lib.mesonBool "coredump" withCoredump)
+        (lib.mesonBool "firstboot" withFirstboot)
+        (lib.mesonBool "resolve" withResolved)
+        (lib.mesonBool "sysusers" withSysusers)
+        (lib.mesonBool "efi" withEfi)
+        (lib.mesonBool "utmp" withUtmp)
+        (lib.mesonBool "log-trace" withLogTrace)
+        (lib.mesonBool "kernel-install" withKernelInstall)
+        (lib.mesonBool "quotacheck" false)
+        (lib.mesonBool "ldconfig" false)
+        (lib.mesonBool "install-sysconfdir" false)
+        (lib.mesonBool "create-log-dirs" false)
+        (lib.mesonBool "smack" true)
+        (lib.mesonBool "b_pie" true)
+      ]
+      ++ lib.optionals withVConsole [
+        (lib.mesonOption "loadkeys-path" "${pkgs.kbd}/bin/loadkeys")
+        (lib.mesonOption "setfont-path" "${pkgs.kbd}/bin/setfont")
+      ]
+      ++ lib.optionals (withShellCompletions == false) [
+        (lib.mesonOption "bashcompletiondir" "no")
+        (lib.mesonOption "zshcompletiondir" "no")
+      ];
 
       preConfigure = ''
         mesonFlagsArray+=(-Dntp-servers="0.nixos.pool.ntp.org 1.nixos.pool.ntp.org 2.nixos.pool.ntp.org 3.nixos.pool.ntp.org")
@@ -469,40 +489,54 @@ let
           ;
 
         withBootloader = false;
-        withLogind = withLogind;
+        inherit withLogind;
         withVconsole = withVConsole;
         withTpm2Units = withTpm2Tss && false && withOpenSSL;
-        withPortabled = withPortabled;
-        withSysupdate = withSysupdate;
-        withNspawn = withNspawn;
+        inherit withPortabled;
+        inherit withSysupdate;
+        inherit withNspawn;
 
-        util-linux = pkgs.util-linux;
-        kmod = pkgs.kmod;
-        kbd = pkgs.kbd;
+        inherit (pkgs) util-linux;
+        inherit (pkgs) kmod;
+        inherit (pkgs) kbd;
       };
 
       meta = {
         homepage = "https://systemd.io";
         description = "System and service manager for Linux";
         license = with lib.licenses; [
-          bsd2 bsd3 cc0 lgpl21Plus lgpl2Plus mit mit0 ofl publicDomain
+          bsd2
+          bsd3
+          cc0
+          lgpl21Plus
+          lgpl2Plus
+          mit
+          mit0
+          ofl
+          publicDomain
         ];
-        pkgConfigModules = [ "libsystemd" "libudev" "systemd" "udev" ];
+        pkgConfigModules = [
+          "libsystemd"
+          "libudev"
+          "systemd"
+          "udev"
+        ];
         platforms = lib.platforms.linux;
         priority = 10;
       };
     });
 
-in
-let
   # mkSystemd returns a raw mkDerivation, which has overrideAttrs but
   # not .override (the function form of mkDerivation doesn't add it).
   # nixpkgs all-packages.nix calls systemdMinimal.override {} to build
   # systemdLibs, so we need our derivations to have .override.
   # We don't need real override semantics — just provide it for compat.
-  makeOverridable = drv: drv // {
-    override = _: drv;
-  };
+  makeOverridable =
+    drv:
+    drv
+    // {
+      override = _: drv;
+    };
 in
 rec {
   # Full systemd 259.5 — PID 1, udevd, all services

@@ -123,7 +123,12 @@
       harvestedDriversOutputs =
         board:
         import ./flake_modules/harvest-drivers.nix {
-          inherit self nixpkgs board linux-firmware;
+          inherit
+            self
+            nixpkgs
+            board
+            linux-firmware
+            ;
         };
       assembleImageOutputs =
         board:
