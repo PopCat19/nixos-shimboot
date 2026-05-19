@@ -556,6 +556,9 @@ Users unfamiliar with Nix should try it in a VM first ([nixos.org/download](http
 <details>
 <summary>Roadmap</summary>
 
+<details>
+<summary>Roadmap</summary>
+
 ## Roadmap
 
 ### Done
@@ -586,6 +589,8 @@ Users unfamiliar with Nix should try it in a VM first ([nixos.org/download](http
 - [ ] Upstream systemd 258+ integration (dedede ceiling is 259)
 
 </details>
+
+</details>
 <!-- END fragment: 13-roadmap.md -->
 
-<!-- generated: 20260518-8d630fc -->
+<!-- generated: 20260519-8f02b1e -->

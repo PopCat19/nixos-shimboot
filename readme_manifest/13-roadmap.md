@@ -1,3 +1,6 @@
+<details>
+<summary>Roadmap</summary>
+
 ## Roadmap
 
 ### Done
@@ -26,3 +29,6 @@
 - [ ] Audio for non-octopus/snappy boards
 - [ ] Refine and cleanup base configuration
 - [ ] Upstream systemd 258+ integration (dedede ceiling is 259)
+
+</details>
+

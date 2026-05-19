@@ -48,4 +48,3 @@ sudo ./tools/write/write-shimboot-image.sh
 
 </details>
 
-
