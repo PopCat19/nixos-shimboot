@@ -278,9 +278,9 @@ METAMETA
           VENDOR_SIZE_MB=$(( VENDOR_SIZE_MB * 115 / 100 + 20 ))
         fi
 
-        # Rootfs size: use minimum filesystem size from block usage, not file size
-        # (raw EFI images have oversized partitions; du measures the partition, not content)
-        MIN_BLKS=$(resize2fs -P rootfs.img 2>&1 | grep -oP '\d+' || echo 0)
+        # Rootfs size: capture only the estimated minimum block count
+        # resize2fs -P prints: "Estimated minimum size of the filesystem: NNNN"
+        MIN_BLKS=$(resize2fs -P rootfs.img 2>&1 | grep -oP 'size of the filesystem: \K\d+' || echo 0)
         if [ "$MIN_BLKS" -gt 0 ]; then
           MIN_MB=$(( MIN_BLKS * 4 / 1024 ))
         else
