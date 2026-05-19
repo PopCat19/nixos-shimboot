@@ -425,7 +425,7 @@ let
           UNITDIR="$out/example/systemd/system"
           mkdir -p "$UNITDIR"
 
-          for unit in breakpoint-pre-udev.service breakpoint-pre-basic.service breakpoint-pre-mount.service breakpoint-pre-switch-root.service systemd-factory-reset-complete.service systemd-journalctl@.service systemd-bsod.service systemd-user-sessions.service; do
+          for unit in breakpoint-pre-udev.service breakpoint-pre-basic.service breakpoint-pre-mount.service breakpoint-pre-switch-root.service systemd-factory-reset-complete.service systemd-journalctl@.service systemd-bsod.service; do
             if [ ! -e "$UNITDIR/$unit" ]; then
               name="$(echo "$unit" | sed 's/\..*$//')"
               printf '[Unit]\nDescription=%s (stub - not in 259.5)\nDefaultDependencies=no\nRefuseManualStart=yes\n\n[Service]\nType=oneshot\nExecStart=%s/bin/true\nRemainAfterExit=yes\n' "$name" '${pkgs.coreutils}' > "$UNITDIR/$unit"
@@ -450,6 +450,18 @@ let
               chmod +x "$BINDIR/$bin"
             fi
           done
+
+          # systemd-user-sessions.service requires a functional stub (not /bin/true).
+          # The real systemd-user-sessions binary does unlink(/run/nologin).
+          # withPam=false prevents building the native binary, so provide a
+          # shell-script shim that does the same thing.
+          if [ ! -e "$BINDIR/systemd-user-sessions" ]; then
+            printf '#!/bin/sh\nif [ "$1" = start ]; then rm -f /run/nologin; fi\nexit 0\n' > "$BINDIR/systemd-user-sessions"
+            chmod +x "$BINDIR/systemd-user-sessions"
+          fi
+          if [ ! -e "$UNITDIR/systemd-user-sessions.service" ]; then
+            printf '[Unit]\nDescription=Permit User Sessions\nDocumentation=man:systemd-user-sessions.service(8)\nAfter=remote-fs.target nss-user-lookup.target network.target\nWants=remote-fs.target nss-user-lookup.target network.target\n\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=%s/lib/systemd/systemd-user-sessions start\nExecStop=%s/lib/systemd/systemd-user-sessions stop\n' "$out" "$out" > "$UNITDIR/systemd-user-sessions.service"
+          fi
 
           # systemd-bsod needs HAVE_QRENCODE (disabled). NixOS initrd expects it.
           if [ ! -e "$out/lib/systemd/systemd-bsod" ]; then
