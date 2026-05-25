@@ -169,7 +169,7 @@ cli_retry 3 5 curl -fsSL "$URL" -o "$DEST"
 **Prompts degrade gracefully in non-tty:**
 ```bash
 # cli_prompt_yn returns 1 (no) silently when stdin is not a tty
-# Safe to call unconditionally — no hang in CI
+# Safe to call unconditionally; no hang in CI
 
 cli_prompt_yn "Enable LUKS2 encryption?" "n" && LUKS_ENABLED=1
 
@@ -179,7 +179,7 @@ log_info "Selected: ${CLI_CHOICE}"
 
 **CI color suppression is automatic:**
 ```bash
-# No guard needed — _cli_use_color() checks:
+# No guard needed; _cli_use_color() checks:
 #   isatty, $NO_COLOR, $CI, $GITHUB_ACTIONS
 # Plain text emitted automatically in CI pipelines
 ```
@@ -245,7 +245,7 @@ begin; command -v rg &>/dev/null; and rg "WAYLAND_DISPLAY" ~/config --nix; or gr
 
 **Cross-reference a config value:**
 ```fish
-begin; command -v rg &>/dev/null; and rg "graphical-session" ~/nixos-shimboot --type nix -n; or grep -rn "graphical-session" ~/nixos-shimboot --include="*.nix"; end | wl-copy
+begin; command -v rg &>/dev/null; and rg "graphical-session" ~/nixos-config --type nix -n; or grep -rn "graphical-session" ~/nixos-config --include="*.nix"; end | wl-copy
 ```
 
 **Systemd-aware status check:**
@@ -512,6 +512,23 @@ git rebase -i HEAD~3
 
 ## Documentation (Rule 12)
 
+**Sentence-level readability — one topic per line:**
+```markdown
+# Bad: three unrelated ideas in one sentence
+This project uses a flake-based approach over the original scripts, which expect a FHS-compliant build host, and Nix flakes provide reliable, declarative image generation.
+
+# Good: split at idea boundaries
+This project uses a flake-based approach over the original scripts, which expect a FHS-compliant build host.
+
+Nix flakes with `raw-efi` image building provide reliable, declarative image generation on NixOS.
+```
+
+**When used:**
+- Conjunctive chains (and, then, also) → separate lines
+- Distinct concepts or steps → separate lines
+- Explanations of *why* → their own line
+- Parenthetical asides → own sentence or paragraph
+
 **Self-documenting structure:**
 ```
 # Good: Structure conveys purpose
@@ -648,4 +665,36 @@ sudo tee "$DEST/build.json" >/dev/null <<EOF
   "git_commit": "$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 }
 EOF
+```
+
+## Tone and Formatting (Rule 16)
+
+**No em dashes — use commas or sentence separation:**
+```markdown
+# Bad
+ChromeOS RMA shims are bootable recovery images; they run even on enterprise-enrolled devices.
+
+# Good: sentence split
+ChromeOS RMA shims are bootable recovery images. They run even on enterprise-enrolled devices.
+
+# Good: comma
+Boot NixOS on locked ChromeOS devices via the RMA shim vulnerability, no firmware modification, no unenrollment.
+```
+
+**Prefer Unicode symbols over emojis:**
+```markdown
+# Bad: emoji checkmarks (render inconsistently across terminals)
+| dedede | Intel | 5.4.85 | 258 ✅ · 259 ✅ |
+
+# Good: Unicode symbol (consistent rendering)
+| dedede | Intel | 5.4.85 | 258 ✓ · 259 ✓ |
+```
+
+**Informed over assumed:**
+```markdown
+# Bad: invents mechanism to fill explanatory gap
+Systemd 258+ uses open_tree/move_mount syscalls. ChromeOS kernels backport these, so 258 works.
+
+# Good: states what's verified, leaves gap explicit
+Systemd 258 tested working on dedede. The mechanism is not confirmed; ChromeOS kernel may backport the required syscalls, or the constraint may not apply.
 ```

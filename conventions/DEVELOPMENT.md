@@ -791,7 +791,7 @@ nix-shell -p pandoc --run "pandoc input.md -o output.pdf"
   - Enables selective imports/overrides
 - **SoC in practice:** Each module directory maps to one concern
   (`system/`, `home/`, `secrets/`). Avoid catch-all directories
-  (`misc/`, `stuff/`, `helpers/`) — if a name doesn't declare a concern,
+  (`misc/`, `stuff/`, `helpers/`). If a name doesn't declare a concern,
   the structure is wrong
 - **SRP in practice:** If a file changes for two unrelated reasons across
   separate commits, it should have been two files
@@ -845,7 +845,7 @@ configuration/
 
 **Rationale:** Large monolithic files obscure boundaries between concerns. Splitting by role makes changes traceable, reviews focused, and imports selective. A soft threshold prevents premature fragmentation while nudging toward healthier structure.
 
-**When to stratify:** Consider splitting files approaching **800–1000 lines** (soft guideline). Context matters — some files are naturally long (e.g., single-file deployments, portable scripts). Don't split for the sake of splitting.
+**When to stratify:** Consider splitting files approaching **800–1000 lines** (soft guideline). Context matters; some files are naturally long (e.g., single-file deployments, portable scripts). Don't split for the sake of splitting.
 
 **Two valid patterns:**
 
@@ -1377,8 +1377,7 @@ git rebase -i HEAD~3
 - No priority markers
   - Bad: "TODO (HIGH PRIORITY): Fix bug"
   - Good: "Fix: API returns 500 on empty payload"
-- Verified claims only
-  - If unsure, say "may" or "typically" rather than stating as fact
+- **Informed over assumed:** State only what has been verified. If unverified, qualify explicitly ("untested", "theoretical", "may"). Avoid filling gaps with plausible-sounding mechanisms; a gap is better than a wrong explanation. Trivial claims exempt.
 
 **Code blocks when used:**
 ````markdown
@@ -1413,6 +1412,49 @@ configuration/
 ```
 
 **Lazy principle:** Tree exploration > README maintenance. Newcomers learn by examining structure.
+
+### Collapsible Docs
+
+When documentation sections are numerous or long, use HTML5 `<details>/<summary>` for collapsibility:
+
+```markdown
+<details>
+<summary>Section Title</summary>
+
+Content here — use bullets, code blocks, etc.
+
+</details>
+```
+
+- All sections collapsed by default (`<details>` without `open`)
+- Open only high-priority sections (e.g. installation): `<details open>`
+- Prefer bullet lists over tables within collapsed sections
+- Collapsing reduces scroll fatigue while keeping all info accessible
+
+### Sentence-Level Readability
+
+**Rule:** One topic per line in markdown documentation. Split dense paragraphs at idea boundaries.
+
+```markdown
+# Bad: three topics crammed into one sentence
+The script builds Nix derivations, harvests ChromeOS drivers from the recovery image, and assembles a partitioned disk image at work/shimboot.img.
+
+# Good: one idea per line
+The script builds Nix derivations and harvests ChromeOS drivers from the recovery image.
+
+Assembles a partitioned disk image at `work/shimboot.img`.
+```
+
+**When to split:**
+- Each sentence introduces a distinct concept or step
+- Conjunctive chains (and, then, also) signal separate ideas
+- Explanations of *why* belong on their own line
+- Parenthetical asides should become their own sentence or paragraph
+
+**Why:**
+- Scanning is faster than reading — one idea per line lets readers skip irrelevant topics without parsing compound sentences
+- Diffs are cleaner — changing one idea changes one line, not a shared sentence
+- Reduces cognitive load — no parsing of comma-separated topic shifts
 
 ## 13. Validation
 
@@ -1798,13 +1840,39 @@ const reverseString = (str) => {
 - **No emoticons** unless explicitly requested
   - Bad: `# 🚀 Deploy script`
   - Good: `# Deploy script`
+- **Prefer Unicode symbols over emojis** when icons are needed: use text-category symbols (✓, ✗, →, ⚠) not emoji-category pictograms (✅, ❌, 🚀). Unicode symbols render consistently across terminals and fonts.
 - **Abbreviate common terms** (unless stated otherwise):
   - configuration → config (context-dependent)
   - repository → repo
   - temporary → temp
   - initialize → init
 - **Professional tone:** Technical, direct, unambiguous
+- **No em dashes:** Use commas or split into separate sentences. Em dashes obscure sentence boundaries and complicate diffing.
+  - Bad: `The shim is unverified — it can be replaced.`
+  - Good: `The shim is unverified. It can be replaced.`
 - **Avoid redundancy:** Each word should add value
+- **Anti-slop writing rules:** The patterns below mark machine-generated prose. Avoid them in all developer writing: comments, commit messages, docs, code review, and architecture decisions.
+
+**Banned intensifiers** (replace with the number or fact they stand in for):
+  - extremely, dramatically, exceptionally, significantly, incredibly, remarkably, truly, absolutely, literally, very, quite, rather
+
+**Banned filler phrases:**
+  - "In today's world", "It's important to note", "When it comes to", "At the end of the day", "It goes without saying", "Look no further", "Let's dive in", "Here's the thing", "But here's the kicker"
+
+**Banned AI verbs** (use plain equivalents):
+  - delve → explore, leverage → use, utilize → use, facilitate → help/enable, foster → encourage, bolster → strengthen, underscore → highlight, unveil → reveal, streamline → simplify, endeavour → try, ascertain → find out, elucidate → explain
+
+**Banned AI transitions** (use plain connectors):
+  - Furthermore, Moreover, Notwithstanding, That being said, In essence, At its core, To put it simply, It is worth noting that
+
+**Banned academic tells:**
+  - "shed light on", "pave the way for", "a myriad of", "a plethora of", paramount, prior to → before, subsequent to → after, in terms of → about/for
+
+**No weasel words:** "may potentially", "helps ensure", "can potentially". Either the thing happens or it does not. Commit or cut.
+
+**No dramatic or narrative headings:** Headings describe what the section contains, not what it means. Use concrete, technical descriptions, not thriller chapter titles.
+  - Bad: "The Hidden Cost of Convenience"
+  - Good: "Subscription cost accumulation over time"
 
 ## 17. Example Patterns
 
@@ -1834,7 +1902,7 @@ See [DEV-EXAMPLES.md](./DEV-EXAMPLES.md) for concrete reference examples from re
 
 ### Systemd
 
-- Not every host runs systemd — could be non-systemd Linux, BSD, macOS, WSL, etc.
+- Not every host runs systemd; could be non-systemd Linux, BSD, macOS, WSL, etc.
 - Do not assume `systemctl` exists; if the command fails or doesn't exist, skip it
 - Do not wrap systemd-dependent commands in error traps that abort the whole one-shot
 - Prefer checking availability first: `command -v systemctl &>/dev/null && systemctl ...`
@@ -1842,7 +1910,7 @@ See [DEV-EXAMPLES.md](./DEV-EXAMPLES.md) for concrete reference examples from re
 
 ### Search tools
 
-- **Prefer ripgrep (`rg`)** when available — faster, respects `.gitignore` automatically
+- **Prefer ripgrep (`rg`)** when available; faster, respects `.gitignore` automatically
 - **Fallback:** `grep -r` with shell globs, `awk`, `sed`, or any available tools as appropriate
 - Do not assume `rg` exists; check with `command -v rg &>/dev/null` or just use `grep -r` if uncertain
 
@@ -2141,7 +2209,7 @@ For contributors coming from a design background:
 When a unit-level override exists for a concern, that unit has **detached
 from the shared model** for that concern. In Figma terms: detached
 instance. In DDD terms: bounded context with a broken conformist
-relationship. Both mean the same thing — it opted out, it owns the copy,
+relationship. Both mean the same thing; it opted out, it owns the copy,
 changes to base will not propagate to it automatically.
 
 ---
