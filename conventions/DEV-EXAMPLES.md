@@ -698,3 +698,70 @@ Systemd 258+ uses open_tree/move_mount syscalls. ChromeOS kernels backport these
 # Good: states what's verified, leaves gap explicit
 Systemd 258 tested working on dedede. The mechanism is not confirmed; ChromeOS kernel may backport the required syscalls, or the constraint may not apply.
 ```
+
+**No hollow statements — end every claim on a concrete detail:**
+```markdown
+# Bad: asserts importance without a checkable fact
+This practice has had a significant impact on people.
+
+# Good: replace the intensifier with the number it stood in for
+The company replaced 11 million batteries in 2018, against the 1 to 2 million it had expected.
+```
+
+**No dramatic headings — describe the content, do not tease it:**
+```markdown
+# Bad: thriller-style title
+## The Hidden Cost of Planned Obsolescence
+
+# Good: concrete technical description
+## Economic impact of shortened product lifespans
+```
+
+**No unsourced statistics — cut numbers without attribution:**
+```markdown
+# Bad: fabricated figure
+Repair restrictions cost consumers over $40 billion annually.
+
+# Good: real, attributable number
+In July 2021, the FTC voted 5-0 to step up enforcement against illegal repair restrictions.
+```
+
+**No hedging in declarative sections — commit or cut:**
+```markdown
+# Bad: blanket qualifiers on established facts
+Serialization may potentially prevent independent repair.
+
+# Good: documented fact, stated directly
+Replacing an iPhone 15 camera module without the manufacturer's calibration software disables optical image stabilization.
+```
+
+**No banned AI verbs or adjectives — use plain equivalents:**
+```markdown
+# Bad: AI verb + intensifier + vague adjective
+The new system leverages a robust, comprehensive framework to significantly enhance performance.
+
+# Good: plain language with specifics
+The new system uses a 64-bit kernel with unified page tables. Benchmarks show a 12% throughput gain on the test suite.
+```
+
+**No fabricated attributions — state only what the source actually did:**
+```markdown
+# Bad: invents a position
+Senator Smith has argued that the right to repair is essential.
+
+# Good: documented action
+Senator Smith co-sponsored the Fair Repair Act in January 2024.
+```
+
+**No repeated section structures — vary paragraph count and opening style:**
+```markdown
+# Bad: three identical-shape sections
+In 2021, Apple did X. This affected N people. Apple responded by Y.
+In 2022, Samsung did X. This affected N people. Samsung responded by Y.
+In 2023, Google did X. This affected N people. Google responded by Y.
+
+# Good: varied shapes
+Section one: a detailed narrative with timeline and context across two paragraphs.
+Section two: a two-sentence summary, because the event is thinly documented.
+Section three: opens with the company's stated justification, then the contradicting evidence.
+```

@@ -1874,6 +1874,95 @@ const reverseString = (str) => {
   - Bad: "The Hidden Cost of Convenience"
   - Good: "Subscription cost accumulation over time"
 
+**Heading anti-patterns to cut:**
+
+| Pattern | Bad | Good |
+|---|---|---|
+| "The [Concept] Trap" | "The Initialization Trap" | "Import vs. initialize: DDF metadata destruction risk" |
+| "The [Adjective] [Noun]" drama | "The Hidden Danger" | "Firmware corruption after sudden power loss" |
+| "[Noun]: The [Adjective] [Noun]" | "Encryption: The Hidden Trap" | "Hardware AES-256 encryption on WD Passport bridge boards" |
+| "Why [Action] [Dramatic Verb] [Object]" | "Why Rebuilding Destroys Everything" | "How forced rebuilds overwrite parity on degraded arrays" |
+| "The [Noun] You [Emotion Verb]" | "The Risk You Overlook" | "Unmonitored SMART threshold warnings" |
+| Vague analytical | "Broader Implications" | "Impact on third-party repair parts availability" |
+
+**No unsourced statistics:** Every number must be real and attributable. If the source cannot be stated, cut the number. A fabricated figure is worse than no figure.
+
+**No hollow statements:** Every claim must end with a concrete, verifiable detail. If a sentence asserts importance without a specific fact, a date, a dollar amount, a part number, or a named source, delete it.
+
+**No synthetic enthusiasm:** Do not add exclamation marks or cheerleading. State the facts. The evidence carries the weight.
+
+**No performative urgency:** "Act now" needs a concrete consequence (a real deadline, a real penalty) in the same sentence, or it gets cut.
+
+**No fabricated facts:** Never invent case studies, scenarios, historical dates, milestones, or attributed quotes. Do not claim a person, organization, or company said something without a real, verifiable source. If a fact cannot be supported, delete it. Do not narrate what you searched for and failed to find.
+
+**Quote sources accurately:** When attributing text in quotation marks, match the source exactly. Do not correct grammar, swap pronouns, or clean up wording. Mark alterations with square brackets. Paraphrase without quotation marks if the wording is awkward.
+
+**No repeated talking points:** Say it once. Duplicates are padding.
+
+**Vary structure:** Three consecutive sections or paragraphs with identical layout is a pattern. Break it. Vary paragraph length, sentence rhythm, and how each section opens.
+
+**Reference without narrating the reference:** Do not write "as discussed above" or "as we will see." Make the connection and move on.
+
+**Hedging threshold:** Epistemic modals ("may", "might", "could", "potentially") and cognitive hedges ("it seems", "arguably", "likely") should not blanket declarative sections. In established-fact contexts (background, history, timeline), more than three hedges per paragraph or eight per 1,000 words signals AI-generated slop. Hedge only for genuinely pending or disputed claims.
+
+**No scare quotes on normal words:** Use quotation marks only for actual quotations from a named source.
+
+**Banned adjectives** (overused by models; use plain equivalents):
+  - robust → strong, reliable, thorough
+  - comprehensive → complete, thorough, full, detailed
+  - pivotal → key, critical, central, important
+  - crucial / vital → important, key, essential, critical
+  - transformative → significant, important, major
+  - cutting-edge / groundbreaking / innovative → new, advanced, recent, modern, original, creative
+  - seamless → smooth, easy, effortless
+  - intricate → complex, detailed, complicated
+  - nuanced → subtle, complex, detailed
+  - multifaceted → complex, varied, diverse
+  - holistic → complete, whole, comprehensive
+
+**Banned metaphorical nouns** (literal uses are fine; flag metaphorical):
+  - tapestry ("a tapestry of regulations") → literal only (actual woven fabric)
+  - symphony ("a symphony of features") → literal only (actual musical composition)
+  - beacon ("a beacon of hope") → literal only (actual light or signal device)
+  - realm ("in the realm of cybersecurity") → literal only (actual kingdom or territory)
+  - testament ("a testament to innovation") → literal only (actual legal document)
+
+**Inflated symbolism phrases** (high-frequency AI tells):
+  - "provide a valuable insight"
+  - "left an indelible mark"
+  - "play a significant role in shaping"
+  - "an unwavering commitment"
+  - "open a new avenue"
+  - "a stark reminder"
+  - "gain a comprehensive understanding"
+  - "serves as a testament"
+  - "watershed moment"
+  - "deeply rooted"
+
+**Hallucinated markup artifacts:** AI tools sometimes emit citation placeholders from training data. These strings in generated text mean zero editing occurred. Zero tolerance:
+  - `oaicite`, `contentReference`, `grok_card`, `attributableIndex`, `turn0search0`
+
+**Structural variance rules** (machine text is uniform; human text varies):
+- **Sentence length uniformity:** If a 500-word block contains no sentences under 8 words or over 30 words, it lacks human burstiness. Target one sentence under 10 words and one over 20 per 3-paragraph block.
+- **Paragraph length uniformity:** If all paragraphs in a section are within 15% of each other in word count, vary them intentionally.
+- **Opening-word repetition:** Three or more consecutive paragraphs starting with the same word or phrase is a mechanical pattern. Vary openers.
+- **Transition density:** If more than 30% of paragraphs begin with a transition word or adverbial clause, the text is structurally artificial.
+- **Contrasting parallelism:** More than two instances of "It's not X. It's Y." or "It’s not about X, it’s about Y." in a 500-word block is an AI tell.
+
+**Self-check before returning prose:** Run this pass on generated docs, comments, and commit messages before committing.
+  1. Search for em dashes and remove.
+  2. Scan for banned verbs (delve, leverage, utilize, foster, bolster, underscore, unveil, streamline) and replace.
+  3. Scan for banned adjectives and intensifiers (robust, comprehensive, pivotal, seamless, significantly, extremely, truly) and cut or replace.
+  4. Scan for banned transitions and openers (Furthermore, Moreover, That being said, In today's world, It's worth noting that).
+  5. Check every number: is it real and attributable? If not, cut it.
+  6. Check every sentence ends on a concrete detail, not an assertion of importance.
+  7. Check headings: does each name the content rather than tease it?
+  8. Check for repeated points and repeated section shapes.
+  9. Check for fabricated attributions or unsourced quotes.
+  10. Count hedging markers per paragraph. More than three is a red flag.
+  11. Ensure varied sentence lengths: in any 3-paragraph block, at least one sentence under 10 words and one over 20.
+  12. Read it aloud. If a phrase would sound unnatural to a colleague, rewrite it.
+
 ## 17. Example Patterns
 
 See [DEV-EXAMPLES.md](./DEV-EXAMPLES.md) for concrete reference examples from real projects (NixOS/Home Manager/Hyprland/Fish context). Optional reading.
