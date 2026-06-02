@@ -21,3 +21,7 @@ vmlinuz
 shimboot_config/selected-profile.nix
 shimboot_config/secrets.nix
 .readme-cache
+
+# Command Code agent local data (taste, session logs)
+.commandcode/
+/pi-session-*.html
