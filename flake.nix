@@ -76,10 +76,20 @@
       # 257.9 proven working on dedede 5.4.85, octopus 4.14.x.
       # Ref: https://github.com/ading2210/shimboot/issues/405
       pkgsSystemd = import nixpkgs-systemd { inherit system; };
+      # Shimboot-specific patches applied on top of nixpkgs systemd.
+      #
+      # The pidfd-spawn → posix_spawn fallback is no longer needed here:
+      # the pinned nixpkgs systemd 257.9 source already handles it via the
+      # clone_support state machine in posix_spawn_wrapper() (see
+      # https://github.com/NixOS/nixpkgs/commit/d3736636ac39ed678e557977b65d620ca75142d0).
+      # The earlier shimboot-specific patch no longer applies because that
+      # function was restructured — CI cachix-systemd failed with
+      # "Hunk #1 FAILED at 2208" on every run since 2026-05. See
+      # patches/systemd-process-util-pidfd-fallback.patch for the obsolete
+      # original.
       systemd257 = pkgsSystemd.systemd.overrideAttrs (old: {
         patches = (old.patches or [ ]) ++ [
           ./patches/systemd-mountpoint-util-chromeos.patch
-          ./patches/systemd-process-util-pidfd-fallback.patch
         ];
         # nixpkgs-unstable logind.nix reads these passthru attrs;
         # the pinned nixpkgs's systemd predates that convention.
