@@ -72,9 +72,9 @@ Injected via `specialArgs`, not overlay, to avoid cross-version function argumen
 
 Systemd 260 raised the minimum kernel baseline from 5.4 to 5.10 ([systemd 259 README](https://github.com/systemd/systemd/blob/b3d8fc43e9cb531d958c17ef2cd93b374bc14e8a/README#L51) vs [systemd 260 README](https://github.com/systemd/systemd/blob/c0a5a2516d28601fb3afc1a77d7b42fcfe38fced/README#L58)).
 
-Dedede's 5.4 ChromeOS kernel meets 259's minimum (5.4) but falls below 260's (5.10), which is why 259 works and 260 fails. The baseline bump alone is sufficient — dedede simply can't run 260.
+Dedede's 5.4 ChromeOS kernel meets 259's minimum (5.4) but falls below 260's (5.10), which is why 259 works and 260 fails. The baseline bump alone is sufficient, dedede simply can't run 260.
 
-Kernel 5.4 does include `open_tree`/`move_mount`/`fsopen` (added in 5.2) and the dedede shim has them. It does not include `mount_setattr` (added in 5.12). Systemd 259 uses `mount_new_api_supported()` to probe for `mount_setattr` and graciously falls back to classic `mount()`/`MS_BIND`/`MS_MOVE` when unavailable. Systemd 260 extended new mount API usage into `get_sub_mounts()` and `bind_mount_submounts()` without runtime guards, but this is academic — the 5.10 baseline already rules out dedede before any syscall is attempted.
+Kernel 5.4 does include `open_tree`/`move_mount`/`fsopen` (added in 5.2) and the dedede shim has them. It does not include `mount_setattr` (added in 5.12). Systemd 259 uses `mount_new_api_supported()` to probe for `mount_setattr` and graciously falls back to classic `mount()`/`MS_BIND`/`MS_MOVE` when unavailable. Systemd 260 extended new mount API usage into `get_sub_mounts()` and `bind_mount_submounts()` without runtime guards, but this is academic, the 5.10 baseline already rules out dedede before any syscall is attempted.
 
 259.x is the ceiling. 258 and 259 tested working on dedede ([shimboot#405 (comment)](https://github.com/ading2210/shimboot/issues/405#issuecomment-4231104253)).
 
@@ -100,7 +100,7 @@ nix build .#shimboot-image-<board>-luks
 nix build .#shimboot-image-<board>-headless-luks
 ```
 
-The Nix build runs fully in the sandbox — no sudo, no loop devices. Store optimization
+The Nix build runs fully in the sandbox, no sudo, no loop devices. Store optimization
 (hard-link dedup) and git self-repair metadata are applied at build time via `debugfs`
 + `fakeroot`.
 
@@ -150,7 +150,7 @@ Assembles a partitioned disk image at `work/shimboot.img`.
 
 Headless variants need WiFi to be usable via SSH. Two options:
 
-1. **Via `secrets.nix`** (gitignored) — create `shimboot_config/secrets.nix`:
+1. **Via `secrets.nix`** (gitignored), create `shimboot_config/secrets.nix`:
    ```nix
    { wifi = { ssid = "MyNetwork"; psk = "password"; }; }
    ```
@@ -159,7 +159,7 @@ Headless variants need WiFi to be usable via SSH. Two options:
    nix build "path:$PWD#shimboot-image-<board>-headless"
    ```
 
-2. **Via derivation parameter** — pass credentials directly (pure, no secrets.nix needed):
+2. **Via derivation parameter**, pass credentials directly (pure, no secrets.nix needed):
    ```nix
    mkShimbootImage { headless = true; wifi = { ssid = "MyNetwork"; psk = "password"; }; }
    ```
@@ -467,7 +467,7 @@ This occurs because the ChromeOS LSM blocks tmpfs mounts even when running as ro
 
 ## Solution
 
-On dedede (kernel 5.4.85), SUID bwrap alone handles tmpfs — the `chromiumos`
+On dedede (kernel 5.4.85), SUID bwrap alone handles tmpfs, the `chromiumos`
 LSM does not block `mount("tmpfs", ...)` when running as root via
 `security.wrappers.bwrap`. No additional workaround is needed for basic bwrap
 sandboxing.
@@ -484,14 +484,14 @@ launch flatpak apps bypassing flatpak's sandbox setup.
 ### Usage
 
 ```bash
-# SUID bwrap — works on dedede without any shim
+# SUID bwrap, works on dedede without any shim
 bwrap --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp -- ./myapp
 
-# bwrap-mount-shim — optional LD_PRELOAD fallback
+# bwrap-mount-shim, optional LD_PRELOAD fallback
 bwrap-mount-shim steam                    # LD_PRELOAD only
 bwrap-mount-shim --sandbox ./myapp        # LD_PRELOAD + bwrap sandbox
 
-# Flatpak apps — bypass flatpak's broken sandbox on 5.4
+# Flatpak apps, bypass flatpak's broken sandbox on 5.4
 bwrap-mount-shim --sandbox -- \
   /var/lib/flatpak/app/.../files/bin/app
 ```
@@ -502,8 +502,8 @@ bwrap-mount-shim --sandbox -- \
 
 The [`security.nix`](shimboot_config/base_configuration/system/security.nix) module provides:
 
-- `bwrap` — SUID wrapper for namespace creation (ChromeOS kernels restrict unprivileged user namespaces)
-- `bwrap-mount-shim` — LD_PRELOAD shim compiled from [`mount_shim.c`](patches/bwrap-mount-shim.c), plus a convenience wrapper script
+- `bwrap`, SUID wrapper for namespace creation (ChromeOS kernels restrict unprivileged user namespaces)
+- `bwrap-mount-shim`, LD_PRELOAD shim compiled from [`mount_shim.c`](patches/bwrap-mount-shim.c), plus a convenience wrapper script
 
 The C shim intercepts `mount("tmpfs", ...)` calls, creates a unique directory via `mkdtemp` under `$BWRAP_CACHE_DIR` (default: `/tmp/bwrap-cache`), and converts the call to `mount("bind", ...)`. Created directories are cleaned up on normal exit via `atexit`.
 
@@ -512,7 +512,7 @@ The C shim intercepts `mount("tmpfs", ...)` calls, creates a unique directory vi
 Steam compatibility is unverified on shimboot hardware. On Debian-based
 shimboot (upstream), Steam works with SUID bwrap alone ([shimboot#26](https://github.com/ading2210/shimboot/issues/26)).
 If the ChromeOS LSM blocks tmpfs on a given board, `bwrap-mount-shim steam`
-can be used as a fallback — the LD_PRELOAD shim intercepts `mount()` inside
+can be used as a fallback, the LD_PRELOAD shim intercepts `mount()` inside
 `pressure-vessel` without any symlink patching or per-update maintenance.
 
 The legacy [`fix-steam-bwrap.sh`](shimboot_config/base_configuration/system/helpers/fix-steam-bwrap.sh)
@@ -537,13 +537,13 @@ Temp directories are created under:
 ${BWRAP_CACHE_DIR:-/tmp/bwrap-cache}/tmpfs-XXXXXXXX
 ```
 
-Directories are cleaned up on normal process exit via `atexit`. On signal kill or abrupt namespace teardown, cleanup may not run — `/tmp` is cleared on reboot regardless.
+Directories are cleaned up on normal process exit via `atexit`. On signal kill or abrupt namespace teardown, cleanup may not run, `/tmp` is cleared on reboot regardless.
 
 ### Limitations
 
-- **Performance** — bind mounts may have slightly different characteristics than tmpfs
-- **Compatibility** — some applications may expect true tmpfs behavior (e.g., size limits via `--tmpfs-size`)
-- **Cleanup** — `atexit` is best-effort; directories may persist until reboot on abnormal exit
+- **Performance**, bind mounts may have slightly different characteristics than tmpfs
+- **Compatibility**, some applications may expect true tmpfs behavior (e.g., size limits via `--tmpfs-size`)
+- **Cleanup**, `atexit` is best-effort; directories may persist until reboot on abnormal exit
 
 ## Troubleshooting
 
@@ -568,7 +568,7 @@ Directories are cleaned up on normal process exit via `atexit`. On signal kill o
 
 ### Application-specific issues
 
-Some applications bundle their own bwrap. The LD_PRELOAD shim handles these transparently — no per-application configuration needed. If tmpfs calls still fail, verify the shim is loaded:
+Some applications bundle their own bwrap. The LD_PRELOAD shim handles these transparently, no per-application configuration needed. If tmpfs calls still fail, verify the shim is loaded:
 
 ```bash
 LD_PRELOAD=/path/to/mount_shim.so ldd /path/to/app | grep mount_shim

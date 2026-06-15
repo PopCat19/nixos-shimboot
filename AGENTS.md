@@ -28,7 +28,7 @@ sudo ./tools/write/write-shimboot-image.sh
 
 ## README workflow
 
-Never edit `README.md` directly — it is generated from fragments.
+Never edit `README.md` directly, it is generated from fragments.
 
 ```bash
 tools/readme.sh sync       # fragments → README.md + validate refs
@@ -45,11 +45,11 @@ Module headers serve as in-code documentation. Every file with a `Purpose:` line
 
 Repo-specific rules:
 
-- **Cites require permalinks** — link to commit-blob URLs, not relative paths
-- **No em dashes** — commas or sentence splits only
-- **Unicode symbols over emojis** — `✓ ✗` not `✅ ❌`
-- **One topic per line** — split dense paragraphs at idea boundaries
-- **Informed over assumed** — qualify unverified claims. A gap is better than a wrong explanation.
+- **Cites require permalinks**, link to commit-blob URLs, not relative paths
+- **No em dashes**, commas or sentence splits only
+- **Unicode symbols over emojis**, `✓ ✗` not `✅ ❌`
+- **One topic per line**, split dense paragraphs at idea boundaries
+- **Informed over assumed**, qualify unverified claims. A gap is better than a wrong explanation.
 
 ## Testing
 
@@ -66,7 +66,7 @@ tools/readme.sh check
 
 ## Key directories
 
-Explore by directory name — the tree is self-documenting:
+Explore by directory name, the tree is self-documenting:
 
 | Directory | Concern |
 |-----------|---------|

@@ -1,9 +1,9 @@
 # Context
 
-- `flake.nix` — Main flake entry point with core binary cache configuration
-- `flake.lock` — Dependency lock file for reproducible builds
-- `AGENTS.md` — Coordination guidelines for AI coding agents
-- `README.md` — Detailed documentation of the shimboot build system
+- `flake.nix`, Main flake entry point with core binary cache configuration
+- `flake.lock`, Dependency lock file for reproducible builds
+- `AGENTS.md`, Coordination guidelines for AI coding agents
+- `README.md`, Detailed documentation of the shimboot build system
 
 ## Binary Caches
 

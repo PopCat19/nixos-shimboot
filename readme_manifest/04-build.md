@@ -17,7 +17,7 @@ nix build .#shimboot-image-<board>-luks
 nix build .#shimboot-image-<board>-headless-luks
 ```
 
-The Nix build runs fully in the sandbox — no sudo, no loop devices. Store optimization
+The Nix build runs fully in the sandbox, no sudo, no loop devices. Store optimization
 (hard-link dedup) and git self-repair metadata are applied at build time via `debugfs`
 + `fakeroot`.
 
@@ -67,7 +67,7 @@ Assembles a partitioned disk image at `work/shimboot.img`.
 
 Headless variants need WiFi to be usable via SSH. Two options:
 
-1. **Via `secrets.nix`** (gitignored) — create `shimboot_config/secrets.nix`:
+1. **Via `secrets.nix`** (gitignored), create `shimboot_config/secrets.nix`:
    ```nix
    { wifi = { ssid = "MyNetwork"; psk = "password"; }; }
    ```
@@ -76,7 +76,7 @@ Headless variants need WiFi to be usable via SSH. Two options:
    nix build "path:$PWD#shimboot-image-<board>-headless"
    ```
 
-2. **Via derivation parameter** — pass credentials directly (pure, no secrets.nix needed):
+2. **Via derivation parameter**, pass credentials directly (pure, no secrets.nix needed):
    ```nix
    mkShimbootImage { headless = true; wifi = { ssid = "MyNetwork"; psk = "password"; }; }
    ```
