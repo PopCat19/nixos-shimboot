@@ -4,7 +4,7 @@
 
 **Principles:** KISS (Keep It Simple, Stupid), DRY (Don't Repeat Yourself), SoC (Separation of Concerns), SRP (Single Responsibility Principle), CoC (Convention over Configuration), lazy maintenance, self-documenting code.
 
-**Reading Guide:** This document is comprehensive (1.5~3k lines) covering multiple languages and use cases. Use the table of contents to navigate to relevant sections. Each rule is independently simple; apparent complexity comes from breadth of coverage. Rule 17 (Example Patterns) is optional reference material.
+**Reading Guide:** This document is a full reference (~1.5-3k lines) covering multiple languages and use cases. Use the table of contents to navigate to relevant sections. Each rule is independently simple; apparent complexity comes from breadth of coverage. Rule 17 (Example Patterns) is optional reference material.
 
 ## Table of Contents
 
@@ -103,7 +103,7 @@
   - Use `# Validates here because...` not `# We validate here because...`
   - Use `fix: update API endpoint` not `fix: we updated the API`
 
-### Nix (NixOS, Home Manager, Flakes)
+### Nix
 
 **Formatter:** `nixfmt` (RFC 166, merged as default)
 
@@ -776,7 +776,7 @@ nix-shell -p pandoc --run "pandoc input.md -o output.pdf"
 - **Max depth:** 6 levels from repository root
   - Counting: Start from repo root (where `.git` lives)
   - Monorepo note: Count from app/package root instead (e.g., `apps/myapp/` is depth 0)
-- **Dir names:** Simple, descriptive, single-purpose (e.g., `auth/`, `models/` — not `miscellaneous/`, `stuff/`)
+- **Dir names:** Simple, descriptive, single-purpose (e.g., `auth/`, `models/`, not `miscellaneous/`, `stuff/`)
 - **Configurable files:** Group flat rather than deep (user-facing settings should be easy to find)
 
 **Modular design:**
@@ -849,7 +849,7 @@ configuration/
 
 **Two valid patterns:**
 
-**Domain subdirs** — group files by independent feature or concern:
+**Domain subdirs**, group files by independent feature or concern:
 ```
 # Before: single 1200-line auth.nix
 config/
@@ -864,7 +864,7 @@ config/
     context.md
 ```
 
-**Layer subdirs** — group files by architectural layer:
+**Layer subdirs**, group files by architectural layer:
 ```
 # Before: single 1100-line api-client.ts
 src/
@@ -881,9 +881,9 @@ src/
 ```
 
 **Choosing a pattern:**
-- **Domain:** Use when concerns are independent features (login vs tokens vs sessions — each is a distinct capability)
-- **Layer:** Use when files share concerns across architectural boundaries (types, handlers, middleware — each operates on the same domain)
-- **When in doubt:** Prefer domain — it maps closer to how humans think about modules
+- **Domain:** Use when concerns are independent features (login vs tokens vs sessions, each is a distinct capability)
+- **Layer:** Use when files share concerns across architectural boundaries (types, handlers, middleware, each operates on the same domain)
+- **When in doubt:** Prefer domain, it maps closer to how humans think about modules
 
 **Rules that still apply:**
 - **Depth:** New subdirs count toward the 6-level budget
@@ -894,9 +894,9 @@ src/
 
 **Scope:** Applies to project source code. Convention/reference docs (like this file) use table-of-contents navigation instead.
 
-### Directory Index Files (`context.md`)
+### Directory Index Files
 
-Add a `context.md` to any folder where filenames alone don't convey the full picture — typically 5+ files forming a non-obvious module grouping.
+Add a `context.md` to any folder where filenames alone don't convey the full picture, typically 5+ files forming a non-obvious module grouping.
 
 **When to create:**
 - Folder has multiple files whose purpose isn't evident from names alone
@@ -911,14 +911,14 @@ Add a `context.md` to any folder where filenames alone don't convey the full pic
 ```markdown
 # Context
 
-- `filename.ext` — One-line present-tense purpose
-- `other-file.ext` — One-line present-tense purpose
+- `filename.ext`, One-line present-tense purpose
+- `other-file.ext`, One-line present-tense purpose
 ```
 
 **Single source of truth:**
 - **Derive from file headers:** Each entry must match the file's header `Purpose:` line verbatim (or near-verbatim if truncated for length)
 - The file header is the authoritative source; `context.md` is a derived surface
-- This enables automated drift detection — updating a header without updating `context.md` triggers the hook
+- This enables automated drift detection, updating a header without updating `context.md` triggers the hook
 
 **Files in context.md require headers:**
 - Any file listed in `context.md` **must** have a file header with a `Purpose:` line
@@ -927,9 +927,9 @@ Add a `context.md` to any folder where filenames alone don't convey the full pic
 
 **Rules:**
 - One line per file, present-tense verb phrase (from header `Purpose:`)
-- Directories are excluded — they own their own `context.md`
+- Directories are excluded, they own their own `context.md`
 - Always tracked in git; never gitignored
-- **Must be updated atomically with file additions, removals, and renames** — same commit, no exceptions
+- **Must be updated atomically with file additions, removals, and renames**, same commit, no exceptions
 - Treat an outdated `context.md` as broken as a missing import
 
 **Drift detection:**
@@ -1421,7 +1421,7 @@ When documentation sections are numerous or long, use HTML5 `<details>/<summary>
 <details>
 <summary>Section Title</summary>
 
-Content here — use bullets, code blocks, etc.
+Content here, use bullets, code blocks, etc.
 
 </details>
 ```
@@ -1452,9 +1452,9 @@ Assembles a partitioned disk image at `work/shimboot.img`.
 - Parenthetical asides should become their own sentence or paragraph
 
 **Why:**
-- Scanning is faster than reading — one idea per line lets readers skip irrelevant topics without parsing compound sentences
-- Diffs are cleaner — changing one idea changes one line, not a shared sentence
-- Reduces cognitive load — no parsing of comma-separated topic shifts
+- Scanning is faster than reading, one idea per line lets readers skip irrelevant topics without parsing compound sentences
+- Diffs are cleaner, changing one idea changes one line, not a shared sentence
+- Reduces cognitive load, no parsing of comma-separated topic shifts
 
 ## 13. Validation
 
@@ -1848,7 +1848,7 @@ const reverseString = (str) => {
   - initialize → init
 - **Professional tone:** Technical, direct, unambiguous
 - **No em dashes:** Use commas or split into separate sentences. Em dashes obscure sentence boundaries and complicate diffing.
-  - Bad: `The shim is unverified — it can be replaced.`
+  - Bad: `The shim is unverified, it can be replaced.`
   - Good: `The shim is unverified. It can be replaced.`
 - **Avoid redundancy:** Each word should add value
 - **Anti-slop writing rules:** The patterns below mark machine-generated prose. Avoid them in all developer writing: comments, commit messages, docs, code review, and architecture decisions.
@@ -1857,7 +1857,7 @@ const reverseString = (str) => {
   - extremely, dramatically, exceptionally, significantly, incredibly, remarkably, truly, absolutely, literally, very, quite, rather
 
 **Banned filler phrases:**
-  - "In today's world", "It's important to note", "When it comes to", "At the end of the day", "It goes without saying", "Look no further", "Let's dive in", "Here's the thing", "But here's the kicker"
+  - "In today's world", "It's important to note", "When it comes to", "At the end of the day", "It goes without saying", "Look no further", "Let's dive in", "Here's the thing", "But here's the kicker", "This is where X comes in", "Our team of experts"
 
 **Banned AI verbs** (use plain equivalents):
   - delve → explore, leverage → use, utilize → use, facilitate → help/enable, foster → encourage, bolster → strengthen, underscore → highlight, unveil → reveal, streamline → simplify, endeavour → try, ascertain → find out, elucidate → explain
@@ -1866,11 +1866,15 @@ const reverseString = (str) => {
   - Furthermore, Moreover, Notwithstanding, That being said, In essence, At its core, To put it simply, It is worth noting that
 
 **Banned academic tells:**
-  - "shed light on", "pave the way for", "a myriad of", "a plethora of", paramount, prior to → before, subsequent to → after, in terms of → about/for
+  - "shed light on", "pave the way for", "a myriad of", "a plethora of", paramount, in light of → because of, prior to → before, subsequent to → after, in terms of → about/for
 
 **No weasel words:** "may potentially", "helps ensure", "can potentially". Either the thing happens or it does not. Commit or cut.
 
-**No dramatic or narrative headings:** Headings describe what the section contains, not what it means. Use concrete, technical descriptions, not thriller chapter titles.
+**No parentheticals in headings:** Trust the reader. Do not add parenthetical clarifications, scopes, or asides inside headings. If the heading cannot carry the point, restructure.
+  - Bad: `## Build system (NixOS / Home Manager)`
+  - Good: `## Build system`
+
+**No dramatic or narrative headings:** Headings describe what the section contains, not what it means. Use concrete, technical descriptions, not thriller chapter titles. No parenthetical asides in headings, if the heading cannot carry the point, restructure.
   - Bad: "The Hidden Cost of Convenience"
   - Good: "Subscription cost accumulation over time"
 
@@ -1893,9 +1897,15 @@ const reverseString = (str) => {
 
 **No performative urgency:** "Act now" needs a concrete consequence (a real deadline, a real penalty) in the same sentence, or it gets cut.
 
-**No fabricated facts:** Never invent case studies, scenarios, historical dates, milestones, or attributed quotes. Do not claim a person, organization, or company said something without a real, verifiable source. If a fact cannot be supported, delete it. Do not narrate what you searched for and failed to find.
+**Never start a sentence with "Whether you're":** This three-example pattern ("Whether you're a developer, a designer, or a manager...") is a high-confidence AI tell. Rewrite.
+
+**No fabricated facts:** Never invent case studies, scenarios, historical dates, milestones, or attributed quotes. Do not claim a person, organization, or company said something without a real, verifiable source. If a fact cannot be supported, delete it.
+
+**No research-process narration:** Report the facts you can support and silently omit what you cannot. Do not narrate what you searched for and failed to find ("could not be located", "was not found"). Do not attach an "as of [date]" qualifier to your own inability to find something. If a fact cannot be supported, delete it. Do not tell the reader you looked.
 
 **Quote sources accurately:** When attributing text in quotation marks, match the source exactly. Do not correct grammar, swap pronouns, or clean up wording. Mark alterations with square brackets. Paraphrase without quotation marks if the wording is awkward.
+  - Short quotes (≤ ~15 words): keep run-in inside the sentence, introduced with a brief attribution clause.
+  - Long quotes (> ~15 words): set off as an indented block, introduced by a one-sentence attribution clause, so the source's voice is visually distinct.
 
 **No repeated talking points:** Say it once. Duplicates are padding.
 
@@ -1948,6 +1958,8 @@ const reverseString = (str) => {
 - **Opening-word repetition:** Three or more consecutive paragraphs starting with the same word or phrase is a mechanical pattern. Vary openers.
 - **Transition density:** If more than 30% of paragraphs begin with a transition word or adverbial clause, the text is structurally artificial.
 - **Contrasting parallelism:** More than two instances of "It's not X. It's Y." or "It’s not about X, it’s about Y." in a 500-word block is an AI tell.
+
+**Root-cause differentiation:** When you contrast two things, name the concrete difference that separates them. Do not assert that one is exempt, newer, better, or unaffected without stating what specifically makes it so (the part, the version, the date, the mechanism, or the supply-chain change). If you do not have that detail, do not imply the difference exists.
 
 **Self-check before returning prose:** Run this pass on generated docs, comments, and commit messages before committing.
   1. Search for em dashes and remove.
@@ -2129,7 +2141,7 @@ done
 
 # Generate changelog
 cat > "$CHANGELOG" <<EOF
-# Changelog — ${CURRENT_BRANCH} → ${TARGET_BRANCH}
+# Changelog, ${CURRENT_BRANCH} → ${TARGET_BRANCH}
 
 **Date:** $(date -u +"%Y-%m-%d")
 **Branch:** ${CURRENT_BRANCH}
@@ -2169,7 +2181,7 @@ git commit --amend --no-edit
 ### Changelog Format
 
 ```markdown
-# Changelog — feature-branch → main
+# Changelog, feature-branch → main
 
 **Date:** 2026-02-13
 **Branch:** dev
@@ -2245,20 +2257,20 @@ terms to your repo's actual structure in your root `context.md` under a
 |------|------------|
 | **Domain** | Bounded area of concern |
 | **Subdomain** | Narrower concern within a domain |
-| **Bounded Context** | Everything scoped to one deployable unit — its own rules and overrides |
+| **Bounded Context** | Everything scoped to one deployable unit, its own rules and overrides |
 | **Context Boundary** | The seam where unit-specific config meets shared config |
 | **Shared Kernel** | Code multiple domains depend on without any single domain owning |
 | **Anti-Corruption Layer** | Translates raw inputs into a normalized shape before the rest of the system sees them |
 | **Infrastructure** | Plumbing that supports domains without belonging to any |
 | **Supporting Domain** | Exists to serve the core domain, not be it |
-| **Generic Subdomain** | Solved problem, not unique to this domain — patch upstream, move on |
+| **Generic Subdomain** | Solved problem, not unique to this domain, patch upstream, move on |
 
 ### Building block terms
 
 | Term | Definition |
 |------|------------|
 | **Entity** | A thing with identity, distinguished from others of its kind |
-| **Value Object** | No identity of its own — a pure value, swappable and reusable |
+| **Value Object** | No identity of its own, a pure value, swappable and reusable |
 | **Aggregate** | The root that pulls all parts of one entity into a coherent whole |
 | **Aggregate Root** | The single entry point everything resolves through |
 | **Repository** | Knows how to find and assemble all entities of a type |
@@ -2270,8 +2282,8 @@ terms to your repo's actual structure in your root `context.md` under a
 | Term | Definition |
 |------|------------|
 | **Policy** | A named rule set applied to entities |
-| **Specification** | Defines what it means to satisfy a named policy — inclusion criteria |
-| **Strategy** | Per-entity behavioral override — same interface, different implementation |
+| **Specification** | Defines what it means to satisfy a named policy, inclusion criteria |
+| **Strategy** | Per-entity behavioral override, same interface, different implementation |
 | **Base Domain** | Core shared reality every entity inherits |
 | **Detached Instance** | An entity that opted out of shared behavior and owns its own implementation |
 | **Ubiquitous Language** | The shared vocabulary all contributors and agents use to describe a repo |

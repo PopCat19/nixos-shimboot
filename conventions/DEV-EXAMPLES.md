@@ -117,7 +117,7 @@ log_cmd   "parted --script img ..."   #   $   (dim)
 log_sep                               # ────  (dim rule, terminal width)
 ```
 
-**Step counter — declare total upfront:**
+**Step counter, declare total upfront:**
 ```bash
 cli_steps_init 8
 CURRENT_STEP="$(cli_step_next)"   # → "1/8"
@@ -184,7 +184,7 @@ log_info "Selected: ${CLI_CHOICE}"
 # Plain text emitted automatically in CI pipelines
 ```
 
-**Fish — same API surface:**
+**Fish, same API surface:**
 ```fish
 source (dirname (status filename))/../tools/libcli.fish
 
@@ -334,7 +334,7 @@ configuration/
 }
 ```
 
-**CoC — structural deviation requires justification:**
+**CoC, structural deviation requires justification:**
 ```nix
 # Bad: catch-all directory, concern unclear
 configuration/
@@ -352,7 +352,7 @@ configuration/
     └── greeter.nix
 ```
 
-**SRP signal — two unrelated commit messages touching the same file:**
+**SRP signal, two unrelated commit messages touching the same file:**
 ```
 # Warning sign: both of these changed services.nix
 feat(services): enable syncthing
@@ -512,7 +512,7 @@ git rebase -i HEAD~3
 
 ## Documentation (Rule 12)
 
-**Sentence-level readability — one topic per line:**
+**Sentence-level readability, one topic per line:**
 ```markdown
 # Bad: three unrelated ideas in one sentence
 This project uses a flake-based approach over the original scripts, which expect a FHS-compliant build host, and Nix flakes provide reliable, declarative image generation.
@@ -669,7 +669,7 @@ EOF
 
 ## Tone and Formatting (Rule 16)
 
-**No em dashes — use commas or sentence separation:**
+**No em dashes, use commas or sentence separation:**
 ```markdown
 # Bad
 ChromeOS RMA shims are bootable recovery images; they run even on enterprise-enrolled devices.
@@ -699,7 +699,7 @@ Systemd 258+ uses open_tree/move_mount syscalls. ChromeOS kernels backport these
 Systemd 258 tested working on dedede. The mechanism is not confirmed; ChromeOS kernel may backport the required syscalls, or the constraint may not apply.
 ```
 
-**No hollow statements — end every claim on a concrete detail:**
+**No hollow statements, end every claim on a concrete detail:**
 ```markdown
 # Bad: asserts importance without a checkable fact
 This practice has had a significant impact on people.
@@ -708,7 +708,7 @@ This practice has had a significant impact on people.
 The company replaced 11 million batteries in 2018, against the 1 to 2 million it had expected.
 ```
 
-**No dramatic headings — describe the content, do not tease it:**
+**No dramatic headings, describe the content, do not tease it:**
 ```markdown
 # Bad: thriller-style title
 ## The Hidden Cost of Planned Obsolescence
@@ -717,7 +717,7 @@ The company replaced 11 million batteries in 2018, against the 1 to 2 million it
 ## Economic impact of shortened product lifespans
 ```
 
-**No unsourced statistics — cut numbers without attribution:**
+**No unsourced statistics, cut numbers without attribution:**
 ```markdown
 # Bad: fabricated figure
 Repair restrictions cost consumers over $40 billion annually.
@@ -726,7 +726,7 @@ Repair restrictions cost consumers over $40 billion annually.
 In July 2021, the FTC voted 5-0 to step up enforcement against illegal repair restrictions.
 ```
 
-**No hedging in declarative sections — commit or cut:**
+**No hedging in declarative sections, commit or cut:**
 ```markdown
 # Bad: blanket qualifiers on established facts
 Serialization may potentially prevent independent repair.
@@ -735,7 +735,7 @@ Serialization may potentially prevent independent repair.
 Replacing an iPhone 15 camera module without the manufacturer's calibration software disables optical image stabilization.
 ```
 
-**No banned AI verbs or adjectives — use plain equivalents:**
+**No banned AI verbs or adjectives, use plain equivalents:**
 ```markdown
 # Bad: AI verb + intensifier + vague adjective
 The new system leverages a robust, comprehensive framework to significantly enhance performance.
@@ -744,7 +744,7 @@ The new system leverages a robust, comprehensive framework to significantly enha
 The new system uses a 64-bit kernel with unified page tables. Benchmarks show a 12% throughput gain on the test suite.
 ```
 
-**No fabricated attributions — state only what the source actually did:**
+**No fabricated attributions, state only what the source actually did:**
 ```markdown
 # Bad: invents a position
 Senator Smith has argued that the right to repair is essential.
@@ -753,7 +753,7 @@ Senator Smith has argued that the right to repair is essential.
 Senator Smith co-sponsored the Fair Repair Act in January 2024.
 ```
 
-**No repeated section structures — vary paragraph count and opening style:**
+**No repeated section structures, vary paragraph count and opening style:**
 ```markdown
 # Bad: three identical-shape sections
 In 2021, Apple did X. This affected N people. Apple responded by Y.
@@ -764,4 +764,41 @@ In 2023, Google did X. This affected N people. Google responded by Y.
 Section one: a detailed narrative with timeline and context across two paragraphs.
 Section two: a two-sentence summary, because the event is thinly documented.
 Section three: opens with the company's stated justification, then the contradicting evidence.
+```
+
+**No parentheticals in headings, trust the reader:**
+```markdown
+# Bad: parenthetical scope inside heading
+## Build system (NixOS / Home Manager)
+
+# Good: heading states the topic, details follow
+## Build system
+The system uses Nix flakes. Home Manager modules configure per-user environments.
+```
+
+**Never start with "Whether you're":**
+```markdown
+# Bad: three-example AI tell
+Whether you're a developer, a designer, or a manager, the convention applies.
+
+# Good: state the grouping directly
+The convention applies to all contributors.
+```
+
+**Root-cause differentiation, name the concrete difference:**
+```markdown
+# Bad: asserts difference without mechanism
+2020+ Leaf models are unaffected and use the MyNISSAN app instead.
+
+# Good: names the part, the version, the mechanism
+2020+ Leaf models shipped with 4G/LTE telematics units connected to a newer cloud platform, replacing the 2G/3G units in earlier models. Those vehicles use the MyNISSAN app, which talks to a different backend.
+```
+
+**No research-process narration:**
+```markdown
+# Bad: narrates the failed search
+A detailed search of the FDA database for Class I recall filings was conducted on June 12, 2025, with no results found matching the specified criteria.
+
+# Good: omit what cannot be supported
+The device has no publicly documented Class I recalls.
 ```

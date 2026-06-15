@@ -69,9 +69,9 @@ check_context_drift() {
 			local ctx_desc
 			# shellcheck disable=SC2016
 			filename=$(echo "$line" | grep -oE '`[^`]+`' | tr -d '`')
-			# Text after first " — " following the filename (Purpose may contain additional em dashes)
+			# Text after first ", " following the filename
 			# shellcheck disable=SC2016
-			ctx_desc=$(echo "$line" | sed -n 's/^[^`]*`[^`]*`[[:space:]]*—[[:space:]]*//p' | sed 's/[[:space:]]*$//')
+			ctx_desc=$(echo "$line" | sed -n 's/^[^`]*`[^`]*`[[:space:]]*,[[:space:]]*//p' | sed 's/[[:space:]]*$//')
 
 			[[ -z "$filename" || -z "$ctx_desc" ]] && continue
 

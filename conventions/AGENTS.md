@@ -18,7 +18,7 @@ Opinionated agent development rules and conventions. Covers:
 - Principles (KISS, DRY, SoC, SRP, CoC, maintainable over clever)
 - Vocabulary (DDD + Figma bridge, repo-agnostic definitions)
 
-**Reading guide:** Comprehensive document (1.5~3k lines). Use the table of contents to navigate to relevant sections.
+**Reading guide:** Full document (~1.5-3k lines). Use the table of contents to navigate to relevant sections.
 
 ### SKILL.md
 
@@ -48,7 +48,9 @@ Concrete examples demonstrating conventions from DEVELOPMENT.md. Includes:
 
 ### context.md
 
-Each directory with 5+ non-obvious files has a `context.md` listing every file with a one-line purpose. These derive from file header `Purpose:` lines and must stay in sync.
+Each directory with 5+ non-obvious files has a `context.md` listing every file with a one-line purpose.
+
+Entries derive from file header `Purpose:` lines and must stay in sync.
 
 **Reading guide:** Check `context.md` to understand a directory's contents without opening each file.
 
@@ -56,7 +58,9 @@ Each directory with 5+ non-obvious files has a `context.md` listing every file w
 
 ### dev-conventions.sh
 
-Unified CLI for all convention tooling. Entry point for changelog, sync, and lint commands.
+Unified CLI for all convention tooling.
+
+Entry point for changelog, sync, and lint commands.
 
 **Usage:**
 ```bash
@@ -81,17 +85,19 @@ Shell script linting and formatting (shfmt, shellcheck). Called via `dev-convent
 
 ### src/check-context.sh
 
-Verifies `context.md` files match actual directory contents. Detects structural and content drift.
+Verifies `context.md` files match actual directory contents.
+
+Detects structural and content drift.
 
 ## Important Notice
 
 **Do not revise these files unless explicitly requested by the user:**
 
-- `DEVELOPMENT.md` — Established conventions for this project
-- `DEV-EXAMPLES.md` — Reference examples tied to DEVELOPMENT.md rules
-- `SKILL.md` — Condensed conventions derived from DEVELOPMENT.md
-- `src/changelog.sh` — Workflow script following project conventions
-- `src/sync.sh` — Workflow script following project conventions
+- `DEVELOPMENT.md`, Established conventions for this project
+- `DEV-EXAMPLES.md`, Reference examples tied to DEVELOPMENT.md rules
+- `SKILL.md`, Condensed conventions derived from DEVELOPMENT.md
+- `src/changelog.sh`, Workflow script following project conventions
+- `src/sync.sh`, Workflow script following project conventions
 
 **Repo-specific vocabulary mapping lives in the root `context.md`, not in
 convention files. Do not add project paths to DEVELOPMENT.md or
