@@ -453,7 +453,9 @@ A cache-hit check runs before each build. If the toplevel closure already exists
 
 ## Overview
 
-ChromeOS's security model includes a Linux Security Module (LSM) called `chromiumos` that restricts certain operations, including mounting tmpfs filesystems. This causes issues with `bwrap` (bubblewrap), which is commonly used for sandboxing applications like Steam, AppImages, and various Nix packages.
+ChromeOS’s security model includes a Linux Security Module (LSM) called `chromiumos` that restricts certain operations, including mounting tmpfs filesystems.
+
+This causes issues with `bwrap` (bubblewrap), which is commonly used for sandboxing applications like Steam, AppImages, and various Nix packages.
 
 ## Problem
 
@@ -654,4 +656,4 @@ Users unfamiliar with Nix should try it in a VM first ([nixos.org/download](http
 </details>
 <!-- END fragment: 13-roadmap.md -->
 
-<!-- generated: 20260520-ca5515c -->
+<!-- generated: 20260615-08ea7bf -->
