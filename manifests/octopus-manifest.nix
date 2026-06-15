@@ -1,3 +1,7 @@
+# octopus-manifest.nix
+#
+# Purpose: Define kernel, firmware, and driver configurations for octopus board family
+#
 {
   name = "octopus.zip";
   hash = "sha256-sh6iEkfeAQasV4PtxhXWgasqOjI2LgFWpobuPJSkWD8=";

@@ -1,3 +1,7 @@
+# hatch-manifest.nix
+#
+# Purpose: Define kernel, firmware, and driver configurations for hatch board family
+#
 {
   name = "hatch.zip";
   hash = "sha256-EPS6sCDVAM89J3JvtB9QOBTEwxtzCf1ony02MTLv5s0=";

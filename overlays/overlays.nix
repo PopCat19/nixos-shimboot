@@ -1,3 +1,7 @@
+# overlays.nix
+#
+# Purpose: Nix package overlay definitions for shimboot system packages
+#
 # Architecture-aware overlays
 _system: [
   # Custom packages overlay

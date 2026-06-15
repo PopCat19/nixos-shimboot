@@ -1,3 +1,7 @@
+# zork-manifest.nix
+#
+# Purpose: Define kernel, firmware, and driver configurations for zork board family
+#
 {
   name = "zork.zip";
   hash = "sha256-G+dOxqWJ26vRKz0nt6Nvs2+H9XvB1Wzkwfjk/7Vsr6o=";

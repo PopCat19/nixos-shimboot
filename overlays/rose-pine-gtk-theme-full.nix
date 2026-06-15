@@ -1,3 +1,7 @@
+# rose-pine-gtk-theme-full.nix
+#
+# Purpose: Nix package overlay definitions for shimboot system packages
+#
 # Overlay wrapper that exposes rose-pine-gtk-theme-full as pkgs.rose-pine-gtk-theme-full
 _final: prev:
 let

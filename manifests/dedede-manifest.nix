@@ -1,3 +1,7 @@
+# dedede-manifest.nix
+#
+# Purpose: Define kernel, firmware, and driver configurations for dedede board family
+#
 {
   name = "dedede.zip";
   hash = "sha256-x8/mzZOs7xu/ni6ByqY8X1cLXW5vydmIZl0Thri+CVs=";

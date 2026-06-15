@@ -25,3 +25,6 @@ shimboot_config/secrets.nix
 # Command Code agent local data (taste, session logs)
 .commandcode/
 /pi-session-*.html
+core.*
+.temp/
+MANIFESTS/

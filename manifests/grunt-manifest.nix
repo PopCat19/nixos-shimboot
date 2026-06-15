@@ -1,3 +1,7 @@
+# grunt-manifest.nix
+#
+# Purpose: Define kernel, firmware, and driver configurations for grunt board family
+#
 {
   name = "grunt.zip";
   hash = "sha256-q6ZKuXj+5FbhIuA2wUqj3a88L8RlBsEJlp1bnQdSkOE=";

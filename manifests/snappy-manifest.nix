@@ -1,3 +1,7 @@
+# snappy-manifest.nix
+#
+# Purpose: Define kernel, firmware, and driver configurations for snappy board family
+#
 {
   name = "snappy.zip";
   hash = "sha256-p2+xJS5ZS8rk+Jls9MhuWjT6m6MVlz6N0yoidkht7h8=";

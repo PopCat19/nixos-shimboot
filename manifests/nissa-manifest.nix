@@ -1,3 +1,7 @@
+# nissa-manifest.nix
+#
+# Purpose: Define kernel, firmware, and driver configurations for nissa board family
+#
 {
   name = "nissa.zip";
   hash = "sha256-YX5ahUWKMLGCpW+gkoju7A6h8Sq+zy3d5+3ruSpHOSQ=";
