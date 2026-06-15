@@ -15,7 +15,7 @@
 - `luks2.nix`, Configure LUKS2 encrypted root filesystem support for shimboot
 - `networking.nix`, Configure network services for ChromeOS compatibility
 - `nh.nix`, Configure nh (nix-community/nh) as the Nix CLI helper
-- `packages.nix`, Install absolutely minimal essential system packages only
+- `packages.nix`, Install minimal essential system packages only
 - `power-management.nix`, Configure system power and CPU scaling for ChromeOS devices
 - `security.nix`, Configure system security and authorization
 - `services.nix`, Configure essential system services
