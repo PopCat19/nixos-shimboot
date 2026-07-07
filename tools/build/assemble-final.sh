@@ -304,11 +304,14 @@ if [ "${ROOTFS_FLAVOR}" = "headless" ]; then
 				echo "[assemble-final] Warning: Empty password for SSID '$WIFI_SSID'"
 			fi
 			# Write secrets.nix (gitignored)
+		# Escape double quotes, backslashes, and ${} for Nix string safety
+		WIFI_SSID_ESC="$(printf '%s' "$WIFI_SSID" | sed 's/["\\$]/\\&/g')"
+		WIFI_PASSWORD_ESC="$(printf '%s' "$WIFI_PASSWORD" | sed 's/["\\$]/\\&/g')"
 		cat > "$SECRETS_FILE" <<SECREOF
 {
   wifi = {
-    ssid = "${WIFI_SSID}";
-    psk = "${WIFI_PASSWORD}";
+    ssid = "${WIFI_SSID_ESC}";
+    psk = "${WIFI_PASSWORD_ESC}";
   };
 }
 SECREOF
@@ -318,7 +321,7 @@ SECREOF
 fi
 
 # LUKS2 password onboarding (when --luks)
-if [ "$LUKS_ENABLED" -eq 1 ] && [ -z "$LUKS_PASSWORD" ]; then
+if [ "$LUKS_ENABLED" -eq 1 ] && [ -z "${LUKS_PASSWORD:-}" ] && [ -z "${LUKS_PASSWORD_FILE:-}" ]; then
 	if [ -t 0 ]; then
 		echo
 		echo "[assemble-final] LUKS2 encryption enabled. Set a passphrase for the rootfs."
@@ -339,6 +342,13 @@ if [ "$LUKS_ENABLED" -eq 1 ] && [ -z "$LUKS_PASSWORD" ]; then
 		log_error "LUKS2 enabled but no passphrase provided. Use --luks-password PASS."
 		exit 1
 	fi
+fi
+
+# Read password from file if passed via sudo env (avoids /proc leak)
+if [ -n "${LUKS_PASSWORD_FILE:-}" ] && [ -z "${LUKS_PASSWORD:-}" ]; then
+	LUKS_PASSWORD="$(cat "$LUKS_PASSWORD_FILE" 2>/dev/null || echo "")"
+	rm -f "$LUKS_PASSWORD_FILE"
+	unset LUKS_PASSWORD_FILE
 fi
 
 # Validate args after onboarding
@@ -363,10 +373,18 @@ require_sudo() {
 	if [ "${EUID:-$(id -u)}" -ne 0 ]; then
 		echo "[assemble-final] Re-executing with sudo -H..."
 		echo "[assemble-final] Please enter your sudo password when prompted..."
+# Write LUKS password to a temp file instead of passing via env (leaks through /proc)
+		LUKS_PASSWORD_FILE=""
+		if [ -n "${LUKS_PASSWORD:-}" ]; then
+			LUKS_PASSWORD_FILE="$(mktemp /tmp/luks-password-XXXXXX)"
+			printf '%s' "$LUKS_PASSWORD" > "$LUKS_PASSWORD_FILE"
+			chmod 600 "$LUKS_PASSWORD_FILE"
+			unset LUKS_PASSWORD
+		fi
 		SUDO_ENV=()
 		for var in BOARD BOARD_EXPLICITLY_SET CACHIX_AUTH_TOKEN ROOTFS_FLAVOR DRIVERS_MODE \
 			FIRMWARE_UPSTREAM DRY_RUN INSPECT_AFTER CLEANUP_ROOTFS CLEANUP_NO_DRY_RUN \
-			CLEANUP_KEEP PREWARM_CACHE PUSH_TO_CACHIX WIFI_SSID LUKS_ENABLED LUKS_PASSWORD; do
+			CLEANUP_KEEP PREWARM_CACHE PUSH_TO_CACHIX WIFI_SSID LUKS_ENABLED LUKS_PASSWORD_FILE; do
 			if [ -n "${!var:-}" ]; then SUDO_ENV+=("$var=${!var}"); fi
 		done
 		exec sudo -E -H "${SUDO_ENV[@]}" "$0" --no-sudo "$@"

@@ -12,6 +12,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 LIB_DIR="$(cd "$SCRIPT_DIR/../lib" && pwd)"
 # shellcheck source=logging.sh
 source "$LIB_DIR/logging.sh"
@@ -21,7 +22,7 @@ source "$LIB_DIR/runtime.sh"
 # ---------- Defaults ----------
 # Auto-detect board from work directory or use first available board
 detect_default_board() {
-	local work_dir="/home/popcat19/nixos-shimboot/work"
+	local work_dir="${PROJECT_ROOT}/work"
 	if [[ -d "$work_dir" ]]; then
 		# Find first board directory with a shimboot.img
 		for board_dir in "$work_dir"/*/; do
@@ -42,7 +43,7 @@ detect_default_board() {
 }
 
 DEFAULT_BOARD="${DEFAULT_BOARD:-$(detect_default_board)}"
-DEFAULT_IMAGE="/home/popcat19/nixos-shimboot/work/${DEFAULT_BOARD}/shimboot.img"
+DEFAULT_IMAGE="${PROJECT_ROOT}/work/${DEFAULT_BOARD}/shimboot.img"
 INPUT_IMAGE="${INPUT_IMAGE:-${DEFAULT_IMAGE}}"
 DOWNLOAD_DIR=""
 OUTPUT_DEVICE=""
@@ -792,13 +793,14 @@ main() {
 	parse_args "$@"
 
 	# Update INPUT_IMAGE based on BOARD if not explicitly provided
-	if [[ -z "${INPUT_IMAGE:-}" || "${INPUT_IMAGE}" == "/home/popcat19/nixos-shimboot/work/${DEFAULT_BOARD}/shimboot.img" ]]; then
+	local work_base="${PROJECT_ROOT}/work"
+	if [[ -z "${INPUT_IMAGE:-}" || "${INPUT_IMAGE}" == "${work_base}/${DEFAULT_BOARD}/shimboot.img" ]]; then
 		# If BOARD was explicitly set or using the default, update the path
-		INPUT_IMAGE="/home/popcat19/nixos-shimboot/work/${BOARD}/shimboot.img"
+		INPUT_IMAGE="${work_base}/${BOARD}/shimboot.img"
 		if [[ ! -f "${INPUT_IMAGE}" ]]; then
 			warn "Image not found for board '${BOARD}': ${INPUT_IMAGE}"
 			# Try to auto-detect available boards
-			local work_dir="/home/popcat19/nixos-shimboot/work"
+			local work_dir="${work_base}"
 			if [[ -d "$work_dir" ]]; then
 				local available_boards=()
 				for board_dir in "$work_dir"/*/; do

@@ -21,14 +21,10 @@ mkdir -p "$BWRAP_CACHE_DIR"
 
 # Parse arguments and convert tmpfs to bind mounts
 args=()
-skip_next=false
 tmpfs_count=0
 
-for arg in "$@"; do
-	if [[ "$skip_next" == "true" ]]; then
-		skip_next=false
-		continue
-	fi
+for ((i=1; i <= $#; i++)); do
+	arg="${!i}"
 
 	# Convert --tmpfs to --bind with a cache directory
 	if [[ "$arg" == "--tmpfs" ]]; then
@@ -37,12 +33,16 @@ for arg in "$@"; do
 		mkdir -p "$tmpfs_dir"
 		chmod 700 "$tmpfs_dir"
 
-		# Use bind mount instead of tmpfs
-		args+=("--bind" "$tmpfs_dir")
+		# Next arg is the mount point destination
+		mount_point_idx=$((i + 1))
+		mount_point="${!mount_point_idx}"
+
+		# Use bind mount instead of tmpfs — needs source + destination
+		args+=("--bind" "$tmpfs_dir" "$mount_point")
 		tmpfs_count=$((tmpfs_count + 1))
 
-		# Skip the next argument (the mount point)
-		skip_next=true
+		# Skip the mount point arg
+		((i++))
 		continue
 	fi
 

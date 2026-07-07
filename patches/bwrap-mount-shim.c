@@ -97,7 +97,7 @@ int mount(const char *source, const char *target,
       return -1;
     }
     track_dir(bind_dir);
-    int ret = real_mount(source, target, NULL, MS_BIND, data);
+    int ret = real_mount(bind_dir, target, NULL, MS_BIND, data);
     free(bind_dir);
     return ret;
   }
