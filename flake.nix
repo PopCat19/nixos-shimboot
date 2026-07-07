@@ -65,9 +65,6 @@
         "snappy"
       ];
 
-      # Import nixpkgs-unstable for all packages
-      pkgs = import nixpkgs { inherit system; };
-
       # Pinned systemd 257.9 via overrideAttrs — the same approach gen 117 used.
       # Keeps native build config (PAM on → systemd-user-sessions binary built,
       # proper unit templates, wants symlinks). Only adds ChromeOS patches.
