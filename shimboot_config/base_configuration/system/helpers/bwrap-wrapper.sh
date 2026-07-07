@@ -26,7 +26,7 @@ chmod 700 "$BWRAP_CACHE_DIR"
 args=()
 tmpfs_count=0
 
-for ((i=1; i <= $#; i++)); do
+for ((i = 1; i <= $#; i++)); do
 	arg="${!i}"
 
 	# Convert --tmpfs to --bind with a cache directory

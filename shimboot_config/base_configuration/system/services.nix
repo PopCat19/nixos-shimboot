@@ -15,19 +15,19 @@
   # Disable coredumps to save disk space
   systemd.coredump.enable = lib.mkDefault false;
 
-  services.journald.extraConfig = lib.mkDefault ''
-    Storage=volatile
-    MaxRetentionSec=3day
-    RuntimeMaxUse=500M
-    RuntimeKeepFree=100M
-    Compress=yes
-    ForwardToSyslog=no
-    ForwardToWall=no
-  '';
-
-  services.libinput.enable = lib.mkDefault true;
-
   services = {
+    journald.extraConfig = lib.mkDefault ''
+      Storage=volatile
+      MaxRetentionSec=3day
+      RuntimeMaxUse=500M
+      RuntimeKeepFree=100M
+      Compress=yes
+      ForwardToSyslog=no
+      ForwardToWall=no
+    '';
+
+    libinput.enable = lib.mkDefault true;
+
     udisks2.enable = lib.mkDefault true;
     dbus.enable = lib.mkDefault true;
   };

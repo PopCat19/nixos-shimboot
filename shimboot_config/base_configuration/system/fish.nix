@@ -58,139 +58,142 @@ in
   config = lib.mkIf cfg.enable {
     # Priority 500: beats NixOS mkDefault (1000), consumers override with normal (100)
     # See environment.nix for full priority stack documentation
-    programs.fish.enable = lib.mkOverride 500 true;
-    programs.starship = lib.mkIf cfg.enableFunctions {
-      enable = lib.mkOverride 500 true;
-      settings = {
-        format = "$time$directory$git_branch$git_status$line_break$character";
+    programs = {
+      fish.enable = lib.mkOverride 500 true;
 
-        character = {
-          success_symbol = "[❯](bold foam)";
-          error_symbol = "[❯](bold love)";
-          vimcmd_symbol = "[❮](bold iris)";
-        };
+      starship = lib.mkIf cfg.enableFunctions {
+        enable = lib.mkOverride 500 true;
+        settings = {
+          format = "$time$directory$git_branch$git_status$line_break$character";
 
-        directory = {
-          style = "bold iris";
-          truncation_length = 3;
-          truncate_to_repo = false;
-          format = "[$path]($style)[$read_only]($read_only_style) ";
-          read_only = " 󰌾";
-          read_only_style = "love";
-        };
+          character = {
+            success_symbol = "[❯](bold foam)";
+            error_symbol = "[❯](bold love)";
+            vimcmd_symbol = "[❮](bold iris)";
+          };
 
-        git_branch = {
-          format = "[$symbol$branch(:$remote_branch)]($style) ";
-          symbol = " ";
-          style = "bold pine";
-          only_attached = true;
-        };
+          directory = {
+            style = "bold iris";
+            truncation_length = 3;
+            truncate_to_repo = false;
+            format = "[$path]($style)[$read_only]($read_only_style) ";
+            read_only = " 󰌾";
+            read_only_style = "love";
+          };
 
-        git_status = {
-          format = "([\\[$all_status$ahead_behind\\]]($style) )";
-          style = "bold rose";
-          conflicted = "=";
-          ahead = "⇡\${count}";
-          behind = "⇣\${count}";
-          diverged = "⇕⇡\${ahead_count}⇣\${behind_count}";
-          up_to_date = "";
-          untracked = "?\${count}";
-          stashed = "≡\${count}";
-          modified = "!\${count}";
-          staged = "+\${count}";
-          renamed = "»\${count}";
-          deleted = "✘\${count}";
-        };
+          git_branch = {
+            format = "[$symbol$branch(:$remote_branch)]($style) ";
+            symbol = " ";
+            style = "bold pine";
+            only_attached = true;
+          };
 
-        cmd_duration = {
-          format = "[$duration]($style) ";
-          style = "bold gold";
-          min_time = 2000;
-        };
+          git_status = {
+            format = "([\\[$all_status$ahead_behind\\]]($style) )";
+            style = "bold rose";
+            conflicted = "=";
+            ahead = "⇡\${count}";
+            behind = "⇣\${count}";
+            diverged = "⇕⇡\${ahead_count}⇣\${behind_count}";
+            up_to_date = "";
+            untracked = "?\${count}";
+            stashed = "≡\${count}";
+            modified = "!\${count}";
+            staged = "+\${count}";
+            renamed = "»\${count}";
+            deleted = "✘\${count}";
+          };
 
-        hostname = {
-          ssh_only = true;
-          format = "[$hostname]($style) in ";
-          style = "bold foam";
-        };
+          cmd_duration = {
+            format = "[$duration]($style) ";
+            style = "bold gold";
+            min_time = 2000;
+          };
 
-        username = {
-          show_always = false;
-          format = "[$user]($style)@";
-          style_user = "bold text";
-          style_root = "bold love";
-        };
+          hostname = {
+            ssh_only = true;
+            format = "[$hostname]($style) in ";
+            style = "bold foam";
+          };
 
-        package = {
-          format = "[$symbol$version]($style) ";
-          symbol = "📦 ";
-          style = "bold rose";
-        };
+          username = {
+            show_always = false;
+            format = "[$user]($style)@";
+            style_user = "bold text";
+            style_root = "bold love";
+          };
 
-        nodejs = {
-          format = "[$symbol($version)]($style) ";
-          symbol = " ";
-          style = "bold pine";
-        };
+          package = {
+            format = "[$symbol$version]($style) ";
+            symbol = "📦 ";
+            style = "bold rose";
+          };
 
-        python = {
-          format = "[\${symbol}\${pyenv_prefix}(\${version})(\\($virtualenv\\))]($style) ";
-          symbol = " ";
-          style = "bold gold";
-        };
+          nodejs = {
+            format = "[$symbol($version)]($style) ";
+            symbol = " ";
+            style = "bold pine";
+          };
 
-        rust = {
-          format = "[$symbol($version)]($style) ";
-          symbol = " ";
-          style = "bold love";
-        };
+          python = {
+            format = "[\${symbol}\${pyenv_prefix}(\${version})(\\($virtualenv\\))]($style) ";
+            symbol = " ";
+            style = "bold gold";
+          };
 
-        nix_shell = {
-          format = "[$symbol$state(\\($name\\))]($style) ";
-          symbol = " ";
-          style = "bold iris";
-          impure_msg = "[impure](bold love)";
-          pure_msg = "[pure](bold foam)";
-        };
+          rust = {
+            format = "[$symbol($version)]($style) ";
+            symbol = " ";
+            style = "bold love";
+          };
 
-        memory_usage = {
-          disabled = true;
-          threshold = 70;
-          format = "[$symbol\${ram}(\${swap})]($style) ";
-          symbol = "🐏 ";
-          style = "bold subtle";
-        };
+          nix_shell = {
+            format = "[$symbol$state(\\($name\\))]($style) ";
+            symbol = " ";
+            style = "bold iris";
+            impure_msg = "[impure](bold love)";
+            pure_msg = "[pure](bold foam)";
+          };
 
-        time = {
-          disabled = false;
-          format = "[$time]($style) ";
-          style = "bold muted";
-          time_format = "%T";
-          utc_time_offset = "local";
-        };
+          memory_usage = {
+            disabled = true;
+            threshold = 70;
+            format = "[$symbol\${ram}(\${swap})]($style) ";
+            symbol = "🐏 ";
+            style = "bold subtle";
+          };
 
-        status = {
-          disabled = true;
-          format = "[$symbol$status]($style) ";
-          symbol = "✖ ";
-          style = "bold love";
+          time = {
+            disabled = false;
+            format = "[$time]($style) ";
+            style = "bold muted";
+            time_format = "%T";
+            utc_time_offset = "local";
+          };
+
+          status = {
+            disabled = true;
+            format = "[$symbol$status]($style) ";
+            symbol = "✖ ";
+            style = "bold love";
+          };
         };
       };
+
+      fish.interactiveShellInit = lib.mkIf cfg.enableAbbreviations ''
+        # Source SoT environment variables from Nix
+        set -gx SOT_USERNAME ${username}
+        set -gx SOT_SHELL ${userData.shellPackage or "fish"}
+        set -gx SOT_TERM_CMD ${userConfig.defaultApps.terminal.command}
+        set -gx SOT_EDITOR_CMD ${userConfig.defaultApps.editor.command}
+
+        if not contains /etc/fish/functions $fish_function_path
+            set -g fish_function_path /etc/fish/functions $fish_function_path
+        end
+
+        ${coreAbbrs}
+      '';
     };
-
-    programs.fish.interactiveShellInit = lib.mkIf cfg.enableAbbreviations ''
-      # Source SoT environment variables from Nix
-      set -gx SOT_USERNAME ${username}
-      set -gx SOT_SHELL ${userData.shellPackage or "fish"}
-      set -gx SOT_TERM_CMD ${userConfig.defaultApps.terminal.command}
-      set -gx SOT_EDITOR_CMD ${userConfig.defaultApps.editor.command}
-
-      if not contains /etc/fish/functions $fish_function_path
-          set -g fish_function_path /etc/fish/functions $fish_function_path
-      end
-
-      ${coreAbbrs}
-    '';
 
     environment.etc = lib.mkIf cfg.enableFunctions {
       "fish/conf.d/00-shimboot.fish".text = ''

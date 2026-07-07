@@ -304,10 +304,10 @@ if [ "${ROOTFS_FLAVOR}" = "headless" ]; then
 				echo "[assemble-final] Warning: Empty password for SSID '$WIFI_SSID'"
 			fi
 			# Write secrets.nix (gitignored)
-		# Escape double quotes, backslashes, and ${} for Nix string safety
-		WIFI_SSID_ESC="$(printf '%s' "$WIFI_SSID" | sed 's/["\\$]/\\&/g')"
-		WIFI_PASSWORD_ESC="$(printf '%s' "$WIFI_PASSWORD" | sed 's/["\\$]/\\&/g')"
-		cat > "$SECRETS_FILE" <<SECREOF
+			# Escape double quotes, backslashes, and ${} for Nix string safety
+			WIFI_SSID_ESC="$(printf '%s' "$WIFI_SSID" | sed 's/["\\$]/\\&/g')"
+			WIFI_PASSWORD_ESC="$(printf '%s' "$WIFI_PASSWORD" | sed 's/["\\$]/\\&/g')"
+			cat >"$SECRETS_FILE" <<SECREOF
 {
   wifi = {
     ssid = "${WIFI_SSID_ESC}";
@@ -315,7 +315,7 @@ if [ "${ROOTFS_FLAVOR}" = "headless" ]; then
   };
 }
 SECREOF
-		log_info "WiFi credentials written to secrets.nix (gitignored)"
+			log_info "WiFi credentials written to secrets.nix (gitignored)"
 		fi
 	fi
 fi
@@ -373,11 +373,11 @@ require_sudo() {
 	if [ "${EUID:-$(id -u)}" -ne 0 ]; then
 		echo "[assemble-final] Re-executing with sudo -H..."
 		echo "[assemble-final] Please enter your sudo password when prompted..."
-# Write LUKS password to a temp file instead of passing via env (leaks through /proc)
+		# Write LUKS password to a temp file instead of passing via env (leaks through /proc)
 		LUKS_PASSWORD_FILE=""
 		if [ -n "${LUKS_PASSWORD:-}" ]; then
 			LUKS_PASSWORD_FILE="$(mktemp /tmp/luks-password-XXXXXX)"
-			printf '%s' "$LUKS_PASSWORD" > "$LUKS_PASSWORD_FILE"
+			printf '%s' "$LUKS_PASSWORD" >"$LUKS_PASSWORD_FILE"
 			chmod 600 "$LUKS_PASSWORD_FILE"
 			unset LUKS_PASSWORD
 		fi
@@ -739,7 +739,7 @@ if [ -n "$WIFI_SSID" ] && [ "${ROOTFS_FLAVOR}" = "headless" ]; then
 	ROOTFS_FETCHER="path:${PWD}#"
 	log_info "Using path: fetcher for headless rootfs (includes secrets.nix)"
 else
-	ROOTFS_FETCHER=".#" 
+	ROOTFS_FETCHER=".#"
 fi
 nix build "${NIX_BUILD_FLAGS[@]}" "${ROOTFS_FETCHER}${RAW_ROOTFS_ATTR}" &
 ROOTFS_PID=$!
@@ -1414,7 +1414,7 @@ if [ "$INSPECT_AFTER" = "--inspect" ]; then
 	fi
 	safe_exec sudo umount "$WORKDIR/inspect_rootfs"
 	if [ "$LUKS_ENABLED" -eq 1 ]; then
-		 safe_exec sudo cryptsetup close rootfs_inspect || true
+		safe_exec sudo cryptsetup close rootfs_inspect || true
 	fi
 	safe_exec sudo losetup -d "$LOOPDEV"
 fi

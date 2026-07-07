@@ -45,16 +45,18 @@ let
   '';
 in
 {
-  security.polkit.enable = true;
-  security.rtkit.enable = true;
+  security = {
+    polkit.enable = true;
+    rtkit.enable = true;
 
-  # SUID bwrap — required for namespace creation on ChromeOS kernels
-  # that restrict unprivileged user namespaces.
-  security.wrappers.bwrap = {
-    owner = "root";
-    group = "root";
-    source = "${pkgs.bubblewrap}/bin/bwrap";
-    setuid = true;
+    # SUID bwrap — required for namespace creation on ChromeOS kernels
+    # that restrict unprivileged user namespaces.
+    wrappers.bwrap = {
+      owner = "root";
+      group = "root";
+      source = "${pkgs.bubblewrap}/bin/bwrap";
+      setuid = true;
+    };
   };
 
   environment.systemPackages = [
