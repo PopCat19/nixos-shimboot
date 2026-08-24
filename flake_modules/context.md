@@ -7,4 +7,3 @@
 - `harvest-drivers.nix`, Extract ChromeOS kernel modules and firmware from shim/recovery images
 - `raw-image.nix`, Provides raw disk image building
 - `system-configuration.nix`, Provides NixOS system configuration module
-- `systemd-259.nix`, Build systemd 259.5 using nixpkgs-unstable packages
